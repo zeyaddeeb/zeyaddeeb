@@ -1,0 +1,26 @@
+{
+  "name": "zeyaddeeb",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "clean": "turbo clean"
+  },
+  "devDependencies": {
+    "turbo": "^2.6.3",
+    "typescript": "~5.9.3"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "bun@1.2.20",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}

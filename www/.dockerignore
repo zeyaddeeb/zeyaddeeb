@@ -1,0 +1,51 @@
+# Dependencies
+.turbo
+**/node_modules
+node_modules/
+
+# Build outputs
+**/.next
+.next/
+**/dist
+dist/
+**/build
+build/
+
+# Cache directories
+**/.cache
+.cache/
+**/tmp
+tmp/
+
+# Development files
+**/.git
+.git/
+**/.vscode
+.vscode/
+**/.idea
+.idea/
+
+# Environment files
+**/.env*
+.env*
+
+# Logs
+**/logs
+logs/
+**/*.log
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Test files
+**/*.test.*
+**/test/
+**/__tests__/
+**/coverage/
+
+# Documentation
+**/README.md
+**/*.md
+!README.md
