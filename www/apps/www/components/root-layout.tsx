@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactLenis } from "lenis/react";
+import { useState } from "react";
 import { CustomCursor } from "@/components/custom-cursor";
 import { IntroScreen } from "./intro-screen";
 
@@ -9,6 +10,8 @@ interface RootLayoutClientProps {
 }
 
 export function RootLayoutClient({ children }: RootLayoutClientProps) {
+	const [introComplete, setIntroComplete] = useState(false);
+
 	return (
 		<ReactLenis
 			root
@@ -17,8 +20,8 @@ export function RootLayoutClient({ children }: RootLayoutClientProps) {
 				duration: 1.4,
 			}}
 		>
-			<main>{children}</main>
-			<IntroScreen />
+			<div style={{ opacity: introComplete ? 1 : 0 }}>{children}</div>
+			<IntroScreen onComplete={() => setIntroComplete(true)} />
 			<CustomCursor />
 		</ReactLenis>
 	);

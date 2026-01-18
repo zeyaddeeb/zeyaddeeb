@@ -1,0 +1,141 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  detect-services:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      services: ${{ steps.set-services.outputs.services }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Find all services
+        id: set-services
+        run: |
+          # Define services to exclude from deployment
+          EXCLUDED_SERVICES='["root"]'
+
+          # Get all services and filter out excluded ones
+          ALL_SERVICES=$(yq -o=json '.projects' .moon/workspace.yml | jq -c 'keys')
+          SERVICES=$(echo "$ALL_SERVICES" | jq -c --argjson excluded "$EXCLUDED_SERVICES" '. - $excluded')
+
+          echo "services=${SERVICES}" >> $GITHUB_OUTPUT
+          echo "All services: ${ALL_SERVICES}"
+          echo "Excluded services: ${EXCLUDED_SERVICES}"
+          echo "Services to deploy: ${SERVICES}"
+
+  build:
+    needs: [detect-services]
+    runs-on: ubuntu-latest
+    environment: shared
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-services.outputs.services) }}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Moon
+        uses: moonrepo/setup-toolchain@v0
+        with:
+          moon-version: "1.35.7"
+          auto-install: false
+          cache: true
+
+      - name: Restore Moon Cache
+        uses: actions/cache/restore@v4
+        continue-on-error: true
+        with:
+          path: .moon/cache
+          key: moon-${{ matrix.service }}-${{ hashFiles('.moon/**/*', '${{ matrix.service }}/**/*') }}
+          restore-keys: |
+            moon-${{ matrix.service }}-
+
+      - name: Install Cargo
+        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-zeyaddeeb-OIDC-Role
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-session-name: zeyaddeeb-github-actions
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker build and push
+        env:
+          DOCKER_BUILDKIT: 1
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          moon run ${{ matrix.service }}:docker-push
+
+      - name: Save Moon Cache
+        uses: actions/cache/save@v4
+        with:
+          path: .moon/cache
+          key: moon-${{ matrix.service }}-${{ hashFiles('.moon/**/*', '${{ matrix.service }}/**/*') }}
+
+  deploy:
+    needs: [build, detect-services]
+    runs-on: ubuntu-latest
+    environment: shared
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-zeyaddeeb-OIDC-Role
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-session-name: zeyaddeeb-github-actions
+
+      - name: Install Moon
+        uses: moonrepo/setup-toolchain@v0
+        with:
+          moon-version: "1.35.7"
+          auto-install: false
+          cache: true
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.2.3
+
+      - name: Terraform Deploy
+        working-directory: deployments
+        env:
+          TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
+          TF_VAR_aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+          TF_VAR_environment: shared
+          TF_VAR_image_repository: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/zeyaddeeb
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.AWS_ACCOUNT_ID }}-infrastructure-remote-state" \
+            -backend-config="region=${{ secrets.AWS_REGION }}"
+          terraform plan
+          terraform apply -auto-approve

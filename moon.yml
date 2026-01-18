@@ -1,0 +1,20 @@
+stack: "infrastructure"
+
+tasks:
+  test:
+    command: 'echo "No tests to run"'
+  create-local-cluster:
+    command: "kind create cluster --name local-dev"
+    local: true
+
+  delete-local-cluster:
+    command: "kind delete cluster --name local-dev"
+    local: true
+
+  set-context:
+    command: "kubectl config use-context kind-local-dev"
+    local: true
+
+  dev:
+    deps:
+      - "set-context"
