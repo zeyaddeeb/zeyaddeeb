@@ -3,6 +3,8 @@ import "lenis/dist/lenis.css";
 
 import type { Metadata } from "next";
 import { Anton, Newsreader, Roboto_Flex } from "next/font/google";
+import { Footer } from "@/components/footer";
+import { Header } from "@/components/header";
 import { RootLayoutClient } from "@/components/root-layout";
 import { AppStateProvider } from "@/lib/providers/app-provider";
 
@@ -29,6 +31,9 @@ const newsreader = Newsreader({
 export const metadata: Metadata = {
 	title: "Zeyad Deeb",
 	description: "Personal website and portfolio of Zeyad Deeb.",
+	icons: {
+		icon: "/icon.svg",
+	},
 };
 
 export default function RootLayout({
@@ -39,10 +44,14 @@ export default function RootLayout({
 	return (
 		<html lang="en">
 			<body
-				className={`${antonFont.variable} ${robotoFlex.variable} ${newsreader.variable} cursor-none antialiased`}
+				className={`${antonFont.variable} ${robotoFlex.variable} ${newsreader.variable} cursor-none bg-neutral-950 antialiased`}
 			>
 				<AppStateProvider>
-					<RootLayoutClient>{children}</RootLayoutClient>
+					<RootLayoutClient>
+						<Header />
+						{children}
+						<Footer />
+					</RootLayoutClient>
 				</AppStateProvider>
 			</body>
 		</html>

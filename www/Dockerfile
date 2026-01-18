@@ -3,10 +3,12 @@ FROM oven/bun:1.2.20-alpine AS base
 FROM base AS deps
 WORKDIR /app
 
-COPY package.json bun.lock* ./
-COPY apps/www/package.json ./apps/www/package.json
-COPY packages/config/package.json ./packages/config/package.json
-COPY packages/ui/package.json ./packages/ui/package.json
+COPY package.json bun.lock* turbo.json ./
+
+COPY apps apps
+COPY packages packages
+RUN find apps packages -mindepth 1 -maxdepth 2 -type f ! -name 'package.json' -delete && \
+    find apps packages -mindepth 1 -type d -empty -delete
 
 RUN bun install --frozen-lockfile
 
@@ -14,8 +16,8 @@ FROM base AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/www/node_modules ./apps/www/node_modules
-COPY --from=deps /app/packages/ui/node_modules ./packages/ui/node_modules
+COPY --from=deps /app/apps ./apps
+COPY --from=deps /app/packages ./packages
 
 COPY . .
 
@@ -31,11 +33,13 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV APP_NAME=www
 
-COPY --from=builder /app/apps/www/public ./apps/www/public
+COPY --from=builder /app/apps ./apps
 
-COPY --from=builder --chown=nextjs:nodejs /app/apps/www/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/apps/www/.next/static ./apps/www/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/*/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/*/.next/static ./apps/
+COPY --from=builder --chown=nextjs:nodejs /app/apps/*/public ./apps/*/public
 
 USER nextjs
 
@@ -44,4 +48,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["bun", "run", "apps/www/server.js"]
+CMD ["sh", "-c", "bun run apps/${APP_NAME}/server.js"]

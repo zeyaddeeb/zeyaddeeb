@@ -1,0 +1,18 @@
+$schema: "https://moonrepo.dev/schemas/workspace.json"
+
+telemetry: false
+
+vcs:
+  manager: "git"
+  provider: "github"
+  defaultBranch: "main"
+  syncHooks: true
+  hooks:
+    pre-commit:
+      - "moon sync projects"
+    pre-push:
+      - "moon sync projects"
+
+projects:
+  root: "."
+  www: "www"

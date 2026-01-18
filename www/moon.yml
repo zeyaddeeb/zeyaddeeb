@@ -1,0 +1,24 @@
+language: "typescript"
+type: "application"
+stack: "frontend"
+
+project:
+  name: "www"
+  description: "Personal website and portfolio of Zeyad Deeb"
+
+tasks:
+  test:
+    command: 'echo "No tests to run"'
+  docker-build:
+    command:
+      - docker build --platform=linux/amd64 -t $project:v$(cat package.json | jq -r .version) .
+  docker-tag:
+    command:
+      - docker tag $project:v$(cat package.json | jq -r .version) $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/zeyaddeeb/$project:v$(cat package.json | jq -r .version) >/dev/null
+    deps:
+      - "docker-build"
+  docker-push:
+    command:
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/zeyaddeeb/$project:v$(cat package.json | jq -r .version)
+    deps:
+      - "docker-tag"

@@ -9,7 +9,11 @@ gsap.registerPlugin(useGSAP);
 const STRIPE_COUNT = 10;
 const NAME_LINES = ["ZEYAD", "DEEB"];
 
-export function IntroScreen() {
+interface IntroScreenProps {
+	onComplete?: () => void;
+}
+
+export function IntroScreen({ onComplete }: IntroScreenProps) {
 	const preloaderRef = useRef<HTMLDivElement>(null);
 	const [isComplete, setIsComplete] = useState(false);
 	const stripes = useMemo(() => Array.from({ length: STRIPE_COUNT }), []);
@@ -36,7 +40,10 @@ export function IntroScreen() {
 			gsap
 				.timeline({
 					defaults: { ease: "power2.out" },
-					onComplete: () => setIsComplete(true),
+					onComplete: () => {
+						setIsComplete(true);
+						onComplete?.();
+					},
 				})
 				.to(letters, {
 					yPercent: 0,
