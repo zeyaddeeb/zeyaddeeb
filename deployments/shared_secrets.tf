@@ -51,6 +51,13 @@ resource "kubernetes_manifest" "zeyaddeeb_external_secret" {
             key      = "zeyaddeeb/admin"
             property = "db"
           }
+        },
+        {
+          secretKey = "BETTER_AUTH_SECRET"
+          remoteRef = {
+            key      = "zeyaddeeb/admin"
+            property = "better_auth_secret"
+          }
         }
       ]
     }

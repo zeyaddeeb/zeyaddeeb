@@ -32,6 +32,17 @@ env:
   APP_NAME: "blog"
   BASE_URL: "https://www.zeyaddeeb.com"
 
+envFromSecrets:
+  - envName: DATABASE_URL
+    secName: zeyaddeeb-secrets
+    secValue: DATABASE_URL
+  - envName: BETTER_AUTH_SECRET
+    secName: zeyaddeeb-secrets
+    secValue: BETTER_AUTH_SECRET
+  - envName: ADMIN_ID
+    secName: zeyaddeeb-secrets
+    secValue: ADMIN_ID
+
 seed:
   enabled: true
 

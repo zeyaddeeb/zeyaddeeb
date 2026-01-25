@@ -10,6 +10,7 @@ export function initAuth<
 	baseUrl: string;
 	productionUrl: string;
 	secret: string | undefined;
+	basePath?: string;
 	extraPlugins?: TExtraPlugins;
 }) {
 	const config = {
@@ -17,6 +18,7 @@ export function initAuth<
 			provider: "pg",
 		}),
 		baseURL: options.baseUrl,
+		basePath: options.basePath,
 		secret: options.secret,
 		emailAndPassword: {
 			enabled: true,

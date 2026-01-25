@@ -1,5 +1,6 @@
 import { account, collectionItem, db, post, user } from "@zeyaddeeb/db";
 import { hashPassword } from "better-auth/crypto";
+import { eq } from "drizzle-orm";
 import { blogPostsSeedData, collectionItemsSeedData } from "./seed-data";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@example.com";
@@ -16,13 +17,14 @@ async function seedAdminUser() {
 		);
 	}
 
+	const normalizedEmail = ADMIN_EMAIL.toLowerCase();
 	const hashedPassword = await hashPassword(ADMIN_PASSWORD);
 
 	const [adminUser] = await db
 		.insert(user)
 		.values({
 			id: ADMIN_ID,
-			email: ADMIN_EMAIL,
+			email: normalizedEmail,
 			name: ADMIN_NAME,
 			emailVerified: true,
 			createdAt: new Date(),
@@ -32,23 +34,26 @@ async function seedAdminUser() {
 		.returning({ id: user.id });
 
 	if (adminUser) {
-		await db
-			.insert(account)
-			.values({
-				id: crypto.randomUUID(),
-				userId: ADMIN_ID,
-				accountId: ADMIN_ID,
-				providerId: "credential",
-				password: hashedPassword,
-				createdAt: new Date(),
-				updatedAt: new Date(),
-			})
-			.onConflictDoNothing();
-
 		console.log("Admin user created");
 	} else {
 		console.log("Admin user already exists");
 	}
+
+	const credentialAccountId = `${ADMIN_ID}-credential`;
+
+	await db.delete(account).where(eq(account.userId, ADMIN_ID));
+
+	await db.insert(account).values({
+		id: credentialAccountId,
+		userId: ADMIN_ID,
+		accountId: ADMIN_ID,
+		providerId: "credential",
+		password: hashedPassword,
+		createdAt: new Date(),
+		updatedAt: new Date(),
+	});
+
+	console.log("Admin account ensured");
 
 	return ADMIN_ID;
 }
