@@ -12,11 +12,11 @@ import {
 	type User,
 } from "@/lib/write-helpers";
 
-interface WriteClientProps {
+interface PostWriteClientProps {
 	user: User;
 }
 
-export function WriteClient({ user }: WriteClientProps) {
+export function PostWriteClient({ user }: PostWriteClientProps) {
 	const router = useRouter();
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);

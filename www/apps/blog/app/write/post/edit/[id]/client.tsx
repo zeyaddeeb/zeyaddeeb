@@ -13,12 +13,12 @@ import {
 	type User,
 } from "@/lib/write-helpers";
 
-interface EditClientProps {
+interface PostEditClientProps {
 	user: User;
 	post: Post;
 }
 
-export function EditClient({ user, post }: EditClientProps) {
+export function PostEditClient({ user, post }: PostEditClientProps) {
 	const router = useRouter();
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);

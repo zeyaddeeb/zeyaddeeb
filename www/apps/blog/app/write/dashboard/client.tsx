@@ -68,7 +68,7 @@ export function DashboardClient({
 
 				<div className="flex gap-4 mb-8">
 					<Link
-						href="/write"
+						href="/write/post"
 						className="px-4 py-2 bg-white text-black font-medium rounded-lg hover:bg-neutral-200 transition-colors"
 					>
 						New Post
@@ -169,7 +169,7 @@ export function DashboardClient({
 															View
 														</Link>
 														<Link
-															href={`/write/edit/${post.id}`}
+															href={`/write/post/edit/${post.id}`}
 															className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
 														>
 															Edit

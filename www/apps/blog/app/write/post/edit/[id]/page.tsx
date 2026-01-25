@@ -1,6 +1,6 @@
 import { getPostForEdit, getSession } from "@/lib/actions/write";
 import { redirect } from "@/lib/redirect-utils";
-import { EditClient } from "./client";
+import { PostEditClient } from "./client";
 
 const ALLOWED_ADMIN_ID = process.env.ADMIN_ID || "admin";
 
@@ -8,7 +8,7 @@ interface EditPageProps {
 	params: Promise<{ id: string }>;
 }
 
-export default async function EditPage({ params }: EditPageProps) {
+export default async function EditPostPage({ params }: EditPageProps) {
 	const { id } = await params;
 	const session = await getSession();
 
@@ -42,5 +42,5 @@ export default async function EditPage({ params }: EditPageProps) {
 		);
 	}
 
-	return <EditClient user={session.user} post={postResult.data} />;
+	return <PostEditClient user={session.user} post={postResult.data} />;
 }

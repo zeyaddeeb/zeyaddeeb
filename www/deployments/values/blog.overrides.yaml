@@ -42,6 +42,9 @@ envFromSecrets:
   - envName: ADMIN_ID
     secName: zeyaddeeb-secrets
     secValue: ADMIN_ID
+  - envName: ADMIN_EMAIL
+    secName: zeyaddeeb-secrets
+    secValue: ADMIN_EMAIL
 
 seed:
   enabled: true
