@@ -1,18 +1,20 @@
 {
   "name": "zeyaddeeb",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "build": "turbo build",
-    "dev": "turbo dev",
-    "lint": "turbo lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
+    "dev": "docker compose up -d && turbo dev",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:push": "turbo run db:push --filter=@zeyaddeeb/db",
+    "db:seed": "turbo run db:seed --filter=@zeyaddeeb/db",
+    "lint": "biome lint",
+    "format": "biome format --write",
     "clean": "turbo clean"
   },
   "devDependencies": {
-    "turbo": "^2.6.3",
+    "turbo": "^2.7.5",
     "typescript": "~5.9.3"
   },
   "engines": {
@@ -22,5 +24,11 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "catalog": {
+    "@tanstack/react-query": "^5.90.20",
+    "@types/node": "25.0.2",
+    "@types/react": "^19.1.0",
+    "typescript": "^5.9.3"
+  }
 }

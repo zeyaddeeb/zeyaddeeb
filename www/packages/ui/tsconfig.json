@@ -1,6 +1,7 @@
 {
   "extends": "@zeyaddeeb/config/react-library.json",
   "compilerOptions": {
+    "rootDir": "src",
     "outDir": "dist"
   },
   "include": ["src"],
