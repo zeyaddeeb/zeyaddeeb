@@ -1,5 +1,7 @@
 "use server";
 
+import { db, session } from "@zeyaddeeb/db";
+import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 
@@ -68,9 +70,19 @@ function parseSetCookieHeader(setCookieHeader: string) {
 
 export async function signInWithEmail(email: string, password: string) {
 	try {
+		const adminEmail = process.env.ADMIN_EMAIL;
+		if (!adminEmail) {
+			return { error: "Server misconfigured" };
+		}
+
+		const normalizedEmail = email.trim().toLowerCase();
+		if (normalizedEmail !== adminEmail.trim().toLowerCase()) {
+			return { error: "Invalid credentials" };
+		}
+
 		const result = await auth.api.signInEmail({
 			body: {
-				email,
+				email: normalizedEmail,
 				password,
 			},
 			asResponse: true,
@@ -105,6 +117,10 @@ export async function signInWithEmail(email: string, password: string) {
 export async function signOutAction() {
 	try {
 		const cookieStore = await cookies();
+		const token = cookieStore.get("better-auth.session_token")?.value;
+		if (token) {
+			await db.delete(session).where(eq(session.token, token));
+		}
 		cookieStore.delete("better-auth.session_token");
 		return { success: true };
 	} catch {

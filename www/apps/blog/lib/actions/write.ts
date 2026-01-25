@@ -28,6 +28,10 @@ async function getAuthenticatedAdminUser(): Promise<
 		headers: await headers(),
 	});
 
+	if (!ALLOWED_ADMIN_ID) {
+		return { success: false, error: "Server misconfigured" };
+	}
+
 	if (!session?.user) {
 		return { success: false, error: "Unauthorized: Please sign in" };
 	}

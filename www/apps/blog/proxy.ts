@@ -16,6 +16,10 @@ export async function proxy(request: NextRequest) {
 		headers: request.headers,
 	});
 
+	if (!ALLOWED_ADMIN_ID) {
+		return NextResponse.redirect(new URL("/write/login", request.url));
+	}
+
 	if (isLoginRoute) {
 		if (session?.user?.id === ALLOWED_ADMIN_ID) {
 			return NextResponse.redirect(new URL("/write/dashboard", request.url));
