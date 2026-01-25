@@ -18,6 +18,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./components": {
+      "types": "./dist/components/index.d.ts",
+      "default": "./dist/components/index.js"
+    },
     "./postcss": "./postcss.config.js"
   },
   "scripts": {
@@ -30,6 +34,10 @@
   },
   "peerDependencies": {
     "react": "^19"
+  },
+  "dependencies": {
+    "framer-motion": "^12.26.2",
+    "next": "16.0.8"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.5",

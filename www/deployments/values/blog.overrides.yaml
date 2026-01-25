@@ -1,0 +1,31 @@
+image:
+  repository: ${image_repository}
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: true
+  className: "nginx-external"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dns
+    kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: www.zeyaddeeb.com
+      paths:
+        - path: /blog
+          pathType: Prefix
+    - host: zeyaddeeb.com
+      paths:
+        - path: /blog
+          pathType: Prefix
+  tls:
+    - secretName: zeyaddeeb-tls
+      hosts:
+        - www.zeyaddeeb.com
+        - zeyaddeeb.com
+
+env:
+  NODE_ENV: "production"
+  APP_NAME: "blog"

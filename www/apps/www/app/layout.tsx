@@ -1,10 +1,9 @@
 import "@zeyaddeeb/ui/styles.css";
 import "lenis/dist/lenis.css";
 
+import { Footer, Header } from "@zeyaddeeb/ui";
 import type { Metadata } from "next";
 import { Anton, Newsreader, Roboto_Flex } from "next/font/google";
-import { Footer } from "@/components/footer";
-import { Header } from "@/components/header";
 import { RootLayoutClient } from "@/components/root-layout";
 import { AppStateProvider } from "@/lib/providers/app-provider";
 
@@ -48,7 +47,9 @@ export default function RootLayout({
 			>
 				<AppStateProvider>
 					<RootLayoutClient>
-						<Header />
+						<div className="md:hidden">
+							<Header navItems={[]} />
+						</div>
 						{children}
 						<Footer />
 					</RootLayoutClient>

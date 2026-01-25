@@ -29,3 +29,4 @@ ingress:
         - zeyaddeeb.com
 env:
   NODE_ENV: "production"
+  APP_NAME: "www"
