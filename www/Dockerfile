@@ -41,6 +41,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/*/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/*/.next/static ./apps/
 COPY --from=builder --chown=nextjs:nodejs /app/apps/*/public ./apps/*/public
 
+COPY --from=builder /app/packages/db ./packages/db
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+
 USER nextjs
 
 EXPOSE 3000

@@ -1,7 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
-  "globalPassThroughEnv": ["NODE_ENV", "TZ"],
+  "globalPassThroughEnv": ["NODE_ENV", "TZ", "DATABASE_URL"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -17,6 +17,15 @@
     },
     "check-types": {
       "dependsOn": ["^check-types"]
+    },
+    "db:up": {
+      "cache": false
+    },
+    "db:down": {
+      "cache": false
+    },
+    "db:push": {
+      "cache": false
     },
     "dev": {
       "cache": false,

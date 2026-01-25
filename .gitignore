@@ -2,6 +2,7 @@
 hidden
 .turbo
 *.nosync
+hack
 
 # -*- mode: gitignore; -*-
 *~
