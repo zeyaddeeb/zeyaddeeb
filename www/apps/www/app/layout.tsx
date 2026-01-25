@@ -1,10 +1,9 @@
 import "@zeyaddeeb/ui/styles.css";
 import "lenis/dist/lenis.css";
 
+import { Footer, Header } from "@zeyaddeeb/ui";
 import type { Metadata } from "next";
 import { Anton, Newsreader, Roboto_Flex } from "next/font/google";
-import { Footer } from "@/components/footer";
-import { Header } from "@/components/header";
 import { RootLayoutClient } from "@/components/root-layout";
 import { AppStateProvider } from "@/lib/providers/app-provider";
 
@@ -29,10 +28,61 @@ const newsreader = Newsreader({
 });
 
 export const metadata: Metadata = {
-	title: "Zeyad Deeb",
-	description: "Personal website and portfolio of Zeyad Deeb.",
+	title: {
+		default: "Zeyad Deeb",
+		template: "%s | Zeyad Deeb",
+	},
+	description:
+		"Personal website and portfolio of Zeyad Deeb. Software engineer, creative developer, and digital craftsman.",
+	keywords: [
+		"Zeyad Deeb",
+		"software engineer",
+		"web developer",
+		"portfolio",
+		"creative developer",
+	],
+	authors: [{ name: "Zeyad Deeb" }],
+	creator: "Zeyad Deeb",
+	metadataBase: new URL("https://zeyaddeeb.com"),
+	openGraph: {
+		type: "website",
+		locale: "en_US",
+		url: "https://zeyaddeeb.com",
+		siteName: "Zeyad Deeb",
+		title: "Zeyad Deeb",
+		description:
+			"Personal website and portfolio of Zeyad Deeb. Software engineer, creative developer, and digital craftsman.",
+		images: [
+			{
+				url: "/og-image.png",
+				width: 1200,
+				height: 630,
+				alt: "Zeyad Deeb - Software Engineer",
+			},
+		],
+	},
+	twitter: {
+		card: "summary_large_image",
+		title: "Zeyad Deeb",
+		description:
+			"Personal website and portfolio of Zeyad Deeb. Software engineer, creative developer, and digital craftsman.",
+		images: ["/og-image.png"],
+		creator: "@zeyad_deeb",
+	},
+	robots: {
+		index: true,
+		follow: true,
+		googleBot: {
+			index: true,
+			follow: true,
+			"max-video-preview": -1,
+			"max-image-preview": "large",
+			"max-snippet": -1,
+		},
+	},
 	icons: {
 		icon: "/icon.svg",
+		apple: "/apple-touch-icon.png",
 	},
 };
 
@@ -48,7 +98,9 @@ export default function RootLayout({
 			>
 				<AppStateProvider>
 					<RootLayoutClient>
-						<Header />
+						<div className="md:hidden">
+							<Header navItems={[]} />
+						</div>
 						{children}
 						<Footer />
 					</RootLayoutClient>

@@ -48,6 +48,8 @@ COPY --from=builder /app/bun.lock ./bun.lock
 COPY --from=builder /app/turbo.json ./turbo.json
 
 RUN mkdir -p /app/.turbo/cache && chown -R nextjs:nodejs /app/.turbo
+RUN mkdir -p /app/apps/www/.next/cache/images /app/apps/blog/.next/cache/images && \
+    chown -R nextjs:nodejs /app/apps/www/.next/cache /app/apps/blog/.next/cache
 
 USER nextjs
 

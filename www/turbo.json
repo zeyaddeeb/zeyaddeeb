@@ -7,7 +7,8 @@
     "ADMIN_EMAIL",
     "ADMIN_PASSWORD",
     "ADMIN_NAME",
-    "ADMIN_ID"
+    "ADMIN_ID",
+    "BASE_URL"
   ],
   "tasks": {
     "build": {

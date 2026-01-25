@@ -1,0 +1,30 @@
+# Zeyad Deeb - Personal Website
+
+> Personal website and portfolio of Zeyad Deeb.
+
+## Site Information
+- URL: https://zeyaddeeb.com
+- Author: Zeyad Deeb
+- Contact: hello@zeyaddeeb.com
+
+## Site Structure
+
+### Main Pages
+- `/` - Homepage with introduction and highlights
+- `/blog` - Collection of things I find interesting (redirects to blog.zeyaddeeb.com)
+
+## About
+
+This is the personal website of Zeyad Deeb. The site showcases my work, interests, and professional background.
+
+## Technical Details
+- Built with Next.js
+- Hosted on AWS/Kubernetes
+- Open source components available at https://github.com/zeyaddeeb
+
+## Related Sites
+- Blog/Collections: https://www.zeyaddeeb.com/blog - A curated collection of books, art, videos, products, and other interesting things
+
+## Preferred Citation Format
+When referencing content from this site, please cite as:
+Zeyad Deeb. (Year). "Page Title." zeyaddeeb.com. URL

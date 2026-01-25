@@ -1,0 +1,54 @@
+fullnameOverride: "blog"
+
+image:
+  repository: ${image_repository}
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: true
+  className: "nginx-external"
+  annotations:
+    kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: www.zeyaddeeb.com
+      paths:
+        - path: /blog
+          pathType: Prefix
+    - host: zeyaddeeb.com
+      paths:
+        - path: /blog
+          pathType: Prefix
+  tls:
+    - secretName: zeyaddeeb-tls
+      hosts:
+        - www.zeyaddeeb.com
+        - zeyaddeeb.com
+
+env:
+  NODE_ENV: "production"
+  APP_NAME: "blog"
+  BASE_URL: "https://www.zeyaddeeb.com"
+
+seed:
+  enabled: true
+
+livenessProbe:
+  httpGet:
+    path: /blog
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /blog
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3

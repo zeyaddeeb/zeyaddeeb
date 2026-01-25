@@ -1,3 +1,5 @@
+fullnameOverride: "www"
+
 image:
   repository: ${image_repository}
 
@@ -29,3 +31,5 @@ ingress:
         - zeyaddeeb.com
 env:
   NODE_ENV: "production"
+  APP_NAME: "www"
+  BASE_URL: "https://www.zeyaddeeb.com"

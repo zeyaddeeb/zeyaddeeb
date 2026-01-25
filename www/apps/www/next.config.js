@@ -6,6 +6,15 @@ const nextConfig = {
 	reactStrictMode: true,
 	transpilePackages: ["@zeyaddeeb/ui"],
 
+	images: {
+		remotePatterns: [
+			{
+				protocol: "https",
+				hostname: "**",
+			},
+		],
+	},
+
 	experimental: {
 		turbo: {
 			resolveAlias: {

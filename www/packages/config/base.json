@@ -14,8 +14,7 @@
     "tsBuildInfoFile": "${configDir}/.cache/tsbuildinfo.json",
     "strict": true,
     "module": "Preserve",
-    "moduleResolution": "Bundler",
-    "noEmit": true
+    "moduleResolution": "Bundler"
   },
   "exclude": ["node_modules", "build", "dist", ".next"]
 }
