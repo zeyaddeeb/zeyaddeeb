@@ -56,6 +56,18 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          env:
+          {{- range $key, $val := .Values.env }}
+          - name: {{ $key }}
+            value: {{ $val | quote }}
+          {{- end }}
+          {{- range .Values.envFromSecrets }}
+          - name: {{ .envName }}
+            valueFrom:
+              secretKeyRef:
+                name: {{ .secName }}
+                key: {{ .secValue }}
+          {{- end }}
           {{- with .Values.volumeMounts }}
           volumeMounts:
             {{- toYaml . | nindent 12 }}

@@ -11,7 +11,7 @@
     "format": "biome format .",
     "lint": "biome lint .",
     "check": "biome check .",
-    "generate": "bunx @better-auth/cli generate --config script/auth-cli.ts --output ../db/src/auth-schema.ts",
+    "generate": "bunx @better-auth/cli generate --config script/auth-cli.ts --output ../db/src/schema/auth/generated.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

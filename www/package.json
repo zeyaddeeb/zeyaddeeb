@@ -1,10 +1,14 @@
 {
   "name": "zeyaddeeb",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "build": "turbo build",
-    "dev": "turbo dev",
+    "dev": "docker compose up -d && turbo dev",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:push": "turbo run db:push --filter=@zeyaddeeb/db",
+    "db:seed": "turbo run db:seed --filter=@zeyaddeeb/db",
     "lint": "biome lint",
     "format": "biome format --write",
     "clean": "turbo clean"
