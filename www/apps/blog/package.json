@@ -13,12 +13,14 @@
   },
   "dependencies": {
     "@t3-oss/env-nextjs": "^0.13.8",
+    "@zeyaddeeb/auth": "workspace:*",
     "@zeyaddeeb/db": "workspace:*",
     "@zeyaddeeb/ui": "workspace:*",
     "framer-motion": "^12.26.2",
     "next": "16.0.8",
     "react": "19.0.0",
-    "react-dom": "19.0.0"
+    "react-dom": "19.0.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
