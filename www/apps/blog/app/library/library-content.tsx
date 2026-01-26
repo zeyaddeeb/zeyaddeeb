@@ -57,7 +57,7 @@ export function ThingsILikeContent({
 			}
 
 			startTransition(() => {
-				router.push(`/things-i-like?${params.toString()}`);
+				router.push(`/library?${params.toString()}`);
 			});
 		},
 		[router, searchParams],
@@ -77,21 +77,20 @@ export function ThingsILikeContent({
 
 	return (
 		<div className="min-h-screen bg-neutral-950">
-			{/* Hero Section */}
-			<section className="border-b border-neutral-800/50 px-4 py-16 md:px-6 md:py-24">
-				<div className="mx-auto max-w-7xl">
+			<section className="border-b border-neutral-800/50">
+				<div className="mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-12">
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
 					>
 						<h1
-							className="mb-4 text-4xl font-bold tracking-tight text-white md:text-6xl lg:text-7xl"
+							className="text-2xl font-bold tracking-tight text-white md:text-3xl"
 							style={{ fontFamily: "var(--font-space-grotesk)" }}
 						>
-							Things I Like
+							Library
 						</h1>
-						<p className="max-w-2xl text-lg text-neutral-400 md:text-xl">
+						<p className="mt-1 text-sm text-neutral-500 md:text-base">
 							A collection of wikipedia pages, art, books, youtube channels,
 							products, and other things that have shaped how I think and what I
 							appreciate.
@@ -100,9 +99,8 @@ export function ThingsILikeContent({
 				</div>
 			</section>
 
-			{/* Collection Section */}
-			<section className="px-4 py-8 md:px-6 md:py-12">
-				<div className="mx-auto max-w-7xl">
+			<section>
+				<div className="mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-12">
 					<motion.div
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
@@ -128,7 +126,6 @@ export function ThingsILikeContent({
 								filterKey={`${currentType ?? "all"}-${currentSearch}-${currentPage}`}
 							/>
 
-							{/* Pagination */}
 							{initialData.totalPages > 1 && (
 								<div className="mt-12 flex items-center justify-center gap-2">
 									<button

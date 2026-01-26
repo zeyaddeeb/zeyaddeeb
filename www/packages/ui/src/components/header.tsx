@@ -4,11 +4,12 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 
 export type NavItem = {
-	label: string;
+	label?: string;
 	href: string;
 	external?: boolean;
 	primary?: boolean;
 	icon?: React.ReactNode;
+	ariaLabel?: string;
 };
 
 export interface HeaderProps {
@@ -20,7 +21,7 @@ export interface HeaderProps {
 	className?: string;
 }
 
-const defaultNavItems: NavItem[] = [{ label: "Things I Like", href: "/blog" }];
+const defaultNavItems: NavItem[] = [{ label: "Blog", href: "/blog" }];
 
 export function Header({
 	activeSection,
@@ -61,8 +62,9 @@ export function Header({
 								href={item.href}
 								target={item.external ? "_blank" : undefined}
 								rel={item.external ? "noopener noreferrer" : undefined}
-								title={item.icon ? item.label : undefined}
-								className={`rounded-lg px-4 py-2 text-sm font-semibold uppercase tracking-wide transition-all focus:outline-none ${item.icon ? "px-3!" : ""} ${
+								title={item.label || item.ariaLabel || undefined}
+								aria-label={item.ariaLabel || item.label || undefined}
+								className={`rounded-lg px-3 py-2 text-sm font-semibold uppercase tracking-wide transition-all focus:outline-none md:px-4 ${
 									item.primary
 										? "border border-white bg-white text-neutral-900 hover:bg-transparent hover:text-white"
 										: isActive
@@ -70,7 +72,15 @@ export function Header({
 											: "text-neutral-300 hover:bg-neutral-800 hover:text-white"
 								}`}
 							>
-								{item.icon || item.label}
+								{item.icon && !item.label && <span>{item.icon}</span>}
+								{item.icon && item.label && (
+									<span className="md:hidden">{item.icon}</span>
+								)}
+								{item.label && (
+									<span className={item.icon ? "hidden md:inline" : ""}>
+										{item.label}
+									</span>
+								)}
 							</Link>
 						);
 					})}

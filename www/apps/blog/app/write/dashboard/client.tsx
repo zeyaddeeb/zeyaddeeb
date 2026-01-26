@@ -105,7 +105,7 @@ export function DashboardClient({
 								: "text-neutral-400 hover:text-white"
 						}`}
 					>
-						Things I Like ({collections.length})
+						Library ({collections.length})
 						{activeTab === "collections" && (
 							<div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white" />
 						)}
@@ -251,7 +251,7 @@ export function DashboardClient({
 												<td className="px-4 py-3 text-right">
 													<div className="flex justify-end gap-2">
 														<Link
-															href={`/things-i-like/${item.slug}`}
+															href={`/library/${item.slug}`}
 															className="text-sm text-neutral-400 hover:text-white transition-colors"
 														>
 															View

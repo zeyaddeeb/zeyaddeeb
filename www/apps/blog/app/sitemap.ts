@@ -20,7 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 			priority: 0.9,
 		},
 		{
-			url: `${baseUrl}/things-i-like`,
+			url: `${baseUrl}/library`,
 			lastModified: new Date(),
 			changeFrequency: "weekly",
 			priority: 0.9,
@@ -34,7 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
 	const collectionPages: MetadataRoute.Sitemap = collectionItems.map(
 		(item) => ({
-			url: `${baseUrl}/things-i-like/${item.slug}`,
+			url: `${baseUrl}/library/${item.slug}`,
 			lastModified: item.updatedAt,
 			changeFrequency: "monthly" as const,
 			priority: item.featured ? 0.8 : 0.6,

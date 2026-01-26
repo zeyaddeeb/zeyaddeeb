@@ -103,7 +103,7 @@
   --code-foreground: var(--surface-foreground);
   --code-highlight: oklch(0.96 0 0);
   --code-number: oklch(0.56 0 0);
-  --selection: oklch(0.145 0 0);
+  --selection: oklch(0.4 0.1 250); /* blue-ish selection visible on both light and dark */
   --selection-foreground: oklch(1 0 0);
 }
 

@@ -47,7 +47,11 @@ export function PostWriteClient({ user }: PostWriteClientProps) {
 		const result = await createPost(formData);
 
 		if (result.success) {
-			router.push(`/posts/${result.data.slug}`);
+			if (formData.published) {
+				router.push(`/posts/${result.data.slug}`);
+			} else {
+				router.push("/write");
+			}
 		} else {
 			setError(result.error);
 			setIsSubmitting(false);

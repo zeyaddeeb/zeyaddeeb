@@ -6,7 +6,7 @@ import {
 	collectionItem,
 	db,
 } from "@zeyaddeeb/db";
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 
 export interface PaginatedResult<T> {
 	items: T[];
@@ -86,7 +86,7 @@ export async function getCollectionItems(
 			.where(whereClause)
 			.orderBy(
 				desc(collectionItem.featured),
-				collectionItem.displayOrder,
+				asc(sql`NULLIF(${collectionItem.displayOrder}, 0)`),
 				desc(collectionItem.createdAt),
 			)
 			.limit(pageSize)
@@ -174,7 +174,10 @@ export async function getFeaturedCollectionItems(
 			.select()
 			.from(collectionItem)
 			.where(eq(collectionItem.published, true))
-			.orderBy(collectionItem.displayOrder, desc(collectionItem.createdAt))
+			.orderBy(
+				asc(sql`NULLIF(${collectionItem.displayOrder}, 0)`),
+				desc(collectionItem.createdAt),
+			)
 			.limit(limit);
 	} catch (error) {
 		console.error("Failed to fetch featured collection items:", error);

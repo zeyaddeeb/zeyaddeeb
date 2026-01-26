@@ -1,0 +1,322 @@
+.markdown-editor-wrapper {
+	border: 1px solid rgb(38 38 38);
+	border-radius: 0.5rem;
+	overflow: hidden;
+	background: rgb(23 23 23);
+}
+
+.markdown-editor-wrapper .mdxeditor {
+	background: rgb(23 23 23);
+	color: white;
+	--accentBase: rgb(38 38 38);
+	--accentBgSubtle: rgb(38 38 38);
+	--accentBg: rgb(64 64 64);
+	--accentBgHover: rgb(64 64 64);
+	--accentBgActive: rgb(82 82 82);
+	--accentLine: rgb(64 64 64);
+	--accentBorder: rgb(64 64 64);
+	--accentBorderHover: rgb(82 82 82);
+	--accentSolid: rgb(163 163 163);
+	--accentSolidHover: rgb(212 212 212);
+	--accentText: rgb(229 229 229);
+	--accentTextContrast: white;
+	--baseBase: rgb(10 10 10);
+	--baseBgSubtle: rgb(23 23 23);
+	--baseBg: rgb(23 23 23);
+	--baseBgHover: rgb(38 38 38);
+	--baseBgActive: rgb(64 64 64);
+	--baseLine: rgb(38 38 38);
+	--baseBorder: rgb(64 64 64);
+	--baseBorderHover: rgb(82 82 82);
+	--baseSolid: rgb(115 115 115);
+	--baseSolidHover: rgb(163 163 163);
+	--baseText: rgb(163 163 163);
+	--baseTextContrast: white;
+	--admonitionTipBg: rgba(34, 197, 94, 0.1);
+	--admonitionTipBorder: rgb(34, 197, 94);
+	--admonitionInfoBg: rgba(59, 130, 246, 0.1);
+	--admonitionInfoBorder: rgb(59, 130, 246);
+	--admonitionCautionBg: rgba(234, 179, 8, 0.1);
+	--admonitionCautionBorder: rgb(234, 179, 8);
+	--admonitionDangerBg: rgba(239, 68, 68, 0.1);
+	--admonitionDangerBorder: rgb(239, 68, 68);
+	--admonitionNoteBg: rgba(163, 163, 163, 0.1);
+	--admonitionNoteBorder: rgb(163, 163, 163);
+}
+
+/* Toolbar styling */
+.markdown-editor-wrapper [class*="_toolbarRoot_"] {
+	background: rgb(23 23 23) !important;
+	border-bottom: 1px solid rgb(38 38 38) !important;
+}
+
+.markdown-editor-wrapper [class*="_toolbarRoot_"] button,
+.markdown-editor-wrapper [class*="_toolbarRoot_"] [role="button"] {
+	color: rgb(212 212 212) !important;
+}
+
+.markdown-editor-wrapper [class*="_toolbarRoot_"] button:hover,
+.markdown-editor-wrapper [class*="_toolbarRoot_"] [role="button"]:hover {
+	background: rgb(38 38 38) !important;
+	color: white !important;
+}
+
+.markdown-editor-wrapper [class*="_toolbarRoot_"] button[data-state="on"],
+.markdown-editor-wrapper [class*="_toolbarRoot_"] [role="button"][data-state="on"] {
+	background: rgb(64 64 64) !important;
+	color: white !important;
+}
+
+/* SVG icons in toolbar */
+.markdown-editor-wrapper [class*="_toolbarRoot_"] svg {
+	color: rgb(212 212 212) !important;
+	fill: currentColor;
+}
+
+.markdown-editor-wrapper [class*="_toolbarRoot_"] button:hover svg,
+.markdown-editor-wrapper [class*="_toolbarRoot_"] [role="button"]:hover svg {
+	color: white !important;
+}
+
+/* Select/dropdown styling */
+.markdown-editor-wrapper [class*="_selectTrigger_"],
+.markdown-editor-wrapper [class*="_selectContent_"],
+.markdown-editor-wrapper select {
+	background: rgb(23 23 23) !important;
+	border-color: rgb(64 64 64) !important;
+	color: rgb(212 212 212) !important;
+}
+
+.markdown-editor-wrapper [class*="_selectTrigger_"]:hover,
+.markdown-editor-wrapper select:hover {
+	background: rgb(38 38 38) !important;
+	color: white !important;
+}
+
+.markdown-editor-wrapper [class*="_selectItem_"]:hover {
+	background: rgb(38 38 38) !important;
+}
+
+/* Separator styling */
+.markdown-editor-wrapper [class*="_toolbarRoot_"] [data-orientation="vertical"] {
+	background: rgb(64 64 64) !important;
+}
+
+/* Content area prose styling */
+.markdown-editor-wrapper .prose,
+.markdown-editor-wrapper [class*="_contentEditable_"] {
+	color: rgb(229 229 229) !important;
+}
+
+.markdown-editor-wrapper .prose h1,
+.markdown-editor-wrapper .prose h2,
+.markdown-editor-wrapper .prose h3,
+.markdown-editor-wrapper .prose h4,
+.markdown-editor-wrapper .prose h5,
+.markdown-editor-wrapper .prose h6 {
+	color: white !important;
+}
+
+.markdown-editor-wrapper .prose a {
+	color: rgb(96 165 250) !important;
+}
+
+.markdown-editor-wrapper .prose strong {
+	color: white !important;
+}
+
+.markdown-editor-wrapper .prose code {
+	background: rgb(38 38 38) !important;
+	color: rgb(251 191 36) !important;
+	padding: 0.125rem 0.25rem;
+	border-radius: 0.25rem;
+}
+
+.markdown-editor-wrapper .prose pre {
+	background: rgb(10 10 10) !important;
+	border: 1px solid rgb(38 38 38) !important;
+}
+
+.markdown-editor-wrapper .prose pre code {
+	background: transparent !important;
+	color: inherit !important;
+	padding: 0;
+}
+
+.markdown-editor-wrapper .prose blockquote {
+	border-left-color: rgb(64 64 64) !important;
+	color: rgb(163 163 163) !important;
+}
+
+.markdown-editor-wrapper .prose hr {
+	border-color: rgb(38 38 38) !important;
+}
+
+.markdown-editor-wrapper .prose table {
+	border-color: rgb(38 38 38) !important;
+}
+
+.markdown-editor-wrapper .prose th,
+.markdown-editor-wrapper .prose td {
+	border-color: rgb(38 38 38) !important;
+	padding: 0.5rem;
+}
+
+.markdown-editor-wrapper .prose th {
+	background: rgb(23 23 23) !important;
+}
+
+/* CodeMirror styling */
+.markdown-editor-wrapper .cm-editor {
+	background: rgb(10 10 10) !important;
+}
+
+.markdown-editor-wrapper .cm-content {
+	color: rgb(229 229 229) !important;
+}
+
+.markdown-editor-wrapper .cm-gutters {
+	background: rgb(10 10 10) !important;
+	border-right: 1px solid rgb(38 38 38) !important;
+	color: rgb(82 82 82) !important;
+}
+
+.markdown-editor-wrapper .cm-activeLineGutter,
+.markdown-editor-wrapper .cm-activeLine {
+	background: rgb(23 23 23) !important;
+}
+
+/* Syntax highlighting colors */
+.markdown-editor-wrapper .cm-editor .cm-keyword {
+	color: rgb(249 115 22) !important; /* orange-500 */
+}
+
+.markdown-editor-wrapper .cm-editor .cm-string,
+.markdown-editor-wrapper .cm-editor .cm-string2 {
+	color: rgb(34 197 94) !important; /* green-500 */
+}
+
+.markdown-editor-wrapper .cm-editor .cm-number {
+	color: rgb(168 85 247) !important; /* purple-500 */
+}
+
+.markdown-editor-wrapper .cm-editor .cm-comment {
+	color: rgb(115 115 115) !important; /* neutral-500 */
+	font-style: italic;
+}
+
+.markdown-editor-wrapper .cm-editor .cm-variableName {
+	color: rgb(96 165 250) !important; /* blue-400 */
+}
+
+.markdown-editor-wrapper .cm-editor .cm-variableName.cm-definition {
+	color: rgb(251 191 36) !important; /* amber-400 */
+}
+
+.markdown-editor-wrapper .cm-editor .cm-propertyName {
+	color: rgb(251 146 60) !important; /* orange-400 */
+}
+
+.markdown-editor-wrapper .cm-editor .cm-operator {
+	color: rgb(244 114 182) !important; /* pink-400 */
+}
+
+.markdown-editor-wrapper .cm-editor .cm-punctuation {
+	color: rgb(163 163 163) !important; /* neutral-400 */
+}
+
+.markdown-editor-wrapper .cm-editor .cm-bracket {
+	color: rgb(163 163 163) !important; /* neutral-400 */
+}
+
+.markdown-editor-wrapper .cm-editor .cm-tagName {
+	color: rgb(239 68 68) !important; /* red-500 */
+}
+
+.markdown-editor-wrapper .cm-editor .cm-attributeName {
+	color: rgb(251 191 36) !important; /* amber-400 */
+}
+
+.markdown-editor-wrapper .cm-editor .cm-attributeValue {
+	color: rgb(34 197 94) !important; /* green-500 */
+}
+
+.markdown-editor-wrapper .cm-editor .cm-typeName,
+.markdown-editor-wrapper .cm-editor .cm-className {
+	color: rgb(45 212 191) !important; /* teal-400 */
+}
+
+.markdown-editor-wrapper .cm-editor .cm-function,
+.markdown-editor-wrapper .cm-editor .cm-function.cm-variableName {
+	color: rgb(96 165 250) !important; /* blue-400 */
+}
+
+.markdown-editor-wrapper .cm-editor .cm-bool {
+	color: rgb(249 115 22) !important; /* orange-500 */
+}
+
+.markdown-editor-wrapper .cm-editor .cm-null {
+	color: rgb(249 115 22) !important; /* orange-500 */
+}
+
+.markdown-editor-wrapper .cm-editor .cm-atom {
+	color: rgb(168 85 247) !important; /* purple-500 */
+}
+
+.markdown-editor-wrapper .cm-editor .cm-heading {
+	color: rgb(251 191 36) !important; /* amber-400 */
+	font-weight: bold;
+}
+
+.markdown-editor-wrapper .cm-editor .cm-link {
+	color: rgb(96 165 250) !important; /* blue-400 */
+}
+
+.markdown-editor-wrapper .cm-editor .cm-url {
+	color: rgb(45 212 191) !important; /* teal-400 */
+}
+
+/* Selection */
+.markdown-editor-wrapper .cm-editor .cm-selectionBackground {
+	background: rgba(96, 165, 250, 0.3) !important;
+}
+
+.markdown-editor-wrapper .cm-editor.cm-focused .cm-selectionBackground {
+	background: rgba(96, 165, 250, 0.3) !important;
+}
+
+/* Cursor */
+.markdown-editor-wrapper .cm-editor .cm-cursor {
+	border-left-color: white !important;
+}
+
+/* Dialog styling */
+.markdown-editor-wrapper [class*="_dialogContent_"],
+[class*="_dialogContent_"] {
+	background: rgb(23 23 23) !important;
+	border: 1px solid rgb(38 38 38) !important;
+	color: white !important;
+}
+
+.markdown-editor-wrapper [class*="_dialogContent_"] input,
+[class*="_dialogContent_"] input {
+	background: rgb(10 10 10) !important;
+	border: 1px solid rgb(38 38 38) !important;
+	color: white !important;
+}
+
+.markdown-editor-wrapper [class*="_dialogContent_"] button,
+[class*="_dialogContent_"] button {
+	background: rgb(38 38 38) !important;
+	color: white !important;
+}
+
+.markdown-editor-wrapper [class*="_dialogContent_"] button:hover,
+[class*="_dialogContent_"] button:hover {
+	background: rgb(64 64 64) !important;
+}
+
+/* Placeholder text */
+.markdown-editor-wrapper [data-placeholder]::before {
+	color: rgb(115 115 115) !important;
+}

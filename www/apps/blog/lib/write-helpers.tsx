@@ -1,9 +1,22 @@
 "use client";
 
 import type { CollectionItemType } from "@zeyaddeeb/db";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { signOutAction } from "@/lib/actions/auth";
+
+const MarkdownEditor = dynamic(
+	() =>
+		import("@/components/markdown-editor").then((mod) => mod.MarkdownEditor),
+	{
+		ssr: false,
+		loading: () => (
+			<div className="h-125 bg-neutral-900 rounded-lg animate-pulse" />
+		),
+	},
+);
+
 import type { CollectionItemInput } from "@/lib/actions/write";
 import { getTypeIcon, getTypeLabel } from "@/lib/collection-utils";
 import { getFullPath } from "@/lib/redirect-utils";
@@ -680,18 +693,15 @@ export function PostFormFields({
 				type="url"
 			/>
 
-			<TextAreaInput
-				id="content"
-				label="Content"
-				value={formData.content}
-				onChange={(content) =>
-					setFormData((prev: typeof formData) => ({ ...prev, content }))
-				}
-				rows={20}
-				className="font-mono text-sm"
-				placeholder="Write your post content here (Markdown supported)"
-				required
-			/>
+			<FormField label="Content" id="content" required>
+				<MarkdownEditor
+					value={formData.content}
+					onChange={(content) =>
+						setFormData((prev: typeof formData) => ({ ...prev, content }))
+					}
+					placeholder="Write your post content here..."
+				/>
+			</FormField>
 
 			<CheckboxInput
 				id="published"

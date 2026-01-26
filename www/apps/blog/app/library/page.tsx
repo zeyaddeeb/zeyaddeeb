@@ -1,10 +1,10 @@
 import type { CollectionItemType } from "@zeyaddeeb/db/schema";
 import type { Metadata } from "next";
 import { getAllCollectionTypes, getCollectionItems } from "@/lib/actions";
-import { ThingsILikeContent } from "./things-i-like-content";
+import { ThingsILikeContent } from "./library-content";
 
 export const metadata: Metadata = {
-	title: "Things I Like | Zeyad Deeb",
+	title: "Library",
 	description:
 		"A curated collection of things I find interesting - books, art, videos, products, and more.",
 };

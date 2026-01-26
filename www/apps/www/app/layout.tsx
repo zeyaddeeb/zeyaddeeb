@@ -33,7 +33,7 @@ export const metadata: Metadata = {
 		template: "%s | Zeyad Deeb",
 	},
 	description:
-		"Personal website and portfolio of Zeyad Deeb. Software engineer, creative developer, and digital craftsman.",
+		"Personal website and portfolio of Zeyad Deeb. Software engineer.",
 	keywords: [
 		"Zeyad Deeb",
 		"software engineer",
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
 		siteName: "Zeyad Deeb",
 		title: "Zeyad Deeb",
 		description:
-			"Personal website and portfolio of Zeyad Deeb. Software engineer, creative developer, and digital craftsman.",
+			"Personal website and portfolio of Zeyad Deeb. Software engineer.",
 		images: [
 			{
 				url: "/og-image.png",
@@ -65,7 +65,7 @@ export const metadata: Metadata = {
 		card: "summary_large_image",
 		title: "Zeyad Deeb",
 		description:
-			"Personal website and portfolio of Zeyad Deeb. Software engineer, creative developer, and digital craftsman.",
+			"Personal website and portfolio of Zeyad Deeb. Software engineer.",
 		images: ["/og-image.png"],
 		creator: "@zeyad_deeb",
 	},

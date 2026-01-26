@@ -3,7 +3,7 @@ import { getPosts } from "@/lib/actions";
 import { BlogContent } from "./blog-content";
 
 export const metadata: Metadata = {
-	title: "Blog | Zeyad Deeb",
+	title: "Blog",
 	description: "Thoughts on software development, technology, and life.",
 };
 

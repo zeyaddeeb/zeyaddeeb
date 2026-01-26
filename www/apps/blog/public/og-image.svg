@@ -34,7 +34,7 @@
   <text x="230" y="270" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" fill="url(#textGradient)">Zeyad Deeb</text>
   
   <!-- Tagline -->
-  <text x="100" y="380" font-family="system-ui, -apple-system, sans-serif" font-size="28" fill="#a3a3a3">Blog &amp; Things I Like</text>
+  <text x="100" y="380" font-family="system-ui, -apple-system, sans-serif" font-size="28" fill="#a3a3a3">Blog &amp; Library</text>
   
   <!-- URL -->
   <text x="100" y="550" font-family="system-ui, -apple-system, sans-serif" font-size="22" fill="#525252" letter-spacing="2">blog.zeyaddeeb.com</text>

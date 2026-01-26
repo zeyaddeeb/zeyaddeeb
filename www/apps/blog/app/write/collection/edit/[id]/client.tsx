@@ -71,7 +71,7 @@ export function CollectionEditClient({
 		const result = await updateCollectionItem(item.id, formData);
 
 		if (result.success) {
-			router.push(`/things-i-like/${result.data.slug}`);
+			router.push(`/library/${result.data.slug}`);
 		} else {
 			setError(result.error);
 			setIsSubmitting(false);
@@ -93,7 +93,7 @@ export function CollectionEditClient({
 		const result = await deleteCollectionItem(item.id);
 
 		if (result.success) {
-			router.push("/things-i-like");
+			router.push("/library");
 		} else {
 			setError(result.error);
 			setIsDeleting(false);

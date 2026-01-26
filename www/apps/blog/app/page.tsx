@@ -60,43 +60,54 @@ export default async function HomePage() {
 							</div>
 
 							{recentPosts.length > 0 ? (
-								<div className="space-y-4">
+								<div className="space-y-3">
 									{recentPosts.map((post) => (
 										<Link
 											key={post.id}
 											href={`/posts/${post.slug}`}
-											className="group flex gap-4 overflow-hidden rounded-xl border border-neutral-800/50 bg-neutral-900/50 p-4 transition-all hover:border-neutral-700 hover:bg-neutral-900"
+											className="group relative block overflow-hidden rounded-xl border border-neutral-800/50 bg-neutral-900/30 transition-all duration-300 hover:border-neutral-700/80 hover:bg-neutral-900/60 hover:shadow-lg hover:shadow-neutral-900/50"
 										>
-											{post.coverImage && (
-												<div className="h-24 w-32 shrink-0 overflow-hidden rounded-lg">
-													<img
-														src={post.coverImage}
-														alt={post.title}
-														className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-													/>
-												</div>
-											)}
-											<div className="flex flex-1 flex-col justify-center">
-												<h3 className="mb-1 text-base font-semibold text-white group-hover:text-neutral-200">
-													{post.title}
-												</h3>
-												{post.excerpt && (
-													<p className="mb-2 line-clamp-2 text-sm text-neutral-400">
-														{post.excerpt}
-													</p>
+											<div className="absolute inset-0 bg-linear-to-r from-white/2 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+											<div className="relative flex gap-4 p-4">
+												{post.coverImage && (
+													<div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-lg md:h-24 md:w-32">
+														<img
+															src={post.coverImage}
+															alt={post.title}
+															className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+														/>
+														<div className="absolute inset-0 bg-linear-to-t from-neutral-900/20 to-transparent" />
+													</div>
 												)}
-												{post.publishedAt && (
-													<time className="text-xs text-neutral-500">
-														{new Date(post.publishedAt).toLocaleDateString(
-															"en-US",
-															{
-																year: "numeric",
-																month: "short",
-																day: "numeric",
-															},
+												<div className="flex flex-1 flex-col justify-center py-0.5">
+													<div className="mb-1.5 flex items-center gap-2">
+														{post.publishedAt && (
+															<time className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">
+																{new Date(post.publishedAt).toLocaleDateString(
+																	"en-US",
+																	{
+																		year: "numeric",
+																		month: "short",
+																		day: "numeric",
+																	},
+																)}
+															</time>
 														)}
-													</time>
-												)}
+													</div>
+													<h3 className="mb-1 text-[15px] font-semibold leading-snug text-white transition-colors group-hover:text-neutral-100">
+														{post.title}
+													</h3>
+													{post.excerpt && (
+														<p className="line-clamp-2 text-[13px] leading-relaxed text-neutral-500 transition-colors group-hover:text-neutral-400">
+															{post.excerpt}
+														</p>
+													)}
+												</div>
+												<div className="flex items-center self-center pl-2">
+													<span className="text-neutral-600 transition-all duration-300 group-hover:translate-x-1 group-hover:text-neutral-400">
+														→
+													</span>
+												</div>
 											</div>
 										</Link>
 									))}
@@ -112,10 +123,10 @@ export default async function HomePage() {
 									className="text-xl font-bold text-white md:text-2xl"
 									style={{ fontFamily: "var(--font-space-grotesk)" }}
 								>
-									Things I Like
+									Library
 								</h2>
 								<Link
-									href="/things-i-like"
+									href="/library"
 									className="text-sm text-neutral-400 transition-colors hover:text-white"
 								>
 									View all →

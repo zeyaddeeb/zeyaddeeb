@@ -47,7 +47,7 @@ export function CollectionCard({
 	return (
 		<motion.div variants={cardVariants} className={className}>
 			<Link
-				href={`/things-i-like/${item.slug}`}
+				href={`/library/${item.slug}`}
 				className="group relative flex h-full min-h-50 flex-col overflow-hidden rounded-lg bg-neutral-900/50 transition-all duration-500 hover:bg-neutral-900/80 sm:min-h-0"
 				style={{
 					borderColor: item.accentColor || "transparent",
@@ -56,7 +56,7 @@ export function CollectionCard({
 			>
 				{item.imageUrl && (
 					<div
-						className={`relative w-full overflow-hidden ${isLarge ? "h-40 sm:h-2/3" : isTall ? "h-40 sm:h-1/2" : "h-40 sm:h-32 md:h-40"}`}
+						className={`relative w-full shrink-0 overflow-hidden ${isLarge ? "h-40 sm:h-64" : isTall ? "h-40 sm:h-48" : "h-40 sm:h-32 md:h-40"}`}
 					>
 						<Image
 							src={item.imageUrl}
@@ -69,7 +69,7 @@ export function CollectionCard({
 					</div>
 				)}
 
-				<div className="relative flex flex-1 flex-col justify-end p-3 md:p-4">
+				<div className="relative flex flex-col p-3 md:p-4">
 					<div className="mb-2 flex items-center gap-2">
 						<span
 							className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider"

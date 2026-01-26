@@ -20,7 +20,12 @@ export function RootLayoutClient({ children }: RootLayoutClientProps) {
 				duration: 1.4,
 			}}
 		>
-			<div style={{ opacity: introComplete ? 1 : 0 }}>{children}</div>
+			<div
+				className="min-h-screen bg-neutral-950"
+				style={{ opacity: introComplete ? 1 : 0 }}
+			>
+				{children}
+			</div>
 			<IntroScreen onComplete={() => setIntroComplete(true)} />
 			<CustomCursor />
 		</ReactLenis>

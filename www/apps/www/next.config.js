@@ -1,5 +1,3 @@
-import { fileURLToPath } from "node:url";
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
 	output: "standalone",
@@ -13,16 +11,6 @@ const nextConfig = {
 				hostname: "**",
 			},
 		],
-	},
-
-	experimental: {
-		turbo: {
-			resolveAlias: {
-				"@zeyaddeeb/ui": fileURLToPath(
-					new URL("../../packages/ui/src", import.meta.url),
-				),
-			},
-		},
 	},
 };
 

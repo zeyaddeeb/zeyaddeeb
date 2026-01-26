@@ -38,7 +38,7 @@ export function CollectionItemDetail({ item }: CollectionItemDetailProps) {
 						className={item.imageUrl ? "-mt-32" : "pt-12"}
 					>
 						<Link
-							href="/things-i-like"
+							href="/library"
 							className="mb-6 inline-flex items-center gap-2 text-sm text-neutral-400 transition-colors hover:text-white"
 						>
 							<svg
@@ -52,7 +52,7 @@ export function CollectionItemDetail({ item }: CollectionItemDetailProps) {
 								<title>Back arrow</title>
 								<path d="M19 12H5M12 19l-7-7 7-7" />
 							</svg>
-							Back to Things I Like
+							Back to Library
 						</Link>
 
 						<div className="mb-4 flex items-center gap-3">

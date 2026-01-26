@@ -71,7 +71,7 @@ export function CollectionWriteClient({ user }: CollectionWriteClientProps) {
 		const result = await createCollectionItem(formData);
 
 		if (result.success) {
-			router.push(`/things-i-like/${result.data.slug}`);
+			router.push(`/library/${result.data.slug}`);
 		} else {
 			setError(result.error);
 			setIsSubmitting(false);
@@ -82,7 +82,7 @@ export function CollectionWriteClient({ user }: CollectionWriteClientProps) {
 		<main className="min-h-screen bg-neutral-950 text-white px-6 py-12">
 			<div className="max-w-6xl mx-auto">
 				<PageHeader
-					title="Add to Things I Like"
+					title="Add to Library"
 					user={user}
 					actions={
 						<PreviewToggle

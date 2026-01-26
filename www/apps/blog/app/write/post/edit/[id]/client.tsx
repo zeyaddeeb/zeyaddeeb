@@ -42,7 +42,11 @@ export function PostEditClient({ user, post }: PostEditClientProps) {
 		const result = await updatePost(post.id, formData);
 
 		if (result.success) {
-			router.push(`/posts/${result.data.slug}`);
+			if (formData.published) {
+				router.push(`/posts/${result.data.slug}`);
+			} else {
+				router.push("/write");
+			}
 		} else {
 			setError(result.error);
 			setIsSubmitting(false);

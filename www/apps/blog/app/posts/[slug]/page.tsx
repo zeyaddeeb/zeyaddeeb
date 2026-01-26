@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getPostBySlug, getRelatedPosts } from "@/lib/actions";
+import { getPostBySlug } from "@/lib/actions";
 import { BlogPostDetail } from "./blog-post-detail";
 
 interface PageProps {
@@ -24,12 +24,12 @@ export async function generateMetadata({
 	const ogImage = post.coverImage || "/og-image.png";
 
 	return {
-		title: post.title,
+		title: `${post.title} | Blog`,
 		description: post.excerpt || `Read ${post.title} on Zeyad Deeb's blog`,
 		authors: [{ name: "Zeyad Deeb" }],
 		openGraph: {
 			type: "article",
-			title: post.title,
+			title: `${post.title} | Blog`,
 			description: post.excerpt || `Read ${post.title} on Zeyad Deeb's blog`,
 			url: `https://www.zeyaddeeb.com/blog/posts/${slug}`,
 			siteName: "Zeyad Deeb - Blog",
@@ -46,7 +46,7 @@ export async function generateMetadata({
 		},
 		twitter: {
 			card: "summary_large_image",
-			title: post.title,
+			title: `${post.title} | Blog`,
 			description: post.excerpt || `Read ${post.title} on Zeyad Deeb's blog`,
 			images: [ogImage],
 			creator: "@zeyad_deeb",
@@ -62,7 +62,5 @@ export default async function BlogPostPage({ params }: PageProps) {
 		notFound();
 	}
 
-	const relatedPosts = await getRelatedPosts(post.id, 3);
-
-	return <BlogPostDetail post={post} relatedPosts={relatedPosts} />;
+	return <BlogPostDetail post={post} />;
 }

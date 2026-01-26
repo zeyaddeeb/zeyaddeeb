@@ -24,14 +24,14 @@ export async function generateMetadata({
 	const ogImage = item.imageUrl || "/og-image.png";
 
 	return {
-		title: `${item.title} | Things I Like`,
+		title: `${item.title} | Library`,
 		description: item.description || `${item.title} - A thing I like`,
 		openGraph: {
 			type: "article",
 			title: item.title,
 			description: item.description || `${item.title} - A thing I like`,
-			url: `https://www.zeyaddeeb.com/blog/things-i-like/${slug}`,
-			siteName: "Zeyad Deeb - Things I Like",
+			url: `https://www.zeyaddeeb.com/blog/library/${slug}`,
+			siteName: "Zeyad Deeb - Library",
 			images: [
 				{
 					url: ogImage,

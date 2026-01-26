@@ -47,34 +47,23 @@ export function IntroScreen({ onComplete }: IntroScreenProps) {
 				})
 				.to(letters, {
 					yPercent: 0,
-					duration: 0.9,
-					stagger: 0.06,
+					duration: 0.35,
+					stagger: 0.025,
 				})
-				.to(
-					[],
-					{
-						yPercent: 0,
-						duration: 0.6,
-						stagger: 0.12,
-						ease: "power3.out",
-					},
-					"-=0.45",
-				)
 				.to(".preloader-col", {
 					yPercent: -100,
-					duration: 1.1,
-					stagger: 0.08,
+					duration: 0.45,
+					stagger: 0.03,
 					ease: "power4.inOut",
-					delay: 0.2,
 				})
 				.to(
 					preloaderRef.current,
 					{
 						autoAlpha: 0,
-						duration: 0.6,
+						duration: 0.25,
 						ease: "power2.in",
 					},
-					"-=0.6",
+					"-=0.25",
 				);
 		},
 		{ scope: preloaderRef, dependencies: [isComplete] },

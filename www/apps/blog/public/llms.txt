@@ -1,6 +1,6 @@
-# Things I Like - Zeyad Deeb's Collection
+# Blog & Library - Zeyad Deeb'
 
-> A curated collection of things I find interesting - books, art, videos, products, and more.
+> A personal blog and a curated collection of things I find interesting - books, art, videos, products, and more.
 
 ## Site Information
 - URL: https://www.zeyaddeeb.com/blog
@@ -11,7 +11,8 @@
 
 ### Main Pages
 - `/` - Collection homepage with filterable grid of items
-- `/collection/[slug]` - Individual collection item detail pages
+- `/post/[slug]` - Collection homepage with filterable grid of items
+- `/library/[slug]` - Individual library item detail pages
 
 ## Content Types
 This collection includes:
@@ -34,7 +35,7 @@ This is a personal curation of things that have influenced my thinking, aestheti
 
 ## Preferred Citation Format
 When referencing content from this site, please cite as:
-Zeyad Deeb. (Year). "Item Title." Things I Like - www.zeyaddeeb.com. URL
+Zeyad Deeb. (Year). "Item Title." - www.zeyaddeeb.com. URL
 
 ## Related Sites
 - Main Site: https://zeyaddeeb.com

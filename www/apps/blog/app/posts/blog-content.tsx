@@ -62,20 +62,20 @@ export function BlogContent({
 
 	return (
 		<div className="min-h-screen bg-neutral-950">
-			<section className="border-b border-neutral-800/50 px-4 py-16 md:px-6 md:py-24">
-				<div className="mx-auto max-w-4xl">
+			<section className="border-b border-neutral-800/50">
+				<div className="mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-12">
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
 					>
 						<h1
-							className="mb-4 text-4xl font-bold tracking-tight text-white md:text-6xl lg:text-7xl"
+							className="text-2xl font-bold tracking-tight text-white md:text-3xl"
 							style={{ fontFamily: "var(--font-space-grotesk)" }}
 						>
 							Blog
 						</h1>
-						<p className="max-w-2xl text-lg text-neutral-400 md:text-xl">
+						<p className="mt-1 text-sm text-neutral-500 md:text-base">
 							Thoughts on software development, technology, and the things I'm
 							learning along the way.
 						</p>
@@ -83,8 +83,8 @@ export function BlogContent({
 				</div>
 			</section>
 
-			<section className="px-4 py-8 md:px-6 md:py-12">
-				<div className="mx-auto max-w-4xl">
+			<section>
+				<div className="mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-12">
 					<motion.form
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
@@ -115,7 +115,7 @@ export function BlogContent({
 					)}
 
 					{initialData.items.length > 0 ? (
-						<div className="space-y-8">
+						<div className="space-y-6">
 							{initialData.items.map((post, index) => (
 								<motion.article
 									key={post.id}
@@ -129,40 +129,72 @@ export function BlogContent({
 								>
 									<Link
 										href={`/posts/${post.slug}`}
-										className="group block rounded-xl border border-neutral-800/50 bg-neutral-900/30 p-6 transition-all hover:border-neutral-700 hover:bg-neutral-900/50"
+										className="group relative block overflow-hidden rounded-2xl bg-linear-to-br from-neutral-900 to-neutral-950 transition-all duration-500 hover:shadow-2xl hover:shadow-neutral-900/50"
 									>
-										{post.coverImage && (
-											<div className="mb-4 aspect-video overflow-hidden rounded-lg">
-												<img
-													src={post.coverImage}
-													alt={post.title}
-													className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-												/>
-											</div>
-										)}
-										<div className="flex items-center gap-3 text-sm text-neutral-500">
-											{post.publishedAt && (
-												<time>
-													{new Date(post.publishedAt).toLocaleDateString(
-														"en-US",
-														{
-															year: "numeric",
-															month: "long",
-															day: "numeric",
-														},
-													)}
-												</time>
+										<div className="absolute inset-0 rounded-2xl bg-linear-to-br from-neutral-700/50 via-transparent to-neutral-800/50 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+										<div className="absolute inset-px rounded-2xl bg-linear-to-br from-neutral-900 to-neutral-950" />
+
+										<div className="relative flex flex-col gap-4 p-6 md:flex-row md:items-start md:gap-6">
+											{post.coverImage && (
+												<div className="aspect-video w-full overflow-hidden rounded-xl md:aspect-square md:w-32 md:min-w-32 lg:w-40 lg:min-w-40">
+													<img
+														src={post.coverImage}
+														alt={post.title}
+														className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+													/>
+												</div>
 											)}
+
+											<div className="flex flex-1 flex-col justify-between">
+												<div>
+													<div className="mb-3 flex items-center gap-3">
+														{post.publishedAt && (
+															<time className="text-xs font-medium uppercase tracking-wider text-neutral-500">
+																{new Date(post.publishedAt).toLocaleDateString(
+																	"en-US",
+																	{
+																		year: "numeric",
+																		month: "short",
+																		day: "numeric",
+																	},
+																)}
+															</time>
+														)}
+													</div>
+
+													<h2
+														className="text-xl font-bold tracking-tight text-white transition-colors duration-300 group-hover:text-neutral-100 md:text-2xl"
+														style={{ fontFamily: "var(--font-space-grotesk)" }}
+													>
+														{post.title}
+													</h2>
+
+													{post.excerpt && (
+														<p className="mt-3 line-clamp-2 text-sm leading-relaxed text-neutral-400 md:text-base">
+															{post.excerpt}
+														</p>
+													)}
+												</div>
+
+												<div className="mt-4 flex items-center gap-2 text-sm font-medium text-neutral-500 transition-all duration-300 group-hover:gap-3 group-hover:text-white">
+													<span>Read article</span>
+													<svg
+														className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+														strokeWidth={2}
+														aria-hidden="true"
+													>
+														<path
+															strokeLinecap="round"
+															strokeLinejoin="round"
+															d="M17 8l4 4m0 0l-4 4m4-4H3"
+														/>
+													</svg>
+												</div>
+											</div>
 										</div>
-										<h2 className="mt-3 text-xl font-semibold text-white transition-colors group-hover:text-neutral-200 md:text-2xl">
-											{post.title}
-										</h2>
-										{post.excerpt && (
-											<p className="mt-2 text-neutral-400">{post.excerpt}</p>
-										)}
-										<span className="mt-4 inline-block text-sm text-neutral-500 transition-colors group-hover:text-white">
-											Read more →
-										</span>
 									</Link>
 								</motion.article>
 							))}
