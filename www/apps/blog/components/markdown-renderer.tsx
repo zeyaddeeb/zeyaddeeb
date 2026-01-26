@@ -2,6 +2,7 @@
 
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
+import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import "highlight.js/styles/github-dark.css";
 
@@ -18,7 +19,7 @@ export function MarkdownRenderer({
 		<div className={className}>
 			<ReactMarkdown
 				remarkPlugins={[remarkGfm]}
-				rehypePlugins={[rehypeHighlight]}
+				rehypePlugins={[rehypeRaw, rehypeHighlight]}
 				components={{
 					h1: ({ children }) => (
 						<h1 className="mb-4 mt-8 text-3xl font-bold tracking-tight text-white first:mt-0">
