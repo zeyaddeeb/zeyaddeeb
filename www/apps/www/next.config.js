@@ -2,7 +2,7 @@
 const nextConfig = {
 	output: "standalone",
 	reactStrictMode: true,
-	transpilePackages: ["@zeyaddeeb/ui"],
+	transpilePackages: ["@zeyaddeeb/ui", "@zeyaddeeb/wasm"],
 
 	images: {
 		remotePatterns: [

@@ -1,0 +1,14 @@
+{
+  "name": "@zeyaddeeb/wasm",
+  "private": true,
+  "scripts": {
+    "build": "true"
+  },
+  "exports": {
+    ".": {
+      "browser": "./build/browser/zeyaddeeb_wasm.js",
+      "node": "./build/node/zeyaddeeb_wasm.js",
+      "binary": "./build/node/zeyaddeeb_wasm_bg.wasm"
+    }
+  }
+}

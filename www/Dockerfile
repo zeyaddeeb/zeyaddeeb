@@ -1,5 +1,13 @@
 FROM oven/bun:1.2.20-alpine AS base
 
+FROM rust:bookworm AS wasm-builder
+RUN cargo install wasm-pack
+WORKDIR /wasm
+COPY packages/wasm/Cargo.toml packages/wasm/Cargo.lock ./
+COPY packages/wasm/src ./src
+RUN wasm-pack build --target web --out-dir ./build/browser
+RUN wasm-pack build --target nodejs --out-dir ./build/node
+
 FROM base AS deps
 WORKDIR /app
 
@@ -21,9 +29,13 @@ COPY --from=deps /app/packages ./packages
 
 COPY . .
 
-ENV NEXT_TELEMETRY_DISABLED=1
+COPY --from=wasm-builder /wasm/build ./packages/wasm/build
+COPY packages/wasm/scripts/build.json ./packages/wasm/package.json
 
-RUN bun run build
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV TURBO_TELEMETRY_DISABLED=1
+
+RUN bunx turbo build --no-cache
 
 FROM base AS runner
 WORKDIR /app
@@ -42,6 +54,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/*/.next/static ./apps/
 COPY --from=builder --chown=nextjs:nodejs /app/apps/*/public ./apps/*/public
 
 COPY --from=builder /app/packages/db ./packages/db
+COPY --from=builder /app/packages/wasm ./packages/wasm
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/bun.lock ./bun.lock

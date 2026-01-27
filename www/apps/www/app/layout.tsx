@@ -1,11 +1,12 @@
 import "@zeyaddeeb/ui/styles.css";
 import "lenis/dist/lenis.css";
 
-import { Footer, Header } from "@zeyaddeeb/ui";
+import { Footer } from "@zeyaddeeb/ui";
 import type { Metadata } from "next";
 import { Anton, Newsreader, Roboto_Flex } from "next/font/google";
 import { RootLayoutClient } from "@/components/root-layout";
 import { AppStateProvider } from "@/lib/providers/app-provider";
+import { WASMContextProvider } from "@/lib/providers/wasm-provider";
 
 const antonFont = Anton({
 	weight: "400",
@@ -86,6 +87,12 @@ export const metadata: Metadata = {
 	},
 };
 
+const navItems = [
+	{ label: "About", href: "/about" },
+	{ label: "Experiments", href: "/experiments" },
+	{ label: "Blog", href: "/blog" },
+];
+
 export default function RootLayout({
 	children,
 }: Readonly<{
@@ -97,13 +104,12 @@ export default function RootLayout({
 				className={`${antonFont.variable} ${robotoFlex.variable} ${newsreader.variable} cursor-none bg-neutral-950 antialiased`}
 			>
 				<AppStateProvider>
-					<RootLayoutClient>
-						<div className="md:hidden">
-							<Header navItems={[]} />
-						</div>
-						{children}
-						<Footer />
-					</RootLayoutClient>
+					<WASMContextProvider>
+						<RootLayoutClient navItems={navItems}>
+							{children}
+							<Footer />
+						</RootLayoutClient>
+					</WASMContextProvider>
 				</AppStateProvider>
 			</body>
 		</html>

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 export default function AboutPage() {
 	return (
 		<main className="min-h-screen bg-neutral-950 text-white">
-			<section className="relative flex min-h-screen items-center justify-center px-6 py-20 overflow-hidden">
+			<section className="relative flex min-h-screen items-center justify-center px-6 pt-24 pb-20 overflow-hidden">
 				<div className="absolute inset-0 bg-linear-to-br from-emerald-950 via-neutral-950 to-neutral-950" />
 				<div className="absolute top-0 left-0 w-150 h-150 bg-emerald-500/10 blur-[120px] rounded-full" />
 				<div

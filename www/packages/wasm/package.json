@@ -1,0 +1,26 @@
+{
+  "name": "@zeyaddeeb/wasm",
+  "private": true,
+  "sideEffects": false,
+  "scripts": {
+    "build": "bun run build:browser && bun run build:node",
+    "build:browser": "wasm-pack build --target web --out-dir ./build/browser",
+    "build:node": "wasm-pack build --target nodejs --out-dir ./build/node",
+    "lint": "eslint",
+    "types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "wasm-pack": "0.14.0"
+  },
+  "files": [
+    "build"
+  ],
+  "types": "./build/browser/zeyaddeeb_wasm.d.ts",
+  "exports": {
+    ".": {
+      "browser": "./build/browser/zeyaddeeb_wasm.js",
+      "node": "./build/node/zeyaddeeb_wasm.js",
+      "binary": "./build/node/zeyaddeeb_wasm_bg.wasm"
+    }
+  }
+}
