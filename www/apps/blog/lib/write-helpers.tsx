@@ -3,7 +3,7 @@
 import type { CollectionItemType } from "@zeyaddeeb/db";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import type { ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 import { signOutAction } from "@/lib/actions/auth";
 
 const MarkdownEditor = dynamic(
@@ -29,6 +29,8 @@ export const ITEM_TYPES: CollectionItemType[] = [
 	"article",
 	"podcast",
 	"product",
+	"movie",
+	"github",
 	"wikipedia",
 	"other",
 ];
@@ -54,15 +56,20 @@ const inputBaseClass =
 
 interface FormFieldProps {
 	label: string;
-	id: string;
+	htmlFor: string;
 	required?: boolean;
 	children: ReactNode;
 }
 
-export function FormField({ label, id, required, children }: FormFieldProps) {
+export function FormField({
+	label,
+	htmlFor,
+	required,
+	children,
+}: FormFieldProps) {
 	return (
 		<div>
-			<label htmlFor={id} className="block text-sm font-medium mb-2">
+			<label htmlFor={htmlFor} className="block text-sm font-medium mb-2">
 				{label}
 				{required && <span className="text-red-400 ml-1">*</span>}
 			</label>
@@ -72,7 +79,6 @@ export function FormField({ label, id, required, children }: FormFieldProps) {
 }
 
 interface TextInputProps {
-	id: string;
 	label: string;
 	value: string;
 	onChange: (value: string) => void;
@@ -82,7 +88,6 @@ interface TextInputProps {
 }
 
 export function TextInput({
-	id,
 	label,
 	value,
 	onChange,
@@ -90,8 +95,9 @@ export function TextInput({
 	required,
 	type = "text",
 }: TextInputProps) {
+	const id = useId();
 	return (
-		<FormField label={label} id={id} required={required}>
+		<FormField label={label} htmlFor={id} required={required}>
 			<input
 				id={id}
 				type={type}
@@ -106,7 +112,6 @@ export function TextInput({
 }
 
 interface TextAreaInputProps {
-	id: string;
 	label: string;
 	value: string;
 	onChange: (value: string) => void;
@@ -117,7 +122,6 @@ interface TextAreaInputProps {
 }
 
 export function TextAreaInput({
-	id,
 	label,
 	value,
 	onChange,
@@ -126,8 +130,9 @@ export function TextAreaInput({
 	required,
 	className,
 }: TextAreaInputProps) {
+	const id = useId();
 	return (
-		<FormField label={label} id={id} required={required}>
+		<FormField label={label} htmlFor={id} required={required}>
 			<textarea
 				id={id}
 				value={value}
@@ -142,7 +147,6 @@ export function TextAreaInput({
 }
 
 interface SelectInputProps<T extends string> {
-	id: string;
 	label: string;
 	value: T;
 	onChange: (value: T) => void;
@@ -151,15 +155,15 @@ interface SelectInputProps<T extends string> {
 }
 
 export function SelectInput<T extends string>({
-	id,
 	label,
 	value,
 	onChange,
 	options,
 	getOptionLabel = (o) => o.charAt(0).toUpperCase() + o.slice(1),
 }: SelectInputProps<T>) {
+	const id = useId();
 	return (
-		<FormField label={label} id={id}>
+		<FormField label={label} htmlFor={id}>
 			<select
 				id={id}
 				value={value}
@@ -177,18 +181,17 @@ export function SelectInput<T extends string>({
 }
 
 interface CheckboxInputProps {
-	id: string;
 	label: string;
 	checked: boolean;
 	onChange: (checked: boolean) => void;
 }
 
 export function CheckboxInput({
-	id,
 	label,
 	checked,
 	onChange,
 }: CheckboxInputProps) {
+	const id = useId();
 	return (
 		<div className="flex items-center gap-3">
 			<input
@@ -206,7 +209,6 @@ export function CheckboxInput({
 }
 
 interface ColorPickerProps {
-	id: string;
 	label: string;
 	value: string;
 	onChange: (value: string) => void;
@@ -214,14 +216,14 @@ interface ColorPickerProps {
 }
 
 export function ColorPicker({
-	id,
 	label,
 	value,
 	onChange,
 	placeholder = "#ff6b6b",
 }: ColorPickerProps) {
+	const id = useId();
 	return (
-		<FormField label={label} id={id}>
+		<FormField label={label} htmlFor={id}>
 			<div className="flex gap-2">
 				<input
 					id={id}
@@ -243,15 +245,15 @@ export function ColorPicker({
 }
 
 interface NumberInputProps {
-	id: string;
 	label: string;
 	value: number;
 	onChange: (value: number) => void;
 }
 
-export function NumberInput({ id, label, value, onChange }: NumberInputProps) {
+export function NumberInput({ label, value, onChange }: NumberInputProps) {
+	const id = useId();
 	return (
-		<FormField label={label} id={id}>
+		<FormField label={label} htmlFor={id}>
 			<input
 				id={id}
 				type="number"
@@ -501,7 +503,6 @@ export function CollectionFormFields({
 		<>
 			<div className="grid grid-cols-2 gap-4">
 				<SelectInput
-					id="type"
 					label="Type"
 					value={formData.type}
 					onChange={(type) =>
@@ -515,7 +516,6 @@ export function CollectionFormFields({
 				/>
 
 				<SelectInput
-					id="gridSize"
 					label="Grid Size"
 					value={formData.gridSize}
 					onChange={(gridSize) =>
@@ -526,7 +526,6 @@ export function CollectionFormFields({
 			</div>
 
 			<TextInput
-				id="title"
 				label="Title"
 				value={formData.title}
 				onChange={handleTitleChange}
@@ -535,7 +534,6 @@ export function CollectionFormFields({
 			/>
 
 			<TextInput
-				id="slug"
 				label="Slug"
 				value={formData.slug}
 				onChange={(slug) => setFormData((prev) => ({ ...prev, slug }))}
@@ -544,7 +542,6 @@ export function CollectionFormFields({
 			/>
 
 			<TextAreaInput
-				id="description"
 				label="Description"
 				value={formData.description || ""}
 				onChange={(description) =>
@@ -554,7 +551,6 @@ export function CollectionFormFields({
 			/>
 
 			<TextInput
-				id="url"
 				label="URL"
 				value={formData.url || ""}
 				onChange={(url) => setFormData((prev) => ({ ...prev, url }))}
@@ -563,7 +559,6 @@ export function CollectionFormFields({
 			/>
 
 			<TextInput
-				id="imageUrl"
 				label="Image URL"
 				value={formData.imageUrl || ""}
 				onChange={(imageUrl) => setFormData((prev) => ({ ...prev, imageUrl }))}
@@ -573,7 +568,6 @@ export function CollectionFormFields({
 
 			<div className="grid grid-cols-2 gap-4">
 				<ColorPicker
-					id="accentColor"
 					label="Accent Color"
 					value={formData.accentColor || ""}
 					onChange={(accentColor) =>
@@ -582,7 +576,6 @@ export function CollectionFormFields({
 				/>
 
 				<NumberInput
-					id="displayOrder"
 					label="Display Order"
 					value={formData.displayOrder || 0}
 					onChange={(displayOrder) =>
@@ -592,16 +585,30 @@ export function CollectionFormFields({
 			</div>
 
 			<TextInput
-				id="tags"
 				label="Tags (comma-separated)"
 				value={tagsInput}
 				onChange={onTagsChange}
 				placeholder="design, inspiration, tech"
 			/>
 
+			<TextAreaInput
+				label="Metadata (JSON)"
+				value={JSON.stringify(formData.metadata || {}, null, 2)}
+				onChange={(value) => {
+					try {
+						const parsed = JSON.parse(value || "{}");
+						setFormData((prev) => ({ ...prev, metadata: parsed }));
+					} catch {
+						console.warn("Invalid JSON in metadata");
+					}
+				}}
+				placeholder='{"key": "value"}'
+				rows={6}
+				className="font-mono text-sm"
+			/>
+
 			<div className="flex items-center gap-6">
 				<CheckboxInput
-					id="featured"
 					label="Featured"
 					checked={formData.featured || false}
 					onChange={(featured) =>
@@ -610,7 +617,6 @@ export function CollectionFormFields({
 				/>
 
 				<CheckboxInput
-					id="published"
 					label="Published"
 					checked={formData.published || false}
 					onChange={(published) =>
@@ -653,7 +659,6 @@ export function PostFormFields({
 	return (
 		<>
 			<TextInput
-				id="title"
 				label="Title"
 				value={formData.title}
 				onChange={handleTitleChange}
@@ -662,7 +667,6 @@ export function PostFormFields({
 			/>
 
 			<TextInput
-				id="slug"
 				label="Slug"
 				value={formData.slug}
 				onChange={(slug) =>
@@ -673,7 +677,6 @@ export function PostFormFields({
 			/>
 
 			<TextInput
-				id="excerpt"
 				label="Excerpt"
 				value={formData.excerpt || ""}
 				onChange={(excerpt) =>
@@ -683,7 +686,6 @@ export function PostFormFields({
 			/>
 
 			<TextInput
-				id="coverImage"
 				label="Cover Image URL"
 				value={formData.coverImage || ""}
 				onChange={(coverImage) =>
@@ -693,7 +695,7 @@ export function PostFormFields({
 				type="url"
 			/>
 
-			<FormField label="Content" id="content" required>
+			<FormField label="Content" htmlFor="content" required>
 				<MarkdownEditor
 					value={formData.content}
 					onChange={(content) =>
@@ -704,7 +706,6 @@ export function PostFormFields({
 			</FormField>
 
 			<CheckboxInput
-				id="published"
 				label="Publish immediately"
 				checked={formData.published}
 				onChange={(published) =>

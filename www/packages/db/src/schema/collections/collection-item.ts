@@ -19,6 +19,8 @@ export const collectionItemTypeEnum = pgEnum("collection_item_type", [
 	"music",
 	"article",
 	"podcast",
+	"movie",
+	"github",
 	"other",
 ]);
 
@@ -130,6 +132,28 @@ export interface PodcastMetadata {
 	applePodcastsUrl?: string;
 }
 
+export interface MovieMetadata {
+	director?: string;
+	year?: number;
+	genre?: string[];
+	runtime?: number;
+	imdbId?: string;
+	imdbRating?: number;
+	cast?: string[];
+	streamingPlatform?: string;
+}
+
+export interface GitHubMetadata {
+	owner?: string;
+	repo?: string;
+	stars?: number;
+	forks?: number;
+	language?: string;
+	topics?: string[];
+	license?: string;
+	description?: string;
+}
+
 export type CollectionItemMetadata =
 	| WikipediaMetadata
 	| ArtMetadata
@@ -139,6 +163,8 @@ export type CollectionItemMetadata =
 	| MusicMetadata
 	| ArticleMetadata
 	| PodcastMetadata
+	| MovieMetadata
+	| GitHubMetadata
 	| Record<string, unknown>;
 
 export type CollectionItem = typeof collectionItem.$inferSelect;

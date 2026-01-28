@@ -252,6 +252,8 @@ const collectionItemSchema = z.object({
 		"music",
 		"article",
 		"podcast",
+		"movie",
+		"github",
 		"other",
 	]),
 	title: z.string().min(1, "Title is required"),

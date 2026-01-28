@@ -53,7 +53,7 @@ export function Header({
 					{logo}
 				</Link>
 
-				<div className="flex items-center gap-2">
+				<div className="flex items-center gap-1 md:gap-2">
 					{navItems.map((item) => {
 						const isActive = activeSection === item.href;
 						return (
@@ -64,7 +64,7 @@ export function Header({
 								rel={item.external ? "noopener noreferrer" : undefined}
 								title={item.label || item.ariaLabel || undefined}
 								aria-label={item.ariaLabel || item.label || undefined}
-								className={`rounded-lg px-3 py-2 text-sm font-semibold uppercase tracking-wide transition-all focus:outline-none md:px-4 ${
+								className={`rounded-lg px-2 py-1.5 text-xs font-semibold uppercase tracking-wide transition-all focus:outline-none md:px-4 md:py-2 md:text-sm ${
 									item.primary
 										? "border border-white bg-white text-neutral-900 hover:bg-transparent hover:text-white"
 										: isActive
