@@ -3,6 +3,7 @@ import "@zeyaddeeb/ui/styles.css";
 import { Footer, Header } from "@zeyaddeeb/ui";
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
+import { ScrollToTop } from "../lib/hooks/scroll-to-top";
 
 const inter = Inter({
 	subsets: ["latin"],
@@ -155,6 +156,7 @@ export default function RootLayout({
 			<body
 				className={`${inter.variable} ${spaceGrotesk.variable} min-h-screen bg-neutral-950 font-sans text-white antialiased`}
 			>
+				<ScrollToTop />
 				<Header
 					logo={
 						<>

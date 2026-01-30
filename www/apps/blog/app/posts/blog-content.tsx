@@ -2,6 +2,7 @@
 
 import type { Post } from "@zeyaddeeb/db/schema";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
@@ -136,11 +137,12 @@ export function BlogContent({
 
 										<div className="relative flex flex-col gap-4 p-6 md:flex-row md:items-start md:gap-6">
 											{post.coverImage && (
-												<div className="aspect-video w-full overflow-hidden rounded-xl md:aspect-square md:w-32 md:min-w-32 lg:w-40 lg:min-w-40">
-													<img
+												<div className="relative aspect-video w-full overflow-hidden rounded-xl md:aspect-square md:w-32 md:min-w-32 lg:w-40 lg:min-w-40">
+													<Image
 														src={post.coverImage}
 														alt={post.title}
-														className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+														fill
+														className="object-cover transition-transform duration-700 group-hover:scale-110"
 													/>
 												</div>
 											)}

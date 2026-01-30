@@ -115,14 +115,26 @@ export function MarkdownRenderer({
 							{children}
 						</td>
 					),
-					img: ({ src, alt }) => (
-						<img
-							src={src}
-							alt={alt || ""}
-							className="my-4 rounded-lg"
-							loading="lazy"
-						/>
-					),
+					img: function MarkdownImage({ src, alt, ...props }) {
+						const style = (props as { style?: string }).style;
+						const styleObj: React.CSSProperties = {};
+						if (style) {
+							const widthMatch = style.match(/width:\s*([^;]+)/);
+							if (widthMatch) {
+								styleObj.width = widthMatch[1].trim();
+							}
+						}
+						return (
+							// biome-ignore lint: dynamic markdown content requires native img element
+							<img
+								src={src}
+								alt={alt || ""}
+								className="my-4 rounded-lg"
+								style={styleObj}
+								loading="lazy"
+							/>
+						);
+					},
 				}}
 			>
 				{content}

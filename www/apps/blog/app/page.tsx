@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { CollectionGrid } from "@/components";
 import { getFeaturedCollectionItems, getRecentPosts } from "@/lib/actions";
@@ -71,10 +72,11 @@ export default async function HomePage() {
 											<div className="relative flex gap-4 p-4">
 												{post.coverImage && (
 													<div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-lg md:h-24 md:w-32">
-														<img
+														<Image
 															src={post.coverImage}
 															alt={post.title}
-															className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+															fill
+															className="object-cover transition-transform duration-500 group-hover:scale-110"
 														/>
 														<div className="absolute inset-0 bg-linear-to-t from-neutral-900/20 to-transparent" />
 													</div>

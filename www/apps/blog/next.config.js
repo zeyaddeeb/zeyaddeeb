@@ -5,6 +5,10 @@ const nextConfig = {
 	reactStrictMode: true,
 	transpilePackages: ["@zeyaddeeb/ui", "@zeyaddeeb/db"],
 
+	experimental: {
+		scrollRestoration: true,
+	},
+
 	images: {
 		remotePatterns: [
 			{

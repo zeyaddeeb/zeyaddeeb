@@ -2,6 +2,7 @@
 
 import type { Post } from "@zeyaddeeb/db/schema";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 
@@ -46,11 +47,13 @@ export function BlogPostDetail({ post }: BlogPostDetailProps) {
 						</h1>
 
 						{post.coverImage && (
-							<div className="mb-8 aspect-video overflow-hidden rounded-xl">
-								<img
+							<div className="relative mb-8 aspect-video overflow-hidden rounded-xl">
+								<Image
 									src={post.coverImage}
 									alt={post.title}
-									className="h-full w-full object-cover"
+									fill
+									className="object-cover"
+									priority
 								/>
 							</div>
 						)}

@@ -12,6 +12,7 @@ import {
 	forwardRef,
 	useCallback,
 	useEffect,
+	useId,
 	useImperativeHandle,
 	useState,
 } from "react";
@@ -95,11 +96,12 @@ function LinkModal({
 }: LinkModalProps) {
 	const [url, setUrl] = useState(initialUrl);
 	const [text, setText] = useState(initialText);
+	const linkUrlId = useId();
 
 	useEffect(() => {
 		setUrl(initialUrl);
 		setText(initialText);
-	}, [initialUrl, initialText, isOpen]);
+	}, [initialUrl, initialText]);
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
@@ -116,13 +118,13 @@ function LinkModal({
 			<form onSubmit={handleSubmit}>
 				<div className="mb-3">
 					<label
-						htmlFor="link-url"
+						htmlFor={linkUrlId}
 						className="mb-1 block text-sm text-neutral-400"
 					>
 						URL
 					</label>
 					<input
-						id="link-url"
+						id={linkUrlId}
 						type="url"
 						value={url}
 						onChange={(e) => setUrl(e.target.value)}
@@ -154,20 +156,26 @@ function LinkModal({
 interface ImageModalProps {
 	isOpen: boolean;
 	onClose: () => void;
-	onSubmit: (url: string, alt?: string) => void;
+	onSubmit: (url: string, alt?: string, width?: string) => void;
 }
 
 function ImageModal({ isOpen, onClose, onSubmit }: ImageModalProps) {
 	const [url, setUrl] = useState("");
 	const [alt, setAlt] = useState("");
+	const [width, setWidth] = useState("");
+	const imageUrlId = useId();
+	const imageFileId = useId();
+	const imageAltId = useId();
+	const imageWidthId = useId();
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (url) {
-			onSubmit(url, alt);
+			onSubmit(url, alt, width);
 			onClose();
 			setUrl("");
 			setAlt("");
+			setWidth("");
 		}
 	};
 
@@ -191,13 +199,13 @@ function ImageModal({ isOpen, onClose, onSubmit }: ImageModalProps) {
 			<form onSubmit={handleSubmit}>
 				<div className="mb-3">
 					<label
-						htmlFor="image-url"
+						htmlFor={imageUrlId}
 						className="mb-1 block text-sm text-neutral-400"
 					>
 						Image URL
 					</label>
 					<input
-						id="image-url"
+						id={imageUrlId}
 						type="url"
 						value={url}
 						onChange={(e) => setUrl(e.target.value)}
@@ -207,34 +215,82 @@ function ImageModal({ isOpen, onClose, onSubmit }: ImageModalProps) {
 				</div>
 				<div className="mb-3">
 					<label
-						htmlFor="image-file"
+						htmlFor={imageFileId}
 						className="mb-1 block text-sm text-neutral-400"
 					>
 						Or upload from your computer
 					</label>
 					<input
-						id="image-file"
+						id={imageFileId}
 						type="file"
 						accept="image/*"
 						onChange={handleFileUpload}
 						className="w-full text-sm text-neutral-400 file:mr-3 file:rounded file:border-0 file:bg-neutral-700 file:px-3 file:py-1.5 file:text-sm file:text-white hover:file:bg-neutral-600"
 					/>
 				</div>
-				<div className="mb-4">
+				<div className="mb-3">
 					<label
-						htmlFor="image-alt"
+						htmlFor={imageAltId}
 						className="mb-1 block text-sm text-neutral-400"
 					>
 						Alt text (optional)
 					</label>
 					<input
-						id="image-alt"
+						id={imageAltId}
 						type="text"
 						value={alt}
 						onChange={(e) => setAlt(e.target.value)}
 						placeholder="Describe the image"
 						className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-white placeholder-neutral-500 focus:border-blue-500 focus:outline-none"
 					/>
+				</div>
+				<div className="mb-4">
+					<label
+						htmlFor={imageWidthId}
+						className="mb-1 block text-sm text-neutral-400"
+					>
+						Width (optional)
+					</label>
+					<div className="flex gap-2">
+						<input
+							id={imageWidthId}
+							type="text"
+							value={width}
+							onChange={(e) => setWidth(e.target.value)}
+							placeholder="e.g., 500px, 50%, auto"
+							className="flex-1 rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-white placeholder-neutral-500 focus:border-blue-500 focus:outline-none"
+						/>
+						<div className="flex gap-1">
+							<button
+								type="button"
+								onClick={() => setWidth("25%")}
+								className="rounded bg-neutral-700 px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-600"
+							>
+								25%
+							</button>
+							<button
+								type="button"
+								onClick={() => setWidth("50%")}
+								className="rounded bg-neutral-700 px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-600"
+							>
+								50%
+							</button>
+							<button
+								type="button"
+								onClick={() => setWidth("75%")}
+								className="rounded bg-neutral-700 px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-600"
+							>
+								75%
+							</button>
+							<button
+								type="button"
+								onClick={() => setWidth("100%")}
+								className="rounded bg-neutral-700 px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-600"
+							>
+								100%
+							</button>
+						</div>
+					</div>
 				</div>
 				<div className="flex justify-end gap-2">
 					<button
@@ -271,13 +327,28 @@ function Toolbar({ editor }: ToolbarProps) {
 	);
 
 	const handleImageSubmit = useCallback(
-		(url: string, alt?: string) => {
+		(url: string, alt?: string, width?: string) => {
 			if (editor) {
-				editor
-					.chain()
-					.focus()
-					.setImage({ src: url, alt: alt || "" })
-					.run();
+				if (width) {
+					editor
+						.chain()
+						.focus()
+						.setImage({
+							src: url,
+							alt: alt || "",
+						})
+						.updateAttributes("image", { style: `width: ${width}` })
+						.run();
+				} else {
+					editor
+						.chain()
+						.focus()
+						.setImage({
+							src: url,
+							alt: alt || "",
+						})
+						.run();
+				}
 			}
 		},
 		[editor],
