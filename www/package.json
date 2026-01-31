@@ -1,6 +1,6 @@
 {
   "name": "zeyaddeeb",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "private": true,
   "scripts": {
     "build": "turbo build",
@@ -14,7 +14,7 @@
     "clean": "turbo clean"
   },
   "devDependencies": {
-    "turbo": "^2.7.5",
+    "turbo": "^2.8.1",
     "typescript": "^5.9.3"
   },
   "engines": {

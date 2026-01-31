@@ -127,3 +127,161 @@
 .markdown-editor-wrapper .ProseMirror ::selection {
 	background: rgba(96, 165, 250, 0.3);
 }
+
+.resizable-image-wrapper {
+	display: inline-block;
+}
+
+.resizable-image-container {
+	position: relative;
+	display: inline-block;
+	line-height: 0;
+}
+
+.resizable-image-container.selected {
+	outline: 2px solid rgb(96 165 250);
+	outline-offset: 2px;
+}
+
+.resizable-image-container.resizing {
+	user-select: none;
+}
+
+.markdown-editor-wrapper .resizable-image-container img {
+	display: block;
+	max-width: 100%;
+	height: auto;
+}
+
+.resize-handle {
+	position: absolute;
+	background: rgb(96 165 250);
+	border: 2px solid white;
+	border-radius: 50%;
+	width: 12px;
+	height: 12px;
+	z-index: 10;
+	padding: 0;
+	outline: none;
+}
+
+.resize-handle:hover {
+	background: rgb(59 130 246);
+	transform: scale(1.2);
+}
+
+.resize-handle:focus {
+	outline: none;
+}
+
+.resize-handle-nw {
+	top: -6px;
+	left: -6px;
+	cursor: nw-resize;
+}
+
+.resize-handle-ne {
+	top: -6px;
+	right: -6px;
+	cursor: ne-resize;
+}
+
+.resize-handle-sw {
+	bottom: -6px;
+	left: -6px;
+	cursor: sw-resize;
+}
+
+.resize-handle-se {
+	bottom: -6px;
+	right: -6px;
+	cursor: se-resize;
+}
+
+.resize-handle-n {
+	top: -6px;
+	left: 50%;
+	transform: translateX(-50%);
+	cursor: n-resize;
+}
+
+.resize-handle-s {
+	bottom: -6px;
+	left: 50%;
+	transform: translateX(-50%);
+	cursor: s-resize;
+}
+
+.resize-handle-e {
+	top: 50%;
+	right: -6px;
+	transform: translateY(-50%);
+	cursor: e-resize;
+}
+
+.resize-handle-w {
+	top: 50%;
+	left: -6px;
+	transform: translateY(-50%);
+	cursor: w-resize;
+}
+
+.image-align-toolbar {
+	position: absolute;
+	top: -40px;
+	left: 50%;
+	transform: translateX(-50%);
+	display: flex;
+	gap: 4px;
+	padding: 4px;
+	background: rgb(38 38 38);
+	border: 1px solid rgb(64 64 64);
+	border-radius: 6px;
+	z-index: 20;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.image-align-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	background: transparent;
+	border: none;
+	border-radius: 4px;
+	color: rgb(163 163 163);
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.image-align-btn:hover {
+	background: rgb(64 64 64);
+	color: white;
+}
+
+.image-align-btn.active {
+	background: rgb(96 165 250);
+	color: white;
+}
+
+.image-align-btn:focus {
+	outline: none;
+}
+
+.katex-block {
+	display: block;
+	text-align: center;
+	margin: 1.5rem 0;
+	overflow-x: auto;
+}
+
+.katex-block .katex {
+	font-size: 1.2em;
+}
+
+.katex-error {
+	color: rgb(239 68 68);
+	font-family: monospace;
+}

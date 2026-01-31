@@ -1,10 +1,47 @@
 "use client";
 
+import katex from "katex";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import "highlight.js/styles/github-dark.css";
+import "katex/dist/katex.min.css";
+import "./markdown-editor.css";
+
+function processLatex(content: string): string {
+	let processed = content
+		.replace(/&lt;/g, "<")
+		.replace(/&gt;/g, ">")
+		.replace(/&amp;/g, "&");
+
+	processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (_, latex) => {
+		try {
+			return `<div class="katex-block">${katex.renderToString(latex.trim(), {
+				displayMode: true,
+				throwOnError: false,
+			})}</div>`;
+		} catch {
+			return `<div class="katex-error">$$${latex}$$</div>`;
+		}
+	});
+
+	processed = processed.replace(/\$([^$]+?)\$/g, (_, latex) => {
+		if (/^\d+(\.\d{2})?$/.test(latex.trim())) {
+			return `$${latex}$`;
+		}
+		try {
+			return katex.renderToString(latex.trim(), {
+				displayMode: false,
+				throwOnError: false,
+			});
+		} catch {
+			return `<span class="katex-error">$${latex}$</span>`;
+		}
+	});
+
+	return processed;
+}
 
 interface MarkdownRendererProps {
 	content: string;
@@ -15,35 +52,124 @@ export function MarkdownRenderer({
 	content,
 	className,
 }: MarkdownRendererProps) {
+	const processedContent = processLatex(content);
+
 	return (
 		<div className={className}>
 			<ReactMarkdown
 				remarkPlugins={[remarkGfm]}
 				rehypePlugins={[rehypeRaw, rehypeHighlight]}
 				components={{
-					h1: ({ children }) => (
-						<h1 className="mb-4 mt-8 text-3xl font-bold tracking-tight text-white first:mt-0">
-							{children}
-						</h1>
-					),
-					h2: ({ children }) => (
-						<h2 className="mb-3 mt-8 text-2xl font-semibold tracking-tight text-white first:mt-0">
-							{children}
-						</h2>
-					),
-					h3: ({ children }) => (
-						<h3 className="mb-2 mt-6 text-xl font-semibold tracking-tight text-white first:mt-0">
-							{children}
-						</h3>
-					),
-					h4: ({ children }) => (
-						<h4 className="mb-2 mt-4 text-lg font-semibold text-white first:mt-0">
-							{children}
-						</h4>
-					),
-					p: ({ children }) => (
-						<p className="mb-4 leading-relaxed text-neutral-300">{children}</p>
-					),
+					h1: ({ children, node }) => {
+						const styleAttr = node?.properties?.style as string | undefined;
+						const textAlign = styleAttr?.match(/text-align:\s*(\w+)/)?.[1];
+						return (
+							<h1
+								className="mb-4 mt-8 text-3xl font-bold tracking-tight text-white first:mt-0"
+								style={
+									textAlign
+										? {
+												textAlign: textAlign as
+													| "left"
+													| "center"
+													| "right"
+													| "justify",
+											}
+										: undefined
+								}
+							>
+								{children}
+							</h1>
+						);
+					},
+					h2: ({ children, node }) => {
+						const styleAttr = node?.properties?.style as string | undefined;
+						const textAlign = styleAttr?.match(/text-align:\s*(\w+)/)?.[1];
+						return (
+							<h2
+								className="mb-3 mt-8 text-2xl font-semibold tracking-tight text-white first:mt-0"
+								style={
+									textAlign
+										? {
+												textAlign: textAlign as
+													| "left"
+													| "center"
+													| "right"
+													| "justify",
+											}
+										: undefined
+								}
+							>
+								{children}
+							</h2>
+						);
+					},
+					h3: ({ children, node }) => {
+						const styleAttr = node?.properties?.style as string | undefined;
+						const textAlign = styleAttr?.match(/text-align:\s*(\w+)/)?.[1];
+						return (
+							<h3
+								className="mb-2 mt-6 text-xl font-semibold tracking-tight text-white first:mt-0"
+								style={
+									textAlign
+										? {
+												textAlign: textAlign as
+													| "left"
+													| "center"
+													| "right"
+													| "justify",
+											}
+										: undefined
+								}
+							>
+								{children}
+							</h3>
+						);
+					},
+					h4: ({ children, node }) => {
+						const styleAttr = node?.properties?.style as string | undefined;
+						const textAlign = styleAttr?.match(/text-align:\s*(\w+)/)?.[1];
+						return (
+							<h4
+								className="mb-2 mt-4 text-lg font-semibold text-white first:mt-0"
+								style={
+									textAlign
+										? {
+												textAlign: textAlign as
+													| "left"
+													| "center"
+													| "right"
+													| "justify",
+											}
+										: undefined
+								}
+							>
+								{children}
+							</h4>
+						);
+					},
+					p: ({ children, node }) => {
+						const styleAttr = node?.properties?.style as string | undefined;
+						const textAlign = styleAttr?.match(/text-align:\s*(\w+)/)?.[1];
+						return (
+							<p
+								className="mb-4 leading-relaxed text-neutral-300"
+								style={
+									textAlign
+										? {
+												textAlign: textAlign as
+													| "left"
+													| "center"
+													| "right"
+													| "justify",
+											}
+										: undefined
+								}
+							>
+								{children}
+							</p>
+						);
+					},
 					a: ({ href, children }) => (
 						<a
 							href={href}
@@ -115,29 +241,63 @@ export function MarkdownRenderer({
 							{children}
 						</td>
 					),
-					img: function MarkdownImage({ src, alt, ...props }) {
-						const style = (props as { style?: string }).style;
+					img: function MarkdownImage({ src, alt, width, height, ...props }) {
+						const restProps = props as {
+							style?: string;
+							"data-align"?: string;
+						};
+						const style = restProps.style;
+						const align = restProps["data-align"] || "left";
 						const styleObj: React.CSSProperties = {};
-						if (style) {
+
+						if (width) {
+							styleObj.width = typeof width === "number" ? `${width}px` : width;
+						} else if (style) {
 							const widthMatch = style.match(/width:\s*([^;]+)/);
 							if (widthMatch) {
 								styleObj.width = widthMatch[1].trim();
 							}
 						}
-						return (
+
+						if (height) {
+							styleObj.height =
+								typeof height === "number" ? `${height}px` : height;
+						} else if (style) {
+							const heightMatch = style.match(/height:\s*([^;]+)/);
+							if (heightMatch) {
+								styleObj.height = heightMatch[1].trim();
+							}
+						}
+
+						if (!src) return null;
+
+						const alignClass =
+							align === "center"
+								? "flex justify-center"
+								: align === "right"
+									? "flex justify-end"
+									: "";
+
+						const imgElement = (
 							// biome-ignore lint: dynamic markdown content requires native img element
 							<img
 								src={src}
 								alt={alt || ""}
-								className="my-4 rounded-lg"
+								className="my-4 rounded-lg max-w-full"
 								style={styleObj}
 								loading="lazy"
 							/>
 						);
+
+						if (alignClass) {
+							return <div className={alignClass}>{imgElement}</div>;
+						}
+
+						return imgElement;
 					},
 				}}
 			>
-				{content}
+				{processedContent}
 			</ReactMarkdown>
 		</div>
 	);
