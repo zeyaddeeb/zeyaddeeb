@@ -14,6 +14,14 @@ use super::reset::get_initial_poses;
 use super::resources::{ActionMsg, ObservationMsg, SimulationState, TrainStatsMsg};
 use super::state::{extract_robot_state, JointReadQuery, RobotState};
 
+pub fn should_run_simulation(sim: Res<SimulationState>) -> bool {
+    !sim.needs_reset
+}
+
+pub fn should_run_reset(sim: Res<SimulationState>) -> bool {
+    sim.needs_reset
+}
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum WsState {
     Connecting,

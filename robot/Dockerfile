@@ -20,6 +20,7 @@ RUN apt-get update \
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 COPY web ./web
+COPY assets ./assets
 
 RUN rustup target add wasm32-unknown-unknown
 RUN cargo install wasm-bindgen-cli
@@ -28,6 +29,7 @@ RUN cargo build --release --bin robot-wasm --target wasm32-unknown-unknown --no-
 RUN wasm-bindgen --target web --out-dir /out/web --out-name robot_wasm \
     target/wasm32-unknown-unknown/release/robot-wasm.wasm
 RUN cp web/index.html /out/web/index.html
+RUN cp -r assets /out/web/assets
 
 RUN cargo build --release --bin ws-server
 RUN cp target/release/ws-server /out/ws-server
@@ -52,7 +54,7 @@ RUN apt-get update \
     libxrender1 \
     libxfixes3 \
     && rm -rf /var/lib/apt/lists/*
-RUN useradd -m app
+RUN useradd -m -u 1000 app
 COPY --from=builder /out/ws-server /usr/local/bin/ws-server
 USER app
 EXPOSE 9001

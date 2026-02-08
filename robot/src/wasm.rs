@@ -1,6 +1,20 @@
 use ::robot::{camera, robot};
 use avian3d::prelude::*;
-use bevy::{prelude::*, render::settings::WgpuSettings};
+use bevy::{audio::PlaybackMode, prelude::*, render::settings::WgpuSettings};
+
+#[derive(Resource)]
+struct BackgroundMusic;
+
+fn setup_music(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.spawn((
+        AudioPlayer::new(asset_server.load("eye_of_the_tiger.ogg")),
+        PlaybackSettings {
+            mode: PlaybackMode::Loop,
+            volume: bevy::audio::Volume::Linear(0.5),
+            ..default()
+        },
+    ));
+}
 
 fn main() {
     #[cfg(target_arch = "wasm32")]
@@ -32,7 +46,7 @@ fn main() {
         .add_plugins(PhysicsPlugins::default())
         .insert_resource(SubstepCount(4))
         .insert_resource(Gravity(Vec3::new(0.0, -9.81, 0.0)))
-        .add_systems(Startup, (camera::spawn_camera, robot::setup))
+        .add_systems(Startup, (camera::spawn_camera, robot::setup, setup_music))
         .add_systems(
             Update,
             (
@@ -43,7 +57,11 @@ fn main() {
         )
         .add_systems(
             FixedUpdate,
-            (robot::wasm_simulation_loop, robot::wasm_reset_system).chain(),
+            robot::wasm_simulation_loop.run_if(robot::should_run_simulation),
+        )
+        .add_systems(
+            FixedUpdate,
+            robot::wasm_reset_system.run_if(robot::should_run_reset),
         )
         .run();
 }
