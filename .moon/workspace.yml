@@ -16,3 +16,4 @@ vcs:
 projects:
   root: "."
   www: "www"
+  robot: "robot"

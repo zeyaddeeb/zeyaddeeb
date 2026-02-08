@@ -1,0 +1,53 @@
+language: "rust"
+type: "application"
+stack: "backend"
+
+project:
+  name: "robot"
+  description: "A basketball-playing robot simulation built with Rust and Bevy, designed for reinforcement learning research and development."
+
+tasks:
+  test:
+    command: "cargo test --all-targets --all-features"
+  build:
+    command: "cargo build --all-targets --release"
+  helm-lint:
+    command: "helm lint deployments/helm"
+  docker-build-web:
+    command:
+      - docker build --platform=linux/amd64 --target web -t $project:web-v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version) .
+  docker-build-ws:
+    command:
+      - docker build --platform=linux/amd64 --target server -t $project:ws-server-v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version) .
+  docker-build:
+    deps:
+      - "docker-build-web"
+      - "docker-build-ws"
+  docker-tag-web:
+    command:
+      - docker tag $project:web-v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version) $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/zeyaddeeb/robot:web-v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version) >/dev/null
+    deps:
+      - "docker-build-web"
+  docker-tag-ws:
+    command:
+      - docker tag $project:ws-server-v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version) $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/zeyaddeeb/robot:ws-server-v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version) >/dev/null
+    deps:
+      - "docker-build-ws"
+  docker-tag:
+    deps:
+      - "docker-tag-web"
+      - "docker-tag-ws"
+  docker-push-web:
+    command:
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/zeyaddeeb/robot:web-v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version)
+    deps:
+      - "docker-tag-web"
+  docker-push-ws:
+    command:
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/zeyaddeeb/robot:ws-server-v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version)
+    deps:
+      - "docker-tag-ws"
+  docker-push:
+    deps:
+      - "docker-push-web"
+      - "docker-push-ws"

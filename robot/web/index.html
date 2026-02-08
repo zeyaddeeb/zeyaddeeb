@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Basketball - WASM</title>
+    <link rel="icon" href="https://www.zeyaddeeb.com/icon.svg" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #1a1a2e;
+        }
+        #container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        header {
+            background: #16213e;
+            color: #e94560;
+            padding: 1rem;
+            text-align: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .home-link {
+            display: inline-block;
+            margin-bottom: 0.5rem;
+            color: #a0a0a0;
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+        .home-link:hover {
+            color: #e94560;
+        }
+        header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+        header p {
+            color: #a0a0a0;
+            font-size: 0.9rem;
+        }
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #bevy-canvas {
+            width: 100%;
+            height: 100%;
+        }
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #e94560;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+        }
+        #loading .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #16213e;
+            border-top: 4px solid #e94560;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #status {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(22, 33, 62, 0.9);
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            z-index: 100;
+        }
+        #status .connected { color: #4ade80; }
+        #status .disconnected { color: #f87171; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <header>
+            <a class="home-link" href="https://www.zeyaddeeb.com">← Back to zeyaddeeb.com</a>
+            <h1>🤖 Robot Basketball Trainer</h1>
+            <p>WASM Visualization Client - Connect to training server</p>
+        </header>
+        <div id="canvas-container">
+            <div id="loading">
+                <div class="spinner"></div>
+                <p>Loading WASM module...</p>
+            </div>
+            <canvas id="bevy-canvas"></canvas>
+        </div>
+        <div id="status">
+            WebSocket: <span class="disconnected">Disconnected</span>
+        </div>
+    </div>
+
+    <script type="module">
+        import init from './robot_wasm.js';
+
+        init().then(() => {
+            document.getElementById('loading').style.display = 'none';
+            console.log('WASM module loaded successfully');
+        }).catch((error) => {
+            console.error('Failed to load WASM module:', error);
+            document.getElementById('loading').innerHTML = `
+                <p style="color: #f87171;">Failed to load WASM module</p>
+                <p style="color: #a0a0a0; font-size: 0.8rem;">${error.message}</p>
+            `;
+        });
+    </script>
+</body>
+</html>

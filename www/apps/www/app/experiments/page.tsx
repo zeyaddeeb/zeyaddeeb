@@ -12,6 +12,14 @@ const experiments = [
 		tags: ["WebAssembly", "Rust", "Web Audio API"],
 		gradient: "from-violet-500 to-pink-500",
 	},
+	{
+		title: "RL Basketball Agent",
+		href: "https://robot.zeyaddeeb.com",
+		tags: ["Reinforcement Learning", "WebAssembly", "Rust"],
+		gradient: "from-green-500 to-teal-500",
+		description:
+			"Train a basketball agent using reinforcement learning in Rust, running in the browser with WebAssembly.",
+	},
 ];
 
 export default function ExperimentsPage() {

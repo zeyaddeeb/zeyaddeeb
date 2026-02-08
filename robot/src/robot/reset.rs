@@ -1,0 +1,329 @@
+use avian3d::prelude::*;
+use bevy::prelude::*;
+
+use super::components::*;
+use super::constants::*;
+
+#[derive(Debug, Clone, Copy)]
+pub struct BodyPartPose {
+    pub position: Vec3,
+    pub rotation: Quat,
+}
+
+impl BodyPartPose {
+    pub fn new(position: Vec3, rotation: Quat) -> Self {
+        Self { position, rotation }
+    }
+}
+
+pub fn get_initial_poses() -> RobotPoses {
+    use std::f32::consts::PI;
+
+    let torso_pos = Vec3::new(0.0, TORSO_Y, 0.0);
+    let torso_rot = Quat::IDENTITY;
+
+    let shoulder_pos = torso_pos + SHOULDER_OFFSET_RIGHT;
+    let shoulder_rot = Quat::from_rotation_z(-PI / 2.0);
+    let upper_arm_pos = shoulder_pos + shoulder_rot * Vec3::new(0.0, -UPPER_ARM_LENGTH / 2.0, 0.0);
+    let upper_arm_rot = shoulder_rot;
+
+    let elbow_pos = upper_arm_pos + shoulder_rot * Vec3::new(0.0, -UPPER_ARM_LENGTH / 2.0, 0.0);
+    let forearm_pos = elbow_pos + shoulder_rot * Vec3::new(0.0, -FOREARM_LENGTH / 2.0, 0.0);
+    let forearm_rot = shoulder_rot;
+
+    let wrist_pos = forearm_pos + shoulder_rot * Vec3::new(0.0, -FOREARM_LENGTH / 2.0, 0.0);
+    let hand_pos = wrist_pos + shoulder_rot * Vec3::new(0.0, -HAND_LENGTH / 2.0, 0.0);
+    let hand_rot = shoulder_rot;
+
+    let left_shoulder_pos = torso_pos + SHOULDER_OFFSET_LEFT;
+    let left_shoulder_rot = Quat::from_rotation_z(-PI / 2.0);
+    let left_upper_arm_pos =
+        left_shoulder_pos + left_shoulder_rot * Vec3::new(0.0, -UPPER_ARM_LENGTH / 2.0, 0.0);
+    let left_upper_arm_rot = left_shoulder_rot;
+
+    let left_elbow_pos =
+        left_upper_arm_pos + left_shoulder_rot * Vec3::new(0.0, -UPPER_ARM_LENGTH / 2.0, 0.0);
+    let left_forearm_pos =
+        left_elbow_pos + left_shoulder_rot * Vec3::new(0.0, -FOREARM_LENGTH / 2.0, 0.0);
+    let left_forearm_rot = left_shoulder_rot;
+
+    let left_wrist_pos =
+        left_forearm_pos + left_shoulder_rot * Vec3::new(0.0, -FOREARM_LENGTH / 2.0, 0.0);
+    let left_hand_pos =
+        left_wrist_pos + left_shoulder_rot * Vec3::new(0.0, -HAND_LENGTH / 2.0, 0.0);
+    let left_hand_rot = left_shoulder_rot;
+
+    let left_hip_pos = torso_pos + HIP_OFFSET_LEFT;
+    let left_hip_rot = Quat::IDENTITY;
+    let left_thigh_pos = left_hip_pos + Vec3::new(0.0, -THIGH_LENGTH / 2.0, 0.0);
+    let left_thigh_rot = left_hip_rot;
+
+    let left_knee_pos = left_thigh_pos + Vec3::new(0.0, -THIGH_LENGTH / 2.0, 0.0);
+    let left_shin_pos = left_knee_pos + Vec3::new(0.0, -SHIN_LENGTH / 2.0, 0.0);
+    let left_shin_rot = Quat::IDENTITY;
+
+    let left_ankle_pos = left_shin_pos + Vec3::new(0.0, -SHIN_LENGTH / 2.0, 0.0);
+    let left_foot_pos =
+        left_ankle_pos + Vec3::new(FOOT_LENGTH / 2.0 - FOOT_OFFSET, -FOOT_HEIGHT / 2.0, 0.0);
+    let left_foot_rot = Quat::IDENTITY;
+
+    let right_hip_pos = torso_pos + HIP_OFFSET_RIGHT;
+    let right_hip_rot = Quat::IDENTITY;
+    let right_thigh_pos = right_hip_pos + Vec3::new(0.0, -THIGH_LENGTH / 2.0, 0.0);
+    let right_thigh_rot = right_hip_rot;
+
+    let right_knee_pos = right_thigh_pos + Vec3::new(0.0, -THIGH_LENGTH / 2.0, 0.0);
+    let right_shin_pos = right_knee_pos + Vec3::new(0.0, -SHIN_LENGTH / 2.0, 0.0);
+    let right_shin_rot = Quat::IDENTITY;
+
+    let right_ankle_pos = right_shin_pos + Vec3::new(0.0, -SHIN_LENGTH / 2.0, 0.0);
+    let right_foot_pos =
+        right_ankle_pos + Vec3::new(FOOT_LENGTH / 2.0 - FOOT_OFFSET, -FOOT_HEIGHT / 2.0, 0.0);
+    let right_foot_rot = Quat::IDENTITY;
+
+    RobotPoses {
+        torso: BodyPartPose::new(torso_pos, torso_rot),
+        upper_arm: BodyPartPose::new(upper_arm_pos, upper_arm_rot),
+        forearm: BodyPartPose::new(forearm_pos, forearm_rot),
+        hand: BodyPartPose::new(hand_pos, hand_rot),
+        left_upper_arm: BodyPartPose::new(left_upper_arm_pos, left_upper_arm_rot),
+        left_forearm: BodyPartPose::new(left_forearm_pos, left_forearm_rot),
+        left_hand: BodyPartPose::new(left_hand_pos, left_hand_rot),
+        left_thigh: BodyPartPose::new(left_thigh_pos, left_thigh_rot),
+        left_shin: BodyPartPose::new(left_shin_pos, left_shin_rot),
+        left_foot: BodyPartPose::new(left_foot_pos, left_foot_rot),
+        right_thigh: BodyPartPose::new(right_thigh_pos, right_thigh_rot),
+        right_shin: BodyPartPose::new(right_shin_pos, right_shin_rot),
+        right_foot: BodyPartPose::new(right_foot_pos, right_foot_rot),
+    }
+}
+
+pub struct RobotPoses {
+    pub torso: BodyPartPose,
+    pub upper_arm: BodyPartPose,
+    pub forearm: BodyPartPose,
+    pub hand: BodyPartPose,
+    pub left_upper_arm: BodyPartPose,
+    pub left_forearm: BodyPartPose,
+    pub left_hand: BodyPartPose,
+    pub left_thigh: BodyPartPose,
+    pub left_shin: BodyPartPose,
+    pub left_foot: BodyPartPose,
+    pub right_thigh: BodyPartPose,
+    pub right_shin: BodyPartPose,
+    pub right_foot: BodyPartPose,
+}
+
+fn reset_body(
+    transform: &mut Transform,
+    lin_vel: &mut LinearVelocity,
+    ang_vel: &mut AngularVelocity,
+    pose: &BodyPartPose,
+) {
+    transform.translation = pose.position;
+    transform.rotation = pose.rotation;
+    **lin_vel = Vec3::ZERO;
+    **ang_vel = Vec3::ZERO;
+}
+
+#[cfg(feature = "native")]
+pub fn reset_robot_positions(
+    mut torso_q: Query<
+        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        With<RobotTorso>,
+    >,
+    mut upper_arm_q: Query<
+        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (With<RobotUpperArm>, Without<RobotTorso>),
+    >,
+    mut forearm_q: Query<
+        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            With<RobotForearm>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+        ),
+    >,
+    mut hand_q: Query<
+        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            With<RobotHand>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+        ),
+    >,
+    mut left_upper_arm_q: Query<
+        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            With<RobotLeftUpperArm>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<RobotHand>,
+        ),
+    >,
+    mut left_forearm_q: Query<
+        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            With<RobotLeftForearm>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<RobotHand>,
+            Without<RobotLeftUpperArm>,
+        ),
+    >,
+    mut left_hand_q: Query<
+        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            With<RobotLeftHand>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<RobotHand>,
+            Without<RobotLeftUpperArm>,
+            Without<RobotLeftForearm>,
+        ),
+    >,
+    mut left_thigh_q: Query<
+        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            With<RobotLeftThigh>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<RobotHand>,
+            Without<RobotLeftUpperArm>,
+            Without<RobotLeftForearm>,
+            Without<RobotLeftHand>,
+        ),
+    >,
+    mut left_shin_q: Query<
+        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            With<RobotLeftShin>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<RobotHand>,
+            Without<RobotLeftUpperArm>,
+            Without<RobotLeftForearm>,
+            Without<RobotLeftHand>,
+            Without<RobotLeftThigh>,
+        ),
+    >,
+    mut left_foot_q: Query<
+        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            With<RobotLeftFoot>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<RobotHand>,
+            Without<RobotLeftUpperArm>,
+            Without<RobotLeftForearm>,
+            Without<RobotLeftHand>,
+            Without<RobotLeftThigh>,
+            Without<RobotLeftShin>,
+        ),
+    >,
+    mut right_thigh_q: Query<
+        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            With<RobotRightThigh>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<RobotHand>,
+            Without<RobotLeftUpperArm>,
+            Without<RobotLeftForearm>,
+            Without<RobotLeftHand>,
+            Without<RobotLeftThigh>,
+            Without<RobotLeftShin>,
+            Without<RobotLeftFoot>,
+        ),
+    >,
+    mut right_shin_q: Query<
+        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            With<RobotRightShin>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<RobotHand>,
+            Without<RobotLeftUpperArm>,
+            Without<RobotLeftForearm>,
+            Without<RobotLeftHand>,
+            Without<RobotLeftThigh>,
+            Without<RobotLeftShin>,
+            Without<RobotLeftFoot>,
+            Without<RobotRightThigh>,
+        ),
+    >,
+    mut right_foot_q: Query<
+        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            With<RobotRightFoot>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<RobotHand>,
+            Without<RobotLeftUpperArm>,
+            Without<RobotLeftForearm>,
+            Without<RobotLeftHand>,
+            Without<RobotLeftThigh>,
+            Without<RobotLeftShin>,
+            Without<RobotLeftFoot>,
+            Without<RobotRightThigh>,
+            Without<RobotRightShin>,
+        ),
+    >,
+    training_state: Res<super::resources::TrainingState>,
+) {
+    if training_state.step != 0 {
+        return;
+    }
+
+    let poses = get_initial_poses();
+
+    if let Some((mut tf, mut lv, mut av)) = torso_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, &poses.torso);
+    }
+    if let Some((mut tf, mut lv, mut av)) = upper_arm_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, &poses.upper_arm);
+    }
+    if let Some((mut tf, mut lv, mut av)) = forearm_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, &poses.forearm);
+    }
+    if let Some((mut tf, mut lv, mut av)) = hand_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, &poses.hand);
+    }
+    if let Some((mut tf, mut lv, mut av)) = left_upper_arm_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, &poses.left_upper_arm);
+    }
+    if let Some((mut tf, mut lv, mut av)) = left_forearm_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, &poses.left_forearm);
+    }
+    if let Some((mut tf, mut lv, mut av)) = left_hand_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, &poses.left_hand);
+    }
+    if let Some((mut tf, mut lv, mut av)) = left_thigh_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, &poses.left_thigh);
+    }
+    if let Some((mut tf, mut lv, mut av)) = left_shin_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, &poses.left_shin);
+    }
+    if let Some((mut tf, mut lv, mut av)) = left_foot_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, &poses.left_foot);
+    }
+    if let Some((mut tf, mut lv, mut av)) = right_thigh_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, &poses.right_thigh);
+    }
+    if let Some((mut tf, mut lv, mut av)) = right_shin_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, &poses.right_shin);
+    }
+    if let Some((mut tf, mut lv, mut av)) = right_foot_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, &poses.right_foot);
+    }
+}

@@ -1,0 +1,63 @@
+[package]
+name = "robot"
+version = "0.1.1"
+edition = "2021"
+
+[features]
+default = ["native"]
+native = [
+    "dep:zenoh",
+    "dep:candle-core",
+    "dep:candle-nn",
+    "dep:tokio",
+    "dep:tokio-tungstenite",
+    "dep:futures-util",
+]
+wasm = ["bevy/webgl2"]
+
+[[bin]]
+name = "robot"
+path = "src/main.rs"
+required-features = ["native"]
+
+[[bin]]
+name = "robot-wasm"
+path = "src/wasm.rs"
+required-features = ["wasm"]
+
+[[bin]]
+name = "ws-server"
+path = "src/server.rs"
+required-features = ["native"]
+
+[dependencies]
+bevy = "0.18.0"
+bevy_mesh = "0.18.0"
+avian3d = "0.5.0"
+rand = "0.9"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+getrandom = { version = "0.3", features = ["wasm_js"] }
+anyhow = "1.0"
+
+candle-core = { version = "0.9.2", optional = true }
+candle-nn = { version = "0.9.2", optional = true }
+zenoh = { version = "1.7.2", optional = true }
+tokio = { version = "1", features = ["full"], optional = true }
+tokio-tungstenite = { version = "0.28.0", optional = true }
+futures-util = { version = "0.3", optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = [
+    "console",
+    "Location",
+    "Window",
+    "WebSocket",
+    "MessageEvent",
+    "ErrorEvent",
+    "BinaryType",
+] }
+console_error_panic_hook = "0.1"
+js-sys = "0.3"
