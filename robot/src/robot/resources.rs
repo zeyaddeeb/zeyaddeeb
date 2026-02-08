@@ -130,8 +130,9 @@ pub struct SimulationState {
     pub ball_released: bool,
     pub ball_entity: Option<Entity>,
     pub grip_joints: Vec<Entity>,
-
     pub last_action: Vec<f32>,
+    pub needs_reset: bool,
+    pub episode_count: usize,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -146,6 +147,17 @@ pub struct ObservationMsg {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ActionMsg {
     pub action: Vec<f32>,
+    #[serde(default)]
+    pub stats: Option<TrainStatsMsg>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct TrainStatsMsg {
+    pub buffer_size: usize,
+    pub train_steps: usize,
+    pub episodes: usize,
+    pub avg_reward: f32,
+    pub recent_reward: f32,
 }
 
 #[cfg(feature = "native")]

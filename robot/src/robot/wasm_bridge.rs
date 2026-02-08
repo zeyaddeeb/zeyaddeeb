@@ -9,8 +9,8 @@ use web_sys::{ErrorEvent, MessageEvent, WebSocket};
 
 use super::components::*;
 use super::constants::*;
-use super::observation::get_observation;
-use super::resources::{ActionMsg, ObservationMsg, SimulationState};
+use super::observation::{compute_reward, get_observation};
+use super::resources::{ActionMsg, ObservationMsg, SimulationState, TrainStatsMsg};
 use super::state::{extract_robot_state, JointReadQuery};
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -129,6 +129,31 @@ fn update_ws_status(text: &str, class_name: &str) {
     status.set_attribute("class", class_name).ok();
 }
 
+fn update_training_stats(stats: &TrainStatsMsg) {
+    let Some(window) = web_sys::window() else {
+        return;
+    };
+    let Some(document) = window.document() else {
+        return;
+    };
+
+    if let Ok(Some(el)) = document.query_selector("#stat-buffer") {
+        el.set_text_content(Some(&format!("{}", stats.buffer_size)));
+    }
+    if let Ok(Some(el)) = document.query_selector("#stat-steps") {
+        el.set_text_content(Some(&format!("{}", stats.train_steps)));
+    }
+    if let Ok(Some(el)) = document.query_selector("#stat-episodes") {
+        el.set_text_content(Some(&format!("{}", stats.episodes)));
+    }
+    if let Ok(Some(el)) = document.query_selector("#stat-avg-reward") {
+        el.set_text_content(Some(&format!("{:.2}", stats.avg_reward)));
+    }
+    if let Ok(Some(el)) = document.query_selector("#stat-recent-reward") {
+        el.set_text_content(Some(&format!("{:.2}", stats.recent_reward)));
+    }
+}
+
 pub fn ws_connection_system(mut bridge: ResMut<WsBridge>) {
     if !bridge.is_connected() && bridge.socket.is_none() {
         bridge.connect();
@@ -140,9 +165,17 @@ pub fn wasm_simulation_loop(
     bridge: Res<WsBridge>,
     joint_query: JointReadQuery,
     ball_query: Query<(&Transform, &LinearVelocity), With<Basketball>>,
+    torso_query: Query<(&Transform, &AngularVelocity), With<RobotTorso>>,
 ) {
+    const MAX_EPISODE_STEPS: usize = 300;
+    const TORSO_FALL_Y: f32 = 0.40;
+
     if let Some(action_msg) = bridge.get_action() {
         sim.last_action = action_msg.action;
+
+        if let Some(ref stats) = action_msg.stats {
+            update_training_stats(stats);
+        }
     }
 
     if let Some(robot_state) = extract_robot_state(&joint_query) {
@@ -152,18 +185,44 @@ pub fn wasm_simulation_loop(
             (Vec3::ZERO, Vec3::ZERO)
         };
 
+        let (torso_pos, torso_angle, torso_ang_vel) =
+            if let Ok((torso_tf, torso_av)) = torso_query.single() {
+                let (_, pitch, _) = torso_tf.rotation.to_euler(EulerRot::XYZ);
+                (torso_tf.translation, pitch, torso_av.z)
+            } else {
+                (Vec3::new(0.0, 1.0, 0.0), 0.0, 0.0)
+            };
+
+        let fallen = torso_pos.y < TORSO_FALL_Y;
+        let timeout = sim.step >= MAX_EPISODE_STEPS;
+        let done = fallen || timeout;
+
+        let reward = compute_reward(
+            ball_pos,
+            ball_vel,
+            sim.ball_released,
+            done,
+            torso_pos,
+            torso_angle,
+            torso_ang_vel,
+        );
+
         let joint_angles = robot_state.joint_angles();
         let joint_vels = robot_state.joint_velocities();
         let obs = get_observation(&joint_angles, &joint_vels, ball_pos, ball_vel);
 
         let obs_msg = ObservationMsg {
             obs,
-            reward: 0.0,
-            done: false,
+            reward,
+            done,
             step: sim.step as u64,
             ball_released: sim.ball_released,
         };
         bridge.send_observation(&obs_msg);
+
+        if done {
+            sim.needs_reset = true;
+        }
     }
 
     sim.step += 1;
@@ -176,4 +235,41 @@ pub fn draw_gizmos_wasm(mut gizmos: Gizmos, ball_q: Query<&Transform, With<Baske
     if let Ok(ball_tf) = ball_q.single() {
         gizmos.line(ball_tf.translation, hoop_center, Color::srgb(0.5, 0.5, 1.0));
     }
+}
+
+pub fn wasm_reset_system(
+    mut sim: ResMut<SimulationState>,
+    mut torso_q: Query<
+        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        With<RobotTorso>,
+    >,
+    mut ball_q: Query<
+        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (With<Basketball>, Without<RobotTorso>),
+    >,
+) {
+    if !sim.needs_reset {
+        return;
+    }
+
+    if let Ok((mut tf, mut lin_vel, mut ang_vel)) = torso_q.single_mut() {
+        tf.translation = Vec3::new(0.0, TORSO_Y, 0.0);
+        tf.rotation = Quat::IDENTITY;
+        *lin_vel = LinearVelocity(Vec3::ZERO);
+        *ang_vel = AngularVelocity(Vec3::ZERO);
+    }
+
+    if let Ok((mut tf, mut lin_vel, mut ang_vel)) = ball_q.single_mut() {
+        tf.translation = Vec3::new(0.0, TORSO_Y + 0.3, -0.4);
+        tf.rotation = Quat::IDENTITY;
+        *lin_vel = LinearVelocity(Vec3::ZERO);
+        *ang_vel = AngularVelocity(Vec3::ZERO);
+    }
+
+    sim.step = 0;
+    sim.ball_released = false;
+    sim.needs_reset = false;
+    sim.episode_count += 1;
+
+    web_sys::console::log_1(&format!("[WASM] Episode {} reset", sim.episode_count).into());
 }

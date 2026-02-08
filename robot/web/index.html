@@ -94,6 +94,40 @@
         }
         #status .connected { color: #4ade80; }
         #status .disconnected { color: #f87171; }
+        #training-stats {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(22, 33, 62, 0.95);
+            color: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 0.85rem;
+            z-index: 100;
+            min-width: 180px;
+            border: 1px solid #e94560;
+        }
+        #training-stats h3 {
+            color: #e94560;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #333;
+            padding-bottom: 0.5rem;
+        }
+        #training-stats .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.4rem;
+        }
+        #training-stats .stat-label {
+            color: #a0a0a0;
+        }
+        #training-stats .stat-value {
+            color: #4ade80;
+            font-family: monospace;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -112,6 +146,29 @@
         </div>
         <div id="status">
             WebSocket: <span class="disconnected">Disconnected</span>
+        </div>
+        <div id="training-stats">
+            <h3>📊 Training Progress</h3>
+            <div class="stat-row">
+                <span class="stat-label">Buffer:</span>
+                <span class="stat-value" id="stat-buffer">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Train Steps:</span>
+                <span class="stat-value" id="stat-steps">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Episodes:</span>
+                <span class="stat-value" id="stat-episodes">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Avg Reward:</span>
+                <span class="stat-value" id="stat-avg-reward">0.00</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Recent (10):</span>
+                <span class="stat-value" id="stat-recent-reward">0.00</span>
+            </div>
         </div>
     </div>
 

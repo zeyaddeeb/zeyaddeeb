@@ -28,6 +28,9 @@ fn main() {
                 robot::draw_gizmos_wasm,
             ),
         )
-        .add_systems(FixedUpdate, robot::wasm_simulation_loop)
+        .add_systems(
+            FixedUpdate,
+            (robot::wasm_simulation_loop, robot::wasm_reset_system),
+        )
         .run();
 }

@@ -4,13 +4,17 @@ use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
 use super::buffer::Transition;
-use super::config::BATCH_SIZE;
+use super::config::MIN_REPLAY_SIZE;
 use super::sac_agent::{SACAgent, SAC_CHECKPOINT_DIR};
 
 #[derive(Clone, Default)]
 pub struct TrainStats {
     pub buffer_len: usize,
     pub train_steps_done: usize,
+    pub avg_reward: f32,
+    pub avg_q_value: f32,
+    pub episodes_completed: usize,
+    pub curriculum_stage: usize,
 }
 
 pub struct SacAsyncTrainer {
@@ -91,10 +95,13 @@ impl SacAsyncTrainer {
 
 fn training_worker(
     transition_rx: Receiver<Transition>,
-    train_requested: Arc<Mutex<usize>>,
+    _train_requested: Arc<Mutex<usize>>,
     agent: Arc<Mutex<SACAgent>>,
     stats: Arc<Mutex<TrainStats>>,
 ) {
+    let mut last_checkpoint_step = 0usize;
+    const CHECKPOINT_INTERVAL: usize = 1000;
+
     loop {
         let mut transitions_added = 0;
         loop {
@@ -118,28 +125,38 @@ fn training_worker(
             }
         }
 
-        let steps_to_train = {
-            if let Ok(mut count) = train_requested.try_lock() {
-                let n = (*count).min(1);
-                *count = count.saturating_sub(n);
-                n
-            } else {
-                0
-            }
-        };
+        if let Ok(mut agent) = agent.try_lock() {
+            let buffer_len = agent.replay_buffer.len();
+            if buffer_len >= MIN_REPLAY_SIZE {
+                if agent.train_step().is_ok() {
+                    if let Ok(mut s) = stats.try_lock() {
+                        s.train_steps_done += 1;
 
-        if steps_to_train > 0 {
-            if let Ok(mut agent) = agent.lock() {
-                if agent.replay_buffer.len() >= BATCH_SIZE {
-                    if agent.train_step().is_ok() {
-                        if let Ok(mut s) = stats.try_lock() {
-                            s.train_steps_done += 1;
+                        if s.train_steps_done % 100 == 0 {
+                            println!(
+                                "[SAC] Train step {} | Buffer: {}",
+                                s.train_steps_done, buffer_len
+                            );
+                        }
+
+                        if s.train_steps_done >= last_checkpoint_step + CHECKPOINT_INTERVAL {
+                            last_checkpoint_step = s.train_steps_done;
+                            drop(s);
+                            if let Err(e) = agent.save_checkpoint(SAC_CHECKPOINT_DIR) {
+                                eprintln!("[SAC] Auto-checkpoint failed: {}", e);
+                            } else {
+                                println!("[SAC] Auto-checkpoint at step {}", last_checkpoint_step);
+                            }
                         }
                     }
                 }
+                thread::sleep(Duration::from_micros(50));
+            } else {
+                drop(agent);
+                thread::sleep(Duration::from_millis(10));
             }
+        } else {
+            thread::sleep(Duration::from_micros(100));
         }
-
-        thread::sleep(Duration::from_micros(100));
     }
 }

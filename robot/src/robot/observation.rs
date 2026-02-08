@@ -38,7 +38,6 @@ pub fn get_observation(
     obs
 }
 
-#[cfg(feature = "native")]
 pub fn compute_reward_components(
     ball_pos: Vec3,
     ball_vel: Vec3,
@@ -125,7 +124,6 @@ pub fn compute_reward_components(
     }
 }
 
-#[cfg(feature = "native")]
 #[allow(dead_code)]
 pub fn compute_reward(
     ball_pos: Vec3,

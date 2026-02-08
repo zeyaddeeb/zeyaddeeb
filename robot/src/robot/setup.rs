@@ -692,6 +692,8 @@ pub fn setup(
             ball_entity: Some(ball),
             grip_joints: vec![right_grip, left_grip],
             last_action: vec![0.0; ACT_DIM],
+            needs_reset: false,
+            episode_count: 0,
         });
 
         let ws_url = wasm_ws_url();

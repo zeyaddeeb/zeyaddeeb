@@ -1,4 +1,4 @@
-use candle_core::{DType, Device, Result as CResult, Tensor};
+use candle_core::{DType, Device, Result as CResult, Tensor, Var};
 use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
 use std::path::Path;
 
@@ -9,14 +9,11 @@ use super::networks::{CriticNet, PolicyNet};
 pub const SAC_CHECKPOINT_DIR: &str = "checkpoints_sac";
 
 const POLICY_CHECKPOINT: &str = "sac_policy.safetensors";
-
 const Q1_CHECKPOINT: &str = "sac_q1.safetensors";
-
 const Q2_CHECKPOINT: &str = "sac_q2.safetensors";
-
 const TARGET_Q1_CHECKPOINT: &str = "sac_target_q1.safetensors";
-
 const TARGET_Q2_CHECKPOINT: &str = "sac_target_q2.safetensors";
+const ALPHA_CHECKPOINT: &str = "sac_alpha.safetensors";
 
 const LOG_PROB_EPS: f32 = 1e-6;
 const LOG_2PI: f32 = 1.8378771;
@@ -64,6 +61,11 @@ pub struct SACAgent {
     policy_optim: AdamW,
     q1_optim: AdamW,
     q2_optim: AdamW,
+
+    // Auto-entropy tuning
+    log_alpha: Var,
+    alpha_optim: AdamW,
+    target_entropy: f32,
 
     pub replay_buffer: ReplayBuffer,
 
@@ -143,6 +145,31 @@ impl SACAgent {
             },
         )?;
 
+        // Auto-entropy tuning: learnable log_alpha
+        let init_log_alpha = SAC_ALPHA_INIT.ln();
+        let log_alpha = Var::new(&[init_log_alpha], &dev)?;
+
+        // Try to load alpha from checkpoint
+        if let Some(dir) = checkpoint_dir {
+            let alpha_path = Path::new(dir).join(ALPHA_CHECKPOINT);
+            if alpha_path.exists() {
+                if let Ok(tensors) = candle_core::safetensors::load(&alpha_path, &dev) {
+                    if let Some(saved_alpha) = tensors.get("log_alpha") {
+                        log_alpha.set(saved_alpha)?;
+                        println!("[SAC] Loaded log_alpha from checkpoint");
+                    }
+                }
+            }
+        }
+
+        let alpha_optim = AdamW::new(
+            vec![log_alpha.clone()],
+            ParamsAdamW {
+                lr: SAC_ALPHA_LR,
+                ..Default::default()
+            },
+        )?;
+
         Ok(Self {
             policy_varmap,
             policy,
@@ -157,6 +184,9 @@ impl SACAgent {
             policy_optim,
             q1_optim,
             q2_optim,
+            log_alpha,
+            alpha_optim,
+            target_entropy: SAC_TARGET_ENTROPY,
             replay_buffer: ReplayBuffer::new(REPLAY_CAPACITY),
             is_training: true,
         })
@@ -224,7 +254,8 @@ impl SACAgent {
             .collect();
         let actions = Tensor::from_vec(actions, (BATCH_SIZE, ACT_DIM), &dev)?;
 
-        let rewards: Vec<f32> = batch.iter().map(|t| t.reward).collect();
+        // Apply reward scaling for normalization
+        let rewards: Vec<f32> = batch.iter().map(|t| t.reward * REWARD_SCALE).collect();
         let rewards = Tensor::from_vec(rewards, (BATCH_SIZE, 1), &dev)?;
 
         let next_states: Vec<f32> = batch
@@ -239,13 +270,14 @@ impl SACAgent {
             .collect();
         let dones = Tensor::from_vec(dones, (BATCH_SIZE, 1), &dev)?;
 
+        let alpha = self.log_alpha.as_tensor().exp()?;
+
         let (next_actions, next_log_prob) = self.sample_action_and_log_prob(&next_states)?;
         let next_input = Tensor::cat(&[&next_states, &next_actions], 1)?;
         let target_q1 = self.target_q1.forward(&next_input)?.detach();
         let target_q2 = self.target_q2.forward(&next_input)?.detach();
         let min_target_q = target_q1.broadcast_minimum(&target_q2)?;
-        let alpha = Tensor::new(SAC_ALPHA, next_log_prob.device())?;
-        let alpha_logp = next_log_prob.broadcast_mul(&alpha)?;
+        let alpha_logp = next_log_prob.broadcast_mul(&alpha.detach())?;
         let target = (&min_target_q - alpha_logp)?;
         let gamma = Tensor::new(GAMMA as f32, rewards.device())?;
         let y = (&rewards + (&dones * target)?.broadcast_mul(&gamma)?)?;
@@ -265,10 +297,18 @@ impl SACAgent {
         let q1_pi = self.q1.forward(&policy_input)?;
         let q2_pi = self.q2.forward(&policy_input)?;
         let min_q_pi = q1_pi.broadcast_minimum(&q2_pi)?;
-        let alpha = Tensor::new(SAC_ALPHA, log_prob.device())?;
-        let alpha_logp = log_prob.broadcast_mul(&alpha)?;
+
+        let alpha = self.log_alpha.as_tensor().exp()?;
+        let alpha_logp = log_prob.broadcast_mul(&alpha.detach())?;
         let policy_loss = (&alpha_logp - min_q_pi)?.mean_all()?;
         self.policy_optim.backward_step(&policy_loss)?;
+
+        let target_ent = Tensor::new(self.target_entropy, &dev)?;
+        let log_prob_detached = log_prob.detach();
+        let alpha = self.log_alpha.as_tensor().exp()?;
+        let entropy_diff = (&log_prob_detached + &target_ent)?;
+        let alpha_loss = (&alpha * entropy_diff.neg()?)?.mean_all()?;
+        self.alpha_optim.backward_step(&alpha_loss)?;
 
         soft_update_varmap(&self.q1_varmap, &self.target_q1_varmap, TAU);
         soft_update_varmap(&self.q2_varmap, &self.target_q2_varmap, TAU);
@@ -288,6 +328,20 @@ impl SACAgent {
         self.target_q2_varmap
             .save(path.join(TARGET_Q2_CHECKPOINT))?;
 
+        let alpha_tensors = std::collections::HashMap::from([(
+            "log_alpha".to_string(),
+            self.log_alpha.as_tensor().clone(),
+        )]);
+        candle_core::safetensors::save(&alpha_tensors, path.join(ALPHA_CHECKPOINT))?;
+
         Ok(())
+    }
+
+    pub fn get_alpha(&self) -> f32 {
+        self.log_alpha
+            .as_tensor()
+            .exp()
+            .and_then(|t| t.to_vec0())
+            .unwrap_or(SAC_ALPHA_INIT)
     }
 }

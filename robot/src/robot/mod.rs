@@ -23,7 +23,7 @@ pub use training::*;
 #[cfg(feature = "native")]
 pub use zenoh_bridge::*;
 
-pub use resources::{ActionMsg, ObservationMsg};
+pub use resources::{ActionMsg, ObservationMsg, TrainStatsMsg};
 
 #[cfg(feature = "wasm")]
 pub use wasm_bridge::*;
