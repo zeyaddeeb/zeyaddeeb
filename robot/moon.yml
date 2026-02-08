@@ -13,26 +13,22 @@ tasks:
     command: "cargo build --all-targets --release"
   helm-lint:
     command: "helm lint deployments/helm"
-  docker-build-web:
-    command:
-      - docker build --platform=linux/amd64 --target web -t $project:web-v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version) .
-  docker-build-ws:
-    command:
-      - docker build --platform=linux/amd64 --target server -t $project:ws-server-v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version) .
   docker-build:
-    deps:
-      - "docker-build-web"
-      - "docker-build-ws"
+    command:
+      - |
+        VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r .packages[0].version)
+        docker build --platform=linux/amd64 --target web -t $project:web-v$VERSION .
+        docker build --platform=linux/amd64 --target server -t $project:ws-server-v$VERSION .
   docker-tag-web:
     command:
       - docker tag $project:web-v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version) $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/zeyaddeeb/robot:web-v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version) >/dev/null
     deps:
-      - "docker-build-web"
+      - "docker-build"
   docker-tag-ws:
     command:
       - docker tag $project:ws-server-v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version) $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/zeyaddeeb/robot:ws-server-v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version) >/dev/null
     deps:
-      - "docker-build-ws"
+      - "docker-build"
   docker-tag:
     deps:
       - "docker-tag-web"

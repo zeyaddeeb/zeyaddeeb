@@ -1,6 +1,6 @@
 [package]
 name = "robot"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 
 [features]
@@ -13,7 +13,7 @@ native = [
     "dep:tokio-tungstenite",
     "dep:futures-util",
 ]
-wasm = ["bevy/webgl2"]
+wasm = []
 
 [[bin]]
 name = "robot"

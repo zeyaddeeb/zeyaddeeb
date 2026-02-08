@@ -383,7 +383,6 @@ pub fn wasm_simulation_loop(
     joint_query: JointReadQuery,
     mut joint_write_q: TorqueWriteQuery,
     ball_query: Query<(&Transform, &LinearVelocity), With<Basketball>>,
-    torso_query: Query<(&Transform, &AngularVelocity), With<RobotTorso>>,
 ) {
     const MAX_EPISODE_STEPS: usize = 300;
     const TORSO_FALL_Y: f32 = 0.40;
@@ -404,13 +403,9 @@ pub fn wasm_simulation_loop(
             (Vec3::ZERO, Vec3::ZERO)
         };
 
-        let (torso_pos, torso_angle, torso_ang_vel) =
-            if let Ok((torso_tf, torso_av)) = torso_query.single() {
-                let (_, pitch, _) = torso_tf.rotation.to_euler(EulerRot::XYZ);
-                (torso_tf.translation, pitch, torso_av.z)
-            } else {
-                (Vec3::new(0.0, 1.0, 0.0), 0.0, 0.0)
-            };
+        let torso_pos = robot_state.torso_pos;
+        let torso_angle = robot_state.torso.angle;
+        let torso_ang_vel = robot_state.torso.velocity;
 
         let torques = if sim.step < SETTLE_STEPS {
             ComputedTorques::default()
@@ -500,24 +495,24 @@ pub fn wasm_reset_system(
     mut sim: ResMut<SimulationState>,
     mut torso_q: Query<
         (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
-        With<RobotTorso>,
-    >,
-    mut ball_q: Query<
-        (
-            Entity,
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-        ),
-        (With<Basketball>, Without<RobotTorso>),
+        (With<RobotTorso>, Without<Basketball>),
     >,
     mut upper_arm_q: Query<
         (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
-        With<RobotUpperArm>,
+        (
+            With<RobotUpperArm>,
+            Without<RobotTorso>,
+            Without<Basketball>,
+        ),
     >,
     mut forearm_q: Query<
         (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
-        With<RobotForearm>,
+        (
+            With<RobotForearm>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<Basketball>,
+        ),
     >,
     mut hand_q: Query<
         (
@@ -526,15 +521,36 @@ pub fn wasm_reset_system(
             &mut LinearVelocity,
             &mut AngularVelocity,
         ),
-        With<RobotHand>,
+        (
+            With<RobotHand>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<Basketball>,
+        ),
     >,
     mut left_upper_arm_q: Query<
         (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
-        With<RobotLeftUpperArm>,
+        (
+            With<RobotLeftUpperArm>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<RobotHand>,
+            Without<Basketball>,
+        ),
     >,
     mut left_forearm_q: Query<
         (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
-        With<RobotLeftForearm>,
+        (
+            With<RobotLeftForearm>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<RobotHand>,
+            Without<RobotLeftUpperArm>,
+            Without<Basketball>,
+        ),
     >,
     mut left_hand_q: Query<
         (
@@ -543,31 +559,139 @@ pub fn wasm_reset_system(
             &mut LinearVelocity,
             &mut AngularVelocity,
         ),
-        With<RobotLeftHand>,
+        (
+            With<RobotLeftHand>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<RobotHand>,
+            Without<RobotLeftUpperArm>,
+            Without<RobotLeftForearm>,
+            Without<Basketball>,
+        ),
     >,
     mut left_thigh_q: Query<
         (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
-        With<RobotLeftThigh>,
+        (
+            With<RobotLeftThigh>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<RobotHand>,
+            Without<RobotLeftUpperArm>,
+            Without<RobotLeftForearm>,
+            Without<RobotLeftHand>,
+            Without<Basketball>,
+        ),
     >,
     mut left_shin_q: Query<
         (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
-        With<RobotLeftShin>,
+        (
+            With<RobotLeftShin>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<RobotHand>,
+            Without<RobotLeftUpperArm>,
+            Without<RobotLeftForearm>,
+            Without<RobotLeftHand>,
+            Without<RobotLeftThigh>,
+            Without<Basketball>,
+        ),
     >,
     mut left_foot_q: Query<
         (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
-        With<RobotLeftFoot>,
+        (
+            With<RobotLeftFoot>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<RobotHand>,
+            Without<RobotLeftUpperArm>,
+            Without<RobotLeftForearm>,
+            Without<RobotLeftHand>,
+            Without<RobotLeftThigh>,
+            Without<RobotLeftShin>,
+            Without<Basketball>,
+        ),
     >,
     mut right_thigh_q: Query<
         (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
-        With<RobotRightThigh>,
+        (
+            With<RobotRightThigh>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<RobotHand>,
+            Without<RobotLeftUpperArm>,
+            Without<RobotLeftForearm>,
+            Without<RobotLeftHand>,
+            Without<RobotLeftThigh>,
+            Without<RobotLeftShin>,
+            Without<RobotLeftFoot>,
+            Without<Basketball>,
+        ),
     >,
     mut right_shin_q: Query<
         (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
-        With<RobotRightShin>,
+        (
+            With<RobotRightShin>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<RobotHand>,
+            Without<RobotLeftUpperArm>,
+            Without<RobotLeftForearm>,
+            Without<RobotLeftHand>,
+            Without<RobotLeftThigh>,
+            Without<RobotLeftShin>,
+            Without<RobotLeftFoot>,
+            Without<RobotRightThigh>,
+            Without<Basketball>,
+        ),
     >,
     mut right_foot_q: Query<
         (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
-        With<RobotRightFoot>,
+        (
+            With<RobotRightFoot>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<RobotHand>,
+            Without<RobotLeftUpperArm>,
+            Without<RobotLeftForearm>,
+            Without<RobotLeftHand>,
+            Without<RobotLeftThigh>,
+            Without<RobotLeftShin>,
+            Without<RobotLeftFoot>,
+            Without<RobotRightThigh>,
+            Without<RobotRightShin>,
+            Without<Basketball>,
+        ),
+    >,
+    mut ball_q: Query<
+        (
+            Entity,
+            &mut Transform,
+            &mut LinearVelocity,
+            &mut AngularVelocity,
+        ),
+        (
+            With<Basketball>,
+            Without<RobotTorso>,
+            Without<RobotUpperArm>,
+            Without<RobotForearm>,
+            Without<RobotHand>,
+            Without<RobotLeftUpperArm>,
+            Without<RobotLeftForearm>,
+            Without<RobotLeftHand>,
+            Without<RobotLeftThigh>,
+            Without<RobotLeftShin>,
+            Without<RobotLeftFoot>,
+            Without<RobotRightThigh>,
+            Without<RobotRightShin>,
+            Without<RobotRightFoot>,
+        ),
     >,
 ) {
     if !sim.needs_reset {
@@ -575,8 +699,10 @@ pub fn wasm_reset_system(
     }
 
     let poses = get_initial_poses();
+    let mut hand_entity = None;
+    let mut left_hand_entity = None;
 
-    if let Ok((mut tf, mut lv, mut av)) = torso_q.single_mut() {
+    if let Some((mut tf, mut lv, mut av)) = torso_q.iter_mut().next() {
         reset_body(
             &mut tf,
             &mut lv,
@@ -585,8 +711,7 @@ pub fn wasm_reset_system(
             poses.torso.rotation,
         );
     }
-
-    if let Ok((mut tf, mut lv, mut av)) = upper_arm_q.single_mut() {
+    if let Some((mut tf, mut lv, mut av)) = upper_arm_q.iter_mut().next() {
         reset_body(
             &mut tf,
             &mut lv,
@@ -595,7 +720,7 @@ pub fn wasm_reset_system(
             poses.upper_arm.rotation,
         );
     }
-    if let Ok((mut tf, mut lv, mut av)) = forearm_q.single_mut() {
+    if let Some((mut tf, mut lv, mut av)) = forearm_q.iter_mut().next() {
         reset_body(
             &mut tf,
             &mut lv,
@@ -604,7 +729,7 @@ pub fn wasm_reset_system(
             poses.forearm.rotation,
         );
     }
-    let hand_entity = if let Ok((entity, mut tf, mut lv, mut av)) = hand_q.single_mut() {
+    if let Some((entity, mut tf, mut lv, mut av)) = hand_q.iter_mut().next() {
         reset_body(
             &mut tf,
             &mut lv,
@@ -612,12 +737,9 @@ pub fn wasm_reset_system(
             poses.hand.position,
             poses.hand.rotation,
         );
-        Some(entity)
-    } else {
-        None
-    };
-
-    if let Ok((mut tf, mut lv, mut av)) = left_upper_arm_q.single_mut() {
+        hand_entity = Some(entity);
+    }
+    if let Some((mut tf, mut lv, mut av)) = left_upper_arm_q.iter_mut().next() {
         reset_body(
             &mut tf,
             &mut lv,
@@ -626,7 +748,7 @@ pub fn wasm_reset_system(
             poses.left_upper_arm.rotation,
         );
     }
-    if let Ok((mut tf, mut lv, mut av)) = left_forearm_q.single_mut() {
+    if let Some((mut tf, mut lv, mut av)) = left_forearm_q.iter_mut().next() {
         reset_body(
             &mut tf,
             &mut lv,
@@ -635,7 +757,7 @@ pub fn wasm_reset_system(
             poses.left_forearm.rotation,
         );
     }
-    let left_hand_entity = if let Ok((entity, mut tf, mut lv, mut av)) = left_hand_q.single_mut() {
+    if let Some((entity, mut tf, mut lv, mut av)) = left_hand_q.iter_mut().next() {
         reset_body(
             &mut tf,
             &mut lv,
@@ -643,12 +765,9 @@ pub fn wasm_reset_system(
             poses.left_hand.position,
             poses.left_hand.rotation,
         );
-        Some(entity)
-    } else {
-        None
-    };
-
-    if let Ok((mut tf, mut lv, mut av)) = left_thigh_q.single_mut() {
+        left_hand_entity = Some(entity);
+    }
+    if let Some((mut tf, mut lv, mut av)) = left_thigh_q.iter_mut().next() {
         reset_body(
             &mut tf,
             &mut lv,
@@ -657,7 +776,7 @@ pub fn wasm_reset_system(
             poses.left_thigh.rotation,
         );
     }
-    if let Ok((mut tf, mut lv, mut av)) = left_shin_q.single_mut() {
+    if let Some((mut tf, mut lv, mut av)) = left_shin_q.iter_mut().next() {
         reset_body(
             &mut tf,
             &mut lv,
@@ -666,7 +785,7 @@ pub fn wasm_reset_system(
             poses.left_shin.rotation,
         );
     }
-    if let Ok((mut tf, mut lv, mut av)) = left_foot_q.single_mut() {
+    if let Some((mut tf, mut lv, mut av)) = left_foot_q.iter_mut().next() {
         reset_body(
             &mut tf,
             &mut lv,
@@ -675,8 +794,7 @@ pub fn wasm_reset_system(
             poses.left_foot.rotation,
         );
     }
-
-    if let Ok((mut tf, mut lv, mut av)) = right_thigh_q.single_mut() {
+    if let Some((mut tf, mut lv, mut av)) = right_thigh_q.iter_mut().next() {
         reset_body(
             &mut tf,
             &mut lv,
@@ -685,7 +803,7 @@ pub fn wasm_reset_system(
             poses.right_thigh.rotation,
         );
     }
-    if let Ok((mut tf, mut lv, mut av)) = right_shin_q.single_mut() {
+    if let Some((mut tf, mut lv, mut av)) = right_shin_q.iter_mut().next() {
         reset_body(
             &mut tf,
             &mut lv,
@@ -694,7 +812,7 @@ pub fn wasm_reset_system(
             poses.right_shin.rotation,
         );
     }
-    if let Ok((mut tf, mut lv, mut av)) = right_foot_q.single_mut() {
+    if let Some((mut tf, mut lv, mut av)) = right_foot_q.iter_mut().next() {
         reset_body(
             &mut tf,
             &mut lv,
@@ -704,7 +822,7 @@ pub fn wasm_reset_system(
         );
     }
 
-    let ball_entity = if let Ok((entity, mut tf, mut lv, mut av)) = ball_q.single_mut() {
+    let ball_entity = if let Some((entity, mut tf, mut lv, mut av)) = ball_q.iter_mut().next() {
         let hands_mid = (poses.hand.position + poses.left_hand.position) / 2.0;
         let ball_pos = hands_mid + Vec3::new(BALL_RADIUS + HAND_RADIUS + 0.02, 0.0, 0.0);
         reset_body(&mut tf, &mut lv, &mut av, ball_pos, Quat::IDENTITY);
