@@ -50,62 +50,60 @@ pub fn compute_reward_components(
     let dist = (ball_pos - HOOP_POS).length();
 
     let upright = 1.0 - (torso_angle.abs() / (PI / 3.0)).clamp(0.0, 1.0);
-    let upright_reward = upright * 2.0;
-    let height_reward = ((torso_pos.y - 0.6) / 0.6).clamp(0.0, 1.0) * 2.0;
-    let stability_reward = (1.0 - (torso_ang_vel.abs() / 6.0).clamp(0.0, 1.0)) * 0.5;
+    let upright_reward = upright * 4.0;
+    let height_reward = ((torso_pos.y - 0.6) / 0.6).clamp(0.0, 1.0) * 4.0;
+    let stability_reward = (1.0 - (torso_ang_vel.abs() / 6.0).clamp(0.0, 1.0)) * 1.0;
 
     let mut stand_reward = upright_reward + height_reward + stability_reward;
-    let release_reward = if ball_released { 0.2 } else { 0.0 };
-    let standing_bonus = if torso_pos.y > 0.6 {
-        0.35
+    let release_reward = if ball_released { 1.0 } else { 0.0 };
+    let standing_bonus = if torso_pos.y > 0.7 {
+        1.5
+    } else if torso_pos.y > 0.6 {
+        0.8
     } else if torso_pos.y > 0.5 {
-        0.15
+        0.3
     } else {
         0.0
     };
-    let low_height_penalty = if torso_pos.y < 0.4 { -0.3 } else { 0.0 };
-    let ang_vel_penalty = -(torso_ang_vel.abs() / 8.0).clamp(0.0, 1.0) * 0.2;
+    let low_height_penalty = if torso_pos.y < 0.4 { -0.15 } else { 0.0 };
+    let ang_vel_penalty = -(torso_ang_vel.abs() / 8.0).clamp(0.0, 1.0) * 0.1;
     stand_reward += standing_bonus + low_height_penalty + ang_vel_penalty;
 
     if !ball_released {
-        stand_reward += if done { -5.0 } else { -0.01 };
+        stand_reward += if done { -2.0 } else { 0.02 };
         return RewardComponents {
             stand: stand_reward,
             throw: 0.0,
         };
     }
 
-    let dist_reward = -dist * 0.1;
+    let dist_reward = -dist * 0.2;
 
     let score_bonus = if dist < 0.3 {
-        100.0
+        160.0
     } else if dist < 0.6 {
-        30.0
+        50.0
     } else if dist < 1.0 {
-        10.0
+        18.0
     } else if dist < 2.0 {
-        3.0
+        6.0
     } else {
         0.0
     };
 
     let dir_to_hoop = (HOOP_POS - ball_pos).normalize_or_zero();
     let vel_alignment = ball_vel.normalize_or_zero().dot(dir_to_hoop).max(0.0);
-    let direction_reward = vel_alignment * 2.0;
+    let direction_reward = vel_alignment * 3.5;
 
     let ball_height_reward = if ball_pos.y > HOOP_POS.y {
-        5.0
+        8.0
     } else {
-        (ball_pos.y / HOOP_POS.y).max(0.0) * 2.0
+        (ball_pos.y / HOOP_POS.y).max(0.0) * 3.0
     };
 
-    let ground_penalty = if ball_pos.y < 0.15 && done { -6.0 } else { 0.0 };
+    let ground_penalty = if ball_pos.y < 0.15 && done { -3.0 } else { 0.0 };
 
-    let fall_penalty = if torso_pos.y < 0.5 && done {
-        -12.0
-    } else {
-        0.0
-    };
+    let fall_penalty = if torso_pos.y < 0.5 && done { -6.0 } else { 0.0 };
 
     let throw_reward = release_reward
         + dist_reward
