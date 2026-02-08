@@ -73,17 +73,16 @@ pub const KNEE_MAX: f32 = PI * 0.9;
 pub const ANKLE_MIN: f32 = 0.0;
 pub const ANKLE_MAX: f32 = 0.0;
 
-#[cfg(feature = "native")]
 pub const SHOULDER_TORQUE_SCALE: f32 = 25.0;
-#[cfg(feature = "native")]
 pub const ELBOW_TORQUE_SCALE: f32 = 18.0;
-#[cfg(feature = "native")]
 pub const WRIST_TORQUE_SCALE: f32 = 10.0;
-#[cfg(feature = "native")]
 pub const TORSO_TORQUE_SCALE: f32 = 30.0;
-#[cfg(feature = "native")]
 pub const HIP_TORQUE_SCALE: f32 = 45.0;
-#[cfg(feature = "native")]
 pub const KNEE_TORQUE_SCALE: f32 = 40.0;
-#[cfg(feature = "native")]
 pub const ANKLE_TORQUE_SCALE: f32 = 20.0;
+
+pub const BOUNDS_X_MIN: f32 = -8.0;
+pub const BOUNDS_X_MAX: f32 = 8.0;
+pub const BOUNDS_Z_MIN: f32 = -5.0;
+pub const BOUNDS_Z_MAX: f32 = 5.0;
+pub const BOUNDS_Y_MIN: f32 = -1.0;

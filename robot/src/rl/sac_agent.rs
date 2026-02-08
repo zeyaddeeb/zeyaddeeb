@@ -14,6 +14,7 @@ const Q2_CHECKPOINT: &str = "sac_q2.safetensors";
 const TARGET_Q1_CHECKPOINT: &str = "sac_target_q1.safetensors";
 const TARGET_Q2_CHECKPOINT: &str = "sac_target_q2.safetensors";
 const ALPHA_CHECKPOINT: &str = "sac_alpha.safetensors";
+const BUFFER_CHECKPOINT: &str = "sac_buffer.bin";
 
 const LOG_PROB_EPS: f32 = 1e-6;
 const LOG_2PI: f32 = 1.8378771;
@@ -145,11 +146,9 @@ impl SACAgent {
             },
         )?;
 
-        // Auto-entropy tuning: learnable log_alpha
         let init_log_alpha = SAC_ALPHA_INIT.ln();
         let log_alpha = Var::new(&[init_log_alpha], &dev)?;
 
-        // Try to load alpha from checkpoint
         if let Some(dir) = checkpoint_dir {
             let alpha_path = Path::new(dir).join(ALPHA_CHECKPOINT);
             if alpha_path.exists() {
@@ -170,6 +169,22 @@ impl SACAgent {
             },
         )?;
 
+        let mut replay_buffer = ReplayBuffer::new(REPLAY_CAPACITY);
+        if let Some(dir) = checkpoint_dir {
+            let buffer_path = Path::new(dir).join(BUFFER_CHECKPOINT);
+            if buffer_path.exists() {
+                match replay_buffer.load(&buffer_path) {
+                    Ok(_) => println!(
+                        "[SAC] Loaded replay buffer: {} samples",
+                        replay_buffer.len()
+                    ),
+                    Err(e) => {
+                        println!("[SAC] Failed to load replay buffer: {} - starting fresh", e)
+                    }
+                }
+            }
+        }
+
         Ok(Self {
             policy_varmap,
             policy,
@@ -187,7 +202,7 @@ impl SACAgent {
             log_alpha,
             alpha_optim,
             target_entropy: SAC_TARGET_ENTROPY,
-            replay_buffer: ReplayBuffer::new(REPLAY_CAPACITY),
+            replay_buffer,
             is_training: true,
         })
     }
@@ -303,11 +318,11 @@ impl SACAgent {
         let policy_loss = (&alpha_logp - min_q_pi)?.mean_all()?;
         self.policy_optim.backward_step(&policy_loss)?;
 
-        let target_ent = Tensor::new(self.target_entropy, &dev)?;
+        let target_ent = Tensor::new(&[self.target_entropy], &dev)?.reshape((1, 1))?;
         let log_prob_detached = log_prob.detach();
         let alpha = self.log_alpha.as_tensor().exp()?;
-        let entropy_diff = (&log_prob_detached + &target_ent)?;
-        let alpha_loss = (&alpha * entropy_diff.neg()?)?.mean_all()?;
+        let entropy_diff = log_prob_detached.broadcast_add(&target_ent)?;
+        let alpha_loss = entropy_diff.neg()?.broadcast_mul(&alpha)?.mean_all()?;
         self.alpha_optim.backward_step(&alpha_loss)?;
 
         soft_update_varmap(&self.q1_varmap, &self.target_q1_varmap, TAU);

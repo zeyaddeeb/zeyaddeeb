@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
@@ -19,9 +20,10 @@ pub struct TrainStats {
 
 pub struct SacAsyncTrainer {
     transition_tx: Sender<Transition>,
-    train_requested: Arc<Mutex<usize>>,
     #[allow(dead_code)]
-    stats: Arc<Mutex<TrainStats>>,
+    train_requested: Arc<Mutex<usize>>,
+    train_steps: Arc<AtomicUsize>,
+    buffer_len: Arc<AtomicUsize>,
     _handle: JoinHandle<()>,
     pub agent: Arc<Mutex<SACAgent>>,
 }
@@ -30,28 +32,35 @@ impl SacAsyncTrainer {
     pub fn new() -> Self {
         let (transition_tx, transition_rx) = channel::<Transition>();
         let train_requested = Arc::new(Mutex::new(0usize));
-        let train_requested_clone = Arc::clone(&train_requested);
-        let stats = Arc::new(Mutex::new(TrainStats::default()));
-        let stats_clone = Arc::clone(&stats);
+        let train_steps = Arc::new(AtomicUsize::new(0));
+        let buffer_len = Arc::new(AtomicUsize::new(0));
+        let train_steps_clone = Arc::clone(&train_steps);
+        let buffer_len_clone = Arc::clone(&buffer_len);
 
         let agent = Arc::new(Mutex::new(
             SACAgent::new_or_load(SAC_CHECKPOINT_DIR).expect("Failed to create SAC agent"),
         ));
+
+        if let Ok(a) = agent.lock() {
+            buffer_len.store(a.replay_buffer.len(), Ordering::Relaxed);
+        }
+
         let agent_clone = Arc::clone(&agent);
 
         let handle = thread::spawn(move || {
             training_worker(
                 transition_rx,
-                train_requested_clone,
                 agent_clone,
-                stats_clone,
+                train_steps_clone,
+                buffer_len_clone,
             );
         });
 
         Self {
             transition_tx,
             train_requested,
-            stats,
+            train_steps,
+            buffer_len,
             _handle: handle,
             agent,
         }
@@ -89,17 +98,23 @@ impl SacAsyncTrainer {
     }
 
     pub fn get_stats(&self) -> TrainStats {
-        self.stats.lock().map(|s| s.clone()).unwrap_or_default()
+        TrainStats {
+            buffer_len: self.buffer_len.load(Ordering::Relaxed),
+            train_steps_done: self.train_steps.load(Ordering::Relaxed),
+            ..Default::default()
+        }
     }
 }
 
 fn training_worker(
     transition_rx: Receiver<Transition>,
-    _train_requested: Arc<Mutex<usize>>,
     agent: Arc<Mutex<SACAgent>>,
-    stats: Arc<Mutex<TrainStats>>,
+    train_steps: Arc<AtomicUsize>,
+    buffer_len_counter: Arc<AtomicUsize>,
 ) {
+    println!("[SAC Training Worker] Started");
     let mut last_checkpoint_step = 0usize;
+    let mut training_attempted = false;
     const CHECKPOINT_INTERVAL: usize = 1000;
 
     loop {
@@ -119,35 +134,42 @@ fn training_worker(
 
         if transitions_added > 0 {
             if let Ok(agent) = agent.try_lock() {
-                if let Ok(mut s) = stats.lock() {
-                    s.buffer_len = agent.replay_buffer.len();
-                }
+                buffer_len_counter.store(agent.replay_buffer.len(), Ordering::Relaxed);
             }
         }
 
         if let Ok(mut agent) = agent.try_lock() {
             let buffer_len = agent.replay_buffer.len();
-            if buffer_len >= MIN_REPLAY_SIZE {
-                if agent.train_step().is_ok() {
-                    if let Ok(mut s) = stats.try_lock() {
-                        s.train_steps_done += 1;
+            buffer_len_counter.store(buffer_len, Ordering::Relaxed);
 
-                        if s.train_steps_done % 100 == 0 {
-                            println!(
-                                "[SAC] Train step {} | Buffer: {}",
-                                s.train_steps_done, buffer_len
-                            );
+            if buffer_len >= MIN_REPLAY_SIZE {
+                if !training_attempted {
+                    println!(
+                        "[SAC] Buffer ready ({} >= {}), starting training...",
+                        buffer_len, MIN_REPLAY_SIZE
+                    );
+                    training_attempted = true;
+                }
+                match agent.train_step() {
+                    Ok(()) => {
+                        let steps = train_steps.fetch_add(1, Ordering::Relaxed) + 1;
+
+                        if steps % 100 == 0 {
+                            println!("[SAC] Train step {} | Buffer: {}", steps, buffer_len);
                         }
 
-                        if s.train_steps_done >= last_checkpoint_step + CHECKPOINT_INTERVAL {
-                            last_checkpoint_step = s.train_steps_done;
-                            drop(s);
+                        if steps >= last_checkpoint_step + CHECKPOINT_INTERVAL {
+                            last_checkpoint_step = steps;
                             if let Err(e) = agent.save_checkpoint(SAC_CHECKPOINT_DIR) {
                                 eprintln!("[SAC] Auto-checkpoint failed: {}", e);
                             } else {
                                 println!("[SAC] Auto-checkpoint at step {}", last_checkpoint_step);
                             }
                         }
+                    }
+                    Err(e) => {
+                        eprintln!("[SAC] Train step error: {}", e);
+                        thread::sleep(Duration::from_millis(100));
                     }
                 }
                 thread::sleep(Duration::from_micros(50));

@@ -440,6 +440,15 @@ pub enum EpisodeEndReason {
     BallFell,
     TorsoFell,
     TimedOut,
+    OutOfBounds,
+}
+
+fn is_out_of_bounds(pos: Vec3) -> bool {
+    pos.x < BOUNDS_X_MIN
+        || pos.x > BOUNDS_X_MAX
+        || pos.z < BOUNDS_Z_MIN
+        || pos.z > BOUNDS_Z_MAX
+        || pos.y < BOUNDS_Y_MIN
 }
 
 impl EpisodeEndReason {
@@ -455,8 +464,11 @@ impl EpisodeEndReason {
         let ball_fell = ball_pos.y < -0.5;
         let torso_fell = step > SETTLE_STEPS && torso_pos.y < TORSO_FALL_Y;
         let timed_out = step >= max_steps;
+        let out_of_bounds = is_out_of_bounds(torso_pos) || is_out_of_bounds(ball_pos);
 
-        if torso_fell {
+        if out_of_bounds {
+            Some(Self::OutOfBounds)
+        } else if torso_fell {
             Some(Self::TorsoFell)
         } else if ball_fell {
             Some(Self::BallFell)
@@ -475,6 +487,7 @@ impl EpisodeEndReason {
             Self::BallFell => "ball_fell",
             Self::TorsoFell => "torso_fell",
             Self::TimedOut => "timed_out",
+            Self::OutOfBounds => "out_of_bounds",
         }
     }
 }

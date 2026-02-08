@@ -1,7 +1,11 @@
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
+use std::fs::File;
+use std::io::{BufReader, BufWriter};
+use std::path::Path;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Transition {
     pub state: Vec<f32>,
     pub action: Vec<f32>,
@@ -46,5 +50,26 @@ impl ReplayBuffer {
             })
             .collect();
         Some(batch)
+    }
+
+    pub fn save<P: AsRef<Path>>(&self, path: P) -> std::io::Result<()> {
+        let file = File::create(path)?;
+        let writer = BufWriter::new(file);
+        let data: Vec<&Transition> = self.buffer.iter().collect();
+        bincode::serialize_into(writer, &data)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+    }
+
+    pub fn load<P: AsRef<Path>>(&mut self, path: P) -> std::io::Result<()> {
+        let file = File::open(path)?;
+        let reader = BufReader::new(file);
+        let data: Vec<Transition> = bincode::deserialize_from(reader)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+
+        self.buffer.clear();
+        for t in data {
+            self.push(t);
+        }
+        Ok(())
     }
 }

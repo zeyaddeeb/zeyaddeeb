@@ -5,12 +5,12 @@ use serde_json::json;
 use std::env;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio::sync::Mutex;
 use tokio_tungstenite::accept_async;
 use tokio_tungstenite::tungstenite::Message;
 
-/// Track reward statistics across episodes
 struct RewardTracker {
     episode_rewards: Vec<f32>,
     current_episode_reward: f32,
@@ -51,7 +51,7 @@ impl RewardTracker {
     }
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     let bind_addr = env::var("WS_BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:9001".to_string());
     let listener = TcpListener::bind(&bind_addr).await?;
@@ -78,7 +78,35 @@ async fn main() -> anyhow::Result<()> {
         });
     }
 
-    while let Ok((stream, addr)) = listener.accept().await {
+    while let Ok((mut stream, addr)) = listener.accept().await {
+        let mut peek_buf = [0u8; 512];
+        match stream.peek(&mut peek_buf).await {
+            Ok(n) if n > 0 => {
+                let request = String::from_utf8_lossy(&peek_buf[..n]);
+
+                if request.starts_with("GET /health") || request.starts_with("HEAD /health") {
+                    let mut discard = vec![0u8; n];
+                    let _ = stream.read(&mut discard).await;
+
+                    let response = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nContent-Type: text/plain\r\n\r\nok";
+                    let _ = stream.write_all(response.as_bytes()).await;
+                    continue;
+                }
+
+                if !request.contains("Upgrade: websocket")
+                    && !request.contains("upgrade: websocket")
+                {
+                    let mut discard = vec![0u8; n];
+                    let _ = stream.read(&mut discard).await;
+
+                    let response = "HTTP/1.1 400 Bad Request\r\nContent-Length: 26\r\n\r\nWebSocket upgrade required";
+                    let _ = stream.write_all(response.as_bytes()).await;
+                    continue;
+                }
+            }
+            _ => continue,
+        }
+
         println!("[WS] Client connected: {}", addr);
         let trainer = Arc::clone(&trainer);
         let reward_tracker = Arc::clone(&reward_tracker);
@@ -116,7 +144,6 @@ async fn handle_connection(
             }
         };
 
-        // Track reward for statistics
         {
             let mut tracker = reward_tracker.lock().await;
             tracker.add_reward(obs_msg.reward);

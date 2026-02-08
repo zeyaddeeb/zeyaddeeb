@@ -40,23 +40,27 @@ persistence:
 workingDir: /data
 
 livenessProbe:
-  exec:
-    command:
-      - /bin/sh
-      - -c
-      - "grep -q ':2329' /proc/net/tcp"
+  httpGet:
+    path: /health
+    port: 9001
   initialDelaySeconds: 10
   periodSeconds: 10
   timeoutSeconds: 3
   failureThreshold: 3
 
 readinessProbe:
-  exec:
-    command:
-      - /bin/sh
-      - -c
-      - "grep -q ':2329' /proc/net/tcp"
+  httpGet:
+    path: /health
+    port: 9001
   initialDelaySeconds: 5
   periodSeconds: 5
   timeoutSeconds: 3
   failureThreshold: 3
+
+resources:
+  limits:
+    cpu: "1"
+    memory: "512Mi"
+  requests:
+    cpu: "500m"
+    memory: "256Mi"

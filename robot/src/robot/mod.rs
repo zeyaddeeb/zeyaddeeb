@@ -16,6 +16,7 @@ mod wasm_bridge;
 
 #[cfg(feature = "native")]
 pub use reset::reset_robot_positions;
+pub use reset::{get_initial_poses, BodyPartPose, RobotPoses};
 pub use setup::*;
 
 #[cfg(feature = "native")]
