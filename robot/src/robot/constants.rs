@@ -16,14 +16,18 @@ pub const UPPER_ARM_LENGTH: f32 = 0.45;
 pub const UPPER_ARM_RADIUS: f32 = 0.035;
 pub const FOREARM_LENGTH: f32 = 0.40;
 pub const FOREARM_RADIUS: f32 = 0.03;
+#[allow(dead_code)]
 pub const HAND_LENGTH: f32 = 0.12;
 pub const HAND_RADIUS: f32 = 0.06;
 pub const THIGH_LENGTH: f32 = 0.55;
 pub const THIGH_RADIUS: f32 = 0.04;
 pub const SHIN_LENGTH: f32 = 0.55;
 pub const SHIN_RADIUS: f32 = 0.035;
+#[allow(dead_code)]
 pub const FOOT_LENGTH: f32 = 0.28;
+#[allow(dead_code)]
 pub const FOOT_HEIGHT: f32 = 0.10;
+#[allow(dead_code)]
 pub const FOOT_OFFSET: f32 = 0.08;
 pub const FOOT_SIZE_X: f32 = 0.28;
 pub const FOOT_SIZE_Y: f32 = 0.10;

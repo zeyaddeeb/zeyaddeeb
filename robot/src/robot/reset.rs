@@ -15,86 +15,62 @@ impl BodyPartPose {
         Self { position, rotation }
     }
 }
-
 pub fn get_initial_poses() -> RobotPoses {
     use std::f32::consts::PI;
 
     let torso_pos = Vec3::new(0.0, TORSO_Y, 0.0);
     let torso_rot = Quat::IDENTITY;
 
-    let shoulder_pos = torso_pos + SHOULDER_OFFSET_RIGHT;
+    let right_shoulder_world = torso_pos + SHOULDER_OFFSET_RIGHT;
+    let right_upper_arm_center = right_shoulder_world + Vec3::new(UPPER_ARM_LENGTH / 2.0, 0.0, 0.0);
+
+    let elbow_world = right_shoulder_world + Vec3::new(UPPER_ARM_LENGTH, 0.0, 0.0);
+    let forearm_center = elbow_world + Vec3::new(FOREARM_LENGTH / 2.0, 0.0, 0.0);
+
+    let hand_world = elbow_world + Vec3::new(FOREARM_LENGTH + HAND_RADIUS, 0.0, 0.0);
+
     let shoulder_rot = Quat::from_rotation_z(-PI / 2.0);
-    let upper_arm_pos = shoulder_pos + shoulder_rot * Vec3::new(0.0, -UPPER_ARM_LENGTH / 2.0, 0.0);
-    let upper_arm_rot = shoulder_rot;
 
-    let elbow_pos = upper_arm_pos + shoulder_rot * Vec3::new(0.0, -UPPER_ARM_LENGTH / 2.0, 0.0);
-    let forearm_pos = elbow_pos + shoulder_rot * Vec3::new(0.0, -FOREARM_LENGTH / 2.0, 0.0);
-    let forearm_rot = shoulder_rot;
+    let left_shoulder_world = torso_pos + SHOULDER_OFFSET_LEFT;
+    let left_upper_arm_center = left_shoulder_world + Vec3::new(UPPER_ARM_LENGTH / 2.0, 0.0, 0.0);
 
-    let wrist_pos = forearm_pos + shoulder_rot * Vec3::new(0.0, -FOREARM_LENGTH / 2.0, 0.0);
-    let hand_pos = wrist_pos + shoulder_rot * Vec3::new(0.0, -HAND_LENGTH / 2.0, 0.0);
-    let hand_rot = shoulder_rot;
+    let left_elbow_world = left_shoulder_world + Vec3::new(UPPER_ARM_LENGTH, 0.0, 0.0);
+    let left_forearm_center = left_elbow_world + Vec3::new(FOREARM_LENGTH / 2.0, 0.0, 0.0);
 
-    let left_shoulder_pos = torso_pos + SHOULDER_OFFSET_LEFT;
-    let left_shoulder_rot = Quat::from_rotation_z(-PI / 2.0);
-    let left_upper_arm_pos =
-        left_shoulder_pos + left_shoulder_rot * Vec3::new(0.0, -UPPER_ARM_LENGTH / 2.0, 0.0);
-    let left_upper_arm_rot = left_shoulder_rot;
+    let left_hand_world = left_elbow_world + Vec3::new(FOREARM_LENGTH + HAND_RADIUS, 0.0, 0.0);
 
-    let left_elbow_pos =
-        left_upper_arm_pos + left_shoulder_rot * Vec3::new(0.0, -UPPER_ARM_LENGTH / 2.0, 0.0);
-    let left_forearm_pos =
-        left_elbow_pos + left_shoulder_rot * Vec3::new(0.0, -FOREARM_LENGTH / 2.0, 0.0);
-    let left_forearm_rot = left_shoulder_rot;
+    let right_hip_world = torso_pos + HIP_OFFSET_RIGHT;
+    let right_thigh_center = right_hip_world + Vec3::new(0.0, -THIGH_LENGTH / 2.0, 0.0);
 
-    let left_wrist_pos =
-        left_forearm_pos + left_shoulder_rot * Vec3::new(0.0, -FOREARM_LENGTH / 2.0, 0.0);
-    let left_hand_pos =
-        left_wrist_pos + left_shoulder_rot * Vec3::new(0.0, -HAND_LENGTH / 2.0, 0.0);
-    let left_hand_rot = left_shoulder_rot;
+    let right_knee_world = right_hip_world + Vec3::new(0.0, -THIGH_LENGTH, 0.0);
+    let right_shin_center = right_knee_world + Vec3::new(0.0, -SHIN_LENGTH / 2.0, 0.0);
 
-    let left_hip_pos = torso_pos + HIP_OFFSET_LEFT;
-    let left_hip_rot = Quat::IDENTITY;
-    let left_thigh_pos = left_hip_pos + Vec3::new(0.0, -THIGH_LENGTH / 2.0, 0.0);
-    let left_thigh_rot = left_hip_rot;
+    let right_foot_world =
+        right_knee_world + Vec3::new(FOOT_FORWARD_OFFSET, -SHIN_LENGTH - FOOT_SIZE_Y / 2.0, 0.0);
 
-    let left_knee_pos = left_thigh_pos + Vec3::new(0.0, -THIGH_LENGTH / 2.0, 0.0);
-    let left_shin_pos = left_knee_pos + Vec3::new(0.0, -SHIN_LENGTH / 2.0, 0.0);
-    let left_shin_rot = Quat::IDENTITY;
+    let left_hip_world = torso_pos + HIP_OFFSET_LEFT;
+    let left_thigh_center = left_hip_world + Vec3::new(0.0, -THIGH_LENGTH / 2.0, 0.0);
 
-    let left_ankle_pos = left_shin_pos + Vec3::new(0.0, -SHIN_LENGTH / 2.0, 0.0);
-    let left_foot_pos =
-        left_ankle_pos + Vec3::new(FOOT_LENGTH / 2.0 - FOOT_OFFSET, -FOOT_HEIGHT / 2.0, 0.0);
-    let left_foot_rot = Quat::IDENTITY;
+    let left_knee_world = left_hip_world + Vec3::new(0.0, -THIGH_LENGTH, 0.0);
+    let left_shin_center = left_knee_world + Vec3::new(0.0, -SHIN_LENGTH / 2.0, 0.0);
 
-    let right_hip_pos = torso_pos + HIP_OFFSET_RIGHT;
-    let right_hip_rot = Quat::IDENTITY;
-    let right_thigh_pos = right_hip_pos + Vec3::new(0.0, -THIGH_LENGTH / 2.0, 0.0);
-    let right_thigh_rot = right_hip_rot;
-
-    let right_knee_pos = right_thigh_pos + Vec3::new(0.0, -THIGH_LENGTH / 2.0, 0.0);
-    let right_shin_pos = right_knee_pos + Vec3::new(0.0, -SHIN_LENGTH / 2.0, 0.0);
-    let right_shin_rot = Quat::IDENTITY;
-
-    let right_ankle_pos = right_shin_pos + Vec3::new(0.0, -SHIN_LENGTH / 2.0, 0.0);
-    let right_foot_pos =
-        right_ankle_pos + Vec3::new(FOOT_LENGTH / 2.0 - FOOT_OFFSET, -FOOT_HEIGHT / 2.0, 0.0);
-    let right_foot_rot = Quat::IDENTITY;
+    let left_foot_world =
+        left_knee_world + Vec3::new(FOOT_FORWARD_OFFSET, -SHIN_LENGTH - FOOT_SIZE_Y / 2.0, 0.0);
 
     RobotPoses {
         torso: BodyPartPose::new(torso_pos, torso_rot),
-        upper_arm: BodyPartPose::new(upper_arm_pos, upper_arm_rot),
-        forearm: BodyPartPose::new(forearm_pos, forearm_rot),
-        hand: BodyPartPose::new(hand_pos, hand_rot),
-        left_upper_arm: BodyPartPose::new(left_upper_arm_pos, left_upper_arm_rot),
-        left_forearm: BodyPartPose::new(left_forearm_pos, left_forearm_rot),
-        left_hand: BodyPartPose::new(left_hand_pos, left_hand_rot),
-        left_thigh: BodyPartPose::new(left_thigh_pos, left_thigh_rot),
-        left_shin: BodyPartPose::new(left_shin_pos, left_shin_rot),
-        left_foot: BodyPartPose::new(left_foot_pos, left_foot_rot),
-        right_thigh: BodyPartPose::new(right_thigh_pos, right_thigh_rot),
-        right_shin: BodyPartPose::new(right_shin_pos, right_shin_rot),
-        right_foot: BodyPartPose::new(right_foot_pos, right_foot_rot),
+        upper_arm: BodyPartPose::new(right_upper_arm_center, shoulder_rot),
+        forearm: BodyPartPose::new(forearm_center, shoulder_rot),
+        hand: BodyPartPose::new(hand_world, shoulder_rot),
+        left_upper_arm: BodyPartPose::new(left_upper_arm_center, shoulder_rot),
+        left_forearm: BodyPartPose::new(left_forearm_center, shoulder_rot),
+        left_hand: BodyPartPose::new(left_hand_world, shoulder_rot),
+        left_thigh: BodyPartPose::new(left_thigh_center, Quat::IDENTITY),
+        left_shin: BodyPartPose::new(left_shin_center, Quat::IDENTITY),
+        left_foot: BodyPartPose::new(left_foot_world, Quat::IDENTITY),
+        right_thigh: BodyPartPose::new(right_thigh_center, Quat::IDENTITY),
+        right_shin: BodyPartPose::new(right_shin_center, Quat::IDENTITY),
+        right_foot: BodyPartPose::new(right_foot_world, Quat::IDENTITY),
     }
 }
 
