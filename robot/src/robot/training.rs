@@ -10,10 +10,11 @@ use super::state::{extract_robot_state, JointReadQuery, RobotState};
 use crate::rl::{Transition, ACT_DIM, EPISODE_STEPS, MAX_EPISODES, TRAINING_ITERS};
 
 const SHOWCASE_MAX_STEPS: usize = 240;
-const WARM_EPISODES: usize = 20;
+const WARM_EPISODES: usize = 10;
 const WARM_STEPS: usize = 200;
 const EXTERNAL_ACTION_TIMEOUT: f32 = 0.25;
-const TORSO_FALL_Y: f32 = 0.40;
+const TORSO_FALL_Y_MIN: f32 = 0.25;
+const TORSO_FALL_Y_MAX: f32 = 0.40;
 const RELEASE_THRESHOLD: f32 = 0.2;
 const RELEASE_HELP_PROB: f32 = 0.02;
 const RELEASE_HELP_MIN_STEP: usize = 25;
@@ -35,7 +36,8 @@ const MIN_WALK_PROB: f32 = 0.05;
 const MIN_THROW_PROB: f32 = 0.05;
 const EP_REWARD_EMA_ALPHA: f32 = 0.1;
 
-const STAB_BLEND: f32 = 0.8;
+const STAB_BLEND_START: f32 = 0.8;
+const STAB_BLEND_END: f32 = 0.1;
 const TORSO_UP_KP: f32 = 5.0;
 const TORSO_UP_KD: f32 = 2.0;
 const TORSO_TILT_KP: f32 = 8.0;
@@ -185,6 +187,12 @@ fn stand_action() -> Vec<f32> {
     vec![0.0; ACT_DIM]
 }
 
+fn random_action() -> Vec<f32> {
+    (0..ACT_DIM)
+        .map(|_| rand::random::<f32>() * 2.0 - 1.0)
+        .collect()
+}
+
 fn walk_action(step: usize) -> Vec<f32> {
     let mut action = vec![0.0_f32; ACT_DIM];
     let phase = step as f32 * 0.15;
@@ -287,6 +295,14 @@ pub struct ComputedTorques {
 
 impl ComputedTorques {
     pub fn from_action_with_stabilization(action: &[f32], state: &RobotState) -> Self {
+        Self::from_action_with_stabilization_blend(action, state, STAB_BLEND_START)
+    }
+
+    pub fn from_action_with_stabilization_blend(
+        action: &[f32],
+        state: &RobotState,
+        stab_blend: f32,
+    ) -> Self {
         let shoulder = clamp_torque(action[0] * SHOULDER_TORQUE_SCALE);
         let elbow = clamp_torque(action[1] * ELBOW_TORQUE_SCALE);
         let wrist = clamp_torque(action[2] * WRIST_TORQUE_SCALE);
@@ -311,7 +327,7 @@ impl ComputedTorques {
         let torso = Vec3::new(
             clamp_torque(torso_xy_torque.x),
             clamp_torque(torso_xy_torque.y),
-            clamp_torque(action[6] * TORSO_TORQUE_SCALE + STAB_BLEND * torso_stab),
+            clamp_torque(action[6] * TORSO_TORQUE_SCALE + stab_blend * torso_stab),
         );
 
         let forward_lean = state.torso_up.x.clamp(-0.5, 0.5);
@@ -338,13 +354,13 @@ impl ComputedTorques {
             left_shoulder,
             left_elbow,
             left_wrist,
-            left_hip: clamp_torque(action[7] * HIP_TORQUE_SCALE + STAB_BLEND * left_hip_stab),
-            left_knee: clamp_torque(action[8] * KNEE_TORQUE_SCALE + STAB_BLEND * left_knee_stab),
-            left_ankle: clamp_torque(action[9] * ANKLE_TORQUE_SCALE + STAB_BLEND * left_ankle_stab),
-            right_hip: clamp_torque(action[10] * HIP_TORQUE_SCALE + STAB_BLEND * right_hip_stab),
-            right_knee: clamp_torque(action[11] * KNEE_TORQUE_SCALE + STAB_BLEND * right_knee_stab),
+            left_hip: clamp_torque(action[7] * HIP_TORQUE_SCALE + stab_blend * left_hip_stab),
+            left_knee: clamp_torque(action[8] * KNEE_TORQUE_SCALE + stab_blend * left_knee_stab),
+            left_ankle: clamp_torque(action[9] * ANKLE_TORQUE_SCALE + stab_blend * left_ankle_stab),
+            right_hip: clamp_torque(action[10] * HIP_TORQUE_SCALE + stab_blend * right_hip_stab),
+            right_knee: clamp_torque(action[11] * KNEE_TORQUE_SCALE + stab_blend * right_knee_stab),
             right_ankle: clamp_torque(
-                action[12] * ANKLE_TORQUE_SCALE + STAB_BLEND * right_ankle_stab,
+                action[12] * ANKLE_TORQUE_SCALE + stab_blend * right_ankle_stab,
             ),
         }
     }
@@ -459,10 +475,11 @@ impl EpisodeEndReason {
         ball_released: bool,
         step: usize,
         max_steps: usize,
+        fall_threshold: f32,
     ) -> Option<Self> {
         let ball_settled = ball_released && ball_vel.length() < 0.05 && step > 60;
         let ball_fell = ball_pos.y < -0.5;
-        let torso_fell = step > SETTLE_STEPS && torso_pos.y < TORSO_FALL_Y;
+        let torso_fell = step > SETTLE_STEPS && torso_pos.y < fall_threshold;
         let timed_out = step >= max_steps;
         let out_of_bounds = is_out_of_bounds(torso_pos) || is_out_of_bounds(ball_pos);
 
@@ -490,6 +507,16 @@ impl EpisodeEndReason {
             Self::OutOfBounds => "out_of_bounds",
         }
     }
+}
+
+fn compute_stab_blend(episode: usize, max_episodes: usize) -> f32 {
+    let progress = (episode as f32) / (max_episodes as f32).max(1.0);
+    STAB_BLEND_START * (1.0 - progress) + STAB_BLEND_END * progress
+}
+
+fn compute_fall_threshold(episode: usize, max_episodes: usize) -> f32 {
+    let progress = (episode as f32) / (max_episodes as f32).max(1.0);
+    TORSO_FALL_Y_MIN * (1.0 - progress) + TORSO_FALL_Y_MAX * progress
 }
 
 pub fn training_loop(
@@ -592,6 +619,8 @@ pub fn training_loop(
         select_skill(&mut training);
     }
 
+    let stab_blend = compute_stab_blend(training.episode, MAX_EPISODES);
+
     let mut action = match training.current_skill {
         Skill::Stand => stand_action(),
         Skill::Walk => walk_action(training.skill_step),
@@ -605,12 +634,19 @@ pub fn training_loop(
         action = warm_start_action(training.step);
     }
 
+    if training.current_skill == Skill::Throw && training.episode < 100 {
+        let exploration_prob = (1.0 - (training.episode as f32 / 100.0)) * 0.05;
+        if rand::random::<f32>() < exploration_prob {
+            action = random_action();
+        }
+    }
+
     sanitize_action(&mut action);
 
     let torques = if training.step < SETTLE_STEPS {
         ComputedTorques::default()
     } else {
-        ComputedTorques::from_action_with_stabilization(&action, &state)
+        ComputedTorques::from_action_with_stabilization_blend(&action, &state, stab_blend)
     };
     apply_torques(&mut joint_write_q, &torques);
 
@@ -640,6 +676,7 @@ pub fn training_loop(
     training.step += 1;
     training.skill_step += 1;
 
+    let fall_threshold = compute_fall_threshold(training.episode, MAX_EPISODES);
     if let Some(reason) = EpisodeEndReason::check(
         ball_pos,
         ball_v,
@@ -647,6 +684,7 @@ pub fn training_loop(
         training.ball_released,
         training.step,
         EPISODE_STEPS,
+        fall_threshold,
     ) {
         if training.episode % 50 == 0 {
             println!(
@@ -763,6 +801,7 @@ pub fn showcase_loop(
         training.ball_released,
         training.step,
         SHOWCASE_MAX_STEPS,
+        TORSO_FALL_Y_MAX,
     ) {
         println!(
             "[Showcase] Episode ended at step {} ({}): ball_pos={:.2?}",
@@ -863,8 +902,10 @@ pub fn end_episode(commands: &mut Commands, training: &mut TrainingState, _robot
     }
 
     if training.episode % 50 == 0 || training.phase == TrainingPhase::Showcasing {
+        let current_stab_blend = compute_stab_blend(training.episode, MAX_EPISODES);
+        let current_fall_threshold = compute_fall_threshold(training.episode, MAX_EPISODES);
         println!(
-            "[Ep {}] reward={:.2}, ema={:.2}, steps={}, released={}, skills S/W/T={}/{}/{}, probs={:.2}/{:.2}/{:.2}",
+            "[Ep {}] reward={:.2}, ema={:.2}, steps={}, released={}, skills S/W/T={}/{}/{}, probs={:.2}/{:.2}/{:.2}, stab={:.2}, fall_y={:.2}",
             training.episode,
             training.episode_reward,
             training.episode_reward_ema,
@@ -875,7 +916,9 @@ pub fn end_episode(commands: &mut Commands, training: &mut TrainingState, _robot
             training.skill_counts[2],
             training.skill_policy.last_probs[0],
             training.skill_policy.last_probs[1],
-            training.skill_policy.last_probs[2]
+            training.skill_policy.last_probs[2],
+            current_stab_blend,
+            current_fall_threshold
         );
         if training.phase == TrainingPhase::Training {
             let stats = training.sac_trainer.get_stats();

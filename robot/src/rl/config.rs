@@ -28,7 +28,7 @@ pub const SAC_TARGET_ENTROPY: f32 = -(ACT_DIM as f32);
 #[cfg(feature = "native")]
 pub const SAC_LOG_STD_MIN: f32 = -5.0;
 #[cfg(feature = "native")]
-pub const SAC_LOG_STD_MAX: f32 = 2.0;
+pub const SAC_LOG_STD_MAX: f32 = 2.5;
 
 #[cfg(feature = "native")]
 pub const REWARD_SCALE: f32 = 0.3;
@@ -43,7 +43,7 @@ pub const REPLAY_CAPACITY: usize = 200_000;
 pub const BATCH_SIZE: usize = 256;
 
 #[cfg(feature = "native")]
-pub const MIN_REPLAY_SIZE: usize = 10_000;
+pub const MIN_REPLAY_SIZE: usize = 2_000;
 
 #[cfg(feature = "native")]
 pub const MAX_EPISODES: usize = 500;
