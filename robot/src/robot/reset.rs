@@ -118,10 +118,14 @@ fn reset_body(
     transform: &mut Transform,
     lin_vel: &mut LinearVelocity,
     ang_vel: &mut AngularVelocity,
+    phys_pos: Option<Mut<Position>>,
     pose: &BodyPartPose,
 ) {
     transform.translation = pose.position;
     transform.rotation = pose.rotation;
+    if let Some(mut pos) = phys_pos {
+        pos.0 = pose.position;
+    }
     **lin_vel = Vec3::ZERO;
     **ang_vel = Vec3::ZERO;
 }
@@ -129,15 +133,30 @@ fn reset_body(
 #[cfg(feature = "native")]
 pub fn reset_robot_positions(
     mut torso_q: Query<
-        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            &mut Transform,
+            &mut LinearVelocity,
+            &mut AngularVelocity,
+            Option<&mut Position>,
+        ),
         With<RobotTorso>,
     >,
     mut upper_arm_q: Query<
-        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            &mut Transform,
+            &mut LinearVelocity,
+            &mut AngularVelocity,
+            Option<&mut Position>,
+        ),
         (With<RobotUpperArm>, Without<RobotTorso>),
     >,
     mut forearm_q: Query<
-        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            &mut Transform,
+            &mut LinearVelocity,
+            &mut AngularVelocity,
+            Option<&mut Position>,
+        ),
         (
             With<RobotForearm>,
             Without<RobotTorso>,
@@ -145,7 +164,12 @@ pub fn reset_robot_positions(
         ),
     >,
     mut hand_q: Query<
-        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            &mut Transform,
+            &mut LinearVelocity,
+            &mut AngularVelocity,
+            Option<&mut Position>,
+        ),
         (
             With<RobotHand>,
             Without<RobotTorso>,
@@ -154,7 +178,12 @@ pub fn reset_robot_positions(
         ),
     >,
     mut left_upper_arm_q: Query<
-        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            &mut Transform,
+            &mut LinearVelocity,
+            &mut AngularVelocity,
+            Option<&mut Position>,
+        ),
         (
             With<RobotLeftUpperArm>,
             Without<RobotTorso>,
@@ -164,7 +193,12 @@ pub fn reset_robot_positions(
         ),
     >,
     mut left_forearm_q: Query<
-        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            &mut Transform,
+            &mut LinearVelocity,
+            &mut AngularVelocity,
+            Option<&mut Position>,
+        ),
         (
             With<RobotLeftForearm>,
             Without<RobotTorso>,
@@ -175,7 +209,12 @@ pub fn reset_robot_positions(
         ),
     >,
     mut left_hand_q: Query<
-        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            &mut Transform,
+            &mut LinearVelocity,
+            &mut AngularVelocity,
+            Option<&mut Position>,
+        ),
         (
             With<RobotLeftHand>,
             Without<RobotTorso>,
@@ -187,7 +226,12 @@ pub fn reset_robot_positions(
         ),
     >,
     mut left_thigh_q: Query<
-        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            &mut Transform,
+            &mut LinearVelocity,
+            &mut AngularVelocity,
+            Option<&mut Position>,
+        ),
         (
             With<RobotLeftThigh>,
             Without<RobotTorso>,
@@ -200,7 +244,12 @@ pub fn reset_robot_positions(
         ),
     >,
     mut left_shin_q: Query<
-        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            &mut Transform,
+            &mut LinearVelocity,
+            &mut AngularVelocity,
+            Option<&mut Position>,
+        ),
         (
             With<RobotLeftShin>,
             Without<RobotTorso>,
@@ -214,7 +263,12 @@ pub fn reset_robot_positions(
         ),
     >,
     mut left_foot_q: Query<
-        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            &mut Transform,
+            &mut LinearVelocity,
+            &mut AngularVelocity,
+            Option<&mut Position>,
+        ),
         (
             With<RobotLeftFoot>,
             Without<RobotTorso>,
@@ -229,7 +283,12 @@ pub fn reset_robot_positions(
         ),
     >,
     mut right_thigh_q: Query<
-        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            &mut Transform,
+            &mut LinearVelocity,
+            &mut AngularVelocity,
+            Option<&mut Position>,
+        ),
         (
             With<RobotRightThigh>,
             Without<RobotTorso>,
@@ -245,7 +304,12 @@ pub fn reset_robot_positions(
         ),
     >,
     mut right_shin_q: Query<
-        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            &mut Transform,
+            &mut LinearVelocity,
+            &mut AngularVelocity,
+            Option<&mut Position>,
+        ),
         (
             With<RobotRightShin>,
             Without<RobotTorso>,
@@ -262,7 +326,12 @@ pub fn reset_robot_positions(
         ),
     >,
     mut right_foot_q: Query<
-        (&mut Transform, &mut LinearVelocity, &mut AngularVelocity),
+        (
+            &mut Transform,
+            &mut LinearVelocity,
+            &mut AngularVelocity,
+            Option<&mut Position>,
+        ),
         (
             With<RobotRightFoot>,
             Without<RobotTorso>,
@@ -287,43 +356,43 @@ pub fn reset_robot_positions(
 
     let poses = get_initial_poses();
 
-    if let Some((mut tf, mut lv, mut av)) = torso_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, &poses.torso);
+    if let Some((mut tf, mut lv, mut av, pos)) = torso_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.torso);
     }
-    if let Some((mut tf, mut lv, mut av)) = upper_arm_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, &poses.upper_arm);
+    if let Some((mut tf, mut lv, mut av, pos)) = upper_arm_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.upper_arm);
     }
-    if let Some((mut tf, mut lv, mut av)) = forearm_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, &poses.forearm);
+    if let Some((mut tf, mut lv, mut av, pos)) = forearm_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.forearm);
     }
-    if let Some((mut tf, mut lv, mut av)) = hand_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, &poses.hand);
+    if let Some((mut tf, mut lv, mut av, pos)) = hand_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.hand);
     }
-    if let Some((mut tf, mut lv, mut av)) = left_upper_arm_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, &poses.left_upper_arm);
+    if let Some((mut tf, mut lv, mut av, pos)) = left_upper_arm_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.left_upper_arm);
     }
-    if let Some((mut tf, mut lv, mut av)) = left_forearm_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, &poses.left_forearm);
+    if let Some((mut tf, mut lv, mut av, pos)) = left_forearm_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.left_forearm);
     }
-    if let Some((mut tf, mut lv, mut av)) = left_hand_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, &poses.left_hand);
+    if let Some((mut tf, mut lv, mut av, pos)) = left_hand_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.left_hand);
     }
-    if let Some((mut tf, mut lv, mut av)) = left_thigh_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, &poses.left_thigh);
+    if let Some((mut tf, mut lv, mut av, pos)) = left_thigh_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.left_thigh);
     }
-    if let Some((mut tf, mut lv, mut av)) = left_shin_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, &poses.left_shin);
+    if let Some((mut tf, mut lv, mut av, pos)) = left_shin_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.left_shin);
     }
-    if let Some((mut tf, mut lv, mut av)) = left_foot_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, &poses.left_foot);
+    if let Some((mut tf, mut lv, mut av, pos)) = left_foot_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.left_foot);
     }
-    if let Some((mut tf, mut lv, mut av)) = right_thigh_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, &poses.right_thigh);
+    if let Some((mut tf, mut lv, mut av, pos)) = right_thigh_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.right_thigh);
     }
-    if let Some((mut tf, mut lv, mut av)) = right_shin_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, &poses.right_shin);
+    if let Some((mut tf, mut lv, mut av, pos)) = right_shin_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.right_shin);
     }
-    if let Some((mut tf, mut lv, mut av)) = right_foot_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, &poses.right_foot);
+    if let Some((mut tf, mut lv, mut av, pos)) = right_foot_q.iter_mut().next() {
+        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.right_foot);
     }
 }
