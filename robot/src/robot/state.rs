@@ -38,6 +38,9 @@ pub struct RobotState {
     pub right_hip: JointState,
     pub right_knee: JointState,
     pub right_ankle: JointState,
+
+    pub left_foot_pos: Vec3,
+    pub right_foot_pos: Vec3,
 }
 
 impl RobotState {
@@ -177,12 +180,14 @@ pub fn extract_robot_state(query: &JointReadQuery) -> Option<RobotState> {
             left_shin_raw = Some((angle, vel));
         } else if left_foot.is_some() {
             left_foot_raw = Some((angle, vel));
+            state.left_foot_pos = tf.translation;
         } else if right_thigh.is_some() {
             right_thigh_raw = Some((angle, vel));
         } else if right_shin.is_some() {
             right_shin_raw = Some((angle, vel));
         } else if right_foot.is_some() {
             right_foot_raw = Some((angle, vel));
+            state.right_foot_pos = tf.translation;
         }
     }
 

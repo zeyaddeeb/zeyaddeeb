@@ -1,4 +1,4 @@
-use ::robot::{camera, robot};
+use ::robot::{camera, robot, ui};
 use avian3d::prelude::*;
 use bevy::{audio::PlaybackMode, prelude::*, render::settings::WgpuSettings};
 
@@ -14,6 +14,10 @@ fn setup_music(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         },
     ));
+}
+
+fn should_reset(training: Option<Res<robot::SimulationState>>) -> bool {
+    training.map(|t| t.needs_reset).unwrap_or(false)
 }
 
 fn main() {
@@ -44,24 +48,26 @@ fn main() {
                 }),
         )
         .add_plugins(PhysicsPlugins::default())
-        .insert_resource(SubstepCount(4))
+        .insert_resource(SubstepCount(20))
         .insert_resource(Gravity(Vec3::new(0.0, -9.81, 0.0)))
-        .add_systems(Startup, (camera::spawn_camera, robot::setup, setup_music))
+        .add_systems(
+            Startup,
+            (
+                camera::spawn_camera,
+                robot::setup,
+                setup_music,
+                ui::setup_ui,
+            ),
+        )
         .add_systems(
             Update,
             (
                 camera::orbit_camera,
+                ui::update_stats_ui,
                 robot::ws_connection_system,
-                robot::draw_gizmos_wasm,
+                robot::reset_robot_positions.run_if(should_reset),
             ),
         )
-        .add_systems(
-            FixedUpdate,
-            robot::wasm_simulation_loop.run_if(robot::should_run_simulation),
-        )
-        .add_systems(
-            FixedUpdate,
-            robot::wasm_reset_system.run_if(robot::should_run_reset),
-        )
+        .add_systems(FixedUpdate, robot::wasm_training_loop)
         .run();
 }

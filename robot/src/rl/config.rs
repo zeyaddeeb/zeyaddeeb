@@ -48,7 +48,6 @@ pub const MIN_REPLAY_SIZE: usize = 2_000;
 #[cfg(feature = "native")]
 pub const MAX_EPISODES: usize = 500;
 
-#[cfg(feature = "native")]
 pub const EPISODE_STEPS: usize = 300;
 
 #[cfg(feature = "native")]

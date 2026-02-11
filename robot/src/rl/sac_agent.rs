@@ -63,7 +63,6 @@ pub struct SACAgent {
     q1_optim: AdamW,
     q2_optim: AdamW,
 
-    // Auto-entropy tuning
     log_alpha: Var,
     alpha_optim: AdamW,
     target_entropy: f32,
@@ -269,7 +268,6 @@ impl SACAgent {
             .collect();
         let actions = Tensor::from_vec(actions, (BATCH_SIZE, ACT_DIM), &dev)?;
 
-        // Apply reward scaling for normalization
         let rewards: Vec<f32> = batch.iter().map(|t| t.reward * REWARD_SCALE).collect();
         let rewards = Tensor::from_vec(rewards, (BATCH_SIZE, 1), &dev)?;
 

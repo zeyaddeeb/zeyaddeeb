@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use std::f32::consts::PI;
 
 use super::constants::HOOP_POS;
+use super::resources::CurriculumStage;
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct RewardComponents {
@@ -38,108 +39,214 @@ pub fn get_observation(
     obs
 }
 
+#[cfg(feature = "wasm")]
 pub fn compute_reward_components(
     ball_pos: Vec3,
-    ball_vel: Vec3,
+    _ball_vel: Vec3,
     ball_released: bool,
     done: bool,
     torso_pos: Vec3,
-    torso_angle: f32,
-    torso_ang_vel: f32,
-) -> RewardComponents {
-    let dist = (ball_pos - HOOP_POS).length();
+    torso_up: Vec3,
+    left_foot_pos: Vec3,
+    right_foot_pos: Vec3,
+    stage: CurriculumStage,
+) -> (RewardComponents, bool) {
+    let mut stand_reward = 0.0;
+    let mut throw_reward = 0.0;
+    let mut stage_success = false;
 
-    let upright = 1.0 - (torso_angle.abs() / (PI / 3.0)).clamp(0.0, 1.0);
-    let upright_reward = upright * 4.0;
-    let height_reward = ((torso_pos.y - 0.6) / 0.6).clamp(0.0, 1.0) * 4.0;
-    let stability_reward = (1.0 - (torso_ang_vel.abs() / 6.0).clamp(0.0, 1.0)) * 1.0;
+    let uprightness = torso_up.y.max(0.0);
+    stand_reward += uprightness * 2.0;
 
-    let mut stand_reward = upright_reward + height_reward + stability_reward;
-    let release_reward = if ball_released { 1.0 } else { 0.0 };
-    let standing_bonus = if torso_pos.y > 0.7 {
-        1.5
-    } else if torso_pos.y > 0.6 {
-        0.8
-    } else if torso_pos.y > 0.5 {
-        0.3
-    } else {
-        0.0
-    };
-    let low_height_penalty = if torso_pos.y < 0.4 { -0.15 } else { 0.0 };
-    let ang_vel_penalty = -(torso_ang_vel.abs() / 8.0).clamp(0.0, 1.0) * 0.1;
-    stand_reward += standing_bonus + low_height_penalty + ang_vel_penalty;
+    if uprightness < 0.9 {
+        stand_reward -= (0.9 - uprightness) * 5.0;
+    }
+    if uprightness < 0.7 {
+        stand_reward -= 3.0;
+    }
 
-    if !ball_released {
-        stand_reward += if done { -2.0 } else { 0.02 };
-        return RewardComponents {
+    let target_height = 1.5;
+    let height_diff = (torso_pos.y - target_height).abs();
+    if height_diff < 0.3 {
+        stand_reward += 0.5 * (1.0 - height_diff / 0.3);
+    }
+
+    if torso_pos.y < 1.0 {
+        stand_reward -= 3.0;
+    }
+    if torso_pos.y < 0.8 {
+        stand_reward -= 5.0;
+    }
+
+    if torso_pos.y < 0.4 && done {
+        stand_reward -= 50.0;
+    }
+
+    let feet_grounded = left_foot_pos.y < 0.15 && right_foot_pos.y < 0.15;
+    let feet_under_body =
+        (left_foot_pos.x - torso_pos.x).abs() < 0.5 && (right_foot_pos.x - torso_pos.x).abs() < 0.5;
+    if feet_grounded {
+        stand_reward += 0.3;
+    }
+    if feet_grounded && feet_under_body {
+        stand_reward += 0.5;
+    }
+
+    let avg_foot_x = (left_foot_pos.x + right_foot_pos.x) / 2.0;
+    if avg_foot_x > torso_pos.x + 0.3 {
+        stand_reward -= 2.0;
+    }
+
+    stand_reward -= 0.01;
+
+    match stage {
+        CurriculumStage::Standing => {
+            if uprightness > 0.9 && torso_pos.y > 1.2 && feet_grounded {
+                stand_reward += 1.0;
+                stage_success = !done || torso_pos.y > 1.0;
+            }
+        }
+        CurriculumStage::ApproachBall => {
+            let dist_to_ball = (torso_pos - ball_pos).length();
+            if dist_to_ball < 2.0 {
+                throw_reward += 2.0 * (1.0 - dist_to_ball / 2.0);
+            }
+            if dist_to_ball < 0.5 {
+                throw_reward += 5.0;
+                stage_success = true;
+            }
+        }
+        CurriculumStage::Shooting => {
+            let dist = (ball_pos - HOOP_POS).length();
+            let basket_made = dist < 0.3;
+
+            if basket_made {
+                throw_reward = 1000.0;
+                stage_success = true;
+            }
+
+            if dist < 1.0 && ball_released {
+                throw_reward += 10.0 * (1.0 - dist);
+            }
+
+            if ball_released && ball_pos.y > 2.0 {
+                let height_bonus = (ball_pos.y - 2.0).min(2.0) * 2.0;
+                throw_reward += height_bonus;
+            }
+        }
+    }
+
+    (
+        RewardComponents {
             stand: stand_reward,
-            throw: 0.0,
-        };
-    }
-
-    let dist_reward = -dist * 0.2;
-
-    let score_bonus = if dist < 0.3 {
-        160.0
-    } else if dist < 0.6 {
-        50.0
-    } else if dist < 1.0 {
-        18.0
-    } else if dist < 2.0 {
-        6.0
-    } else {
-        0.0
-    };
-
-    let dir_to_hoop = (HOOP_POS - ball_pos).normalize_or_zero();
-    let vel_alignment = ball_vel.normalize_or_zero().dot(dir_to_hoop).max(0.0);
-    let direction_reward = vel_alignment * 3.5;
-
-    let ball_height_reward = if ball_pos.y > HOOP_POS.y {
-        8.0
-    } else {
-        (ball_pos.y / HOOP_POS.y).max(0.0) * 3.0
-    };
-
-    let ground_penalty = if ball_pos.y < 0.15 && done { -3.0 } else { 0.0 };
-
-    let fall_penalty = if torso_pos.y < 0.5 && done { -6.0 } else { 0.0 };
-
-    let throw_reward = release_reward
-        + dist_reward
-        + score_bonus
-        + direction_reward
-        + ball_height_reward
-        + ground_penalty;
-
-    if done {
-        stand_reward += fall_penalty;
-    }
-
-    RewardComponents {
-        stand: stand_reward,
-        throw: throw_reward,
-    }
+            throw: throw_reward,
+        },
+        stage_success,
+    )
 }
 
-#[allow(dead_code)]
-pub fn compute_reward(
+#[cfg(feature = "native")]
+pub fn compute_reward_components_curriculum(
     ball_pos: Vec3,
-    ball_vel: Vec3,
+    _ball_vel: Vec3,
     ball_released: bool,
     done: bool,
     torso_pos: Vec3,
-    torso_angle: f32,
-    torso_ang_vel: f32,
-) -> f32 {
-    let comps = compute_reward_components(
-        ball_pos,
-        ball_vel,
-        ball_released,
-        done,
-        torso_pos,
-        torso_angle,
-        torso_ang_vel,
-    );
-    comps.stand + comps.throw
+    torso_up: Vec3,
+    left_foot_pos: Vec3,
+    right_foot_pos: Vec3,
+    stage: CurriculumStage,
+) -> (RewardComponents, bool) {
+    let mut stand_reward = 0.0;
+    let mut throw_reward = 0.0;
+    let mut stage_success = false;
+
+    let uprightness = torso_up.y.max(0.0);
+    stand_reward += uprightness * 2.0;
+
+    if uprightness < 0.9 {
+        stand_reward -= (0.9 - uprightness) * 5.0;
+    }
+    if uprightness < 0.7 {
+        stand_reward -= 3.0;
+    }
+
+    let target_height = 1.5;
+    let height_diff = (torso_pos.y - target_height).abs();
+    if height_diff < 0.3 {
+        stand_reward += 0.5 * (1.0 - height_diff / 0.3);
+    }
+
+    if torso_pos.y < 1.0 {
+        stand_reward -= 3.0;
+    }
+    if torso_pos.y < 0.8 {
+        stand_reward -= 5.0;
+    }
+
+    if torso_pos.y < 0.4 && done {
+        stand_reward -= 50.0;
+    }
+
+    let feet_grounded = left_foot_pos.y < 0.15 && right_foot_pos.y < 0.15;
+    let feet_under_body =
+        (left_foot_pos.x - torso_pos.x).abs() < 0.5 && (right_foot_pos.x - torso_pos.x).abs() < 0.5;
+    if feet_grounded {
+        stand_reward += 0.3;
+    }
+    if feet_grounded && feet_under_body {
+        stand_reward += 0.5;
+    }
+
+    let avg_foot_x = (left_foot_pos.x + right_foot_pos.x) / 2.0;
+    if avg_foot_x > torso_pos.x + 0.3 {
+        stand_reward -= 2.0;
+    }
+
+    stand_reward -= 0.01;
+
+    match stage {
+        CurriculumStage::Standing => {
+            if uprightness > 0.9 && torso_pos.y > 1.2 && feet_grounded {
+                stand_reward += 1.0;
+                stage_success = !done || torso_pos.y > 1.0;
+            }
+        }
+        CurriculumStage::ApproachBall => {
+            let dist_to_ball = (torso_pos - ball_pos).length();
+            if dist_to_ball < 2.0 {
+                throw_reward += 2.0 * (1.0 - dist_to_ball / 2.0);
+            }
+            if dist_to_ball < 0.5 {
+                throw_reward += 5.0;
+                stage_success = true;
+            }
+        }
+        CurriculumStage::Shooting => {
+            let dist = (ball_pos - HOOP_POS).length();
+            let basket_made = dist < 0.3;
+
+            if basket_made {
+                throw_reward = 1000.0;
+                stage_success = true;
+            }
+
+            if dist < 1.0 && ball_released {
+                throw_reward += 10.0 * (1.0 - dist);
+            }
+
+            if ball_released && ball_pos.y > 2.0 {
+                let height_bonus = (ball_pos.y - 2.0).min(2.0) * 2.0;
+                throw_reward += height_bonus;
+            }
+        }
+    }
+
+    (
+        RewardComponents {
+            stand: stand_reward,
+            throw: throw_reward,
+        },
+        stage_success,
+    )
 }

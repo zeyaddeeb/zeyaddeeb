@@ -4,84 +4,62 @@ use serde::{Deserialize, Serialize};
 use std::sync::mpsc::Sender;
 #[cfg(feature = "native")]
 use std::sync::Mutex;
-#[cfg(feature = "native")]
-use std::time::{Duration, Instant};
 
 #[cfg(feature = "native")]
 use crate::rl::{AsyncTrainer, SacAsyncTrainer};
 
 #[cfg(feature = "native")]
-pub const CHECKPOINT_INTERVAL: Duration = Duration::from_secs(60);
-
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum TrainingPhase {
     Training,
     Showcasing,
 }
 
-#[cfg(feature = "native")]
-#[derive(Resource)]
-pub struct CheckpointTimer {
-    pub last_save: Instant,
+#[derive(PartialEq, Clone, Copy, Debug, Default)]
+pub enum CurriculumStage {
+    #[default]
+    Standing,
+    ApproachBall,
+    Shooting,
 }
 
-#[cfg(feature = "native")]
-impl Default for CheckpointTimer {
-    fn default() -> Self {
-        Self {
-            last_save: Instant::now(),
+impl CurriculumStage {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            CurriculumStage::Standing => "Standing",
+            CurriculumStage::ApproachBall => "Approach Ball",
+            CurriculumStage::Shooting => "Shooting",
         }
     }
 }
 
 #[derive(Resource)]
-#[allow(dead_code)]
 pub struct RobotEntities {
     pub torso: Entity,
-    pub upper_arm: Entity,
-    pub forearm: Entity,
-    pub hand: Entity,
+    pub right_shoulder: Entity,
+    pub right_upper_arm: Entity,
+    pub right_elbow: Entity,
+    pub right_forearm: Entity,
+    pub right_wrist: Entity,
+    pub right_hand: Entity,
+    pub left_shoulder: Entity,
+    pub left_upper_arm: Entity,
+    pub left_elbow: Entity,
+    pub left_forearm: Entity,
+    pub left_wrist: Entity,
     pub left_hand: Entity,
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct RewardScales {
-    pub stand: f32,
-    pub walk: f32,
-    pub throw: f32,
-    pub energy: f32,
-    pub slip: f32,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Skill {
-    Stand,
-    Walk,
-    Throw,
-}
-
-#[derive(Clone, Copy, Debug)]
-#[allow(dead_code)]
-pub struct SkillPolicy {
-    pub weights: [f32; 3],
-    pub baseline: f32,
-    pub temperature: f32,
-    pub alpha: f32,
-    pub last_probs: [f32; 3],
-    pub last_skill: Option<Skill>,
-}
-
-impl Default for SkillPolicy {
-    fn default() -> Self {
-        Self {
-            weights: [0.4, 0.3, 0.3],
-            baseline: 0.0,
-            temperature: 0.7,
-            alpha: 0.05,
-            last_probs: [1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0],
-            last_skill: None,
-        }
-    }
+    pub right_hip: Entity,
+    pub right_thigh: Entity,
+    pub right_knee: Entity,
+    pub right_shin: Entity,
+    pub right_ankle: Entity,
+    pub right_foot: Entity,
+    pub left_hip: Entity,
+    pub left_thigh: Entity,
+    pub left_knee: Entity,
+    pub left_shin: Entity,
+    pub left_ankle: Entity,
+    pub left_foot: Entity,
 }
 
 #[cfg(feature = "native")]
@@ -94,45 +72,46 @@ pub struct TrainingState {
     pub episode_reward: f32,
     pub episode_reward_ema: f32,
     pub episode_reward_ema_initialized: bool,
+    pub best_episode_reward: f32,
+    pub baskets_made: usize,
     pub ball_released: bool,
     pub phase: TrainingPhase,
+    pub curriculum_stage: CurriculumStage,
+    pub stage_episodes: usize,
+    pub stage_success_streak: usize,
     pub cooldown: usize,
-
+    pub needs_reset: bool,
     pub use_external_control: bool,
-
     pub prev_obs: Option<Vec<f32>>,
-
     pub prev_action: Option<Vec<f32>>,
-
     pub ball_entity: Option<Entity>,
-
-    pub grip_joints: Vec<Entity>,
-
-    pub reward_scales: RewardScales,
-
     pub prev_torso_pos: Option<Vec3>,
     pub prev_left_foot_pos: Option<Vec3>,
     pub prev_right_foot_pos: Option<Vec3>,
-
-    pub prev_skill: Option<Skill>,
-
-    pub current_skill: Skill,
-    pub skill_step: usize,
-    pub skill_reward_accum: f32,
-    pub skill_policy: SkillPolicy,
-    pub skill_counts: [usize; 3],
 }
 
 #[cfg(feature = "wasm")]
 #[derive(Resource)]
 pub struct SimulationState {
+    pub episode: usize,
     pub step: usize,
+    pub episode_reward: f32,
+    pub episode_reward_ema: f32,
+    pub episode_reward_ema_initialized: bool,
+    pub best_episode_reward: f32,
+    pub baskets_made: usize,
     pub ball_released: bool,
     pub ball_entity: Option<Entity>,
-    pub grip_joints: Vec<Entity>,
-    pub last_action: Vec<f32>,
+    pub curriculum_stage: CurriculumStage,
+    pub stage_episodes: usize,
+    pub stage_success_streak: usize,
+    pub cooldown: usize,
     pub needs_reset: bool,
-    pub episode_count: usize,
+    pub prev_obs: Option<Vec<f32>>,
+    pub prev_action: Option<Vec<f32>>,
+    pub prev_torso_pos: Option<Vec3>,
+    pub prev_left_foot_pos: Option<Vec3>,
+    pub prev_right_foot_pos: Option<Vec3>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

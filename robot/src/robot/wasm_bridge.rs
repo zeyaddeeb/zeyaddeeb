@@ -9,17 +9,25 @@ use web_sys::{ErrorEvent, MessageEvent, WebSocket};
 
 use super::components::*;
 use super::constants::*;
-use super::observation::{compute_reward, get_observation};
-use super::reset::get_initial_poses;
+use super::observation::{compute_reward_components, get_observation};
+use super::resources::CurriculumStage;
 use super::resources::{ActionMsg, ObservationMsg, SimulationState, TrainStatsMsg};
-use super::state::{extract_robot_state, JointReadQuery, RobotState};
+use super::state::{extract_robot_state, JointReadQuery};
+use super::torque::{apply_torques, ComputedTorques, TorqueWriteQuery};
+use crate::rl::{ACT_DIM, EPISODE_STEPS};
 
-pub fn should_run_simulation(sim: Res<SimulationState>) -> bool {
-    !sim.needs_reset
-}
+const TORSO_FALL_Y: f32 = 0.40;
+const SETTLE_STEPS: usize = 60;
+const BOUNDS_SIZE: f32 = 5.0;
 
-pub fn should_run_reset(sim: Res<SimulationState>) -> bool {
-    sim.needs_reset
+#[derive(Debug, Clone, Copy)]
+enum EpisodeEndReason {
+    BallSettled,
+    BallFell,
+    TorsoFell,
+    TimedOut,
+    OutOfBounds,
+    BasketMade,
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -138,814 +146,275 @@ fn update_ws_status(text: &str, class_name: &str) {
     status.set_attribute("class", class_name).ok();
 }
 
-fn update_training_stats(stats: &TrainStatsMsg) {
-    let Some(window) = web_sys::window() else {
-        return;
-    };
-    let Some(document) = window.document() else {
-        return;
-    };
-
-    if let Ok(Some(el)) = document.query_selector("#stat-buffer") {
-        el.set_text_content(Some(&format!("{}", stats.buffer_size)));
-    }
-    if let Ok(Some(el)) = document.query_selector("#stat-steps") {
-        el.set_text_content(Some(&format!("{}", stats.train_steps)));
-    }
-    if let Ok(Some(el)) = document.query_selector("#stat-episodes") {
-        el.set_text_content(Some(&format!("{}", stats.episodes)));
-    }
-    if let Ok(Some(el)) = document.query_selector("#stat-avg-reward") {
-        el.set_text_content(Some(&format!("{:.2}", stats.avg_reward)));
-    }
-    if let Ok(Some(el)) = document.query_selector("#stat-recent-reward") {
-        el.set_text_content(Some(&format!("{:.2}", stats.recent_reward)));
-    }
-}
-
 pub fn ws_connection_system(mut bridge: ResMut<WsBridge>) {
     if !bridge.is_connected() && bridge.socket.is_none() {
         bridge.connect();
     }
 }
 
-const MAX_JOINT_TORQUE: f32 = 10.0;
-const STAB_BLEND: f32 = 0.8;
-const TORSO_UP_KP: f32 = 5.0;
-const TORSO_UP_KD: f32 = 2.0;
-const TORSO_TILT_KP: f32 = 8.0;
-const TORSO_TILT_KD: f32 = 3.0;
-const LEG_KP: f32 = 5.0;
-const LEG_KD: f32 = 2.0;
-const HIP_REST: f32 = 0.0;
-const KNEE_REST: f32 = 0.05;
-const ANKLE_REST: f32 = 0.0;
-const RELEASE_THRESHOLD: f32 = 0.2;
-
-fn clamp_torque(value: f32) -> f32 {
-    if value.is_finite() {
-        value.clamp(-MAX_JOINT_TORQUE, MAX_JOINT_TORQUE)
-    } else {
-        0.0
-    }
-}
-
 fn is_out_of_bounds(pos: Vec3) -> bool {
-    pos.x < BOUNDS_X_MIN
-        || pos.x > BOUNDS_X_MAX
-        || pos.z < BOUNDS_Z_MIN
-        || pos.z > BOUNDS_Z_MAX
-        || pos.y < BOUNDS_Y_MIN
+    pos.x.abs() > BOUNDS_SIZE || pos.z.abs() > BOUNDS_SIZE
 }
 
-#[derive(Debug, Clone, Default)]
-struct ComputedTorques {
-    torso: Vec3,
-    shoulder: f32,
-    elbow: f32,
-    wrist: f32,
-    left_shoulder: f32,
-    left_elbow: f32,
-    left_wrist: f32,
-    left_hip: f32,
-    left_knee: f32,
-    left_ankle: f32,
-    right_hip: f32,
-    right_knee: f32,
-    right_ankle: f32,
-}
-
-impl ComputedTorques {
-    fn from_action_with_stabilization(action: &[f32], state: &RobotState) -> Self {
-        let shoulder = clamp_torque(action.get(0).copied().unwrap_or(0.0) * SHOULDER_TORQUE_SCALE);
-        let elbow = clamp_torque(action.get(1).copied().unwrap_or(0.0) * ELBOW_TORQUE_SCALE);
-        let wrist = clamp_torque(action.get(2).copied().unwrap_or(0.0) * WRIST_TORQUE_SCALE);
-        let left_shoulder =
-            clamp_torque(action.get(3).copied().unwrap_or(0.0) * SHOULDER_TORQUE_SCALE);
-        let left_elbow = clamp_torque(action.get(4).copied().unwrap_or(0.0) * ELBOW_TORQUE_SCALE);
-        let left_wrist = clamp_torque(action.get(5).copied().unwrap_or(0.0) * WRIST_TORQUE_SCALE);
-
-        let torso_stab = (-TORSO_UP_KP * state.torso.angle) + (-TORSO_UP_KD * state.torso.velocity);
-
-        let up = state.torso_up.normalize_or_zero();
-        let tilt_axis = up.cross(Vec3::Y);
-        let tilt_mag = tilt_axis.length();
-        let tilt_dir = if tilt_mag > 1e-4 {
-            tilt_axis / tilt_mag
-        } else {
-            Vec3::ZERO
-        };
-        let tilt_torque = tilt_dir * (TORSO_TILT_KP * tilt_mag);
-        let damp_xy = Vec3::new(state.torso_ang_vel.x, state.torso_ang_vel.y, 0.0) * TORSO_TILT_KD;
-        let torso_xy_torque = tilt_torque - damp_xy;
-
-        let torso = Vec3::new(
-            clamp_torque(torso_xy_torque.x),
-            clamp_torque(torso_xy_torque.y),
-            clamp_torque(
-                action.get(6).copied().unwrap_or(0.0) * TORSO_TORQUE_SCALE
-                    + STAB_BLEND * torso_stab,
-            ),
-        );
-
-        let forward_lean = state.torso_up.x.clamp(-0.5, 0.5);
-        let hip_compensation = -forward_lean * 1.2;
-
-        let left_hip_stab = (HIP_REST + hip_compensation - state.left_hip.angle) * LEG_KP
-            + (-state.left_hip.velocity * LEG_KD);
-        let left_knee_stab =
-            (KNEE_REST - state.left_knee.angle) * LEG_KP + (-state.left_knee.velocity * LEG_KD);
-        let left_ankle_stab =
-            (ANKLE_REST - state.left_ankle.angle) * LEG_KP + (-state.left_ankle.velocity * LEG_KD);
-        let right_hip_stab = (HIP_REST + hip_compensation - state.right_hip.angle) * LEG_KP
-            + (-state.right_hip.velocity * LEG_KD);
-        let right_knee_stab =
-            (KNEE_REST - state.right_knee.angle) * LEG_KP + (-state.right_knee.velocity * LEG_KD);
-        let right_ankle_stab = (ANKLE_REST - state.right_ankle.angle) * LEG_KP
-            + (-state.right_ankle.velocity * LEG_KD);
-
-        Self {
-            torso,
-            shoulder,
-            elbow,
-            wrist,
-            left_shoulder,
-            left_elbow,
-            left_wrist,
-            left_hip: clamp_torque(
-                action.get(7).copied().unwrap_or(0.0) * HIP_TORQUE_SCALE
-                    + STAB_BLEND * left_hip_stab,
-            ),
-            left_knee: clamp_torque(
-                action.get(8).copied().unwrap_or(0.0) * KNEE_TORQUE_SCALE
-                    + STAB_BLEND * left_knee_stab,
-            ),
-            left_ankle: clamp_torque(
-                action.get(9).copied().unwrap_or(0.0) * ANKLE_TORQUE_SCALE
-                    + STAB_BLEND * left_ankle_stab,
-            ),
-            right_hip: clamp_torque(
-                action.get(10).copied().unwrap_or(0.0) * HIP_TORQUE_SCALE
-                    + STAB_BLEND * right_hip_stab,
-            ),
-            right_knee: clamp_torque(
-                action.get(11).copied().unwrap_or(0.0) * KNEE_TORQUE_SCALE
-                    + STAB_BLEND * right_knee_stab,
-            ),
-            right_ankle: clamp_torque(
-                action.get(12).copied().unwrap_or(0.0) * ANKLE_TORQUE_SCALE
-                    + STAB_BLEND * right_ankle_stab,
-            ),
-        }
-    }
-}
-
-type TorqueWriteQuery<'w, 's> = Query<
-    'w,
-    's,
-    (
-        &'static mut ConstantTorque,
-        Option<&'static RobotTorso>,
-        Option<&'static RobotUpperArm>,
-        Option<&'static RobotForearm>,
-        Option<&'static RobotHand>,
-        Option<&'static RobotLeftUpperArm>,
-        Option<&'static RobotLeftForearm>,
-        Option<&'static RobotLeftHand>,
-        Option<&'static RobotLeftThigh>,
-        Option<&'static RobotLeftShin>,
-        Option<&'static RobotLeftFoot>,
-        Option<&'static RobotRightThigh>,
-        Option<&'static RobotRightShin>,
-        Option<&'static RobotRightFoot>,
-    ),
-    Or<(
-        With<RobotTorso>,
-        With<RobotUpperArm>,
-        With<RobotForearm>,
-        With<RobotHand>,
-        With<RobotLeftUpperArm>,
-        With<RobotLeftForearm>,
-        With<RobotLeftHand>,
-        With<RobotLeftThigh>,
-        With<RobotLeftShin>,
-        With<RobotLeftFoot>,
-        With<RobotRightThigh>,
-        With<RobotRightShin>,
-        With<RobotRightFoot>,
-    )>,
->;
-
-fn apply_torques(query: &mut TorqueWriteQuery, torques: &ComputedTorques) {
-    for (
-        mut torque,
-        torso,
-        upper,
-        forearm,
-        hand,
-        left_upper,
-        left_forearm,
-        left_hand,
-        left_thigh,
-        left_shin,
-        left_foot,
-        right_thigh,
-        right_shin,
-        right_foot,
-    ) in query.iter_mut()
-    {
-        if torso.is_some() {
-            *torque = ConstantTorque::new(torques.torso.x, torques.torso.y, torques.torso.z);
-        } else if upper.is_some() {
-            *torque = ConstantTorque::new(0.0, 0.0, torques.shoulder);
-        } else if forearm.is_some() {
-            *torque = ConstantTorque::new(0.0, 0.0, torques.elbow);
-        } else if hand.is_some() {
-            *torque = ConstantTorque::new(0.0, 0.0, torques.wrist);
-        } else if left_upper.is_some() {
-            *torque = ConstantTorque::new(0.0, 0.0, torques.left_shoulder);
-        } else if left_forearm.is_some() {
-            *torque = ConstantTorque::new(0.0, 0.0, torques.left_elbow);
-        } else if left_hand.is_some() {
-            *torque = ConstantTorque::new(0.0, 0.0, torques.left_wrist);
-        } else if left_thigh.is_some() {
-            *torque = ConstantTorque::new(0.0, 0.0, torques.left_hip);
-        } else if left_shin.is_some() {
-            *torque = ConstantTorque::new(0.0, 0.0, torques.left_knee);
-        } else if left_foot.is_some() {
-            *torque = ConstantTorque::new(0.0, 0.0, torques.left_ankle);
-        } else if right_thigh.is_some() {
-            *torque = ConstantTorque::new(0.0, 0.0, torques.right_hip);
-        } else if right_shin.is_some() {
-            *torque = ConstantTorque::new(0.0, 0.0, torques.right_knee);
-        } else if right_foot.is_some() {
-            *torque = ConstantTorque::new(0.0, 0.0, torques.right_ankle);
-        }
-    }
-}
-
-pub fn wasm_simulation_loop(
-    mut commands: Commands,
-    mut sim: ResMut<SimulationState>,
-    bridge: Res<WsBridge>,
-    joint_query: JointReadQuery,
-    mut joint_write_q: TorqueWriteQuery,
-    ball_query: Query<(&Transform, &LinearVelocity), With<Basketball>>,
-) {
-    const MAX_EPISODE_STEPS: usize = 300;
-    const TORSO_FALL_Y: f32 = 0.40;
-    const SETTLE_STEPS: usize = 60;
-
-    if let Some(action_msg) = bridge.get_action() {
-        sim.last_action = action_msg.action;
-
-        if let Some(ref stats) = action_msg.stats {
-            update_training_stats(stats);
-        }
-    }
-
-    if let Some(robot_state) = extract_robot_state(&joint_query) {
-        let (ball_pos, ball_vel) = if let Ok((ball_tf, ball_lin)) = ball_query.single() {
-            (ball_tf.translation, ball_lin.0)
-        } else {
-            (Vec3::ZERO, Vec3::ZERO)
-        };
-
-        let torso_pos = robot_state.torso_pos;
-        let torso_angle = robot_state.torso.angle;
-        let torso_ang_vel = robot_state.torso.velocity;
-
-        let torques = if sim.step < SETTLE_STEPS {
-            ComputedTorques::default()
-        } else {
-            ComputedTorques::from_action_with_stabilization(&sim.last_action, &robot_state)
-        };
-        apply_torques(&mut joint_write_q, &torques);
-
-        let release_signal = sim.last_action.get(13).copied().unwrap_or(0.0);
-        if !sim.ball_released && release_signal > RELEASE_THRESHOLD && sim.step > 10 {
-            for grip_entity in sim.grip_joints.drain(..) {
-                commands.entity(grip_entity).despawn();
-            }
-            sim.ball_released = true;
-        }
-
-        let fallen = torso_pos.y < TORSO_FALL_Y && sim.step > SETTLE_STEPS;
-        let timeout = sim.step >= MAX_EPISODE_STEPS;
+impl EpisodeEndReason {
+    fn check(
+        ball_pos: Vec3,
+        ball_vel: Vec3,
+        torso_pos: Vec3,
+        ball_released: bool,
+        basket_made: bool,
+        step: usize,
+        max_steps: usize,
+    ) -> Option<Self> {
+        let ball_settled = ball_released && ball_vel.length() < 0.05 && step > 60;
+        let ball_fell = ball_pos.y < -0.5;
+        let torso_fell = step > SETTLE_STEPS && torso_pos.y < TORSO_FALL_Y;
+        let timed_out = step >= max_steps;
         let out_of_bounds = is_out_of_bounds(torso_pos) || is_out_of_bounds(ball_pos);
-        let done = fallen || timeout || out_of_bounds;
 
-        if out_of_bounds {
-            web_sys::console::log_1(
-                &format!(
-                    "[WASM] Out of bounds - torso: {:?}, ball: {:?}",
-                    torso_pos, ball_pos
-                )
-                .into(),
-            );
-        }
-
-        let reward = compute_reward(
-            ball_pos,
-            ball_vel,
-            sim.ball_released,
-            done,
-            torso_pos,
-            torso_angle,
-            torso_ang_vel,
-        );
-
-        let joint_angles = robot_state.joint_angles();
-        let joint_vels = robot_state.joint_velocities();
-        let obs = get_observation(&joint_angles, &joint_vels, ball_pos, ball_vel);
-
-        let obs_msg = ObservationMsg {
-            obs,
-            reward,
-            done,
-            step: sim.step as u64,
-            ball_released: sim.ball_released,
-        };
-        bridge.send_observation(&obs_msg);
-
-        if done {
-            sim.needs_reset = true;
+        if basket_made {
+            Some(Self::BasketMade)
+        } else if out_of_bounds {
+            Some(Self::OutOfBounds)
+        } else if torso_fell {
+            Some(Self::TorsoFell)
+        } else if ball_fell {
+            Some(Self::BallFell)
+        } else if ball_settled {
+            Some(Self::BallSettled)
+        } else if timed_out {
+            Some(Self::TimedOut)
+        } else {
+            None
         }
     }
 
-    sim.step += 1;
-}
-
-pub fn draw_gizmos_wasm(mut gizmos: Gizmos, ball_q: Query<&Transform, With<Basketball>>) {
-    let hoop_center = Vec3::new(HOOP_X, HOOP_Y, 0.0);
-    gizmos.circle(hoop_center, HOOP_RADIUS, Color::srgb(1.0, 0.5, 0.0));
-
-    if let Ok(ball_tf) = ball_q.single() {
-        gizmos.line(ball_tf.translation, hoop_center, Color::srgb(0.5, 0.5, 1.0));
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::BallSettled => "ball_settled",
+            Self::BallFell => "ball_fell",
+            Self::TorsoFell => "torso_fell",
+            Self::TimedOut => "timed_out",
+            Self::OutOfBounds => "out_of_bounds",
+            Self::BasketMade => "basket_made",
+        }
     }
 }
 
-fn reset_body(
-    transform: &mut Transform,
-    lin_vel: &mut LinearVelocity,
-    ang_vel: &mut AngularVelocity,
-    phys_pos: Option<Mut<Position>>,
-    position: Vec3,
-    rotation: Quat,
-) {
-    transform.translation = position;
-    transform.rotation = rotation;
-    if let Some(mut pos) = phys_pos {
-        pos.0 = position;
-    }
-    *lin_vel = LinearVelocity(Vec3::ZERO);
-    *ang_vel = AngularVelocity(Vec3::ZERO);
-}
-
-pub fn wasm_reset_system(
-    mut commands: Commands,
+pub fn wasm_training_loop(
     mut sim: ResMut<SimulationState>,
-    mut torso_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (With<RobotTorso>, Without<Basketball>),
-    >,
-    mut upper_arm_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotUpperArm>,
-            Without<RobotTorso>,
-            Without<Basketball>,
-        ),
-    >,
-    mut forearm_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotForearm>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<Basketball>,
-        ),
-    >,
-    mut hand_q: Query<
-        (
-            Entity,
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotHand>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<Basketball>,
-        ),
-    >,
-    mut left_upper_arm_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotLeftUpperArm>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<RobotHand>,
-            Without<Basketball>,
-        ),
-    >,
-    mut left_forearm_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotLeftForearm>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<RobotHand>,
-            Without<RobotLeftUpperArm>,
-            Without<Basketball>,
-        ),
-    >,
-    mut left_hand_q: Query<
-        (
-            Entity,
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotLeftHand>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<RobotHand>,
-            Without<RobotLeftUpperArm>,
-            Without<RobotLeftForearm>,
-            Without<Basketball>,
-        ),
-    >,
-    mut left_thigh_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotLeftThigh>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<RobotHand>,
-            Without<RobotLeftUpperArm>,
-            Without<RobotLeftForearm>,
-            Without<RobotLeftHand>,
-            Without<Basketball>,
-        ),
-    >,
-    mut left_shin_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotLeftShin>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<RobotHand>,
-            Without<RobotLeftUpperArm>,
-            Without<RobotLeftForearm>,
-            Without<RobotLeftHand>,
-            Without<RobotLeftThigh>,
-            Without<Basketball>,
-        ),
-    >,
-    mut left_foot_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotLeftFoot>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<RobotHand>,
-            Without<RobotLeftUpperArm>,
-            Without<RobotLeftForearm>,
-            Without<RobotLeftHand>,
-            Without<RobotLeftThigh>,
-            Without<RobotLeftShin>,
-            Without<Basketball>,
-        ),
-    >,
-    mut right_thigh_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotRightThigh>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<RobotHand>,
-            Without<RobotLeftUpperArm>,
-            Without<RobotLeftForearm>,
-            Without<RobotLeftHand>,
-            Without<RobotLeftThigh>,
-            Without<RobotLeftShin>,
-            Without<RobotLeftFoot>,
-            Without<Basketball>,
-        ),
-    >,
-    mut right_shin_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotRightShin>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<RobotHand>,
-            Without<RobotLeftUpperArm>,
-            Without<RobotLeftForearm>,
-            Without<RobotLeftHand>,
-            Without<RobotLeftThigh>,
-            Without<RobotLeftShin>,
-            Without<RobotLeftFoot>,
-            Without<RobotRightThigh>,
-            Without<Basketball>,
-        ),
-    >,
-    mut right_foot_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotRightFoot>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<RobotHand>,
-            Without<RobotLeftUpperArm>,
-            Without<RobotLeftForearm>,
-            Without<RobotLeftHand>,
-            Without<RobotLeftThigh>,
-            Without<RobotLeftShin>,
-            Without<RobotLeftFoot>,
-            Without<RobotRightThigh>,
-            Without<RobotRightShin>,
-            Without<Basketball>,
-        ),
-    >,
-    mut ball_q: Query<
-        (
-            Entity,
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<Basketball>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<RobotHand>,
-            Without<RobotLeftUpperArm>,
-            Without<RobotLeftForearm>,
-            Without<RobotLeftHand>,
-            Without<RobotLeftThigh>,
-            Without<RobotLeftShin>,
-            Without<RobotLeftFoot>,
-            Without<RobotRightThigh>,
-            Without<RobotRightShin>,
-            Without<RobotRightFoot>,
-        ),
-    >,
+    mut queries: ParamSet<(JointReadQuery, TorqueWriteQuery)>,
+    ball_query: Query<(&Transform, &LinearVelocity), With<Basketball>>,
+    bridge: Option<Res<WsBridge>>,
 ) {
-    if !sim.needs_reset {
+    if sim.cooldown > 0 {
+        sim.cooldown -= 1;
         return;
     }
 
-    let poses = get_initial_poses();
-    let mut hand_entity = None;
-    let mut left_hand_entity = None;
-
-    if let Some((mut tf, mut lv, mut av, pos)) = torso_q.iter_mut().next() {
-        reset_body(
-            &mut tf,
-            &mut lv,
-            &mut av,
-            pos,
-            poses.torso.position,
-            poses.torso.rotation,
-        );
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = upper_arm_q.iter_mut().next() {
-        reset_body(
-            &mut tf,
-            &mut lv,
-            &mut av,
-            pos,
-            poses.upper_arm.position,
-            poses.upper_arm.rotation,
-        );
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = forearm_q.iter_mut().next() {
-        reset_body(
-            &mut tf,
-            &mut lv,
-            &mut av,
-            pos,
-            poses.forearm.position,
-            poses.forearm.rotation,
-        );
-    }
-    if let Some((entity, mut tf, mut lv, mut av, pos)) = hand_q.iter_mut().next() {
-        reset_body(
-            &mut tf,
-            &mut lv,
-            &mut av,
-            pos,
-            poses.hand.position,
-            poses.hand.rotation,
-        );
-        hand_entity = Some(entity);
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = left_upper_arm_q.iter_mut().next() {
-        reset_body(
-            &mut tf,
-            &mut lv,
-            &mut av,
-            pos,
-            poses.left_upper_arm.position,
-            poses.left_upper_arm.rotation,
-        );
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = left_forearm_q.iter_mut().next() {
-        reset_body(
-            &mut tf,
-            &mut lv,
-            &mut av,
-            pos,
-            poses.left_forearm.position,
-            poses.left_forearm.rotation,
-        );
-    }
-    if let Some((entity, mut tf, mut lv, mut av, pos)) = left_hand_q.iter_mut().next() {
-        reset_body(
-            &mut tf,
-            &mut lv,
-            &mut av,
-            pos,
-            poses.left_hand.position,
-            poses.left_hand.rotation,
-        );
-        left_hand_entity = Some(entity);
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = left_thigh_q.iter_mut().next() {
-        reset_body(
-            &mut tf,
-            &mut lv,
-            &mut av,
-            pos,
-            poses.left_thigh.position,
-            poses.left_thigh.rotation,
-        );
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = left_shin_q.iter_mut().next() {
-        reset_body(
-            &mut tf,
-            &mut lv,
-            &mut av,
-            pos,
-            poses.left_shin.position,
-            poses.left_shin.rotation,
-        );
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = left_foot_q.iter_mut().next() {
-        reset_body(
-            &mut tf,
-            &mut lv,
-            &mut av,
-            pos,
-            poses.left_foot.position,
-            poses.left_foot.rotation,
-        );
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = right_thigh_q.iter_mut().next() {
-        reset_body(
-            &mut tf,
-            &mut lv,
-            &mut av,
-            pos,
-            poses.right_thigh.position,
-            poses.right_thigh.rotation,
-        );
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = right_shin_q.iter_mut().next() {
-        reset_body(
-            &mut tf,
-            &mut lv,
-            &mut av,
-            pos,
-            poses.right_shin.position,
-            poses.right_shin.rotation,
-        );
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = right_foot_q.iter_mut().next() {
-        reset_body(
-            &mut tf,
-            &mut lv,
-            &mut av,
-            pos,
-            poses.right_foot.position,
-            poses.right_foot.rotation,
-        );
-    }
-
-    let ball_entity = if let Some((entity, mut tf, mut lv, mut av, pos)) = ball_q.iter_mut().next()
-    {
-        let hands_mid = (poses.hand.position + poses.left_hand.position) / 2.0;
-        let ball_pos = hands_mid + Vec3::new(BALL_RADIUS + HAND_RADIUS + 0.02, 0.0, 0.0);
-        reset_body(&mut tf, &mut lv, &mut av, pos, ball_pos, Quat::IDENTITY);
-        Some(entity)
-    } else {
-        None
+    let state = {
+        let q = queries.p0();
+        extract_robot_state(&q)
     };
 
-    if sim.ball_released {
-        if let (Some(ball), Some(hand), Some(left_hand)) =
-            (ball_entity, hand_entity, left_hand_entity)
-        {
-            let right_grip = commands
-                .spawn((
-                    BallGrip,
-                    FixedJoint::new(hand, ball)
-                        .with_local_anchor1(Vec3::new(BALL_RADIUS + HAND_RADIUS + 0.02, 0.0, 0.0))
-                        .with_local_anchor2(Vec3::ZERO),
-                ))
-                .id();
+    let Some(state) = state else { return };
 
-            let left_grip = commands
-                .spawn((
-                    BallGrip,
-                    FixedJoint::new(left_hand, ball)
-                        .with_local_anchor1(Vec3::new(BALL_RADIUS + HAND_RADIUS + 0.02, 0.0, 0.0))
-                        .with_local_anchor2(Vec3::ZERO),
-                ))
-                .id();
+    let Ok((ball_tf, ball_vel)) = ball_query.single() else {
+        return;
+    };
 
-            sim.grip_joints = vec![right_grip, left_grip];
+    let ball_pos = ball_tf.translation;
+    let ball_v = Vec3::new(ball_vel.x, ball_vel.y, ball_vel.z);
+
+    let obs = get_observation(
+        &state.joint_angles(),
+        &state.joint_velocities(),
+        ball_pos,
+        ball_v,
+    );
+
+    if let (Some(_prev_obs), Some(_prev_action)) = (sim.prev_obs.clone(), sim.prev_action.clone()) {
+        let (comps, _stage_success) = compute_reward_components(
+            ball_pos,
+            ball_v,
+            sim.ball_released,
+            false,
+            state.torso_pos,
+            state.torso_up,
+            state.left_foot_pos,
+            state.right_foot_pos,
+            sim.curriculum_stage,
+        );
+
+        let reward = comps.stand + comps.throw;
+        sim.episode_reward += reward;
+
+        if let Some(bridge) = bridge.as_ref() {
+            if bridge.is_connected() {
+                bridge.send_observation(&ObservationMsg {
+                    obs: obs.clone(),
+                    reward,
+                    done: false,
+                    step: sim.step as u64,
+                    ball_released: sim.ball_released,
+                });
+            }
         }
     }
 
-    sim.step = 0;
-    sim.ball_released = false;
-    sim.last_action = vec![0.0; 14];
-    sim.needs_reset = false;
-    sim.episode_count += 1;
+    let mut action = if let Some(bridge) = bridge.as_ref() {
+        if bridge.is_connected() {
+            if let Some(action_msg) = bridge.get_action() {
+                action_msg.action
+            } else {
+                (0..ACT_DIM)
+                    .map(|_| rand::random::<f32>() * 2.0 - 1.0)
+                    .collect()
+            }
+        } else {
+            (0..ACT_DIM)
+                .map(|_| rand::random::<f32>() * 2.0 - 1.0)
+                .collect()
+        }
+    } else {
+        (0..ACT_DIM)
+            .map(|_| rand::random::<f32>() * 2.0 - 1.0)
+            .collect()
+    };
 
-    web_sys::console::log_1(&format!("[WASM] Episode {} reset complete", sim.episode_count).into());
+    if action.len() < ACT_DIM {
+        action.resize(ACT_DIM, 0.0);
+    }
+    for a in action.iter_mut() {
+        if !a.is_finite() {
+            *a = 0.0;
+        }
+        *a = a.clamp(-1.0, 1.0);
+    }
+
+    let torques = ComputedTorques::from_action(&action);
+    {
+        let mut q = queries.p1();
+        apply_torques(&mut q, &torques);
+    }
+
+    let release_signal = action.get(13).copied().unwrap_or(0.0);
+    if !sim.ball_released && release_signal > 0.0 {
+        sim.ball_released = true;
+    }
+
+    sim.prev_obs = Some(obs);
+    sim.prev_action = Some(action);
+    sim.prev_torso_pos = Some(state.torso_pos);
+    sim.prev_left_foot_pos = Some(state.left_foot_pos);
+    sim.prev_right_foot_pos = Some(state.right_foot_pos);
+    sim.step += 1;
+
+    let dist_to_hoop = (ball_pos - HOOP_POS).length();
+    let basket_made = dist_to_hoop < 0.3;
+
+    if let Some(reason) = EpisodeEndReason::check(
+        ball_pos,
+        ball_v,
+        state.torso_pos,
+        sim.ball_released,
+        basket_made,
+        sim.step,
+        EPISODE_STEPS,
+    ) {
+        if !sim.episode_reward_ema_initialized {
+            sim.episode_reward_ema = sim.episode_reward;
+            sim.episode_reward_ema_initialized = true;
+        } else {
+            sim.episode_reward_ema = 0.95 * sim.episode_reward_ema + 0.05 * sim.episode_reward;
+        }
+
+        let is_best = sim.episode_reward > sim.best_episode_reward;
+        if is_best {
+            sim.best_episode_reward = sim.episode_reward;
+        }
+
+        if basket_made {
+            sim.baskets_made += 1;
+        }
+
+        let (_final_comps, stage_success) = compute_reward_components(
+            ball_pos,
+            ball_v,
+            sim.ball_released,
+            true,
+            state.torso_pos,
+            state.torso_up,
+            state.left_foot_pos,
+            state.right_foot_pos,
+            sim.curriculum_stage,
+        );
+
+        if stage_success {
+            sim.stage_success_streak += 1;
+        } else {
+            sim.stage_success_streak = 0;
+        }
+
+        sim.stage_episodes += 1;
+        let success_threshold = 5;
+        let min_episodes_per_stage = 100;
+
+        if sim.stage_episodes >= min_episodes_per_stage
+            && sim.stage_success_streak >= success_threshold
+        {
+            let next_stage = match sim.curriculum_stage {
+                CurriculumStage::Standing => {
+                    web_sys::console::log_1(
+                        &format!(
+                            "Advancing to ApproachBall after {} episodes with {} successes!",
+                            sim.stage_episodes, sim.stage_success_streak
+                        )
+                        .into(),
+                    );
+                    Some(CurriculumStage::ApproachBall)
+                }
+                CurriculumStage::ApproachBall => {
+                    web_sys::console::log_1(
+                        &format!(
+                            "Advancing to Shooting after {} episodes with {} successes!",
+                            sim.stage_episodes, sim.stage_success_streak
+                        )
+                        .into(),
+                    );
+                    Some(CurriculumStage::Shooting)
+                }
+                CurriculumStage::Shooting => None,
+            };
+
+            if let Some(stage) = next_stage {
+                sim.curriculum_stage = stage;
+                sim.stage_episodes = 0;
+                sim.stage_success_streak = 0;
+            }
+        }
+
+        web_sys::console::log_1(
+            &format!(
+                "Episode {} ended: {} | Reward: {:.2} | EMA: {:.2} | Baskets: {}/{} ({:.1}%)",
+                sim.episode,
+                reason.as_str(),
+                sim.episode_reward,
+                sim.episode_reward_ema,
+                sim.baskets_made,
+                sim.episode + 1,
+                (sim.baskets_made as f32 / (sim.episode + 1) as f32) * 100.0
+            )
+            .into(),
+        );
+
+        sim.needs_reset = true;
+        sim.cooldown = 30;
+        sim.episode += 1;
+        sim.step = 0;
+        sim.episode_reward = 0.0;
+        sim.ball_released = false;
+        sim.prev_obs = None;
+        sim.prev_action = None;
+    }
 }

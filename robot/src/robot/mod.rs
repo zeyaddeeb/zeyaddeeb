@@ -1,3 +1,4 @@
+mod builder;
 mod components;
 mod constants;
 mod observation;
@@ -5,6 +6,7 @@ mod reset;
 mod resources;
 mod setup;
 mod state;
+mod torque;
 
 #[cfg(feature = "native")]
 mod training;
@@ -14,9 +16,8 @@ mod zenoh_bridge;
 #[cfg(feature = "wasm")]
 mod wasm_bridge;
 
-#[cfg(feature = "native")]
-pub use reset::reset_robot_positions;
-pub use reset::{get_initial_poses, BodyPartPose, RobotPoses};
+pub use builder::spawn_robot;
+pub use reset::{get_initial_poses, reset_robot_positions, BodyPartPose, RobotPoses};
 pub use setup::*;
 
 #[cfg(feature = "native")]
@@ -25,6 +26,14 @@ pub use training::*;
 pub use zenoh_bridge::*;
 
 pub use resources::{ActionMsg, ObservationMsg, TrainStatsMsg};
+
+pub use resources::CurriculumStage;
+
+#[cfg(feature = "native")]
+pub use resources::{TrainingPhase, TrainingState};
+
+#[cfg(feature = "wasm")]
+pub use resources::SimulationState;
 
 #[cfg(feature = "wasm")]
 pub use wasm_bridge::*;

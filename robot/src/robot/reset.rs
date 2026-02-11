@@ -1,5 +1,6 @@
 use avian3d::prelude::*;
 use bevy::prelude::*;
+use rand::Rng;
 
 use super::components::*;
 use super::constants::*;
@@ -15,6 +16,20 @@ impl BodyPartPose {
         Self { position, rotation }
     }
 }
+
+pub fn get_randomized_initial_poses() -> RobotPoses {
+    let mut poses = get_initial_poses();
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let mut rng = rand::rng();
+        poses.torso.position.x += rng.random_range(-0.05..0.05);
+        poses.torso.position.z += rng.random_range(-0.05..0.05);
+    }
+
+    poses
+}
+
 pub fn get_initial_poses() -> RobotPoses {
     use std::f32::consts::PI;
 
@@ -90,285 +105,153 @@ pub struct RobotPoses {
     pub right_foot: BodyPartPose,
 }
 
-fn reset_body(
-    transform: &mut Transform,
-    lin_vel: &mut LinearVelocity,
-    ang_vel: &mut AngularVelocity,
-    phys_pos: Option<Mut<Position>>,
+fn reset_entity(
+    lv: &mut LinearVelocity,
+    av: &mut AngularVelocity,
+    pos: &mut Position,
+    rot: &mut Rotation,
     pose: &BodyPartPose,
 ) {
-    transform.translation = pose.position;
-    transform.rotation = pose.rotation;
-    if let Some(mut pos) = phys_pos {
-        pos.0 = pose.position;
-    }
-    **lin_vel = Vec3::ZERO;
-    **ang_vel = Vec3::ZERO;
+    pos.0 = pose.position;
+    rot.0 = pose.rotation;
+    **lv = Vec3::ZERO;
+    **av = Vec3::ZERO;
 }
 
-#[cfg(feature = "native")]
-pub fn reset_robot_positions(
-    mut torso_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
+type UpperBodyQuery = Query<
+    'static,
+    'static,
+    (
+        &'static mut LinearVelocity,
+        &'static mut AngularVelocity,
+        &'static mut Position,
+        &'static mut Rotation,
+        Has<RobotTorso>,
+        Has<RobotUpperArm>,
+        Has<RobotForearm>,
+        Has<RobotHand>,
+        Has<RobotLeftUpperArm>,
+        Has<RobotLeftForearm>,
+        Has<RobotLeftHand>,
+    ),
+    Or<(
         With<RobotTorso>,
-    >,
-    mut upper_arm_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (With<RobotUpperArm>, Without<RobotTorso>),
-    >,
-    mut forearm_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotForearm>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-        ),
-    >,
-    mut hand_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotHand>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-        ),
-    >,
-    mut left_upper_arm_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotLeftUpperArm>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<RobotHand>,
-        ),
-    >,
-    mut left_forearm_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotLeftForearm>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<RobotHand>,
-            Without<RobotLeftUpperArm>,
-        ),
-    >,
-    mut left_hand_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotLeftHand>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<RobotHand>,
-            Without<RobotLeftUpperArm>,
-            Without<RobotLeftForearm>,
-        ),
-    >,
-    mut left_thigh_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotLeftThigh>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<RobotHand>,
-            Without<RobotLeftUpperArm>,
-            Without<RobotLeftForearm>,
-            Without<RobotLeftHand>,
-        ),
-    >,
-    mut left_shin_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotLeftShin>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<RobotHand>,
-            Without<RobotLeftUpperArm>,
-            Without<RobotLeftForearm>,
-            Without<RobotLeftHand>,
-            Without<RobotLeftThigh>,
-        ),
-    >,
-    mut left_foot_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotLeftFoot>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<RobotHand>,
-            Without<RobotLeftUpperArm>,
-            Without<RobotLeftForearm>,
-            Without<RobotLeftHand>,
-            Without<RobotLeftThigh>,
-            Without<RobotLeftShin>,
-        ),
-    >,
-    mut right_thigh_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotRightThigh>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<RobotHand>,
-            Without<RobotLeftUpperArm>,
-            Without<RobotLeftForearm>,
-            Without<RobotLeftHand>,
-            Without<RobotLeftThigh>,
-            Without<RobotLeftShin>,
-            Without<RobotLeftFoot>,
-        ),
-    >,
-    mut right_shin_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotRightShin>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<RobotHand>,
-            Without<RobotLeftUpperArm>,
-            Without<RobotLeftForearm>,
-            Without<RobotLeftHand>,
-            Without<RobotLeftThigh>,
-            Without<RobotLeftShin>,
-            Without<RobotLeftFoot>,
-            Without<RobotRightThigh>,
-        ),
-    >,
-    mut right_foot_q: Query<
-        (
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut AngularVelocity,
-            Option<&mut Position>,
-        ),
-        (
-            With<RobotRightFoot>,
-            Without<RobotTorso>,
-            Without<RobotUpperArm>,
-            Without<RobotForearm>,
-            Without<RobotHand>,
-            Without<RobotLeftUpperArm>,
-            Without<RobotLeftForearm>,
-            Without<RobotLeftHand>,
-            Without<RobotLeftThigh>,
-            Without<RobotLeftShin>,
-            Without<RobotLeftFoot>,
-            Without<RobotRightThigh>,
-            Without<RobotRightShin>,
-        ),
-    >,
-    training_state: Res<super::resources::TrainingState>,
+        With<RobotUpperArm>,
+        With<RobotForearm>,
+        With<RobotHand>,
+        With<RobotLeftUpperArm>,
+        With<RobotLeftForearm>,
+        With<RobotLeftHand>,
+    )>,
+>;
+
+type LowerBodyQuery = Query<
+    'static,
+    'static,
+    (
+        &'static mut LinearVelocity,
+        &'static mut AngularVelocity,
+        &'static mut Position,
+        &'static mut Rotation,
+        Has<RobotLeftThigh>,
+        Has<RobotLeftShin>,
+        Has<RobotLeftFoot>,
+        Has<RobotRightThigh>,
+        Has<RobotRightShin>,
+        Has<RobotRightFoot>,
+        Has<Basketball>,
+    ),
+    Or<(
+        With<RobotLeftThigh>,
+        With<RobotLeftShin>,
+        With<RobotLeftFoot>,
+        With<RobotRightThigh>,
+        With<RobotRightShin>,
+        With<RobotRightFoot>,
+        With<Basketball>,
+    )>,
+>;
+
+pub fn reset_robot_positions(
+    mut queries: ParamSet<(UpperBodyQuery, LowerBodyQuery)>,
+    #[cfg(feature = "native")] mut training: Option<ResMut<super::resources::TrainingState>>,
+    #[cfg(feature = "wasm")] mut simulation: Option<ResMut<super::resources::SimulationState>>,
 ) {
-    if training_state.step != 0 {
-        return;
+    let poses = get_randomized_initial_poses();
+
+    #[cfg(feature = "native")]
+    if let Some(ref mut t) = training {
+        t.needs_reset = false;
     }
 
-    let poses = get_initial_poses();
+    #[cfg(feature = "wasm")]
+    if let Some(ref mut s) = simulation {
+        s.needs_reset = false;
+    }
 
-    if let Some((mut tf, mut lv, mut av, pos)) = torso_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.torso);
+    for (
+        mut lv,
+        mut av,
+        mut pos,
+        mut rot,
+        is_torso,
+        is_upper_arm,
+        is_forearm,
+        is_hand,
+        is_left_upper_arm,
+        is_left_forearm,
+        is_left_hand,
+    ) in queries.p0().iter_mut()
+    {
+        if is_torso {
+            reset_entity(&mut lv, &mut av, &mut pos, &mut rot, &poses.torso);
+        } else if is_upper_arm {
+            reset_entity(&mut lv, &mut av, &mut pos, &mut rot, &poses.upper_arm);
+        } else if is_forearm {
+            reset_entity(&mut lv, &mut av, &mut pos, &mut rot, &poses.forearm);
+        } else if is_hand {
+            reset_entity(&mut lv, &mut av, &mut pos, &mut rot, &poses.hand);
+        } else if is_left_upper_arm {
+            reset_entity(&mut lv, &mut av, &mut pos, &mut rot, &poses.left_upper_arm);
+        } else if is_left_forearm {
+            reset_entity(&mut lv, &mut av, &mut pos, &mut rot, &poses.left_forearm);
+        } else if is_left_hand {
+            reset_entity(&mut lv, &mut av, &mut pos, &mut rot, &poses.left_hand);
+        }
     }
-    if let Some((mut tf, mut lv, mut av, pos)) = upper_arm_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.upper_arm);
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = forearm_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.forearm);
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = hand_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.hand);
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = left_upper_arm_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.left_upper_arm);
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = left_forearm_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.left_forearm);
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = left_hand_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.left_hand);
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = left_thigh_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.left_thigh);
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = left_shin_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.left_shin);
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = left_foot_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.left_foot);
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = right_thigh_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.right_thigh);
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = right_shin_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.right_shin);
-    }
-    if let Some((mut tf, mut lv, mut av, pos)) = right_foot_q.iter_mut().next() {
-        reset_body(&mut tf, &mut lv, &mut av, pos, &poses.right_foot);
+
+    for (
+        mut lv,
+        mut av,
+        mut pos,
+        mut rot,
+        is_left_thigh,
+        is_left_shin,
+        is_left_foot,
+        is_right_thigh,
+        is_right_shin,
+        is_right_foot,
+        is_basketball,
+    ) in queries.p1().iter_mut()
+    {
+        if is_basketball {
+            let spawn_pos = Vec3::new(0.5, 1.5, 0.0);
+            pos.0 = spawn_pos;
+            rot.0 = Quat::IDENTITY;
+            *lv = LinearVelocity::ZERO;
+            *av = AngularVelocity::ZERO;
+        } else if is_left_thigh {
+            reset_entity(&mut lv, &mut av, &mut pos, &mut rot, &poses.left_thigh);
+        } else if is_left_shin {
+            reset_entity(&mut lv, &mut av, &mut pos, &mut rot, &poses.left_shin);
+        } else if is_left_foot {
+            reset_entity(&mut lv, &mut av, &mut pos, &mut rot, &poses.left_foot);
+        } else if is_right_thigh {
+            reset_entity(&mut lv, &mut av, &mut pos, &mut rot, &poses.right_thigh);
+        } else if is_right_shin {
+            reset_entity(&mut lv, &mut av, &mut pos, &mut rot, &poses.right_shin);
+        } else if is_right_foot {
+            reset_entity(&mut lv, &mut av, &mut pos, &mut rot, &poses.right_foot);
+        }
     }
 }

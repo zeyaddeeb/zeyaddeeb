@@ -1,3 +1,4 @@
+use avian3d::prelude::PhysicsLayer;
 use bevy::prelude::*;
 
 #[derive(Component)]
@@ -45,5 +46,10 @@ pub struct Basketball;
 #[derive(Component)]
 pub struct Hoop;
 
-#[derive(Component)]
-pub struct BallGrip;
+#[derive(PhysicsLayer, Default, Clone, Copy, Debug)]
+pub enum GameLayer {
+    #[default]
+    Ground,
+    Robot,
+    Ball,
+}
