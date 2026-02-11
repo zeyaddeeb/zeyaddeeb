@@ -112,6 +112,7 @@ pub struct SimulationState {
     pub prev_torso_pos: Option<Vec3>,
     pub prev_left_foot_pos: Option<Vec3>,
     pub prev_right_foot_pos: Option<Vec3>,
+    pub server_stats: Option<TrainStatsMsg>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

@@ -208,6 +208,7 @@ pub fn setup(
             prev_torso_pos: Some(torso_pos),
             prev_left_foot_pos: None,
             prev_right_foot_pos: None,
+            server_stats: None,
         });
 
         let ws_url = wasm_ws_url();

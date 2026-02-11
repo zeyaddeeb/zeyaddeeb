@@ -133,12 +133,23 @@ pub fn update_stats_ui(
 ) {
     for (mut text, episode, reward, best, success) in text_query.iter_mut() {
         if episode.is_some() {
-            **text = format!("Episode: {} (Step: {})", sim.episode, sim.step);
+            if let Some(stats) = &sim.server_stats {
+                **text = format!("Episode: {} (Step: {})", stats.episodes, sim.step);
+            } else {
+                **text = format!("Episode: {} (Step: {})", sim.episode, sim.step);
+            }
         } else if reward.is_some() {
-            **text = format!(
-                "Reward: {:.2} (EMA: {:.2})",
-                sim.episode_reward, sim.episode_reward_ema
-            );
+            if let Some(stats) = &sim.server_stats {
+                **text = format!(
+                    "Reward: {:.2} (Recent: {:.2})",
+                    stats.avg_reward, stats.recent_reward
+                );
+            } else {
+                **text = format!(
+                    "Reward: {:.2} (EMA: {:.2})",
+                    sim.episode_reward, sim.episode_reward_ema
+                );
+            }
         } else if best.is_some() {
             **text = format!("Best: {:.2}", sim.best_episode_reward);
         } else if success.is_some() {

@@ -146,6 +146,31 @@ fn update_ws_status(text: &str, class_name: &str) {
     status.set_attribute("class", class_name).ok();
 }
 
+fn update_training_stats(stats: &super::resources::TrainStatsMsg) {
+    let Some(window) = web_sys::window() else {
+        return;
+    };
+    let Some(document) = window.document() else {
+        return;
+    };
+
+    if let Some(el) = document.get_element_by_id("stat-buffer") {
+        el.set_text_content(Some(&stats.buffer_size.to_string()));
+    }
+    if let Some(el) = document.get_element_by_id("stat-steps") {
+        el.set_text_content(Some(&stats.train_steps.to_string()));
+    }
+    if let Some(el) = document.get_element_by_id("stat-episodes") {
+        el.set_text_content(Some(&stats.episodes.to_string()));
+    }
+    if let Some(el) = document.get_element_by_id("stat-avg-reward") {
+        el.set_text_content(Some(&format!("{:.2}", stats.avg_reward)));
+    }
+    if let Some(el) = document.get_element_by_id("stat-recent-reward") {
+        el.set_text_content(Some(&format!("{:.2}", stats.recent_reward)));
+    }
+}
+
 pub fn ws_connection_system(mut bridge: ResMut<WsBridge>) {
     if !bridge.is_connected() && bridge.socket.is_none() {
         bridge.connect();
@@ -278,6 +303,10 @@ pub fn wasm_training_loop(
     let mut action = if let Some(bridge) = bridge.as_ref() {
         if bridge.is_connected() {
             if let Some(action_msg) = bridge.get_action() {
+                if let Some(stats) = action_msg.stats {
+                    update_training_stats(&stats);
+                    sim.server_stats = Some(stats);
+                }
                 action_msg.action
             } else {
                 (0..ACT_DIM)
