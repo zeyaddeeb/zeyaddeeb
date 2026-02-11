@@ -233,6 +233,19 @@ pub fn wasm_training_loop(
         ball_v,
     );
 
+    let dist_to_hoop = (ball_pos - HOOP_POS).length();
+    let basket_made = dist_to_hoop < 0.3;
+
+    let end_reason = EpisodeEndReason::check(
+        ball_pos,
+        ball_v,
+        state.torso_pos,
+        sim.ball_released,
+        basket_made,
+        sim.step,
+        EPISODE_STEPS,
+    );
+
     if let (Some(_prev_obs), Some(_prev_action)) = (sim.prev_obs.clone(), sim.prev_action.clone()) {
         let (comps, _stage_success) = compute_reward_components(
             ball_pos,
@@ -254,7 +267,7 @@ pub fn wasm_training_loop(
                 bridge.send_observation(&ObservationMsg {
                     obs: obs.clone(),
                     reward,
-                    done: false,
+                    done: end_reason.is_some(),
                     step: sim.step as u64,
                     ball_released: sim.ball_released,
                 });
@@ -310,18 +323,7 @@ pub fn wasm_training_loop(
     sim.prev_right_foot_pos = Some(state.right_foot_pos);
     sim.step += 1;
 
-    let dist_to_hoop = (ball_pos - HOOP_POS).length();
-    let basket_made = dist_to_hoop < 0.3;
-
-    if let Some(reason) = EpisodeEndReason::check(
-        ball_pos,
-        ball_v,
-        state.torso_pos,
-        sim.ball_released,
-        basket_made,
-        sim.step,
-        EPISODE_STEPS,
-    ) {
+    if let Some(reason) = end_reason {
         if !sim.episode_reward_ema_initialized {
             sim.episode_reward_ema = sim.episode_reward;
             sim.episode_reward_ema_initialized = true;

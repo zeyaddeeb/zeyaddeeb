@@ -123,6 +123,19 @@ pub fn training_loop(
             ball_v,
         );
 
+        let dist_to_hoop = (ball_pos - HOOP_POS).length();
+        let basket_made = dist_to_hoop < 0.3;
+
+        let end_reason = EpisodeEndReason::check(
+            ball_pos,
+            ball_v,
+            state.torso_pos,
+            training.ball_released,
+            basket_made,
+            training.step,
+            crate::rl::EPISODE_STEPS,
+        );
+
         if let (Some(prev_obs), Some(prev_action)) =
             (training.prev_obs.clone(), training.prev_action.clone())
         {
@@ -153,7 +166,7 @@ pub fn training_loop(
                 action: prev_action,
                 reward,
                 next_state: obs.clone(),
-                done: false,
+                done: end_reason.is_some(),
             });
 
             if let Some(bridge) = zenoh.as_deref_mut() {
@@ -161,7 +174,7 @@ pub fn training_loop(
                     step: training.step as u64,
                     obs: obs.clone(),
                     reward,
-                    done: false,
+                    done: end_reason.is_some(),
                     ball_released: training.ball_released,
                 });
             }
@@ -201,18 +214,7 @@ pub fn training_loop(
         training.prev_torso_pos = Some(state.torso_pos);
         training.step += 1;
 
-        let dist_to_hoop = (ball_pos - HOOP_POS).length();
-        let basket_made = dist_to_hoop < 0.3;
-
-        if let Some(reason) = EpisodeEndReason::check(
-            ball_pos,
-            ball_v,
-            state.torso_pos,
-            training.ball_released,
-            basket_made,
-            training.step,
-            crate::rl::EPISODE_STEPS,
-        ) {
+        if let Some(reason) = end_reason {
             if !training.episode_reward_ema_initialized {
                 training.episode_reward_ema = training.episode_reward;
                 training.episode_reward_ema_initialized = true;
@@ -233,17 +235,17 @@ pub fn training_loop(
             let should_log = (training.episode + 1) % 50 == 0 || is_best || basket_made;
             if should_log {
                 info!(
-                    "Episode {} [{}] ended: {} | Reward: {:.2} | EMA: {:.2} | Best: {:.2} | Baskets: {}/{} ({:.1}%)",
-                    training.episode,
-                    training.curriculum_stage.as_str(),
-                    reason.as_str(),
-                    training.episode_reward,
-                    training.episode_reward_ema,
-                    training.best_episode_reward,
-                    training.baskets_made,
-                    training.episode + 1,
-                    (training.baskets_made as f32 / (training.episode + 1) as f32) * 100.0
-                );
+                "Episode {} [{}] ended: {} | Reward: {:.2} | EMA: {:.2} | Best: {:.2} | Baskets: {}/{} ({:.1}%)",
+                training.episode,
+                training.curriculum_stage.as_str(),
+                reason.as_str(),
+                training.episode_reward,
+                training.episode_reward_ema,
+                training.best_episode_reward,
+                training.baskets_made,
+                training.episode + 1,
+                (training.baskets_made as f32 / (training.episode + 1) as f32) * 100.0
+            );
             }
 
             if (training.episode + 1) % 10 == 0 || is_best {
@@ -274,18 +276,18 @@ pub fn training_loop(
                 let next_stage = match training.curriculum_stage {
                     CurriculumStage::Standing => {
                         info!(
-                            "[Curriculum] Advancing to ApproachBall after {} episodes with {} successes!",
-                            training.stage_episodes,
-                            training.stage_success_streak
-                        );
+                        "[Curriculum] Advancing to ApproachBall after {} episodes with {} successes!",
+                        training.stage_episodes,
+                        training.stage_success_streak
+                    );
                         Some(CurriculumStage::ApproachBall)
                     }
                     CurriculumStage::ApproachBall => {
                         info!(
-                            "[Curriculum] Advancing to Shooting after {} episodes with {} successes!",
-                            training.stage_episodes,
-                            training.stage_success_streak
-                        );
+                        "[Curriculum] Advancing to Shooting after {} episodes with {} successes!",
+                        training.stage_episodes,
+                        training.stage_success_streak
+                    );
                         Some(CurriculumStage::Shooting)
                     }
                     CurriculumStage::Shooting => None,
