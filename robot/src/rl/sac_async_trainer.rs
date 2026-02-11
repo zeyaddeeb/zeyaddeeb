@@ -77,10 +77,11 @@ impl SacAsyncTrainer {
     }
 
     pub fn get_action(&self, obs: &[f32]) -> Vec<f32> {
-        if let Ok(mut agent) = self.agent.try_lock() {
-            agent.get_action(obs).unwrap_or_else(|_| vec![0.0; 14])
-        } else {
-            vec![0.0; 14]
+        match self.agent.lock() {
+            Ok(mut agent) => agent.get_action(obs).unwrap_or_else(|_| vec![0.0; 14]),
+            Err(_e) => {
+                vec![0.0; 14]
+            }
         }
     }
 
@@ -116,6 +117,7 @@ fn training_worker(
     let mut last_checkpoint_step = 0usize;
     let mut training_attempted = false;
     const CHECKPOINT_INTERVAL: usize = 1000;
+    let mut pending_updates: usize = 0;
 
     loop {
         let mut transitions_added = 0;
@@ -132,10 +134,17 @@ fn training_worker(
             }
         }
 
+        pending_updates = pending_updates.saturating_add(transitions_added);
+
         if transitions_added > 0 {
             if let Ok(agent) = agent.try_lock() {
                 buffer_len_counter.store(agent.replay_buffer.len(), Ordering::Relaxed);
             }
+        }
+
+        if pending_updates == 0 {
+            thread::sleep(Duration::from_millis(5));
+            continue;
         }
 
         if let Ok(mut agent) = agent.try_lock() {
@@ -150,35 +159,41 @@ fn training_worker(
                     );
                     training_attempted = true;
                 }
-                match agent.train_step() {
-                    Ok(()) => {
-                        let steps = train_steps.fetch_add(1, Ordering::Relaxed) + 1;
 
-                        if steps % 100 == 0 {
-                            println!("[SAC] Train step {} | Buffer: {}", steps, buffer_len);
-                        }
+                // Do at most `pending_updates` gradient steps, then yield the lock
+                let steps_this_batch = pending_updates.min(4);
+                for _ in 0..steps_this_batch {
+                    match agent.train_step() {
+                        Ok(()) => {
+                            let steps = train_steps.fetch_add(1, Ordering::Relaxed) + 1;
 
-                        if steps >= last_checkpoint_step + CHECKPOINT_INTERVAL {
-                            last_checkpoint_step = steps;
-                            if let Err(e) = agent.save_checkpoint(SAC_CHECKPOINT_DIR) {
-                                eprintln!("[SAC] Auto-checkpoint failed: {}", e);
-                            } else {
-                                println!("[SAC] Auto-checkpoint at step {}", last_checkpoint_step);
+                            if steps % 100 == 0 {
+                                println!("[SAC] Train step {} | Buffer: {}", steps, buffer_len);
+                            }
+
+                            if steps >= last_checkpoint_step + CHECKPOINT_INTERVAL {
+                                last_checkpoint_step = steps;
+                                if let Err(e) = agent.save_checkpoint(SAC_CHECKPOINT_DIR) {
+                                    eprintln!("[SAC] Auto-checkpoint failed: {}", e);
+                                } else {
+                                    println!(
+                                        "[SAC] Auto-checkpoint at step {}",
+                                        last_checkpoint_step
+                                    );
+                                }
                             }
                         }
-                    }
-                    Err(e) => {
-                        eprintln!("[SAC] Train step error: {}", e);
-                        thread::sleep(Duration::from_millis(100));
+                        Err(e) => {
+                            eprintln!("[SAC] Train step error: {}", e);
+                            break;
+                        }
                     }
                 }
-                thread::sleep(Duration::from_micros(50));
-            } else {
-                drop(agent);
-                thread::sleep(Duration::from_millis(10));
+                pending_updates = pending_updates.saturating_sub(steps_this_batch);
             }
-        } else {
-            thread::sleep(Duration::from_micros(100));
+            drop(agent);
         }
+
+        thread::sleep(Duration::from_millis(2));
     }
 }

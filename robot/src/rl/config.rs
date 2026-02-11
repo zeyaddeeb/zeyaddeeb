@@ -17,7 +17,7 @@ pub const SAC_POLICY_LR: f64 = 3e-4;
 pub const SAC_Q_LR: f64 = 3e-4;
 
 #[cfg(feature = "native")]
-pub const SAC_ALPHA_INIT: f32 = 0.2;
+pub const SAC_ALPHA_INIT: f32 = 0.1;
 
 #[cfg(feature = "native")]
 pub const SAC_ALPHA_LR: f64 = 3e-4;
@@ -31,7 +31,7 @@ pub const SAC_LOG_STD_MIN: f32 = -5.0;
 pub const SAC_LOG_STD_MAX: f32 = 2.5;
 
 #[cfg(feature = "native")]
-pub const REWARD_SCALE: f32 = 0.3;
+pub const REWARD_SCALE: f32 = 1.0;
 
 #[cfg(feature = "native")]
 pub const HIDDEN_DIM: usize = 256;

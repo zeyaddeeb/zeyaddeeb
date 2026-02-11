@@ -5717,7 +5717,7 @@ dependencies = [
 
 [[package]]
 name = "robot"
-version = "0.1.12"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "avian3d",

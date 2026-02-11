@@ -268,7 +268,10 @@ impl SACAgent {
             .collect();
         let actions = Tensor::from_vec(actions, (BATCH_SIZE, ACT_DIM), &dev)?;
 
-        let rewards: Vec<f32> = batch.iter().map(|t| t.reward * REWARD_SCALE).collect();
+        let rewards: Vec<f32> = batch
+            .iter()
+            .map(|t| (t.reward * REWARD_SCALE).clamp(-10.0, 10.0))
+            .collect();
         let rewards = Tensor::from_vec(rewards, (BATCH_SIZE, 1), &dev)?;
 
         let next_states: Vec<f32> = batch
