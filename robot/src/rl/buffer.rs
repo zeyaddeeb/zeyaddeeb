@@ -1,4 +1,3 @@
-use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use std::fs::File;
@@ -42,10 +41,9 @@ impl ReplayBuffer {
         if self.len() < batch_size {
             return None;
         }
-        let mut rng = rand::rng();
         let batch: Vec<Transition> = (0..batch_size)
             .map(|_| {
-                let i = rng.random_range(0..self.len());
+                let i = rand::random_range(0..self.len());
                 self.buffer[i].clone()
             })
             .collect();
@@ -54,16 +52,16 @@ impl ReplayBuffer {
 
     pub fn save<P: AsRef<Path>>(&self, path: P) -> std::io::Result<()> {
         let file = File::create(path)?;
-        let writer = BufWriter::new(file);
+        let mut writer = BufWriter::new(file);
         let data: Vec<&Transition> = self.buffer.iter().collect();
-        bincode::serialize_into(writer, &data)
+        rmp_serde::encode::write(&mut writer, &data)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
     }
 
     pub fn load<P: AsRef<Path>>(&mut self, path: P) -> std::io::Result<()> {
         let file = File::open(path)?;
-        let reader = BufReader::new(file);
-        let data: Vec<Transition> = bincode::deserialize_from(reader)
+        let mut reader = BufReader::new(file);
+        let data: Vec<Transition> = rmp_serde::decode::from_read(&mut reader)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
 
         self.buffer.clear();
