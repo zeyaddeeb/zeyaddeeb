@@ -1,6 +1,5 @@
 use avian3d::prelude::*;
 use bevy::prelude::*;
-use rand::Rng;
 
 use super::components::*;
 use super::constants::*;
@@ -22,9 +21,8 @@ pub fn get_randomized_initial_poses() -> RobotPoses {
 
     #[cfg(not(target_arch = "wasm32"))]
     {
-        let mut rng = rand::rng();
-        poses.torso.position.x += rng.random_range(-0.05..0.05);
-        poses.torso.position.z += rng.random_range(-0.05..0.05);
+        poses.torso.position.x += rand::random_range(-0.05..0.05);
+        poses.torso.position.z += rand::random_range(-0.05..0.05);
     }
 
     poses

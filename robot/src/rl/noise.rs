@@ -1,5 +1,3 @@
-use rand::Rng;
-
 pub struct OuNoise {
     mu: f64,
     theta: f64,
@@ -18,9 +16,8 @@ impl OuNoise {
     }
 
     pub fn sample(&mut self) -> Vec<f32> {
-        let mut rng = rand::rng();
         for s in &mut self.state {
-            let dx = self.theta * (self.mu - *s) + self.sigma * rng.random_range(-1.0f64..1.0f64);
+            let dx = self.theta * (self.mu - *s) + self.sigma * rand::random_range(-1.0f64..1.0f64);
             *s += dx;
         }
         self.state.iter().map(|&v| v as f32).collect()
