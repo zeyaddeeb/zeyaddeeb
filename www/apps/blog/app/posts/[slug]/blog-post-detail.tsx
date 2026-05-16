@@ -58,9 +58,7 @@ export function BlogPostDetail({ post }: BlogPostDetailProps) {
 							</div>
 						)}
 
-						<div className="prose prose-lg prose-invert max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:text-neutral-300 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-white prose-code:rounded prose-code:bg-neutral-800 prose-code:px-1 prose-code:py-0.5 prose-code:text-neutral-200 prose-pre:bg-neutral-900 prose-pre:border prose-pre:border-neutral-800">
-							<MarkdownRenderer content={post.content} />
-						</div>
+						<MarkdownRenderer content={post.content} />
 					</motion.div>
 				</div>
 			</article>

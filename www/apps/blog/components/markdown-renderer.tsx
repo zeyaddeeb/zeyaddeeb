@@ -1,64 +1,121 @@
 "use client";
 
-import katex from "katex";
+import { definer as terraformDefiner } from "@taga3s/highlightjs-terraform";
+import parse from "html-react-parser";
+import { unified } from "unified";
+import rehypeParse from "rehype-parse";
+import rehypeStringify from "rehype-stringify";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
+import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
+import type { Schema } from "hast-util-sanitize";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 import "highlight.js/styles/github-dark.css";
 import "katex/dist/katex.min.css";
 import "./markdown-editor.css";
-
-function processLatex(content: string): string {
-	let processed = content
-		.replace(/&lt;/g, "<")
-		.replace(/&gt;/g, ">")
-		.replace(/&amp;/g, "&");
-
-	processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (_, latex) => {
-		try {
-			return `<div class="katex-block">${katex.renderToString(latex.trim(), {
-				displayMode: true,
-				throwOnError: false,
-			})}</div>`;
-		} catch {
-			return `<div class="katex-error">$$${latex}$$</div>`;
-		}
-	});
-
-	processed = processed.replace(/\$([^$]+?)\$/g, (_, latex) => {
-		if (/^\d+(\.\d{2})?$/.test(latex.trim())) {
-			return `$${latex}$`;
-		}
-		try {
-			return katex.renderToString(latex.trim(), {
-				displayMode: false,
-				throwOnError: false,
-			});
-		} catch {
-			return `<span class="katex-error">$${latex}$</span>`;
-		}
-	});
-
-	return processed;
-}
 
 interface MarkdownRendererProps {
 	content: string;
 	className?: string;
 }
 
+const safeHtmlSchema: Schema = {
+	...defaultSchema,
+	attributes: {
+		...defaultSchema.attributes,
+		a: [
+			...(defaultSchema.attributes?.a || []),
+			"href",
+			"target",
+			"rel",
+		],
+		code: [
+			...(defaultSchema.attributes?.code || []),
+			["className", /^language-[\w-]+$/],
+			["className", /^hljs(?:-[\w-]+)?$/],
+		],
+		pre: [...(defaultSchema.attributes?.pre || []), "className"],
+		span: [
+			...(defaultSchema.attributes?.span || []),
+			["className", /^hljs(?:-[\w-]+)?$/],
+		],
+		img: [
+			...(defaultSchema.attributes?.img || []),
+			["src", /^(https?:\/\/|\/|data:image\/[a-zA-Z0-9.+-]+;base64,)/],
+			"alt",
+			"title",
+			"width",
+			"height",
+			"data-align",
+			"style",
+			"loading",
+		],
+		p: [...(defaultSchema.attributes?.p || []), "style"],
+		h1: [...(defaultSchema.attributes?.h1 || []), "style"],
+		h2: [...(defaultSchema.attributes?.h2 || []), "style"],
+		h3: [...(defaultSchema.attributes?.h3 || []), "style"],
+		h4: [...(defaultSchema.attributes?.h4 || []), "style"],
+	},
+};
+
+function sanitizeAndHighlightHtml(html: string): string {
+	const processor = unified()
+		.use(rehypeParse, { fragment: true })
+		.use(rehypeSanitize, safeHtmlSchema)
+		.use(rehypeHighlight, {
+			ignoreMissing: true,
+			languages: {
+				terraform: terraformDefiner,
+				hcl: terraformDefiner,
+				tf: terraformDefiner,
+			},
+		})
+		.use(rehypeStringify);
+	return String(processor.processSync(html));
+}
+
+function isHtmlContent(content: string): boolean {
+	return /^\s*</.test(content.trimStart());
+}
+
 export function MarkdownRenderer({
 	content,
 	className,
 }: MarkdownRendererProps) {
-	const processedContent = processLatex(content);
+	const containerClassName = className
+		? `markdown-content ${className}`
+		: "markdown-content";
+
+	if (isHtmlContent(content)) {
+		const safeHtml = sanitizeAndHighlightHtml(content);
+		return (
+			<div className={containerClassName}>{parse(safeHtml)}</div>
+		);
+	}
 
 	return (
-		<div className={className}>
+		<div className={containerClassName}>
 			<ReactMarkdown
-				remarkPlugins={[remarkGfm]}
-				rehypePlugins={[rehypeRaw, rehypeHighlight]}
+				remarkPlugins={[remarkGfm, remarkMath]}
+				rehypePlugins={[
+					rehypeRaw,
+					[rehypeSanitize, safeHtmlSchema],
+					rehypeKatex,
+					[
+						rehypeHighlight,
+						{
+							ignoreMissing: true,
+							languages: {
+								terraform: terraformDefiner,
+								hcl: terraformDefiner,
+								tf: terraformDefiner,
+							},
+						},
+					],
+				]}
 				components={{
 					h1: ({ children, node }) => {
 						const styleAttr = node?.properties?.style as string | undefined;
@@ -185,7 +242,9 @@ export function MarkdownRenderer({
 					),
 					em: ({ children }) => <em className="italic">{children}</em>,
 					code: ({ className, children, ...props }) => {
-						const isInline = !className;
+						const content = String(children ?? "");
+						const isInline =
+							!className && !content.includes("\n") && content.length < 120;
 						if (isInline) {
 							return (
 								<code className="rounded-md bg-neutral-800/80 px-1.5 py-0.5 text-[13px] font-mono text-amber-400">
@@ -194,13 +253,20 @@ export function MarkdownRenderer({
 							);
 						}
 						return (
-							<code className={`${className} block`} {...props}>
+							<code
+								className={
+									className
+										? `${className} font-mono whitespace-pre`
+										: "font-mono whitespace-pre"
+								}
+								{...props}
+							>
 								{children}
 							</code>
 						);
 					},
 					pre: ({ children }) => (
-						<pre className="my-4 overflow-x-auto rounded-lg border border-neutral-700/50 bg-[#0d1117] px-4 py-3 text-[13px] leading-relaxed [&>code]:bg-transparent [&>code]:p-0">
+						<pre className="my-4 overflow-x-auto whitespace-pre rounded-lg border border-neutral-700/50 bg-[#0d1117] px-4 py-3 font-mono text-[13px] leading-normal [&>code]:bg-transparent [&>code]:p-0">
 							{children}
 						</pre>
 					),
@@ -297,7 +363,7 @@ export function MarkdownRenderer({
 					},
 				}}
 			>
-				{processedContent}
+				{content}
 			</ReactMarkdown>
 		</div>
 	);
