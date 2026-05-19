@@ -91,7 +91,9 @@ function convertMarkdownChunkToHtml(chunk: string): string {
 		const headingMatch = line.match(/^\s{0,3}(#{1,6})\s+(.+)$/);
 		if (headingMatch) {
 			const level = headingMatch[1].length;
-			blocks.push(`<h${level}>${formatInlineMarkdown(headingMatch[2].trim())}</h${level}>`);
+			blocks.push(
+				`<h${level}>${formatInlineMarkdown(headingMatch[2].trim())}</h${level}>`,
+			);
 			i++;
 			continue;
 		}
@@ -108,7 +110,9 @@ function convertMarkdownChunkToHtml(chunk: string): string {
 				quoteLines.push(lines[i].replace(/^\s{0,3}>\s?/, ""));
 				i++;
 			}
-			blocks.push(`<blockquote><p>${formatInlineMarkdown(quoteLines.join("\n")).replace(/\n/g, "<br />")}</p></blockquote>`);
+			blocks.push(
+				`<blockquote><p>${formatInlineMarkdown(quoteLines.join("\n")).replace(/\n/g, "<br />")}</p></blockquote>`,
+			);
 			continue;
 		}
 

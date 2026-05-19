@@ -1,20 +1,20 @@
 "use client";
 
 import { definer as terraformDefiner } from "@taga3s/highlightjs-terraform";
+import type { Schema } from "hast-util-sanitize";
+import "highlight.js/styles/github-dark.css";
 import parse from "html-react-parser";
-import { unified } from "unified";
-import rehypeParse from "rehype-parse";
-import rehypeStringify from "rehype-stringify";
+import "katex/dist/katex.min.css";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
+import rehypeParse from "rehype-parse";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
-import type { Schema } from "hast-util-sanitize";
+import rehypeStringify from "rehype-stringify";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
-import "highlight.js/styles/github-dark.css";
-import "katex/dist/katex.min.css";
+import { unified } from "unified";
 import "./markdown-editor.css";
 
 interface MarkdownRendererProps {
@@ -26,12 +26,7 @@ const safeHtmlSchema: Schema = {
 	...defaultSchema,
 	attributes: {
 		...defaultSchema.attributes,
-		a: [
-			...(defaultSchema.attributes?.a || []),
-			"href",
-			"target",
-			"rel",
-		],
+		a: [...(defaultSchema.attributes?.a || []), "href", "target", "rel"],
 		code: [
 			...(defaultSchema.attributes?.code || []),
 			["className", /^language-[\w-]+$/],
@@ -91,9 +86,7 @@ export function MarkdownRenderer({
 
 	if (isHtmlContent(content)) {
 		const safeHtml = sanitizeAndHighlightHtml(content);
-		return (
-			<div className={containerClassName}>{parse(safeHtml)}</div>
-		);
+		return <div className={containerClassName}>{parse(safeHtml)}</div>;
 	}
 
 	return (
