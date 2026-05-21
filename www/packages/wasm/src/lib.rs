@@ -1,3 +1,5 @@
+pub mod crdt;
+
 use rustfft::{num_complex::Complex, FftPlanner};
 use wasm_bindgen::prelude::*;
 

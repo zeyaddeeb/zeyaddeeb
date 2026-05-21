@@ -20,6 +20,14 @@ const experiments = [
 		gradient: "from-violet-500 to-pink-500",
 	},
 	{
+		title: "CRDT Editor",
+		description:
+			"Collaborative text editing with no coordination required. RGA CRDT in Rust/WASM — works offline and syncs via a SurrealDB-backed WebSocket server.",
+		href: "/experiments/crdt",
+		tags: ["WebAssembly", "Rust", "CRDT", "SurrealDB"],
+		gradient: "from-amber-500 to-teal-500",
+	},
+	{
 		title: "RL Basketball Agent",
 		href: "https://robot.zeyaddeeb.com",
 		tags: ["Reinforcement Learning", "WebAssembly", "Rust"],

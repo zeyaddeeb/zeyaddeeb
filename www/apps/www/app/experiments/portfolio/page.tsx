@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { type PointerEvent, useMemo, useState } from "react";
+import { type PointerEvent, useLayoutEffect, useMemo, useState } from "react";
 
 type TileSize = "hero" | "wide" | "tall" | "standard";
 
@@ -63,6 +63,18 @@ export default function WebsiteAtlasPage() {
 	const [offset, setOffset] = useState(initialOffset);
 	const [dragging, setDragging] = useState(false);
 	const [anchor, setAnchor] = useState({ x: 0, y: 0, startX: 0, startY: 0 });
+
+	useLayoutEffect(() => {
+		const prevOverflow = document.body.style.overflow;
+		const prevPosition = document.documentElement.style.overflow;
+		window.scrollTo(0, 0);
+		document.body.style.overflow = "hidden";
+		document.documentElement.style.overflow = "hidden";
+		return () => {
+			document.body.style.overflow = prevOverflow;
+			document.documentElement.style.overflow = prevPosition;
+		};
+	}, []);
 
 	const bounds = useMemo(
 		() => ({
@@ -132,10 +144,10 @@ export default function WebsiteAtlasPage() {
 				}}
 			/>
 
-			<section className="pointer-events-none absolute left-4 top-24 z-20 max-w-2xl rounded-2xl border border-amber-100/20 bg-neutral-950/65 p-5 backdrop-blur-sm md:left-8 md:top-28">
+			<section className="pointer-events-none absolute left-4 top-20 z-20 max-w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-amber-100/20 bg-neutral-950/65 p-5 backdrop-blur-sm md:left-8 md:top-24">
 				<motion.header
 					className=""
-					initial={{ opacity: 0, y: -12 }}
+					initial={{ opacity: 0, y: 8 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
 				>
@@ -154,7 +166,7 @@ export default function WebsiteAtlasPage() {
 				</motion.header>
 			</section>
 
-			<div className="absolute right-4 top-24 z-20 hidden items-center gap-2 sm:flex md:right-8 md:top-28">
+			<div className="absolute right-4 top-20 z-20 hidden items-center gap-2 sm:flex md:right-8 md:top-24">
 				<button
 					type="button"
 					onClick={() => updateOffset(offset.x - 150, offset.y)}
