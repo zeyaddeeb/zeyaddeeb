@@ -124,7 +124,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.2.3
+          terraform_version: 1.14.8
 
       - name: Terraform Deploy
         working-directory: deployments
