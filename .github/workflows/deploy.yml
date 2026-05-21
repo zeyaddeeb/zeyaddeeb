@@ -50,7 +50,7 @@ jobs:
       - name: Install Moon
         uses: moonrepo/setup-toolchain@v0
         with:
-          moon-version: "1.35.7"
+          moon-version: "2.2.4"
           auto-install: false
           cache: true
 
@@ -117,7 +117,7 @@ jobs:
       - name: Install Moon
         uses: moonrepo/setup-toolchain@v0
         with:
-          moon-version: "1.35.7"
+          moon-version: "2.2.4"
           auto-install: false
           cache: true
 

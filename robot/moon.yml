@@ -1,5 +1,4 @@
 language: "rust"
-type: "application"
 stack: "backend"
 
 project:
