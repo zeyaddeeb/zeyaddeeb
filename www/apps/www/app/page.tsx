@@ -148,7 +148,6 @@ function DiagonalSection({
 		</motion.div>
 	);
 
-	// Use regular anchor for external links (like blog in dev mode)
 	if (external) {
 		return (
 			<a href={href} className="block h-full w-full">
@@ -226,7 +225,7 @@ export default function HomePage() {
 				))}
 			</div>
 
-			<div className="relative hidden min-h-screen md:block overflow-hidden">
+			<div className="relative hidden min-h-screen overflow-hidden md:block">
 				<div className="absolute inset-0 flex">
 					{sections.map((section, index) => (
 						<div

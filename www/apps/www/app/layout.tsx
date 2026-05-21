@@ -99,7 +99,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en">
+		<html lang="en" data-scroll-behavior="smooth">
 			<body
 				className={`${antonFont.variable} ${robotoFlex.variable} ${newsreader.variable} cursor-none bg-neutral-950 antialiased`}
 			>

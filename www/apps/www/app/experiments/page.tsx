@@ -5,6 +5,13 @@ import Link from "next/link";
 
 const experiments = [
 	{
+		title: "Portfolio",
+		description: "Infinite-canvas portfolio of client work.",
+		href: "/experiments/portfolio",
+		tags: ["Portfolio", "UX", "Interactive"],
+		gradient: "from-amber-500 to-orange-500",
+	},
+	{
 		title: "WASM Audio Visualizer",
 		description:
 			"Real-time audio visualization powered by WebAssembly. FFT processing in Rust with Canvas rendering.",
@@ -69,6 +76,7 @@ export default function ExperimentsPage() {
 							<Link
 								key={experiment.href}
 								href={experiment.href}
+								scroll={true}
 								className="group relative overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6 transition-all duration-300 hover:border-neutral-700 hover:bg-neutral-900/80"
 							>
 								<div
