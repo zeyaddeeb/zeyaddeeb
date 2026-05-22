@@ -31,6 +31,35 @@ interface RgaDoc {
 const BACKOFF = [1_000, 2_000, 4_000, 8_000, 15_000];
 const MAX_LOG = 8;
 
+function toWsBase(raw: string) {
+	const trimmed = raw.trim().replace(/\/+$/, "");
+	if (trimmed.startsWith("http://"))
+		return `ws://${trimmed.slice("http://".length)}`;
+	if (trimmed.startsWith("https://")) {
+		return `wss://${trimmed.slice("https://".length)}`;
+	}
+	return trimmed;
+}
+
+function resolveWsBase(explicitBase?: string) {
+	if (explicitBase) return toWsBase(explicitBase);
+	if (typeof window === "undefined") return "ws://localhost:3001";
+
+	const envBase = process.env.NEXT_PUBLIC_CRDT_URL;
+	if (envBase?.trim()) return toWsBase(envBase);
+
+	const { protocol, hostname } = window.location;
+	const isLocal =
+		hostname === "localhost" ||
+		hostname === "127.0.0.1" ||
+		hostname.endsWith(".local");
+	if (isLocal) return "ws://localhost:3001";
+
+	const wsProtocol = protocol === "https:" ? "wss:" : "ws:";
+	const rootHost = hostname.replace(/^www\./, "");
+	return `${wsProtocol}//crdt.${rootHost}`;
+}
+
 export function useCrdt(docId: string, wsBase?: string) {
 	const { wasm, loading } = useWasm();
 
@@ -90,11 +119,7 @@ export function useCrdt(docId: string, wsBase?: string) {
 		);
 		syncState();
 
-		const baseUrl =
-			wsBase ??
-			(typeof window !== "undefined"
-				? (process.env.NEXT_PUBLIC_CRDT_URL ?? "ws://localhost:3001")
-				: "ws://localhost:3001");
+		const baseUrl = resolveWsBase(wsBase);
 
 		function scheduleReconnect() {
 			if (!mountedRef.current) return;
@@ -108,7 +133,8 @@ export function useCrdt(docId: string, wsBase?: string) {
 			if (!mountedRef.current) return;
 			if (timerRef.current) clearTimeout(timerRef.current);
 
-			const ws = new WebSocket(`${baseUrl}/ws/${docIdRef.current}`);
+			const wsUrl = `${baseUrl}/ws/${encodeURIComponent(docIdRef.current)}`;
+			const ws = new WebSocket(wsUrl);
 			wsRef.current = ws;
 			setStatus("connecting");
 
@@ -150,12 +176,16 @@ export function useCrdt(docId: string, wsBase?: string) {
 			};
 
 			ws.onerror = () => {
-				if (mountedRef.current) setStatus("offline");
+				if (mountedRef.current) {
+					setStatus("offline");
+					console.warn("[crdt] websocket error", { wsUrl });
+				}
 			};
 
 			ws.onclose = () => {
 				if (!mountedRef.current) return;
 				setStatus("offline");
+				console.warn("[crdt] websocket closed", { wsUrl });
 				scheduleReconnect();
 			};
 		}

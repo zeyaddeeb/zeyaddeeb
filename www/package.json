@@ -1,6 +1,6 @@
 {
   "name": "zeyaddeeb",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "private": true,
   "scripts": {
     "build": "turbo build",
@@ -14,6 +14,7 @@
     "clean": "turbo clean"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.15",
     "turbo": "^2.9.14",
     "typescript": "^6.0.3"
   },

@@ -33,4 +33,4 @@ env:
   NODE_ENV: "production"
   APP_NAME: "www"
   BASE_URL: "https://www.zeyaddeeb.com"
-  NEXT_PUBLIC_CRDT_URL: "ws://crdt.zeyaddeeb.com"
+  NEXT_PUBLIC_CRDT_URL: "wss://crdt.zeyaddeeb.com"
