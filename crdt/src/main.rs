@@ -31,17 +31,22 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Router::new()
         .route("/ws/{doc_id}", get(ws_upgrade))
+        .route("/health", get(health_check))
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 
     let addr = "0.0.0.0:3001";
-    info!("collab server listening on {addr}");
+    info!("crdt server listening on {addr}");
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
 
     Ok(())
+}
+
+async fn health_check() -> impl IntoResponse {
+    "ok"
 }
 
 async fn ws_upgrade(
