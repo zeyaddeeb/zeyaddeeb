@@ -8,7 +8,7 @@ resource "helm_release" "www" {
 
   values = [
     templatefile("${path.module}/values/www.overrides.yaml", {
-      image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/zeyaddeeb/www"
+      image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.region}.amazonaws.com/zeyaddeeb/www"
     })
   ]
 
@@ -24,7 +24,7 @@ resource "helm_release" "blog" {
 
   values = [
     templatefile("${path.module}/values/blog.overrides.yaml", {
-      image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/zeyaddeeb/www"
+      image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.region}.amazonaws.com/zeyaddeeb/www"
     })
   ]
 

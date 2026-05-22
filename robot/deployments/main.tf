@@ -8,7 +8,7 @@ resource "helm_release" "robot_web" {
 
   values = [
     templatefile("${path.module}/values/robot-web.overrides.yaml", {
-      image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/zeyaddeeb/robot"
+      image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.region}.amazonaws.com/zeyaddeeb/robot"
     })
   ]
 }
@@ -23,7 +23,7 @@ resource "helm_release" "robot_ws" {
 
   values = [
     templatefile("${path.module}/values/robot-ws.overrides.yaml", {
-      image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/zeyaddeeb/robot"
+      image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.region}.amazonaws.com/zeyaddeeb/robot"
     })
   ]
 }
