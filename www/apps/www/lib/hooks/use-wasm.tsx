@@ -1,5 +1,4 @@
 import { useContext } from "react";
-
 import { WASMContext } from "../providers/wasm-provider";
 
 function useWasm() {

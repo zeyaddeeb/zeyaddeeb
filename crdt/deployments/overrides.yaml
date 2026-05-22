@@ -1,0 +1,29 @@
+fullnameOverride: "crdt"
+
+image:
+  repository: ${image_repository}
+
+entrypoint: "./crdt"
+
+service:
+  type: ClusterIP
+  port: 3001
+
+ingress:
+  enabled: true
+  className: "nginx-external"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dns
+    external-dns.alpha.kubernetes.io/hostname: crdt.zeyaddeeb.com
+  hosts:
+    - host: crdt.zeyaddeeb.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: crdt-zeyaddeeb-tls
+      hosts:
+        - crdt.zeyaddeeb.com
+
+env:
+  RUST_LOG: "error"

@@ -21,7 +21,6 @@ use state::AppState;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let db = db::connect().await?;
-    info!("SurrealDB (in-memory) ready");
 
     let state = AppState::new(db);
 
@@ -44,7 +43,6 @@ async fn main() -> anyhow::Result<()> {
 
     Ok(())
 }
-
 
 async fn ws_upgrade(
     ws: WebSocketUpgrade,

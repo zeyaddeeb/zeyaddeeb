@@ -15,3 +15,4 @@ projects:
   root: "."
   www: "www"
   robot: "robot"
+  crdt: "crdt"

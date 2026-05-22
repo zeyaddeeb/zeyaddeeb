@@ -1,11 +1,3 @@
-data "template_file" "robot_web_overrides" {
-  template = file("${path.module}/values/robot-web.overrides.yaml")
-
-  vars = {
-    image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/zeyaddeeb/robot"
-  }
-}
-
 resource "helm_release" "robot_web" {
   name          = "robot-web"
   chart         = "${path.module}/helm"
@@ -15,16 +7,10 @@ resource "helm_release" "robot_web" {
   timeout       = 1200
 
   values = [
-    data.template_file.robot_web_overrides.rendered
+    templatefile("${path.module}/values/robot-web.overrides.yaml", {
+      image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/zeyaddeeb/robot"
+    })
   ]
-}
-
-data "template_file" "robot_ws_overrides" {
-  template = file("${path.module}/values/robot-ws.overrides.yaml")
-
-  vars = {
-    image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/zeyaddeeb/robot"
-  }
 }
 
 resource "helm_release" "robot_ws" {
@@ -36,6 +22,8 @@ resource "helm_release" "robot_ws" {
   timeout       = 1200
 
   values = [
-    data.template_file.robot_ws_overrides.rendered
+    templatefile("${path.module}/values/robot-ws.overrides.yaml", {
+      image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/zeyaddeeb/robot"
+    })
   ]
 }
