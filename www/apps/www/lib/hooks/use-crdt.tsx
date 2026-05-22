@@ -93,7 +93,7 @@ export function useCrdt(docId: string, wsBase?: string) {
 		const baseUrl =
 			wsBase ??
 			(typeof window !== "undefined"
-				? (process.env.NEXT_PUBLIC_COLLAB_URL ?? "ws://localhost:3001")
+				? (process.env.NEXT_PUBLIC_CRDT_URL ?? "ws://localhost:3001")
 				: "ws://localhost:3001");
 
 		function scheduleReconnect() {

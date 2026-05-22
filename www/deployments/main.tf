@@ -1,11 +1,3 @@
-data "template_file" "www_overrides" {
-  template = file("${path.module}/values/www.overrides.yaml")
-
-  vars = {
-    image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/zeyaddeeb/www"
-  }
-}
-
 resource "helm_release" "www" {
   name          = "www"
   chart         = "${path.module}/helm"
@@ -15,17 +7,11 @@ resource "helm_release" "www" {
   timeout       = 1200
 
   values = [
-    data.template_file.www_overrides.rendered
+    templatefile("${path.module}/values/www.overrides.yaml", {
+      image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/zeyaddeeb/www"
+    })
   ]
 
-}
-
-data "template_file" "blog_overrides" {
-  template = file("${path.module}/values/blog.overrides.yaml")
-
-  vars = {
-    image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/zeyaddeeb/www"
-  }
 }
 
 resource "helm_release" "blog" {
@@ -37,7 +23,9 @@ resource "helm_release" "blog" {
   timeout       = 1200
 
   values = [
-    data.template_file.blog_overrides.rendered
+    templatefile("${path.module}/values/blog.overrides.yaml", {
+      image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/zeyaddeeb/www"
+    })
   ]
 
 }
