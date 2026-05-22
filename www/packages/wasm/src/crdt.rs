@@ -83,7 +83,7 @@ impl RgaDocument {
             parent,
             value: ch,
         };
-        self.apply_insert_internal(&op);
+        self.apply_insert_internal(&op, false);
         serde_json::to_string(&CrdtOp::Insert(op)).unwrap_or_default()
     }
 
@@ -104,9 +104,40 @@ impl RgaDocument {
     pub fn apply_batch(&mut self, ops_json: &str) -> Result<(), JsValue> {
         let ops: Vec<CrdtOp> = serde_json::from_str(ops_json)
             .map_err(|e| JsValue::from_str(&format!("crdt batch parse error: {e}")))?;
+        let mut pending_inserts = Vec::new();
+        let mut deletes = Vec::new();
+
         for op in ops {
-            self.apply_op(op);
+            match op {
+                CrdtOp::Insert(ins) => pending_inserts.push(ins),
+                CrdtOp::Delete(del) => deletes.push(del),
+            }
         }
+
+        while !pending_inserts.is_empty() {
+            let before = pending_inserts.len();
+            let mut i = 0;
+            while i < pending_inserts.len() {
+                if self.apply_insert_internal(&pending_inserts[i], true) {
+                    pending_inserts.remove(i);
+                } else {
+                    i += 1;
+                }
+            }
+
+            if pending_inserts.len() == before {
+                break;
+            }
+        }
+
+        for ins in pending_inserts {
+            self.apply_insert_internal(&ins, false);
+        }
+
+        for del in deletes {
+            self.apply_delete_internal(&del);
+        }
+
         Ok(())
     }
 
@@ -165,14 +196,25 @@ impl RgaDocument {
 impl RgaDocument {
     fn apply_op(&mut self, op: CrdtOp) {
         match op {
-            CrdtOp::Insert(ins) => self.apply_insert_internal(&ins),
+            CrdtOp::Insert(ins) => {
+                self.apply_insert_internal(&ins, false);
+            }
             CrdtOp::Delete(del) => self.apply_delete_internal(&del),
         }
     }
 
-    fn apply_insert_internal(&mut self, op: &InsertOp) {
+    fn apply_insert_internal(&mut self, op: &InsertOp, require_parent: bool) -> bool {
         if self.chars.iter().any(|c| c.id == op.id) {
-            return;
+            return true;
+        }
+
+        if require_parent
+            && op
+                .parent
+                .as_ref()
+                .is_some_and(|pid| !self.chars.iter().any(|c| &c.id == pid))
+        {
+            return false;
         }
 
         let start = match &op.parent {
@@ -208,6 +250,8 @@ impl RgaDocument {
         if op.id.clock > self.clock {
             self.clock = op.id.clock;
         }
+
+        true
     }
 
     fn apply_delete_internal(&mut self, op: &DeleteOp) {

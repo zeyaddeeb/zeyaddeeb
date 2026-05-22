@@ -1,4 +1,5 @@
 use dashmap::DashMap;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tokio::sync::broadcast;
 
@@ -22,6 +23,7 @@ impl Room {
 pub struct AppState {
     pub db: Arc<Db>,
     pub rooms: Arc<DashMap<String, Room>>,
+    next_seq: Arc<AtomicU64>,
 }
 
 impl AppState {
@@ -29,7 +31,12 @@ impl AppState {
         AppState {
             db: Arc::new(db),
             rooms: Arc::new(DashMap::new()),
+            next_seq: Arc::new(AtomicU64::new(1)),
         }
+    }
+
+    pub fn next_op_seq(&self) -> u64 {
+        self.next_seq.fetch_add(1, Ordering::Relaxed)
     }
 
     pub fn room_for(&self, doc_id: &str) -> Room {

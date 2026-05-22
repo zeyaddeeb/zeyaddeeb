@@ -111,11 +111,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn _add() {
-        assert_eq!(add(2, 2), 4);
-    }
-
-    #[test]
     fn test_audio_processor() {
         let mut processor = AudioProcessor::new(1024);
         let samples: Vec<f32> = (0..1024).map(|i| (i as f32 * 0.1).sin()).collect();

@@ -1,17 +1,16 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use surrealdb::{engine::local::Mem, Surreal};
 use surrealdb::types::SurrealValue;
+use surrealdb::{engine::local::Mem, Surreal};
 
 use crate::crdt::CrdtOp;
-
 
 #[derive(Serialize, Deserialize, Debug, SurrealValue)]
 struct OpRecord {
     doc_id: String,
+    seq: Option<u64>,
     op: CrdtOp,
 }
-
 
 pub type Db = Surreal<surrealdb::engine::local::Db>;
 
@@ -28,10 +27,11 @@ pub async fn connect() -> Result<Db> {
     Ok(db)
 }
 
-pub async fn append_op(db: &Db, doc_id: &str, op: &CrdtOp) -> Result<()> {
+pub async fn append_op(db: &Db, doc_id: &str, seq: u64, op: &CrdtOp) -> Result<()> {
     db.create::<Option<OpRecord>>("ops")
         .content(OpRecord {
             doc_id: doc_id.to_owned(),
+            seq: Some(seq),
             op: op.clone(),
         })
         .await?;
@@ -40,10 +40,11 @@ pub async fn append_op(db: &Db, doc_id: &str, op: &CrdtOp) -> Result<()> {
 
 pub async fn load_ops(db: &Db, doc_id: &str) -> Result<Vec<CrdtOp>> {
     let mut result = db
-        .query("SELECT * FROM ops WHERE doc_id = $doc_id ORDER BY id ASC")
+        .query("SELECT * FROM ops WHERE doc_id = $doc_id ORDER BY seq ASC")
         .bind(("doc_id", doc_id.to_owned()))
         .await?;
 
-    let records: Vec<OpRecord> = result.take(0)?;
+    let mut records: Vec<OpRecord> = result.take(0)?;
+    records.sort_by_key(|record| record.seq.unwrap_or(0));
     Ok(records.into_iter().map(|r| r.op).collect())
 }

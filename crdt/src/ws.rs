@@ -32,7 +32,6 @@ pub async fn handle(socket: WebSocket, doc_id: String, state: AppState) {
         return;
     }
 
-
     let ops = match db::load_ops(&state.db, &doc_id).await {
         Ok(ops) => ops,
         Err(e) => {
@@ -107,12 +106,12 @@ async fn handle_client_op(
         }
     };
 
-    if let Err(e) = db::append_op(&state.db, doc_id, &op).await {
+    let seq = state.next_op_seq();
+    if let Err(e) = db::append_op(&state.db, doc_id, seq, &op).await {
         error!("db write error: {e}");
         return;
     }
 
-    let broadcast_json =
-        serde_json::to_string(&ServerMsg::Op { op: &op }).unwrap_or_default();
+    let broadcast_json = serde_json::to_string(&ServerMsg::Op { op: &op }).unwrap_or_default();
     let _ = tx.send(broadcast_json);
 }
