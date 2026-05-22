@@ -92,26 +92,6 @@ export default function ExperimentsPage() {
 								/>
 
 								<div className="relative">
-									<div
-										className={`mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br ${experiment.gradient} bg-opacity-20`}
-									>
-										<svg
-											className="h-6 w-6 text-white"
-											fill="none"
-											viewBox="0 0 24 24"
-											stroke="currentColor"
-											aria-hidden="true"
-										>
-											<title>Audio</title>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												strokeWidth={1.5}
-												d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
-											/>
-										</svg>
-									</div>
-
 									<h3 className="mb-2 text-xl font-semibold transition-colors group-hover:text-violet-400">
 										{experiment.title}
 									</h3>
