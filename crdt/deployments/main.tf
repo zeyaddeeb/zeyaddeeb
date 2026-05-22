@@ -1,9 +1,9 @@
 locals {
-  image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.region}.amazonaws.com/pulvi/games"
+  image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.region}.amazonaws.com/zeyaddeeb/crdt"
 }
 
-resource "helm_release" "games" {
-  name          = "games"
+resource "helm_release" "crdt" {
+  name          = "crdt"
   chart         = "${path.module}/helm"
   namespace     = var.namespace
   wait          = false
