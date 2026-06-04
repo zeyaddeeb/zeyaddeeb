@@ -44,6 +44,14 @@ const experiments = [
 		gradient: "from-amber-500 to-teal-500",
 	},
 	{
+		title: "Conway's Game of Life",
+		description:
+			"High-performance interactive simulation of cellular automata. Powered by WebAssembly and Rust with side-by-side JS benchmark timing.",
+		href: "/experiments/game-of-life",
+		tags: ["WebAssembly", "Rust", "Benchmark", "Canvas"],
+		gradient: "from-emerald-500 to-teal-500",
+	},
+	{
 		title: "RL Basketball Agent",
 		href: "https://robot.zeyaddeeb.com",
 		tags: ["Reinforcement Learning", "WebAssembly", "Rust"],

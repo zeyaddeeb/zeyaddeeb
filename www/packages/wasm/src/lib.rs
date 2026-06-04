@@ -1,4 +1,5 @@
 pub mod crdt;
+pub mod game_of_life;
 
 use rustfft::{num_complex::Complex, FftPlanner};
 use wasm_bindgen::prelude::*;
