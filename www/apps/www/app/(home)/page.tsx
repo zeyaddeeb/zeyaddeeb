@@ -187,6 +187,14 @@ export default function HomePage() {
 
 	return (
 		<main className="bg-neutral-950 text-white">
+			<Link
+				href="/"
+				className="fixed left-4 top-4 z-50 text-xl font-bold uppercase tracking-tight text-white transition-colors hover:text-neutral-300 md:hidden"
+				style={{ fontFamily: "var(--font-anton, inherit)" }}
+			>
+				Z
+			</Link>
+
 			<motion.div
 				className="pointer-events-none fixed right-8 top-8 z-50 hidden text-right md:block"
 				initial={{ opacity: 0, x: 20 }}

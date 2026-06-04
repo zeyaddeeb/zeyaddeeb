@@ -5,11 +5,27 @@ import Link from "next/link";
 
 const experiments = [
 	{
+		title: "From Floppy to Cloud",
+		description:
+			"A scrollytelling journey through learning to code — from DOS and floppy disks to Kubernetes, Rust, and AI.",
+		href: "/story",
+		tags: ["Scrollytelling", "GSAP", "Lenis"],
+		gradient: "from-purple-500 to-blue-500",
+	},
+	{
 		title: "Portfolio",
 		description: "Infinite-canvas portfolio of client work.",
 		href: "/experiments/portfolio",
 		tags: ["Portfolio", "UX", "Interactive"],
 		gradient: "from-amber-500 to-orange-500",
+	},
+	{
+		title: "Resume",
+		description:
+			"An editorial resume surface for skills, focus areas, and professional signal.",
+		href: "/resume",
+		tags: ["Resume", "Editorial", "Profile"],
+		gradient: "from-teal-500 to-stone-500",
 	},
 	{
 		title: "WASM Audio Visualizer",

@@ -1,7 +1,6 @@
 import "@zeyaddeeb/ui/styles.css";
 import "lenis/dist/lenis.css";
 
-import { Footer } from "@zeyaddeeb/ui";
 import type { Metadata } from "next";
 import { Anton, Newsreader, Roboto_Flex } from "next/font/google";
 import { RootLayoutClient } from "@/components/root-layout";
@@ -87,12 +86,6 @@ export const metadata: Metadata = {
 	},
 };
 
-const navItems = [
-	{ label: "About", href: "/about" },
-	{ label: "Experiments", href: "/experiments" },
-	{ label: "Blog", href: "/blog" },
-];
-
 export default function RootLayout({
 	children,
 }: Readonly<{
@@ -105,10 +98,7 @@ export default function RootLayout({
 			>
 				<AppStateProvider>
 					<WASMContextProvider>
-						<RootLayoutClient navItems={navItems}>
-							{children}
-							<Footer />
-						</RootLayoutClient>
+						<RootLayoutClient>{children}</RootLayoutClient>
 					</WASMContextProvider>
 				</AppStateProvider>
 			</body>
