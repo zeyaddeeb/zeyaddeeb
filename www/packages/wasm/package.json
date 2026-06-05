@@ -18,6 +18,7 @@
   "types": "./build/browser/zeyaddeeb_wasm.d.ts",
   "exports": {
     ".": {
+      "types": "./build/browser/zeyaddeeb_wasm.d.ts",
       "browser": "./build/browser/zeyaddeeb_wasm.js",
       "node": "./build/node/zeyaddeeb_wasm.js",
       "binary": "./build/node/zeyaddeeb_wasm_bg.wasm"
