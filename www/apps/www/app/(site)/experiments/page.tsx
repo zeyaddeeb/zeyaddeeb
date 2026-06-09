@@ -20,14 +20,6 @@ const experiments = [
 		gradient: "from-amber-500 to-orange-500",
 	},
 	{
-		title: "Resume",
-		description:
-			"An editorial resume surface for skills, focus areas, and professional signal.",
-		href: "/resume",
-		tags: ["Resume", "Editorial", "Profile"],
-		gradient: "from-teal-500 to-stone-500",
-	},
-	{
 		title: "WASM Audio Visualizer",
 		description:
 			"Real-time audio visualization powered by WebAssembly. FFT processing in Rust with Canvas rendering.",
@@ -50,6 +42,14 @@ const experiments = [
 		href: "/experiments/game-of-life",
 		tags: ["WebAssembly", "Rust", "Benchmark", "Canvas"],
 		gradient: "from-emerald-500 to-teal-500",
+	},
+	{
+		title: "Circle Limit",
+		description:
+			"A hyperbolic exhibition after M.C. Escher: six plates of interlocking pinwheels in the Poincaré disk, grown by mirror reflection in Rust/WASM and set in perpetual Möbius drift.",
+		href: "/experiments/circle-limit",
+		tags: ["WebAssembly", "Rust", "Hyperbolic Geometry", "Generative Art"],
+		gradient: "from-amber-500 to-rose-500",
 	},
 	{
 		title: "RL Basketball Agent",

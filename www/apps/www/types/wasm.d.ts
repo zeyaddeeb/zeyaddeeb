@@ -24,4 +24,28 @@ declare module "@zeyaddeeb/wasm" {
 			maxDb: number,
 		): Float32Array;
 	}
+
+	export class HyperbolicTiling {
+		// biome-ignore lint/suspicious/noMisleadingInstantiator: mirrors the wasm-bindgen generated constructor
+		static new(
+			p: number,
+			q: number,
+			maxTiles: number,
+			minSize: number,
+		): HyperbolicTiling;
+		free(): void;
+		tile_count(): number;
+		polygon_sides(): number;
+		points_per_tile(): number;
+		boundary_points_per_tile(): number;
+		points_per_blade(): number;
+		get_meta(): Uint32Array;
+		get_base_vertices(): Float64Array;
+		transform_vertices(
+			aRe: number,
+			aIm: number,
+			bRe: number,
+			bIm: number,
+		): Float64Array;
+	}
 }

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function GameOfLifePage() {
 	return (
 		<main className="min-h-screen bg-neutral-950 text-white font-sans selection:bg-violet-500/30 selection:text-violet-300">
-			<section className="relative px-6 pt-32 pb-20 overflow-hidden">
+			<section className="relative px-6 pt-32 pb-20 overflow-x-hidden">
 				<div className="absolute inset-0 bg-linear-to-br from-violet-950/20 via-neutral-950 to-neutral-950" />
 				<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-150 bg-violet-500/5 blur-[120px] rounded-full" />
 				<div

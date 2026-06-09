@@ -16,13 +16,14 @@ interface SizeConfig {
 	width: number;
 	height: number;
 	cellSize: number;
+	label: string;
 }
 
 const SIZE_PRESETS: Record<GridSizePreset, SizeConfig> = {
-	small: { width: 50, height: 30, cellSize: 14 },
-	medium: { width: 80, height: 50, cellSize: 10 },
-	large: { width: 120, height: 75, cellSize: 7 },
-	xl: { width: 180, height: 110, cellSize: 5 },
+	small: { width: 64, height: 40, cellSize: 11, label: "64x40" },
+	medium: { width: 84, height: 52, cellSize: 9, label: "84x52" },
+	large: { width: 108, height: 66, cellSize: 7, label: "108x66" },
+	xl: { width: 136, height: 84, cellSize: 5, label: "136x84" },
 };
 
 const THEMES: Record<
@@ -537,8 +538,8 @@ export default function GameOfLifeCanvas() {
 	};
 
 	return (
-		<div className="flex flex-col gap-6 lg:flex-row">
-			<div className="flex-1 flex flex-col items-center select-none">
+		<div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+			<div className="flex-1 flex flex-col items-center select-none lg:self-start">
 				<div
 					className="relative overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950 p-2 shadow-2xl transition-all duration-300"
 					style={{ backgroundColor: THEMES[theme].bg }}
@@ -580,7 +581,7 @@ export default function GameOfLifeCanvas() {
 				</div>
 			</div>
 
-			<div className="w-full shrink-0 space-y-5 lg:w-80">
+			<div className="w-full shrink-0 space-y-5 lg:sticky lg:top-24 lg:w-80 lg:self-start">
 				<div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-5 backdrop-blur-xl">
 					<h3 className="mb-4 text-sm font-semibold tracking-wider uppercase text-neutral-400">
 						Engine Benchmark
@@ -770,20 +771,27 @@ export default function GameOfLifeCanvas() {
 
 					<div className="space-y-1.5 border-t border-neutral-800 pt-3">
 						<span className="text-xs text-neutral-400">Grid Resolution:</span>
-						<div className="grid grid-cols-4 gap-1 rounded-lg bg-neutral-950 p-1">
+						<div className="grid grid-cols-2 gap-1.5 rounded-lg bg-neutral-950 p-1.5">
 							{(["small", "medium", "large", "xl"] as const).map((size) => (
 								<button
 									key={size}
 									type="button"
 									onClick={() => setSizePreset(size)}
 									disabled={isPlaying}
-									className={`rounded py-1 text-3xs uppercase tracking-wider font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
+									className={`rounded-md px-2 py-1.5 text-left transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
 										sizePreset === size
-											? "bg-neutral-800 text-violet-400"
+											? "bg-neutral-800 text-violet-300"
 											: "text-neutral-500 hover:text-neutral-300"
 									}`}
 								>
-									{size}
+									<div className="flex flex-col leading-tight">
+										<span className="text-[10px] uppercase tracking-[0.08em] font-semibold">
+											{size}
+										</span>
+										<span className="mt-0.5 text-[9px] text-neutral-500">
+											{SIZE_PRESETS[size].label}
+										</span>
+									</div>
 								</button>
 							))}
 						</div>
@@ -825,27 +833,27 @@ export default function GameOfLifeCanvas() {
 						Simulation Statistics
 					</h3>
 					<div className="grid grid-cols-2 gap-3 text-center">
-						<div className="rounded-xl bg-neutral-950/40 p-3 border border-neutral-800">
-							<span className="block text-3xs font-mono uppercase tracking-widest text-neutral-500">
+						<div className="rounded-xl bg-neutral-950/40 p-2.5 border border-neutral-800">
+							<span className="block text-[10px] font-mono uppercase tracking-[0.14em] text-neutral-500">
 								Generation
 							</span>
-							<span className="mt-1 block text-lg font-bold text-white font-mono">
+							<span className="mt-1 block text-base font-semibold text-white font-mono">
 								{generation}
 							</span>
 						</div>
-						<div className="rounded-xl bg-neutral-950/40 p-3 border border-neutral-800">
-							<span className="block text-3xs font-mono uppercase tracking-widest text-neutral-500">
+						<div className="rounded-xl bg-neutral-950/40 p-2.5 border border-neutral-800">
+							<span className="block text-[10px] font-mono uppercase tracking-[0.14em] text-neutral-500">
 								Population
 							</span>
-							<span className="mt-1 block text-lg font-bold text-violet-400 font-mono">
+							<span className="mt-1 block text-base font-semibold text-violet-400 font-mono">
 								{population}
 							</span>
 						</div>
-						<div className="rounded-xl bg-neutral-950/40 p-3 border border-neutral-800 col-span-2">
-							<span className="block text-3xs font-mono uppercase tracking-widest text-neutral-500">
+						<div className="rounded-xl bg-neutral-950/40 p-2.5 border border-neutral-800 col-span-2">
+							<span className="block text-[10px] font-mono uppercase tracking-[0.14em] text-neutral-500">
 								Peak Population
 							</span>
-							<span className="mt-1 block text-lg font-bold text-emerald-400 font-mono">
+							<span className="mt-1 block text-base font-semibold text-emerald-400 font-mono">
 								{peakPopulation}
 							</span>
 						</div>
