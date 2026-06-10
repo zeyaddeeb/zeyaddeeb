@@ -2,8 +2,6 @@
 
 import type { HyperbolicTiling } from "@zeyaddeeb/wasm";
 import { useCallback, useEffect, useRef, useState } from "react";
-import * as THREE from "three";
-import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { useWasm } from "@/lib/hooks/use-wasm";
 
 interface Theme {
@@ -284,17 +282,6 @@ function drawTiling(
 			ctx.closePath();
 			ctx.fill();
 		}
-
-		const co = o + (stride - 1) * 2;
-		ctx.beginPath();
-		ctx.arc(
-			c + verts[co] * rz,
-			c - verts[co + 1] * rz,
-			Math.max(1, extent * 0.045),
-			0,
-			Math.PI * 2,
-		);
-		ctx.fill();
 	}
 
 	const vignette = ctx.createRadialGradient(c, c, radius * 0.55, c, c, radius);
@@ -391,211 +378,36 @@ function StellatedStar({
 	variant: Variant;
 	onBuilt?: (id: string, tileCount: number) => void;
 }) {
-	const INITIAL_HERO_ZOOM = 4.1;
-	const handlesRef = useTiling(variant, 900, 0.0025, onBuilt);
-	const mountRef = useRef<HTMLDivElement>(null);
+	const handlesRef = useTiling(variant, 1800, 0.0015, onBuilt);
+	const wrapperRef = useRef<HTMLDivElement>(null);
+	const canvasRef = useRef<HTMLCanvasElement>(null);
+	const artCanvasRef = useRef<HTMLCanvasElement | null>(null);
 	const clockRef = useRef({ theta: 0, phase: 0 });
-	const spinRef = useRef({ x: 0.3, y: 0.55, vx: 0, vy: 0 });
+	const driftRef = useRef({ angle: 0, velocity: 0 });
 	const parallaxRef = useRef({ x: 0, y: 0 });
-	const zoomRef = useRef({
-		dist: INITIAL_HERO_ZOOM,
-		target: INITIAL_HERO_ZOOM,
-	});
+	const zoomRef = useRef({ cur: 1, target: 1 });
 	const dragRef = useRef<{ x: number; y: number } | null>(null);
 
 	useEffect(() => {
-		const mount = mountRef.current;
-		if (!mount) return;
-
-		const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-		renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-		renderer.setClearColor(0x000000, 0);
-		renderer.toneMapping = THREE.ACESFilmicToneMapping;
-		renderer.toneMappingExposure = 1.2;
-		mount.appendChild(renderer.domElement);
-		renderer.domElement.classList.add("h-full", "w-full", "touch-none");
-
-		const scene = new THREE.Scene();
-
-		const pmrem = new THREE.PMREMGenerator(renderer);
-		const envTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-		scene.environment = envTexture;
-		scene.environmentIntensity = 0.45;
-
-		const camera = new THREE.PerspectiveCamera(35, 1, 0.5, 40);
-		camera.position.set(0, 0.15, INITIAL_HERO_ZOOM);
-		camera.lookAt(0, 0, 0);
-
-		const TEX_SIZE = 768;
-		const texCanvas = document.createElement("canvas");
-		texCanvas.width = TEX_SIZE;
-		texCanvas.height = TEX_SIZE;
-		const texCtx = texCanvas.getContext("2d");
-		const texture = new THREE.CanvasTexture(texCanvas);
-		texture.colorSpace = THREE.SRGBColorSpace;
-		texture.generateMipmaps = false;
-		texture.minFilter = THREE.LinearFilter;
-		texture.magFilter = THREE.LinearFilter;
-
-		const sphereGeo = new THREE.SphereGeometry(0.66, 96, 64);
-		const pos = sphereGeo.attributes.position;
-		const uv = sphereGeo.attributes.uv;
-		for (let i = 0; i < pos.count; i++) {
-			const x = pos.getX(i) / 0.66;
-			const y = pos.getY(i) / 0.66;
-			const z = pos.getZ(i) / 0.66;
-			const denom = 1 + Math.abs(y);
-			uv.setXY(i, 0.5 + (x / denom) * 0.5, 0.5 + (z / denom) * 0.5);
-		}
-		uv.needsUpdate = true;
-		const sphereMat = new THREE.MeshBasicMaterial({ map: texture });
-		const innerSphere = new THREE.Mesh(sphereGeo, sphereMat);
-
-		const SCALE = 1.62;
-		const BEAM = 0.062;
-		const octaVerts = [
-			new THREE.Vector3(SCALE, 0, 0),
-			new THREE.Vector3(-SCALE, 0, 0),
-			new THREE.Vector3(0, SCALE, 0),
-			new THREE.Vector3(0, -SCALE, 0),
-			new THREE.Vector3(0, 0, SCALE),
-			new THREE.Vector3(0, 0, -SCALE),
-		];
-		const edges: Array<[THREE.Vector3, THREE.Vector3]> = [];
-		for (let i = 0; i < octaVerts.length; i++) {
-			for (let j = i + 1; j < octaVerts.length; j++) {
-				const d = octaVerts[i].distanceTo(octaVerts[j]);
-				if (d < SCALE * 1.6) edges.push([octaVerts[i], octaVerts[j]]);
-			}
-		}
-		const beamLen = Math.SQRT2 * SCALE - BEAM * 1.2;
-		const beamGeo = new THREE.BoxGeometry(BEAM, BEAM, beamLen);
-		const jointGeo = new THREE.SphereGeometry(BEAM * 1.55, 24, 18);
-
-		const shades = [0x45413a, 0x2e2b26, 0x191714];
-		const orientations = [
-			new THREE.Euler(Math.PI / 4, 0, 0),
-			new THREE.Euler(0, Math.PI / 4, 0),
-			new THREE.Euler(0, 0, Math.PI / 4),
-		];
-		const beamMats: THREE.MeshStandardMaterial[] = [];
-		const cage = new THREE.Group();
-		const basis = new THREE.Matrix4();
-		const dir = new THREE.Vector3();
-		const radial = new THREE.Vector3();
-		const side = new THREE.Vector3();
-		const flat = new THREE.Vector3();
-		for (let oi = 0; oi < orientations.length; oi++) {
-			const mat = new THREE.MeshStandardMaterial({
-				color: shades[oi],
-				roughness: 0.36,
-				metalness: 0.5,
-				polygonOffset: true,
-				polygonOffsetFactor: oi,
-				polygonOffsetUnits: oi,
-			});
-			beamMats.push(mat);
-			const frame = new THREE.Group();
-			for (const [a, b] of edges) {
-				const beam = new THREE.Mesh(beamGeo, mat);
-				beam.position.copy(a).add(b).multiplyScalar(0.5);
-				dir.copy(b).sub(a).normalize();
-				radial.copy(beam.position).normalize();
-				side.crossVectors(radial, dir).normalize();
-				flat.crossVectors(dir, side).normalize();
-				basis.makeBasis(side, flat, dir);
-				beam.quaternion.setFromRotationMatrix(basis);
-				frame.add(beam);
-			}
-			for (const v of octaVerts) {
-				const joint = new THREE.Mesh(jointGeo, mat);
-				joint.position.copy(v);
-				frame.add(joint);
-			}
-			frame.rotation.copy(orientations[oi]);
-			frame.scale.setScalar(1 + (oi - 1) * 0.0045);
-			cage.add(frame);
-		}
-
-		const star = new THREE.Group();
-		star.add(innerSphere);
-		scene.add(star);
-
-		const key = new THREE.DirectionalLight(0xfff1da, 1.8);
-		key.position.set(3, 4, 2.5);
-		const fill = new THREE.DirectionalLight(0x9aa7bb, 0.35);
-		fill.position.set(-4, -2, -3);
-		const core = new THREE.PointLight(0xc9a227, 2.4, 8, 1.8);
-		scene.add(key, fill, core);
-
-		const haloCanvas = document.createElement("canvas");
-		haloCanvas.width = 256;
-		haloCanvas.height = 256;
-		const haloCtx = haloCanvas.getContext("2d");
-		if (haloCtx) {
-			const g = haloCtx.createRadialGradient(128, 128, 0, 128, 128, 128);
-			g.addColorStop(0, "rgba(255, 255, 255, 0.8)");
-			g.addColorStop(0.35, "rgba(255, 255, 255, 0.22)");
-			g.addColorStop(1, "rgba(255, 255, 255, 0)");
-			haloCtx.fillStyle = g;
-			haloCtx.fillRect(0, 0, 256, 256);
-		}
-		const haloTexture = new THREE.CanvasTexture(haloCanvas);
-		const haloMat = new THREE.SpriteMaterial({
-			map: haloTexture,
-			blending: THREE.AdditiveBlending,
-			transparent: true,
-			opacity: 0.22,
-			depthWrite: false,
-		});
-		const halo = new THREE.Sprite(haloMat);
-		halo.position.set(0, 0, -1.6);
-		halo.scale.setScalar(2.8);
-		scene.add(halo);
-
-		const starCount = 500;
-		const starPositions = new Float32Array(starCount * 3);
-		for (let k = 0; k < starCount; k++) {
-			const r = 5 + Math.random() * 10;
-			const phi = Math.acos(2 * Math.random() - 1);
-			const th = Math.random() * Math.PI * 2;
-			starPositions.set(
-				[
-					r * Math.sin(phi) * Math.cos(th),
-					r * Math.cos(phi) * 0.7,
-					r * Math.sin(phi) * Math.sin(th) - 3,
-				],
-				k * 3,
-			);
-		}
-		const starGeo = new THREE.BufferGeometry();
-		starGeo.setAttribute(
-			"position",
-			new THREE.BufferAttribute(starPositions, 3),
-		);
-		const starMat = new THREE.PointsMaterial({
-			color: 0xfff7e0,
-			size: 0.02,
-			transparent: true,
-			opacity: 0.5,
-			sizeAttenuation: true,
-		});
-		const dust = new THREE.Points(starGeo, starMat);
-		scene.add(dust);
+		const wrapper = wrapperRef.current;
+		const canvas = canvasRef.current;
+		if (!wrapper || !canvas) return;
 
 		const resize = () => {
-			const w = mount.clientWidth;
-			const h = mount.clientHeight;
+			const w = wrapper.clientWidth;
+			const h = wrapper.clientHeight;
 			if (w === 0 || h === 0) return;
-			renderer.setSize(w, h);
-			camera.aspect = w / h;
-			camera.updateProjectionMatrix();
+			const dpr = Math.min(window.devicePixelRatio || 1, 2);
+			canvas.width = Math.floor(w * dpr);
+			canvas.height = Math.floor(h * dpr);
+			canvas.style.width = `${w}px`;
+			canvas.style.height = `${h}px`;
 		};
 		resize();
 		const observer = new ResizeObserver(resize);
-		observer.observe(mount);
+		observer.observe(wrapper);
 
-		const el = renderer.domElement;
+		const el = canvas;
 		const pointers = new Map<number, { x: number; y: number }>();
 		let pinchDist = 0;
 		const onDown = (e: PointerEvent) => {
@@ -622,8 +434,8 @@ function StellatedStar({
 				if (pinchDist > 0 && d > 0) {
 					const zoom = zoomRef.current;
 					zoom.target = Math.min(
-						12,
-						Math.max(2.2, zoom.target * (pinchDist / d)),
+						2.7,
+						Math.max(0.82, zoom.target * (d / pinchDist)),
 					);
 				}
 				pinchDist = d;
@@ -631,11 +443,10 @@ function StellatedStar({
 			}
 			const drag = dragRef.current;
 			if (!drag) return;
-			const spin = spinRef.current;
-			spin.y += (e.clientX - drag.x) * 0.005;
-			spin.x += (e.clientY - drag.y) * 0.003;
-			spin.vy = (e.clientX - drag.x) * 0.05;
-			spin.vx = (e.clientY - drag.y) * 0.03;
+			const dx = e.clientX - drag.x;
+			const dy = e.clientY - drag.y;
+			driftRef.current.angle += dx * 0.004 + dy * 0.0015;
+			driftRef.current.velocity = dx * 0.018;
 			dragRef.current = { x: e.clientX, y: e.clientY };
 		};
 		const onUp = (e: PointerEvent) => {
@@ -647,13 +458,13 @@ function StellatedStar({
 			e.preventDefault();
 			const zoom = zoomRef.current;
 			zoom.target = Math.min(
-				12,
-				Math.max(2.2, zoom.target * Math.exp(e.deltaY * 0.0012)),
+				2.7,
+				Math.max(0.82, zoom.target * Math.exp(-e.deltaY * 0.0012)),
 			);
 		};
 		const onDouble = () => {
-			spinRef.current = { x: 0.3, y: 0.55, vx: 0, vy: 0 };
-			zoomRef.current.target = INITIAL_HERO_ZOOM;
+			driftRef.current = { angle: 0, velocity: 0 };
+			zoomRef.current.target = 1;
 		};
 		el.addEventListener("pointerdown", onDown);
 		el.addEventListener("pointermove", onMove);
@@ -662,12 +473,15 @@ function StellatedStar({
 		el.addEventListener("wheel", onWheel, { passive: false });
 		el.addEventListener("dblclick", onDouble);
 
-		const tint = new THREE.Color();
-		const white = new THREE.Color("#fff6e0");
-
 		let raf = 0;
 		let lastTime = performance.now();
 		let elapsed = 0;
+		const ART_SIZE = 1400;
+		const artCanvas = document.createElement("canvas");
+		artCanvas.width = ART_SIZE;
+		artCanvas.height = ART_SIZE;
+		artCanvasRef.current = artCanvas;
+		const artCtx = artCanvas.getContext("2d");
 
 		const loop = (now: number) => {
 			raf = requestAnimationFrame(loop);
@@ -676,10 +490,23 @@ function StellatedStar({
 			elapsed += dt;
 
 			const { tiling, layout, colors, theme } = handlesRef.current;
-			if (tiling && texCtx) {
+			const ctx = canvas.getContext("2d");
+			if (!ctx || canvas.width === 0) return;
+
+			const dpr = canvas.width / Math.max(1, canvas.clientWidth);
+			const width = canvas.width;
+			const height = canvas.height;
+			ctx.clearRect(0, 0, width, height);
+
+			if (tiling && artCtx) {
 				const clock = clockRef.current;
-				clock.theta += dt * 0.16;
-				clock.phase += dt * 0.21;
+				const drift = driftRef.current;
+				if (!dragRef.current) {
+					drift.angle += (0.055 + drift.velocity) * dt;
+					drift.velocity *= Math.exp(-2.4 * dt);
+				}
+				clock.theta += dt * 0.13;
+				clock.phase += dt * 0.19;
 				const view = glide(clock);
 				const verts = tiling.transform_vertices(
 					view.ar,
@@ -687,43 +514,104 @@ function StellatedStar({
 					view.br,
 					view.bi,
 				);
-				drawTiling(texCtx, TEX_SIZE, 1.5, layout, colors, theme, verts, false);
-				texture.needsUpdate = true;
+				const zoom = zoomRef.current;
+				zoom.cur += (zoom.target - zoom.cur) * Math.min(1, dt * 6);
+				drawTiling(
+					artCtx,
+					ART_SIZE,
+					1.65,
+					layout,
+					colors,
+					theme,
+					verts,
+					false,
+					elapsed,
+					zoom.cur,
+				);
 
-				tint.set(theme.rim);
-				const lum = tint.r * 0.299 + tint.g * 0.587 + tint.b * 0.114;
-				if (lum < 0.3) tint.lerp(white, 0.75);
-				core.color.copy(tint);
-				haloMat.color.copy(tint);
+				const side = Math.min(width, height) * 0.92;
+				const cx =
+					width / 2 + parallaxRef.current.x * Math.min(28 * dpr, side * 0.035);
+				const cy =
+					height / 2 -
+					18 * dpr -
+					parallaxRef.current.y * Math.min(22 * dpr, side * 0.03);
+				const r = side / 2;
+
+				ctx.save();
+				ctx.translate(cx, cy + r * 0.84);
+				ctx.scale(1, 0.12);
+				const shadow = ctx.createRadialGradient(0, 0, r * 0.12, 0, 0, r);
+				shadow.addColorStop(0, "rgba(0, 0, 0, 0.42)");
+				shadow.addColorStop(0.55, "rgba(0, 0, 0, 0.18)");
+				shadow.addColorStop(1, "rgba(0, 0, 0, 0)");
+				ctx.fillStyle = shadow;
+				ctx.beginPath();
+				ctx.arc(0, 0, r, 0, Math.PI * 2);
+				ctx.fill();
+				ctx.restore();
+
+				ctx.save();
+				ctx.beginPath();
+				ctx.arc(cx, cy, r, 0, Math.PI * 2);
+				ctx.clip();
+				ctx.translate(cx, cy);
+				ctx.rotate(drift.angle);
+				ctx.drawImage(artCanvas, -r, -r, r * 2, r * 2);
+				ctx.restore();
+
+				ctx.save();
+				ctx.beginPath();
+				ctx.arc(cx, cy, r, 0, Math.PI * 2);
+				ctx.clip();
+
+				const shade = ctx.createRadialGradient(
+					cx - r * 0.34,
+					cy - r * 0.42,
+					r * 0.06,
+					cx,
+					cy,
+					r,
+				);
+				shade.addColorStop(0, "rgba(255, 255, 235, 0.18)");
+				shade.addColorStop(0.28, "rgba(255, 255, 255, 0.03)");
+				shade.addColorStop(0.72, "rgba(0, 0, 0, 0.05)");
+				shade.addColorStop(1, "rgba(0, 0, 0, 0.5)");
+				ctx.fillStyle = shade;
+				ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+
+				const glint = ctx.createLinearGradient(
+					cx - r * 0.74,
+					cy - r * 0.84,
+					cx + r * 0.22,
+					cy + r * 0.26,
+				);
+				glint.addColorStop(0, "rgba(255, 255, 255, 0)");
+				glint.addColorStop(0.46, "rgba(255, 255, 255, 0.13)");
+				glint.addColorStop(0.54, "rgba(255, 247, 210, 0.04)");
+				glint.addColorStop(1, "rgba(255, 255, 255, 0)");
+				ctx.globalCompositeOperation = "screen";
+				ctx.fillStyle = glint;
+				ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+				ctx.restore();
+
+				ctx.save();
+				ctx.beginPath();
+				ctx.arc(cx, cy, r - 1.5 * dpr, 0, Math.PI * 2);
+				ctx.strokeStyle = theme.rim;
+				ctx.globalAlpha = 0.52 + 0.16 * Math.sin(elapsed * 0.7);
+				ctx.lineWidth = 1.4 * dpr;
+				ctx.shadowColor = theme.rim;
+				ctx.shadowBlur = 8 * dpr;
+				ctx.stroke();
+				ctx.beginPath();
+				ctx.arc(cx, cy, r - 8 * dpr, 0, Math.PI * 2);
+				ctx.globalAlpha = 0.18;
+				ctx.lineWidth = 0.65 * dpr;
+				ctx.shadowBlur = 0;
+				ctx.stroke();
+				ctx.restore();
 			}
-
-			const spin = spinRef.current;
-			if (!dragRef.current) {
-				spin.y += (0.1 + spin.vy) * dt;
-				spin.x += spin.vx * dt;
-				const decay = Math.exp(-1.4 * dt);
-				spin.vx *= decay;
-				spin.vy *= decay;
-			}
-			star.rotation.x = spin.x + Math.sin(elapsed * 0.21) * 0.08;
-			star.rotation.y = spin.y;
-			star.position.y = Math.sin(elapsed * 0.42) * 0.05;
-			innerSphere.rotation.y = -elapsed * 0.18;
-
-			haloMat.opacity = 0.18 + 0.05 * Math.sin(elapsed * 0.4);
-			dust.rotation.y = elapsed * 0.004;
-
-			const zoom = zoomRef.current;
-			zoom.dist += (zoom.target - zoom.dist) * Math.min(1, dt * 5);
-			const ease = Math.min(1, dt * 2.5);
-			camera.position.x +=
-				(parallaxRef.current.x * 0.22 - camera.position.x) * ease;
-			camera.position.y +=
-				(0.15 - parallaxRef.current.y * 0.15 - camera.position.y) * ease;
-			camera.position.z = zoom.dist;
-			camera.lookAt(0, 0, 0);
-
-			renderer.render(scene, camera);
 		};
 		raf = requestAnimationFrame(loop);
 
@@ -736,28 +624,17 @@ function StellatedStar({
 			el.removeEventListener("pointercancel", onUp);
 			el.removeEventListener("wheel", onWheel);
 			el.removeEventListener("dblclick", onDouble);
-			sphereGeo.dispose();
-			sphereMat.dispose();
-			beamGeo.dispose();
-			jointGeo.dispose();
-			for (const mat of beamMats) mat.dispose();
-			haloTexture.dispose();
-			haloMat.dispose();
-			starGeo.dispose();
-			starMat.dispose();
-			texture.dispose();
-			envTexture.dispose();
-			pmrem.dispose();
-			renderer.dispose();
-			mount.removeChild(el);
+			artCanvasRef.current = null;
 		};
 	}, [handlesRef]);
 
 	return (
-		<div
-			ref={mountRef}
-			className="absolute inset-0 cursor-grab active:cursor-grabbing"
-		/>
+		<div ref={wrapperRef} className="absolute inset-0">
+			<canvas
+				ref={canvasRef}
+				className="block h-full w-full cursor-grab touch-none active:cursor-grabbing"
+			/>
+		</div>
 	);
 }
 
@@ -878,7 +755,7 @@ export default function CircleLimitGallery() {
 
 	const handleBuilt = useCallback((id: string, count: number) => {
 		setTileCounts((prev) =>
-			prev[id] === count ? prev : { ...prev, [id]: count },
+			prev[id] && prev[id] >= count ? prev : { ...prev, [id]: count },
 		);
 	}, []);
 
@@ -943,9 +820,9 @@ export default function CircleLimitGallery() {
 					</div>
 					<p className="mt-4 font-mono text-[10px] uppercase tracking-widest text-neutral-600">
 						{tileCounts[hero.id]
-							? `${tileCounts[hero.id].toLocaleString()} tiles in the cage · `
+							? `${tileCounts[hero.id].toLocaleString()} reflected tiles · `
 							: ""}
-						drag to tumble &middot; scroll to zoom &middot; double-click to
+						drag to rotate &middot; scroll to zoom &middot; double-click to
 						recenter
 					</p>
 				</figcaption>
@@ -960,7 +837,7 @@ export default function CircleLimitGallery() {
 					<div className="h-px flex-1 bg-neutral-800" />
 				</div>
 				<p className="mb-12 text-center font-mono text-[10px] uppercase tracking-widest text-neutral-600">
-					Click a plate to cage it &middot; scroll over a plate to magnify
+					Click a plate to stage it &middot; scroll over a plate to magnify
 				</p>
 
 				<div className="grid gap-x-10 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
