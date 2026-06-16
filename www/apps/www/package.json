@@ -12,6 +12,7 @@
     "clean": "git clean -xdf .next .turbo .cache node_modules"
   },
   "dependencies": {
+    "@chenglou/pretext": "^0.0.8",
     "@gsap/react": "^2.1.2",
     "@t3-oss/env-nextjs": "^0.13.11",
     "@zeyaddeeb/ui": "workspace:*",

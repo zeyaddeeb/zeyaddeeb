@@ -36,6 +36,14 @@ const experiments = [
 		gradient: "from-amber-500 to-teal-500",
 	},
 	{
+		title: "Falling Code",
+		description:
+			"A Matrix-inspired rain field using @chenglou/pretext to shape falling glyph streams.",
+		href: "/experiments/pretext-matrix",
+		tags: ["Pretext", "CSS", "ASCII", "Typography"],
+		gradient: "from-green-400 to-cyan-400",
+	},
+	{
 		title: "Conway's Game of Life",
 		description:
 			"High-performance interactive simulation of cellular automata. Powered by WebAssembly and Rust with side-by-side JS benchmark timing.",
