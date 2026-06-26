@@ -8,7 +8,7 @@ service:
   port: 3000
 
 ingress:
-  enabled: true
+  enabled: false
   className: "nginx-external"
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-dns
@@ -29,6 +29,44 @@ ingress:
       hosts:
         - www.zeyaddeeb.com
         - zeyaddeeb.com
+
+istio:
+  enabled: true
+  certificate:
+    enabled: true
+    secretName: zeyaddeeb-tls
+    issuerRef:
+      name: letsencrypt-dns
+      kind: ClusterIssuer
+    dnsNames:
+      - www.zeyaddeeb.com
+      - zeyaddeeb.com
+  gateway:
+    enabled: true
+    annotations:
+      external-dns.alpha.kubernetes.io/hostname: www.zeyaddeeb.com,zeyaddeeb.com
+    selector:
+      istio: ingressgateway-public
+    hosts:
+      - www.zeyaddeeb.com
+      - zeyaddeeb.com
+    http:
+      enabled: true
+      httpsRedirect: true
+    tls:
+      enabled: true
+      credentialName: zeyaddeeb-tls
+  virtualService:
+    enabled: true
+    hosts:
+      - www.zeyaddeeb.com
+      - zeyaddeeb.com
+    gateways:
+      - zeyaddeeb-www
+    http:
+      - match:
+          - uri:
+              prefix: /
 env:
   NODE_ENV: "production"
   APP_NAME: "www"

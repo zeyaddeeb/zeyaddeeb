@@ -32,7 +32,7 @@ pub fn setup_ui(mut commands: Commands) {
             parent.spawn((
                 Text::new("🤖 Robot Training Stats"),
                 TextFont {
-                    font_size: 24.0,
+                    font_size: FontSize::Px(24.0),
                     ..default()
                 },
                 TextColor(Color::srgb(0.9, 0.9, 0.9)),
@@ -46,7 +46,7 @@ pub fn setup_ui(mut commands: Commands) {
                 EpisodeText,
                 Text::new("Episode: 0"),
                 TextFont {
-                    font_size: 18.0,
+                    font_size: FontSize::Px(18.0),
                     ..default()
                 },
                 TextColor(Color::srgb(0.8, 0.8, 0.8)),
@@ -56,7 +56,7 @@ pub fn setup_ui(mut commands: Commands) {
                 RewardText,
                 Text::new("Reward: 0.00 (EMA: 0.00)"),
                 TextFont {
-                    font_size: 18.0,
+                    font_size: FontSize::Px(18.0),
                     ..default()
                 },
                 TextColor(Color::srgb(0.8, 0.8, 0.8)),
@@ -66,7 +66,7 @@ pub fn setup_ui(mut commands: Commands) {
                 BestRewardText,
                 Text::new("Best: 0.00"),
                 TextFont {
-                    font_size: 18.0,
+                    font_size: FontSize::Px(18.0),
                     ..default()
                 },
                 TextColor(Color::srgb(0.3, 0.9, 0.3)),
@@ -76,7 +76,7 @@ pub fn setup_ui(mut commands: Commands) {
                 SuccessRateText,
                 Text::new("Baskets: 0/0 (0.0%)"),
                 TextFont {
-                    font_size: 18.0,
+                    font_size: FontSize::Px(18.0),
                     ..default()
                 },
                 TextColor(Color::srgb(0.9, 0.6, 0.2)),

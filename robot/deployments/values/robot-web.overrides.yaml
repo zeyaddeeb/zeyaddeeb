@@ -9,7 +9,7 @@ service:
   port: 80
 
 ingress:
-  enabled: true
+  enabled: false
   className: "nginx-external"
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-dns
@@ -24,6 +24,41 @@ ingress:
     - secretName: robot-zeyaddeeb-tls
       hosts:
         - robot.zeyaddeeb.com
+
+istio:
+  enabled: true
+  certificate:
+    enabled: true
+    secretName: robot-zeyaddeeb-tls
+    issuerRef:
+      name: letsencrypt-dns
+      kind: ClusterIssuer
+    dnsNames:
+      - robot.zeyaddeeb.com
+  gateway:
+    enabled: true
+    annotations:
+      external-dns.alpha.kubernetes.io/hostname: robot.zeyaddeeb.com
+    selector:
+      istio: ingressgateway-public
+    hosts:
+      - robot.zeyaddeeb.com
+    http:
+      enabled: true
+      httpsRedirect: true
+    tls:
+      enabled: true
+      credentialName: robot-zeyaddeeb-tls
+  virtualService:
+    enabled: true
+    hosts:
+      - robot.zeyaddeeb.com
+    gateways:
+      - zeyaddeeb-robot-web
+    http:
+      - match:
+          - uri:
+              prefix: /
 
 env:
   NODE_ENV: "production"

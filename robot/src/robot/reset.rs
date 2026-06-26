@@ -17,14 +17,17 @@ impl BodyPartPose {
 }
 
 pub fn get_randomized_initial_poses() -> RobotPoses {
-    let mut poses = get_initial_poses();
+    let poses = get_initial_poses();
 
     #[cfg(not(target_arch = "wasm32"))]
     {
+        let mut poses = poses;
         poses.torso.position.x += rand::random_range(-0.05..0.05);
         poses.torso.position.z += rand::random_range(-0.05..0.05);
+        poses
     }
 
+    #[cfg(target_arch = "wasm32")]
     poses
 }
 

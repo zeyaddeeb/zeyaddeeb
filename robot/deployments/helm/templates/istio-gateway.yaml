@@ -1,0 +1,41 @@
+{{- if and .Values.istio.enabled .Values.istio.gateway.enabled -}}
+{{- $fullName := include "robot.fullname" . -}}
+{{- $istioName := printf "%s-%s" .Release.Namespace $fullName | trunc 63 | trimSuffix "-" -}}
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: {{ default $istioName .Values.istio.gateway.name }}
+  labels:
+    {{- include "robot.labels" . | nindent 4 }}
+  {{- with .Values.istio.gateway.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    {{- toYaml .Values.istio.gateway.selector | nindent 4 }}
+  servers:
+    {{- if .Values.istio.gateway.http.enabled }}
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        {{- toYaml .Values.istio.gateway.hosts | nindent 8 }}
+      {{- if .Values.istio.gateway.http.httpsRedirect }}
+      tls:
+        httpsRedirect: true
+      {{- end }}
+    {{- end }}
+    {{- if .Values.istio.gateway.tls.enabled }}
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      hosts:
+        {{- toYaml .Values.istio.gateway.hosts | nindent 8 }}
+      tls:
+        mode: {{ default "SIMPLE" .Values.istio.gateway.tls.mode }}
+        credentialName: {{ .Values.istio.gateway.tls.credentialName }}
+    {{- end }}
+{{- end }}

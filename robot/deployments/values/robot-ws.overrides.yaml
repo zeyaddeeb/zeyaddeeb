@@ -15,7 +15,7 @@ service:
   port: 9001
 
 ingress:
-  enabled: true
+  enabled: false
   className: "nginx-external"
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-dns
@@ -33,6 +33,42 @@ ingress:
     - secretName: robot-ws-zeyaddeeb-tls
       hosts:
         - ws.robot.zeyaddeeb.com
+
+istio:
+  enabled: true
+  certificate:
+    enabled: true
+    secretName: robot-ws-zeyaddeeb-tls
+    issuerRef:
+      name: letsencrypt-dns
+      kind: ClusterIssuer
+    dnsNames:
+      - ws.robot.zeyaddeeb.com
+  gateway:
+    enabled: true
+    annotations:
+      external-dns.alpha.kubernetes.io/hostname: ws.robot.zeyaddeeb.com
+    selector:
+      istio: ingressgateway-public
+    hosts:
+      - ws.robot.zeyaddeeb.com
+    http:
+      enabled: true
+      httpsRedirect: true
+    tls:
+      enabled: true
+      credentialName: robot-ws-zeyaddeeb-tls
+  virtualService:
+    enabled: true
+    hosts:
+      - ws.robot.zeyaddeeb.com
+    gateways:
+      - zeyaddeeb-robot-ws
+    http:
+      - match:
+          - uri:
+              prefix: /
+        timeout: 0s
 
 env:
   WS_BIND_ADDR: "0.0.0.0:9001"

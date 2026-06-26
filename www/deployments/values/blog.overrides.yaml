@@ -8,7 +8,7 @@ service:
   port: 3000
 
 ingress:
-  enabled: true
+  enabled: false
   className: "nginx-external"
   annotations:
     kubernetes.io/tls-acme: "true"
@@ -26,6 +26,24 @@ ingress:
       hosts:
         - www.zeyaddeeb.com
         - zeyaddeeb.com
+
+istio:
+  enabled: true
+  certificate:
+    enabled: false
+  gateway:
+    enabled: false
+  virtualService:
+    enabled: true
+    hosts:
+      - www.zeyaddeeb.com
+      - zeyaddeeb.com
+    gateways:
+      - zeyaddeeb-www
+    http:
+      - match:
+          - uri:
+              prefix: /blog
 
 env:
   NODE_ENV: "production"

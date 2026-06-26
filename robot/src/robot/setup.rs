@@ -1,6 +1,7 @@
 use super::builder::spawn_robot;
 use super::components::*;
 use super::constants::*;
+#[allow(unused_imports)]
 use super::resources::*;
 
 #[cfg(feature = "native")]
@@ -39,7 +40,7 @@ pub fn setup(
     commands.spawn((
         DirectionalLight {
             illuminance: 15000.0,
-            shadows_enabled: true,
+            shadow_maps_enabled: true,
             ..default()
         },
         Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.8, 0.4, 0.0)),

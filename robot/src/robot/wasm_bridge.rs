@@ -146,7 +146,7 @@ fn update_ws_status(text: &str, class_name: &str) {
     status.set_attribute("class", class_name).ok();
 }
 
-fn update_training_stats(stats: &super::resources::TrainStatsMsg) {
+fn update_training_stats(stats: &TrainStatsMsg) {
     let Some(window) = web_sys::window() else {
         return;
     };
