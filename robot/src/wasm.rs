@@ -2,9 +2,6 @@ use ::robot::{camera, robot, ui};
 use avian3d::prelude::*;
 use bevy::{audio::PlaybackMode, prelude::*, render::settings::WgpuSettings};
 
-#[derive(Resource)]
-struct BackgroundMusic;
-
 fn setup_music(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         AudioPlayer::new(asset_server.load("eye_of_the_tiger.ogg")),
@@ -38,12 +35,12 @@ fn main() {
                     ..default()
                 })
                 .set(bevy::render::RenderPlugin {
-                    render_creation: bevy::render::settings::RenderCreation::Automatic(
+                    render_creation: bevy::render::settings::RenderCreation::Automatic(Box::new(
                         WgpuSettings {
                             backends: Some(bevy::render::settings::Backends::GL),
                             ..default()
                         },
-                    ),
+                    )),
                     ..default()
                 }),
         )

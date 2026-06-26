@@ -1,0 +1,55 @@
+{{- if and .Values.istio.enabled .Values.istio.virtualService.enabled -}}
+{{- $fullName := include "robot.fullname" . -}}
+{{- $istioName := printf "%s-%s" .Release.Namespace $fullName | trunc 63 | trimSuffix "-" -}}
+{{- $svcPort := .Values.service.port -}}
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ default $istioName .Values.istio.virtualService.name }}
+  labels:
+    {{- include "robot.labels" . | nindent 4 }}
+  {{- with .Values.istio.virtualService.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  hosts:
+    {{- toYaml .Values.istio.virtualService.hosts | nindent 4 }}
+  gateways:
+    {{- toYaml .Values.istio.virtualService.gateways | nindent 4 }}
+  http:
+    {{- range .Values.istio.virtualService.http }}
+    - {{- with .name }}
+      name: {{ . }}
+      {{- end }}
+      {{- with .match }}
+      match:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .redirect }}
+      redirect:
+        {{- toYaml . | nindent 8 }}
+      {{- else }}
+      route:
+        {{- if .route }}
+        {{- toYaml .route | nindent 8 }}
+        {{- else }}
+        - destination:
+            host: {{ $fullName }}
+            port:
+              number: {{ $svcPort }}
+        {{- end }}
+      {{- end }}
+      {{- with .timeout }}
+      timeout: {{ . | quote }}
+      {{- end }}
+      {{- with .retries }}
+      retries:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .headers }}
+      headers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
+{{- end }}

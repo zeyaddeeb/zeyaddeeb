@@ -1,6 +1,6 @@
 {
   "name": "zeyaddeeb",
-  "version": "0.1.25",
+  "version": "0.1.26",
   "private": true,
   "scripts": {
     "build": "turbo build",
@@ -28,7 +28,7 @@
   ],
   "catalog": {
     "@tanstack/react-query": "^5.100.10",
-    "@types/node": "25.8.0",
+    "@types/node": "26.0.1",
     "@types/react": "^19.2.14",
     "typescript": "^6.0.3"
   }
