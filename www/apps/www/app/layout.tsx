@@ -94,7 +94,7 @@ export default function RootLayout({
 	return (
 		<html lang="en" data-scroll-behavior="smooth">
 			<body
-				className={`${antonFont.variable} ${robotoFlex.variable} ${newsreader.variable} cursor-none bg-neutral-950 antialiased`}
+				className={`${antonFont.variable} ${robotoFlex.variable} ${newsreader.variable} bg-neutral-950 antialiased md:cursor-none`}
 			>
 				<AppStateProvider>
 					<WASMContextProvider>

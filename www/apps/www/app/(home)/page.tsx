@@ -30,19 +30,25 @@ function DiagonalSection({
 
 	const sectionStyles = [
 		{
-			gradient: "from-rose-950 via-neutral-950 to-neutral-950",
-			accentGradient: "from-rose-500/20 via-transparent to-transparent",
-			glowColor: "bg-rose-500/30",
+			background:
+				"linear-gradient(135deg, #271413 0%, #0a0908 46%, #050505 100%)",
+			accent:
+				"radial-gradient(circle at 18% 20%, rgba(199, 100, 72, 0.34), transparent 42%)",
+			glowColor: "rgba(199, 100, 72, 0.32)",
 		},
 		{
-			gradient: "from-indigo-950 via-neutral-950 to-neutral-950",
-			accentGradient: "from-violet-500/20 via-transparent to-transparent",
-			glowColor: "bg-violet-500/30",
+			background:
+				"linear-gradient(135deg, #101829 0%, #08090c 48%, #050505 100%)",
+			accent:
+				"radial-gradient(circle at 50% 18%, rgba(95, 139, 173, 0.28), transparent 45%)",
+			glowColor: "rgba(95, 139, 173, 0.3)",
 		},
 		{
-			gradient: "from-emerald-950 via-neutral-950 to-neutral-950",
-			accentGradient: "from-emerald-500/20 via-transparent to-transparent",
-			glowColor: "bg-emerald-500/30",
+			background:
+				"linear-gradient(135deg, #132118 0%, #080a08 48%, #050505 100%)",
+			accent:
+				"radial-gradient(circle at 82% 22%, rgba(127, 157, 111, 0.3), transparent 44%)",
+			glowColor: "rgba(127, 157, 111, 0.31)",
 		},
 	];
 
@@ -69,14 +75,16 @@ function DiagonalSection({
 			onMouseEnter={() => setActiveIndex(index)}
 			onMouseLeave={() => setActiveIndex(null)}
 		>
-			<div className={`absolute inset-0 bg-linear-to-br ${style.gradient}`} />
-
 			<div
-				className={`absolute inset-0 bg-linear-to-br ${style.accentGradient}`}
+				className="absolute inset-0"
+				style={{ background: style.background }}
 			/>
 
+			<div className="absolute inset-0" style={{ background: style.accent }} />
+
 			<motion.div
-				className={`absolute -inset-20 ${style.glowColor} blur-3xl`}
+				className="absolute -inset-20 blur-3xl"
+				style={{ backgroundColor: style.glowColor }}
 				initial={{ opacity: 0 }}
 				animate={{ opacity: isActive ? 0.6 : 0 }}
 				transition={{ duration: 0.5 }}
@@ -98,9 +106,9 @@ function DiagonalSection({
 				}}
 			/>
 
-			<div className="relative z-10 text-center px-6">
+			<div className="relative z-10 px-5 text-center sm:px-6">
 				<motion.h2
-					className="text-[clamp(2rem,6vw,5rem)] font-bold uppercase leading-[0.9] tracking-tight text-white drop-shadow-2xl"
+					className="text-[clamp(2rem,6vw,5rem)] font-bold uppercase leading-[0.9] tracking-normal text-white drop-shadow-2xl"
 					style={{ fontFamily: "var(--font-anton)" }}
 					animate={{ y: isActive ? -5 : 0 }}
 					transition={{ duration: 0.3 }}
@@ -139,11 +147,14 @@ function DiagonalSection({
 			</motion.div>
 
 			<motion.div
-				className={`absolute bottom-0 left-0 right-0 h-0.5 ${style.glowColor}`}
+				className="absolute bottom-0 left-0 right-0 h-0.5"
+				style={{
+					backgroundColor: style.glowColor,
+					transformOrigin: "left",
+				}}
 				initial={{ scaleX: 0 }}
 				animate={{ scaleX: isActive ? 1 : 0 }}
 				transition={{ duration: 0.4 }}
-				style={{ transformOrigin: "left" }}
 			/>
 		</motion.div>
 	);
@@ -186,10 +197,10 @@ export default function HomePage() {
 	];
 
 	return (
-		<main className="bg-neutral-950 text-white">
+		<main className="h-dvh overflow-hidden bg-[#050505] text-white">
 			<Link
 				href="/"
-				className="fixed left-4 top-4 z-50 text-xl font-bold uppercase tracking-tight text-white transition-colors hover:text-neutral-300 md:hidden"
+				className="fixed left-4 top-4 z-50 text-xl font-bold uppercase tracking-normal text-white transition-colors hover:text-neutral-300 md:hidden"
 				style={{ fontFamily: "var(--font-anton, inherit)" }}
 			>
 				Z
@@ -202,7 +213,7 @@ export default function HomePage() {
 				transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
 			>
 				<motion.h1
-					className="text-4xl font-bold uppercase leading-[0.85] tracking-tight text-white mix-blend-difference lg:text-5xl xl:text-6xl"
+					className="text-4xl font-bold uppercase leading-[0.85] tracking-normal text-white mix-blend-difference lg:text-5xl xl:text-6xl"
 					style={{ fontFamily: "var(--font-anton)" }}
 					initial={{ y: 20, opacity: 0 }}
 					animate={{ y: 0, opacity: 1 }}
@@ -220,9 +231,9 @@ export default function HomePage() {
 				</motion.p>
 			</motion.div>
 
-			<div className="flex min-h-screen flex-col md:hidden">
+			<div className="flex h-dvh min-h-0 flex-col overflow-hidden md:hidden">
 				{sections.map((section, index) => (
-					<div key={section.title} className="h-[33.333vh]">
+					<div key={section.title} className="h-[calc(100dvh/3)] min-h-0">
 						<DiagonalSection
 							{...section}
 							index={index}
@@ -233,7 +244,7 @@ export default function HomePage() {
 				))}
 			</div>
 
-			<div className="relative hidden min-h-screen overflow-hidden md:block">
+			<div className="relative hidden h-dvh overflow-hidden md:block">
 				<div className="absolute inset-0 flex">
 					{sections.map((section, index) => (
 						<div

@@ -63,8 +63,19 @@ export function BlogContent({
 
 	return (
 		<div className="min-h-screen bg-neutral-950">
-			<section className="border-b border-neutral-800/50">
-				<div className="mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-12">
+			<section className="relative overflow-hidden border-b border-neutral-800/50">
+				<div
+					className="absolute inset-0"
+					style={{
+						background:
+							"linear-gradient(135deg, rgba(39, 20, 19, 0.68) 0%, rgba(10, 9, 8, 0.92) 48%, #050505 100%)",
+					}}
+				/>
+				<div
+					className="pointer-events-none absolute -left-40 -top-44 h-80 w-80 rounded-full blur-3xl"
+					style={{ backgroundColor: "rgba(199, 100, 72, 0.16)" }}
+				/>
+				<div className="relative mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-12">
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
@@ -76,7 +87,7 @@ export function BlogContent({
 						>
 							Blog
 						</h1>
-						<p className="mt-1 text-sm text-neutral-500 md:text-base">
+						<p className="mt-1 text-sm text-neutral-400 md:text-base">
 							Thoughts on software development, technology, and the things I'm
 							learning along the way.
 						</p>
@@ -99,12 +110,12 @@ export function BlogContent({
 								value={searchValue}
 								onChange={(e) => setSearchValue(e.target.value)}
 								placeholder="Search posts..."
-								className="w-full rounded-lg border border-neutral-800 bg-neutral-900/50 px-4 py-3 text-white placeholder:text-neutral-500 focus:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-700"
+								className="w-full rounded-lg border border-neutral-800 bg-neutral-900/50 px-4 py-3 text-white placeholder:text-neutral-500 focus:border-[#c76448]/70 focus:outline-none focus:ring-1 focus:ring-[#c76448]/50"
 							/>
 							<button
 								type="submit"
 								disabled={isPending}
-								className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-neutral-800 px-4 py-1.5 text-sm text-white transition-colors hover:bg-neutral-700 disabled:opacity-50"
+								className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-[#271413] px-4 py-1.5 text-sm text-white transition-colors hover:bg-[#3a1c19] disabled:opacity-50"
 							>
 								Search
 							</button>
@@ -130,9 +141,9 @@ export function BlogContent({
 								>
 									<Link
 										href={`/posts/${post.slug}`}
-										className="group relative block overflow-hidden rounded-2xl bg-linear-to-br from-neutral-900 to-neutral-950 transition-all duration-500 hover:shadow-2xl hover:shadow-neutral-900/50"
+										className="group relative block overflow-hidden rounded-2xl bg-linear-to-br from-neutral-900 to-neutral-950 transition-all duration-500 hover:shadow-2xl hover:shadow-[#271413]/35"
 									>
-										<div className="absolute inset-0 rounded-2xl bg-linear-to-br from-neutral-700/50 via-transparent to-neutral-800/50 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+										<div className="absolute inset-0 rounded-2xl bg-linear-to-br from-[#c76448]/25 via-transparent to-[#f0b66a]/10 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 										<div className="absolute inset-px rounded-2xl bg-linear-to-br from-neutral-900 to-neutral-950" />
 
 										<div className="relative flex flex-col gap-4 p-6 md:flex-row md:items-start md:gap-6">
@@ -165,7 +176,7 @@ export function BlogContent({
 													</div>
 
 													<h2
-														className="text-xl font-bold tracking-tight text-white transition-colors duration-300 group-hover:text-neutral-100 md:text-2xl"
+														className="text-xl font-bold tracking-normal text-white transition-colors duration-300 group-hover:text-[#f8e8c9] md:text-2xl"
 														style={{ fontFamily: "var(--font-space-grotesk)" }}
 													>
 														{post.title}
@@ -178,7 +189,7 @@ export function BlogContent({
 													)}
 												</div>
 
-												<div className="mt-4 flex items-center gap-2 text-sm font-medium text-neutral-500 transition-all duration-300 group-hover:gap-3 group-hover:text-white">
+												<div className="mt-4 flex items-center gap-2 text-sm font-medium text-neutral-500 transition-all duration-300 group-hover:gap-3 group-hover:text-[#f0b66a]">
 													<span>Read article</span>
 													<svg
 														className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"

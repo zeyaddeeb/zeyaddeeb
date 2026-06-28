@@ -1,0 +1,14 @@
+language: "rust"
+stack: "backend"
+
+project:
+  name: "diarization"
+  description: "Rust backend for the speaker diarization WebRTC experiment."
+
+tasks:
+  dev:
+    command: "cargo run --bin diarization"
+  test:
+    command: "cargo test --all-targets"
+  build:
+    command: "cargo build --all-targets --release"

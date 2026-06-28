@@ -164,9 +164,12 @@
 	}
 	html {
 		@apply overscroll-y-none scroll-smooth;
+		overflow-x: clip;
+		scrollbar-width: none;
 	}
 	body {
 		@apply bg-background text-foreground transition-colors duration-700;
+		overflow-x: clip;
 		/* Use the editorial serif for body text to match Lenis vibe */
 		font-family:
 			var(--font-newsreader), ui-serif, Georgia, Cambria, "Times New Roman",

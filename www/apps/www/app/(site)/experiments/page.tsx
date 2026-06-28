@@ -67,14 +67,31 @@ const experiments = [
 		description:
 			"Train a basketball agent using reinforcement learning in Rust, running in the browser with WebAssembly.",
 	},
+	{
+		title: "Speaker Diarization Lab",
+		description:
+			"Rust WebRTC backend experiment for identifying who spoke when, designed around ONNX embeddings and Candle inference.",
+		href: "/experiments/speaker-diarization",
+		tags: ["WebRTC", "Rust", "ONNX", "Candle"],
+		gradient: "from-sky-400 to-amber-400",
+	},
 ];
 
 export default function ExperimentsPage() {
 	return (
 		<main className="min-h-screen bg-neutral-950 text-white">
-			<section className="relative min-h-screen px-6 pt-42 pb-20 overflow-hidden">
-				<div className="absolute inset-0 bg-linear-to-br from-indigo-950 via-neutral-950 to-neutral-950" />
-				<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-200 h-200 bg-violet-500/10 blur-[150px] rounded-full" />
+			<section className="relative min-h-screen overflow-hidden px-6 pt-42 pb-20">
+				<div
+					className="absolute inset-0"
+					style={{
+						background:
+							"linear-gradient(135deg, #101829 0%, #08090c 48%, #050505 100%)",
+					}}
+				/>
+				<div
+					className="absolute top-1/2 left-1/2 h-200 w-200 -translate-x-1/2 -translate-y-1/2 rounded-full blur-[150px]"
+					style={{ backgroundColor: "rgba(95, 139, 173, 0.13)" }}
+				/>
 				<div
 					className="pointer-events-none absolute inset-0 opacity-[0.15]"
 					style={{
@@ -87,10 +104,10 @@ export default function ExperimentsPage() {
 						initial={{ opacity: 0, y: 30 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-						className="text-center mb-16"
+						className="mb-16 text-center"
 					>
 						<h1
-							className="mb-6 text-[clamp(3rem,10vw,8rem)] font-bold uppercase leading-[0.9] tracking-tight"
+							className="mb-6 text-[clamp(3rem,10vw,8rem)] font-bold uppercase leading-[0.9] tracking-normal"
 							style={{ fontFamily: "var(--font-anton)" }}
 						>
 							Experiments
@@ -117,14 +134,14 @@ export default function ExperimentsPage() {
 								key={experiment.href}
 								href={experiment.href}
 								scroll={true}
-								className="group relative overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/50 p-6 transition-all duration-300 hover:border-neutral-700 hover:bg-neutral-900/80"
+								className="group relative overflow-hidden rounded-2xl border border-[#5f8bad]/20 bg-neutral-950/50 p-6 transition-all duration-300 hover:border-[#5f8bad]/45 hover:bg-neutral-900/80"
 							>
 								<div
 									className={`absolute inset-0 bg-linear-to-br ${experiment.gradient} opacity-0 transition-opacity duration-300 group-hover:opacity-5`}
 								/>
 
 								<div className="relative">
-									<h3 className="mb-2 text-xl font-semibold transition-colors group-hover:text-violet-400">
+									<h3 className="mb-2 pr-10 text-xl font-semibold transition-colors group-hover:text-[#9fc0d4]">
 										{experiment.title}
 									</h3>
 
@@ -142,24 +159,24 @@ export default function ExperimentsPage() {
 											</span>
 										))}
 									</div>
+								</div>
 
-									<div className="absolute top-6 right-6 opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-1">
-										<svg
-											className="h-5 w-5 text-violet-400"
-											fill="none"
-											viewBox="0 0 24 24"
-											stroke="currentColor"
-											aria-hidden="true"
-										>
-											<title>Arrow</title>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												strokeWidth={2}
-												d="M17 8l4 4m0 0l-4 4m4-4H3"
-											/>
-										</svg>
-									</div>
+								<div className="absolute top-6 right-6 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
+									<svg
+										className="h-5 w-5 text-[#9fc0d4]"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										aria-hidden="true"
+									>
+										<title>Arrow</title>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={2}
+											d="M17 8l4 4m0 0l-4 4m4-4H3"
+										/>
+									</svg>
 								</div>
 							</Link>
 						))}

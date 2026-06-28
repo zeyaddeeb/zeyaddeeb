@@ -19,15 +19,28 @@ export default async function HomePage() {
 	return (
 		<div className="min-h-screen bg-neutral-950">
 			<section className="relative overflow-hidden border-b border-neutral-800/50 px-4 py-12 md:px-6 md:py-16">
-				<div className="pointer-events-none absolute -left-40 -top-40 h-80 w-80 rounded-full bg-linear-to-br from-white/5 to-transparent blur-3xl" />
-				<div className="pointer-events-none absolute -bottom-20 -right-20 h-60 w-60 rounded-full bg-linear-to-tl from-white/5 to-transparent blur-3xl" />
+				<div
+					className="absolute inset-0"
+					style={{
+						background:
+							"linear-gradient(135deg, rgba(39, 20, 19, 0.72) 0%, rgba(10, 9, 8, 0.92) 48%, #050505 100%)",
+					}}
+				/>
+				<div
+					className="pointer-events-none absolute -left-40 -top-40 h-80 w-80 rounded-full blur-3xl"
+					style={{ backgroundColor: "rgba(199, 100, 72, 0.18)" }}
+				/>
+				<div
+					className="pointer-events-none absolute -bottom-20 -right-20 h-60 w-60 rounded-full blur-3xl"
+					style={{ backgroundColor: "rgba(240, 182, 106, 0.1)" }}
+				/>
 
 				<div className="relative mx-auto max-w-7xl">
 					<p className="mb-3 text-sm font-medium uppercase tracking-widest text-neutral-500">
 						Blog & Collection
 					</p>
 					<h1
-						className="mb-4 bg-linear-to-r from-white via-white to-neutral-400 bg-clip-text text-4xl font-bold tracking-tight text-transparent md:text-5xl lg:text-6xl"
+						className="mb-4 bg-linear-to-r from-white via-[#f8e8c9] to-[#c76448] bg-clip-text text-4xl font-bold tracking-normal text-transparent md:text-5xl lg:text-6xl"
 						style={{ fontFamily: "var(--font-space-grotesk)" }}
 					>
 						Welcome to my corner
@@ -54,7 +67,7 @@ export default async function HomePage() {
 								</h2>
 								<Link
 									href="/posts"
-									className="text-sm text-neutral-400 transition-colors hover:text-white"
+									className="text-sm text-neutral-400 transition-colors hover:text-[#f0b66a]"
 								>
 									View all →
 								</Link>
@@ -68,7 +81,7 @@ export default async function HomePage() {
 											href={`/posts/${post.slug}`}
 											className="group relative block overflow-hidden rounded-xl border border-neutral-800/50 bg-neutral-900/30 transition-all duration-300 hover:border-neutral-700/80 hover:bg-neutral-900/60 hover:shadow-lg hover:shadow-neutral-900/50"
 										>
-											<div className="absolute inset-0 bg-linear-to-r from-white/2 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+											<div className="absolute inset-0 bg-linear-to-r from-[#c76448]/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 											<div className="relative flex gap-4 p-4">
 												{post.coverImage && (
 													<div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-lg md:h-24 md:w-32">
@@ -129,7 +142,7 @@ export default async function HomePage() {
 								</h2>
 								<Link
 									href="/library"
-									className="text-sm text-neutral-400 transition-colors hover:text-white"
+									className="text-sm text-neutral-400 transition-colors hover:text-[#f0b66a]"
 								>
 									View all →
 								</Link>

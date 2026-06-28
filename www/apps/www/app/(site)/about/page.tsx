@@ -5,9 +5,18 @@ import { motion } from "framer-motion";
 export default function AboutPage() {
 	return (
 		<main className="min-h-screen bg-neutral-950 text-white">
-			<section className="relative flex min-h-screen items-center justify-center px-6 pt-24 pb-20 overflow-hidden">
-				<div className="absolute inset-0 bg-linear-to-br from-emerald-950 via-neutral-950 to-neutral-950" />
-				<div className="absolute top-0 left-0 w-150 h-150 bg-emerald-500/10 blur-[120px] rounded-full" />
+			<section className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 pt-24 pb-20">
+				<div
+					className="absolute inset-0"
+					style={{
+						background:
+							"linear-gradient(135deg, #132118 0%, #080a08 48%, #050505 100%)",
+					}}
+				/>
+				<div
+					className="absolute top-0 left-0 h-150 w-150 rounded-full blur-[120px]"
+					style={{ backgroundColor: "rgba(127, 157, 111, 0.14)" }}
+				/>
 				<div
 					className="pointer-events-none absolute inset-0 opacity-[0.15]"
 					style={{
@@ -22,7 +31,7 @@ export default function AboutPage() {
 						transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
 					>
 						<h1
-							className="mb-8 text-[clamp(3rem,10vw,8rem)] font-bold uppercase leading-[0.9] tracking-tight"
+							className="mb-8 text-[clamp(3rem,10vw,8rem)] font-bold uppercase leading-[0.9] tracking-normal"
 							style={{ fontFamily: "var(--font-anton)" }}
 						>
 							About Me
@@ -37,7 +46,7 @@ export default function AboutPage() {
 					>
 						<p className="text-xl leading-relaxed text-neutral-300 md:text-2xl">
 							Hi, I&apos;m{" "}
-							<span className="text-white font-medium">Zeyad Deeb</span>.
+							<span className="font-medium text-white">Zeyad Deeb</span>.
 						</p>
 
 						<p className="text-lg leading-relaxed text-neutral-400">
@@ -60,7 +69,7 @@ export default function AboutPage() {
 							href="https://github.com/zeyaddeeb"
 							target="_blank"
 							rel="noopener noreferrer"
-							className="group flex items-center gap-2 rounded-full border border-neutral-700 px-6 py-3 text-sm uppercase tracking-widest text-neutral-400 transition-all hover:border-neutral-500 hover:text-white"
+							className="group flex items-center gap-2 rounded-full border border-[#7f9d6f]/35 px-6 py-3 text-sm uppercase tracking-widest text-neutral-300 transition-all hover:border-[#7f9d6f]/70 hover:text-white"
 						>
 							GitHub
 							<svg
@@ -82,7 +91,7 @@ export default function AboutPage() {
 							href="https://linkedin.com/in/zeyaddeeb"
 							target="_blank"
 							rel="noopener noreferrer"
-							className="group flex items-center gap-2 rounded-full border border-neutral-700 px-6 py-3 text-sm uppercase tracking-widest text-neutral-400 transition-all hover:border-neutral-500 hover:text-white"
+							className="group flex items-center gap-2 rounded-full border border-[#7f9d6f]/35 px-6 py-3 text-sm uppercase tracking-widest text-neutral-300 transition-all hover:border-[#7f9d6f]/70 hover:text-white"
 						>
 							LinkedIn
 							<svg
