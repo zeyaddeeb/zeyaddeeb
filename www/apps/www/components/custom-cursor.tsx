@@ -1,16 +1,23 @@
 "use client";
 
-import { motion, useMotionValue, useSpring } from "framer-motion";
+import {
+	motion,
+	useMotionValue,
+	useReducedMotion,
+	useSpring,
+} from "framer-motion";
 import { useEffect, useState } from "react";
 
 export function CustomCursor() {
 	const [isHovering, setIsHovering] = useState(false);
+	const [isPressed, setIsPressed] = useState(false);
 	const [isVisible, setIsVisible] = useState(false);
 	const [isEnabled, setIsEnabled] = useState(false);
+	const prefersReducedMotion = useReducedMotion();
 	const cursorX = useMotionValue(-120);
 	const cursorY = useMotionValue(-120);
 
-	const springConfig = { damping: 28, stiffness: 620, mass: 0.45 };
+	const springConfig = { damping: 24, stiffness: 360, mass: 0.35 };
 	const cursorXSpring = useSpring(cursorX, springConfig);
 	const cursorYSpring = useSpring(cursorY, springConfig);
 
@@ -22,37 +29,49 @@ export function CustomCursor() {
 		finePointer.addEventListener("change", syncPointerMode);
 
 		const moveCursor = (e: MouseEvent) => {
-			cursorX.set(e.clientX - 18);
-			cursorY.set(e.clientY - 18);
+			cursorX.set(e.clientX + 10);
+			cursorY.set(e.clientY + 10);
 			setIsVisible(true);
 		};
 
-		const handleMouseOver = (e: MouseEvent) => {
-			const target = e.target as HTMLElement;
-			if (
-				target.tagName === "A" ||
-				target.tagName === "BUTTON" ||
-				target.closest("[role='button']") ||
-				target.closest("a") ||
-				target.closest("button")
-			) {
-				setIsHovering(true);
-			} else {
+		const syncHoverState = (e: MouseEvent) => {
+			const target = e.target;
+			if (!(target instanceof HTMLElement)) {
 				setIsHovering(false);
+				return;
 			}
+
+			setIsHovering(
+				target.tagName === "A" ||
+					target.tagName === "BUTTON" ||
+					!!target.closest(
+						"[role='button'], a, button, input, textarea, select",
+					),
+			);
 		};
 
-		const hideCursor = () => setIsVisible(false);
+		const hideCursor = () => {
+			setIsVisible(false);
+			setIsPressed(false);
+		};
+		const pressCursor = () => setIsPressed(true);
+		const releaseCursor = () => setIsPressed(false);
 
 		window.addEventListener("mousemove", moveCursor);
-		window.addEventListener("mouseover", handleMouseOver);
+		window.addEventListener("mouseover", syncHoverState);
 		window.addEventListener("mouseleave", hideCursor);
+		window.addEventListener("mousedown", pressCursor);
+		window.addEventListener("mouseup", releaseCursor);
+		window.addEventListener("blur", hideCursor);
 
 		return () => {
 			finePointer.removeEventListener("change", syncPointerMode);
 			window.removeEventListener("mousemove", moveCursor);
-			window.removeEventListener("mouseover", handleMouseOver);
+			window.removeEventListener("mouseover", syncHoverState);
 			window.removeEventListener("mouseleave", hideCursor);
+			window.removeEventListener("mousedown", pressCursor);
+			window.removeEventListener("mouseup", releaseCursor);
+			window.removeEventListener("blur", hideCursor);
 		};
 	}, [cursorX, cursorY]);
 
@@ -60,38 +79,30 @@ export function CustomCursor() {
 
 	return (
 		<motion.div
-			className="pointer-events-none fixed left-0 top-0 z-9999 h-9 w-9"
+			className="pointer-events-none fixed left-0 top-0 z-[9999] h-3 w-3"
 			style={{
-				x: cursorXSpring,
-				y: cursorYSpring,
+				x: prefersReducedMotion ? cursorX : cursorXSpring,
+				y: prefersReducedMotion ? cursorY : cursorYSpring,
 			}}
 			animate={{
 				opacity: isVisible ? 1 : 0,
-				scale: isHovering ? 1.08 : 1,
+				scale: isPressed ? 0.72 : isHovering ? 1.65 : 1,
 			}}
-			transition={{ duration: 0.16 }}
+			transition={{ duration: 0.12 }}
 			aria-hidden="true"
 		>
 			<motion.div
-				className="absolute inset-0"
-				animate={{ rotate: isHovering ? 45 : 0 }}
-				transition={{ type: "spring", damping: 18, stiffness: 260 }}
-			>
-				<div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-white/70 mix-blend-difference" />
-				<div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-white/70 mix-blend-difference" />
-				<div className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#f0b66a] shadow-[0_0_14px_rgba(240,182,106,0.55)]" />
-			</motion.div>
-			<motion.div
-				className="absolute -right-3 -top-2 font-mono text-[9px] font-medium uppercase leading-none text-[#f8e8c9]"
+				className="absolute inset-0 rounded-full border border-white/35 bg-[#f0b66a]/85 shadow-[0_0_16px_rgba(240,182,106,0.22)]"
 				animate={{
-					opacity: isHovering ? 1 : 0,
-					x: isHovering ? 0 : -3,
-					y: isHovering ? 0 : 2,
+					backgroundColor: isHovering
+						? "rgba(12, 211, 194, 0.72)"
+						: "rgba(240, 182, 106, 0.85)",
+					borderColor: isHovering
+						? "rgba(255, 255, 255, 0.52)"
+						: "rgba(255, 255, 255, 0.35)",
 				}}
-				transition={{ duration: 0.14 }}
-			>
-				zd
-			</motion.div>
+				transition={{ duration: 0.16 }}
+			/>
 		</motion.div>
 	);
 }
