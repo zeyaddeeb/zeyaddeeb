@@ -1,4 +1,4 @@
-FROM oven/bun:1.2.20-alpine AS base
+FROM oven/bun:1.3.14-alpine AS base
 
 FROM rust:bookworm AS wasm-builder
 RUN cargo install wasm-pack
@@ -22,6 +22,8 @@ RUN bun install --frozen-lockfile
 
 FROM base AS builder
 WORKDIR /app
+
+RUN apk add --no-cache nodejs
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps ./apps
