@@ -9,6 +9,7 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0.104"
+async-trait = "0.1.91"
 axum = { version = "0.8.9", features = ["ws"] }
 candle-core = "0.11.0"
 dashmap = "6.2.1"

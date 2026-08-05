@@ -54,6 +54,8 @@ pub async fn handle(socket: WebSocket, session_id: Uuid, state: AppState, host: 
     if let Some(mut session) = state.sessions.get_mut(&session_id) {
         session.connected_clients = session.connected_clients.saturating_sub(1);
     }
+
+    rtc::close_session(&state, session_id).await;
 }
 
 async fn handle_client_message(
