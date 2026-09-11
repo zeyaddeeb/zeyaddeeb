@@ -1,6 +1,6 @@
 {
   "name": "zeyaddeeb",
-  "version": "0.1.30",
+  "version": "0.1.31",
   "private": true,
   "scripts": {
     "build": "turbo build",
@@ -21,7 +21,7 @@
   "engines": {
     "node": ">=22"
   },
-  "packageManager": "bun@1.4.0",
+  "packageManager": "bun@1.4.2",
   "workspaces": [
     "apps/*",
     "packages/*"

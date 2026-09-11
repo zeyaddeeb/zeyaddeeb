@@ -1,4 +1,4 @@
-FROM oven/bun:1.4.0-alpine AS base
+FROM oven/bun:1.4.2-alpine AS base
 
 FROM rust:bookworm AS wasm-builder
 RUN cargo install wasm-pack

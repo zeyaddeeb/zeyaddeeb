@@ -5,6 +5,14 @@ import Link from "next/link";
 
 const experiments = [
 	{
+		title: "Moonspell",
+		description:
+			"An interactive engineering gallery exploring software, collaboration, and the art of making things through hands-on exhibits.",
+		href: "https://moonspell.fm/",
+		tags: ["Engineering", "Interactive", "Creative Coding"],
+		gradient: "from-blue-500 to-orange-500",
+	},
+	{
 		title: "From Floppy to Cloud",
 		description:
 			"A scrollytelling journey through learning to code — from DOS and floppy disks to Kubernetes, Rust, and AI.",
