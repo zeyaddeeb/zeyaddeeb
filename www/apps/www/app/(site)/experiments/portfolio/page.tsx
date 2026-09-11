@@ -43,6 +43,16 @@ const websites: WebsiteCard[] = [
 		accent: "#129696",
 		external: true,
 	},
+	{
+		title: "Moonspell",
+		domain: "moonspell.fm",
+		previewTarget: "https://www.moonspell.fm",
+		href: "https://www.moonspell.fm",
+		tag: "Owned",
+		year: "2026",
+		accent: "#be0a9a",
+		external: true,
+	},
 ];
 
 const INTRO_HEIGHT = 220;
