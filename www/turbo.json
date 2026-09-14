@@ -1,46 +1,49 @@
 {
-  "$schema": "https://v2-10-12.turborepo.dev/schema.json",
-  "ui": "tui",
-  "globalPassThroughEnv": [
-    "NODE_ENV",
-    "DATABASE_URL",
-    "ADMIN_EMAIL",
-    "ADMIN_PASSWORD",
-    "ADMIN_NAME",
-    "ADMIN_ID",
-    "BASE_URL"
-  ],
-  "tasks": {
-    "build": {
-      "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
-    },
-    "lint": {
-      "dependsOn": ["^lint"]
-    },
-    "clean": {
-      "cache": false,
-      "persistent": true
-    },
-    "check-types": {
-      "dependsOn": ["^check-types"]
-    },
-    "db:up": {
-      "cache": false
-    },
-    "db:down": {
-      "cache": false
-    },
-    "db:push": {
-      "cache": false
-    },
-    "db:seed": {
-      "cache": false
-    },
-    "dev": {
-      "cache": false,
-      "persistent": true
-    }
-  }
+	"$schema": "https://v2-10-12.turborepo.dev/schema.json",
+	"ui": "tui",
+	"globalPassThroughEnv": [
+		"NODE_ENV",
+		"DATABASE_URL",
+		"ADMIN_EMAIL",
+		"ADMIN_PASSWORD",
+		"ADMIN_NAME",
+		"ADMIN_ID",
+		"BASE_URL"
+	],
+	"tasks": {
+		"build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": [".next/**", "!.next/cache/**"]
+		},
+		"lint": {
+			"dependsOn": ["^lint"]
+		},
+		"clean": {
+			"cache": false,
+			"persistent": true
+		},
+		"check-types": {
+			"dependsOn": ["^check-types"]
+		},
+		"test": {
+			"dependsOn": ["^build"]
+		},
+		"db:up": {
+			"cache": false
+		},
+		"db:down": {
+			"cache": false
+		},
+		"db:push": {
+			"cache": false
+		},
+		"db:seed": {
+			"cache": false
+		},
+		"dev": {
+			"cache": false,
+			"persistent": true
+		}
+	}
 }

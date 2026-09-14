@@ -303,7 +303,6 @@ function ResizableImageNodeView({
 				} ${isResizing ? "resizing" : ""}`}
 				style={{ display: "inline-block", position: "relative" }}
 			>
-				{/* Alignment toolbar - shown when selected */}
 				{selected && (
 					<div className="image-align-toolbar">
 						<button

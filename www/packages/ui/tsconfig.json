@@ -1,12 +1,12 @@
 {
-  "extends": "@zeyaddeeb/config/react-library.json",
-  "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist",
-    "noEmit": false,
-    "declaration": true,
-    "declarationMap": true
-  },
-  "include": ["src"],
-  "exclude": ["dist", "build", "node_modules"]
+	"extends": "@zeyaddeeb/config/react-library.json",
+	"compilerOptions": {
+		"rootDir": "src",
+		"outDir": "dist",
+		"noEmit": false,
+		"declaration": true,
+		"declarationMap": true
+	},
+	"include": ["src"],
+	"exclude": ["dist", "build", "node_modules"]
 }

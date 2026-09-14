@@ -1,30 +1,31 @@
 import "@zeyaddeeb/ui/styles.css";
-import "lenis/dist/lenis.css";
+import "@zeyaddeeb/ui/site.css";
 
 import type { Metadata } from "next";
-import { Anton, Newsreader, Roboto_Flex } from "next/font/google";
+import { Geist_Mono, Jost, Newsreader } from "next/font/google";
 import { RootLayoutClient } from "@/components/root-layout";
-import { AppStateProvider } from "@/lib/providers/app-provider";
 import { WASMContextProvider } from "@/lib/providers/wasm-provider";
 
-const antonFont = Anton({
-	weight: "400",
-	style: "normal",
+const jost = Jost({
 	subsets: ["latin"],
-	variable: "--font-anton",
+	variable: "--font-jost",
+	weight: ["400", "500", "600"],
+	display: "swap",
 });
 
-const robotoFlex = Roboto_Flex({
+const geistMono = Geist_Mono({
 	subsets: ["latin"],
-	variable: "--font-roboto-flex",
-	weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+	variable: "--font-geist-mono",
+	weight: ["400", "500"],
+	display: "swap",
 });
 
 const newsreader = Newsreader({
 	subsets: ["latin"],
 	variable: "--font-newsreader",
-	weight: ["200", "300", "400", "500", "600", "700", "800"],
+	weight: ["300", "400", "500"],
 	style: ["normal", "italic"],
+	display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -92,15 +93,14 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en" data-scroll-behavior="smooth">
-			<body
-				className={`${antonFont.variable} ${robotoFlex.variable} ${newsreader.variable} bg-neutral-950 antialiased`}
-			>
-				<AppStateProvider>
-					<WASMContextProvider>
-						<RootLayoutClient>{children}</RootLayoutClient>
-					</WASMContextProvider>
-				</AppStateProvider>
+		<html
+			lang="en"
+			className={`${jost.variable} ${geistMono.variable} ${newsreader.variable}`}
+		>
+			<body className="personal-site bg-background text-foreground">
+				<WASMContextProvider>
+					<RootLayoutClient>{children}</RootLayoutClient>
+				</WASMContextProvider>
 			</body>
 		</html>
 	);

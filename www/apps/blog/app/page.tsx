@@ -4,163 +4,98 @@ import { CollectionGrid } from "@/components";
 import { getFeaturedCollectionItems, getRecentPosts } from "@/lib/actions";
 
 export const dynamic = "force-dynamic";
-
 export default async function HomePage() {
 	const [featuredResult, postsResult] = await Promise.allSettled([
 		getFeaturedCollectionItems(4),
 		getRecentPosts(3),
 	]);
-
 	const featuredItems =
 		featuredResult.status === "fulfilled" ? featuredResult.value : [];
 	const recentPosts =
 		postsResult.status === "fulfilled" ? postsResult.value : [];
-
 	return (
-		<div className="min-h-screen bg-neutral-950">
-			<section className="relative overflow-hidden border-b border-neutral-800/50 px-4 py-12 md:px-6 md:py-16">
-				<div
-					className="absolute inset-0"
-					style={{
-						background:
-							"linear-gradient(135deg, rgba(39, 20, 19, 0.72) 0%, rgba(10, 9, 8, 0.92) 48%, #050505 100%)",
-					}}
-				/>
-				<div
-					className="pointer-events-none absolute -left-40 -top-40 h-80 w-80 rounded-full blur-3xl"
-					style={{ backgroundColor: "rgba(199, 100, 72, 0.18)" }}
-				/>
-				<div
-					className="pointer-events-none absolute -bottom-20 -right-20 h-60 w-60 rounded-full blur-3xl"
-					style={{ backgroundColor: "rgba(240, 182, 106, 0.1)" }}
-				/>
-
-				<div className="relative mx-auto max-w-7xl">
-					<p className="mb-3 text-sm font-medium uppercase tracking-widest text-neutral-500">
-						Blog & Collection
-					</p>
-					<h1
-						className="mb-4 bg-linear-to-r from-white via-[#f8e8c9] to-[#c76448] bg-clip-text text-4xl font-bold tracking-normal text-transparent md:text-5xl lg:text-6xl"
-						style={{ fontFamily: "var(--font-space-grotesk)" }}
-					>
-						Welcome to my corner
-						<br />
-						<span className="text-neutral-500">of the internet.</span>
+		<div className="blog-home container">
+			<header className="blog-masthead">
+				<div>
+					<p className="blog-kicker">Writing & bookmarks</p>
+					<h1>
+						Blog &<br />
+						library<span>.</span>
 					</h1>
-					<p className="max-w-xl text-base text-neutral-400 md:text-lg">
-						Thoughts, writings, and a curated collection of things that inspire
-						me.
-					</p>
 				</div>
-			</section>
-
-			<section className="px-4 py-8 md:px-6 md:py-12">
-				<div className="mx-auto max-w-7xl">
-					<div className="grid gap-8 lg:grid-cols-5 lg:gap-12">
-						<div className="lg:col-span-3">
-							<div className="mb-6 flex items-center justify-between">
-								<h2
-									className="text-xl font-bold text-white md:text-2xl"
-									style={{ fontFamily: "var(--font-space-grotesk)" }}
-								>
-									Recent Posts
-								</h2>
-								<Link
-									href="/posts"
-									className="text-sm text-neutral-400 transition-colors hover:text-[#f0b66a]"
-								>
-									View all →
-								</Link>
-							</div>
-
-							{recentPosts.length > 0 ? (
-								<div className="space-y-3">
-									{recentPosts.map((post) => (
-										<Link
-											key={post.id}
-											href={`/posts/${post.slug}`}
-											className="group relative block overflow-hidden rounded-xl border border-neutral-800/50 bg-neutral-900/30 transition-all duration-300 hover:border-neutral-700/80 hover:bg-neutral-900/60 hover:shadow-lg hover:shadow-neutral-900/50"
-										>
-											<div className="absolute inset-0 bg-linear-to-r from-[#c76448]/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-											<div className="relative flex gap-4 p-4">
-												{post.coverImage && (
-													<div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-lg md:h-24 md:w-32">
-														<Image
-															src={post.coverImage}
-															alt={post.title}
-															fill
-															className="object-cover transition-transform duration-500 group-hover:scale-110"
-														/>
-														<div className="absolute inset-0 bg-linear-to-t from-neutral-900/20 to-transparent" />
-													</div>
-												)}
-												<div className="flex flex-1 flex-col justify-center py-0.5">
-													<div className="mb-1.5 flex items-center gap-2">
-														{post.publishedAt && (
-															<time className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">
-																{new Date(post.publishedAt).toLocaleDateString(
-																	"en-US",
-																	{
-																		year: "numeric",
-																		month: "short",
-																		day: "numeric",
-																	},
-																)}
-															</time>
-														)}
-													</div>
-													<h3 className="mb-1 text-[15px] font-semibold leading-snug text-white transition-colors group-hover:text-neutral-100">
-														{post.title}
-													</h3>
-													{post.excerpt && (
-														<p className="line-clamp-2 text-[13px] leading-relaxed text-neutral-500 transition-colors group-hover:text-neutral-400">
-															{post.excerpt}
-														</p>
-													)}
-												</div>
-												<div className="flex items-center self-center pl-2">
-													<span className="text-neutral-600 transition-all duration-300 group-hover:translate-x-1 group-hover:text-neutral-400">
-														→
-													</span>
-												</div>
-											</div>
-										</Link>
-									))}
-								</div>
-							) : (
-								<p className="text-neutral-500">No posts yet.</p>
-							)}
-						</div>
-
-						<div className="lg:col-span-2">
-							<div className="mb-6 flex items-center justify-between">
-								<h2
-									className="text-xl font-bold text-white md:text-2xl"
-									style={{ fontFamily: "var(--font-space-grotesk)" }}
-								>
-									Library
-								</h2>
-								<Link
-									href="/library"
-									className="text-sm text-neutral-400 transition-colors hover:text-[#f0b66a]"
-								>
-									View all →
-								</Link>
-							</div>
-
-							{featuredItems.length > 0 ? (
-								<CollectionGrid
-									items={featuredItems}
-									filterKey="featured"
-									columns={2}
-								/>
-							) : (
-								<p className="text-neutral-500">No items yet.</p>
-							)}
-						</div>
+				<div className="blog-motif" aria-hidden="true">
+					<i />
+					<i />
+					<i />
+				</div>
+			</header>
+			<div className="blog-home__columns">
+				<section>
+					<div className="blog-section-heading">
+						<h2>Latest writing</h2>
+						<Link href="/posts">All posts →</Link>
 					</div>
-				</div>
-			</section>
+					{recentPosts.length ? (
+						recentPosts.map((post) => (
+							<Link
+								key={post.id}
+								href={`/posts/${post.slug}`}
+								className="post-entry"
+							>
+								<div>
+									{post.publishedAt && (
+										<time dateTime={new Date(post.publishedAt).toISOString()}>
+											{new Date(post.publishedAt).toLocaleDateString("en-US", {
+												year: "numeric",
+												month: "short",
+												day: "numeric",
+											})}
+										</time>
+									)}
+									<h3>{post.title}</h3>
+									{post.excerpt && <p>{post.excerpt}</p>}
+								</div>
+								{post.coverImage && (
+									<div className="post-entry__image">
+										<Image
+											src={post.coverImage}
+											alt=""
+											fill
+											sizes="180px"
+											className="object-cover"
+										/>
+									</div>
+								)}
+							</Link>
+						))
+					) : (
+						<p className="blog-empty">
+							{postsResult.status === "rejected"
+								? "Posts couldn’t load. Please try again shortly."
+								: "No posts yet."}
+						</p>
+					)}
+				</section>
+				<section>
+					<div className="blog-section-heading">
+						<h2>From the library</h2>
+						<Link href="/library">All items →</Link>
+					</div>
+					{featuredItems.length ? (
+						<CollectionGrid
+							items={featuredItems}
+							filterKey="featured"
+							columns={2}
+						/>
+					) : (
+						<p className="blog-empty">
+							{featuredResult.status === "rejected"
+								? "The library couldn’t load. Please try again shortly."
+								: "No items yet."}
+						</p>
+					)}
+				</section>
+			</div>
 		</div>
 	);
 }

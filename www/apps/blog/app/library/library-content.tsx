@@ -76,8 +76,8 @@ export function ThingsILikeContent({
 	};
 
 	return (
-		<div className="min-h-screen bg-neutral-950">
-			<section className="border-b border-neutral-800/50">
+		<div className="min-h-screen bg-paper">
+			<section className="blog-list-heading border-b border-rule">
 				<div className="mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-12">
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
@@ -85,15 +85,13 @@ export function ThingsILikeContent({
 						transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
 					>
 						<h1
-							className="text-2xl font-bold tracking-tight text-white md:text-3xl"
-							style={{ fontFamily: "var(--font-space-grotesk)" }}
+							className="text-2xl font-bold tracking-tight text-ink md:text-3xl"
+							style={{ fontFamily: "var(--font-display)" }}
 						>
 							Library
 						</h1>
-						<p className="mt-1 text-sm text-neutral-500 md:text-base">
-							A collection of wikipedia pages, art, books, youtube channels,
-							products, and other things that have shaped how I think and what I
-							appreciate.
+						<p className="mt-1 text-sm text-dim md:text-base">
+							Books, art, videos, and links I’ve saved.
 						</p>
 					</motion.div>
 				</div>
@@ -115,9 +113,7 @@ export function ThingsILikeContent({
 						/>
 					</motion.div>
 
-					{isPending && (
-						<div className="mb-4 text-sm text-neutral-500">Loading...</div>
-					)}
+					{isPending && <div className="mb-4 text-sm text-dim">Loading...</div>}
 
 					{initialData.items.length > 0 ? (
 						<>
@@ -132,18 +128,18 @@ export function ThingsILikeContent({
 										type="button"
 										onClick={() => handlePageChange(currentPage - 1)}
 										disabled={!initialData.hasPreviousPage || isPending}
-										className="rounded-lg border border-neutral-800 px-4 py-2 text-sm text-neutral-400 transition-colors hover:border-neutral-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+										className="rounded-none border border-rule px-4 py-2 text-sm text-dim transition-colors hover:border-ink hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
 									>
 										Previous
 									</button>
-									<span className="px-4 text-sm text-neutral-500">
+									<span className="px-4 text-sm text-dim">
 										Page {currentPage} of {initialData.totalPages}
 									</span>
 									<button
 										type="button"
 										onClick={() => handlePageChange(currentPage + 1)}
 										disabled={!initialData.hasNextPage || isPending}
-										className="rounded-lg border border-neutral-800 px-4 py-2 text-sm text-neutral-400 transition-colors hover:border-neutral-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+										className="rounded-none border border-rule px-4 py-2 text-sm text-dim transition-colors hover:border-ink hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
 									>
 										Next
 									</button>
@@ -156,7 +152,7 @@ export function ThingsILikeContent({
 							animate={{ opacity: 1 }}
 							className="flex h-64 items-center justify-center"
 						>
-							<p className="text-neutral-500">No items match your filters.</p>
+							<p className="text-dim">No items match your filters.</p>
 						</motion.div>
 					)}
 				</div>

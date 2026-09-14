@@ -1,19 +1,17 @@
-"use client";
-
-import { motion } from "framer-motion";
 import Link from "next/link";
+import { SourceLink } from "./source-link";
 
 export type SocialLink = {
 	label: string;
 	href: string;
-	icon?: React.ReactNode;
 };
 
 export interface FooterProps {
+	signature?: React.ReactNode;
 	copyright?: React.ReactNode;
 	socialLinks?: SocialLink[];
 	navLinks?: { label: string; href: string }[];
-	animate?: boolean;
+	note?: React.ReactNode;
 	className?: string;
 }
 
@@ -24,54 +22,57 @@ const defaultSocialLinks: SocialLink[] = [
 ];
 
 export function Footer({
-	copyright = `© ${new Date().getFullYear()} Zeyad Deeb. All rights reserved.`,
+	signature = "Zeyad Deeb",
+	copyright = `© ${new Date().getFullYear()} Zeyad Deeb`,
 	socialLinks = defaultSocialLinks,
 	navLinks,
-	animate = true,
+	note,
 	className = "",
 }: FooterProps) {
-	const Wrapper = animate ? motion.footer : "footer";
-	const animationProps = animate
-		? {
-				initial: { opacity: 0 },
-				whileInView: { opacity: 1 },
-				viewport: { once: true },
-				transition: { duration: 0.6 },
-			}
-		: {};
-
 	return (
-		<Wrapper
-			{...animationProps}
-			className={`border-t border-neutral-800 px-4 py-8 md:px-6 ${className}`}
-		>
-			<div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 text-sm text-neutral-500 md:flex-row">
-				<p>{copyright}</p>
+		<footer className={`border-t border-rule text-foreground ${className}`}>
+			<div className="container grid gap-8 py-10 md:grid-cols-[1fr_auto] md:items-end">
+				<div className="flex items-center gap-4">
+					<span
+						aria-hidden="true"
+						className="block h-3 w-3 rounded-full bg-amber"
+					/>
+					<div>
+						<p className="font-display text-sm font-medium tracking-tight">
+							{signature}
+						</p>
+						<p className="mt-1 font-mono text-xs text-dim">{copyright}</p>
+					</div>
+				</div>
 
-				<div className="flex flex-wrap items-center justify-center gap-6">
-					{navLinks?.map((link) => (
-						<Link
-							key={link.href}
-							href={link.href}
-							className="uppercase tracking-widest transition-colors hover:text-white"
-						>
-							{link.label}
-						</Link>
-					))}
-
-					{socialLinks.map((link) => (
-						<a
-							key={link.href}
-							href={link.href}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="uppercase tracking-widest transition-colors hover:text-white"
-						>
-							{link.icon || link.label}
-						</a>
-					))}
+				<div className="flex flex-col gap-3 md:items-end">
+					<p className="font-display text-base">
+						<SourceLink>View this site’s source on GitHub</SourceLink>
+					</p>
+					{note ? <p className="font-mono text-xs text-dim">{note}</p> : null}
+					<ul className="flex flex-wrap gap-5 font-display text-[13px] text-dim">
+						{navLinks?.map((link) => (
+							<li key={link.href}>
+								<Link href={link.href} className="link-underline">
+									{link.label}
+								</Link>
+							</li>
+						))}
+						{socialLinks.map((link) => (
+							<li key={link.href}>
+								<a
+									href={link.href}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="link-underline"
+								>
+									{link.label}
+								</a>
+							</li>
+						))}
+					</ul>
 				</div>
 			</div>
-		</Wrapper>
+		</footer>
 	);
 }

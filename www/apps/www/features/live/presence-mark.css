@@ -1,0 +1,35 @@
+.presence {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 0 0 0 clamp(16px, 3vw, 40px);
+	opacity: 0;
+	transition: opacity var(--dur-3) var(--ease);
+}
+
+.presence[data-shown="true"] {
+	opacity: 1;
+}
+
+.presence__row {
+	display: flex;
+	gap: 4px;
+}
+
+.presence__mark {
+	display: block;
+	width: 6px;
+	height: 6px;
+	border: 1px solid var(--rule-strong);
+}
+
+.presence__mark--me {
+	background: var(--foreground);
+	border-color: var(--foreground);
+}
+
+.presence__note {
+	font: 400 11px / 1 var(--font-mono);
+	color: var(--dim);
+	white-space: nowrap;
+}

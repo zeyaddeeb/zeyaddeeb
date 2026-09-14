@@ -15,7 +15,7 @@ export function CollectionItemDetail({ item }: CollectionItemDetailProps) {
 	const metadata = item.metadata as Record<string, unknown> | null;
 
 	return (
-		<div className="min-h-screen bg-neutral-950">
+		<div className="min-h-screen bg-paper">
 			<section className="relative">
 				{item.imageUrl && (
 					<div className="relative h-[50vh] w-full md:h-[60vh]">
@@ -26,7 +26,6 @@ export function CollectionItemDetail({ item }: CollectionItemDetailProps) {
 							className="object-cover"
 							priority
 						/>
-						<div className="absolute inset-0 bg-linear-to-t from-neutral-950 via-neutral-950/50 to-transparent" />
 					</div>
 				)}
 
@@ -35,11 +34,11 @@ export function CollectionItemDetail({ item }: CollectionItemDetailProps) {
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-						className={item.imageUrl ? "-mt-32" : "pt-12"}
+						className="pt-10"
 					>
 						<Link
 							href="/library"
-							className="mb-6 inline-flex items-center gap-2 text-sm text-neutral-400 transition-colors hover:text-white"
+							className="mb-6 inline-flex items-center gap-2 text-sm text-dim transition-colors hover:text-ink"
 						>
 							<svg
 								className="h-4 w-4"
@@ -57,33 +56,33 @@ export function CollectionItemDetail({ item }: CollectionItemDetailProps) {
 
 						<div className="mb-4 flex items-center gap-3">
 							<span
-								className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wider"
+								className="flex items-center gap-1.5 rounded-none px-3 py-1 text-xs font-medium uppercase tracking-wider"
 								style={{
 									backgroundColor: item.accentColor
 										? `${item.accentColor}20`
-										: "rgba(255,255,255,0.1)",
-									color: item.accentColor || "rgb(163 163 163)",
+										: "var(--yellow)",
+									color: item.accentColor || "var(--ink)",
 								}}
 							>
 								<TypeIcon className="h-4 w-4" />
 								{getTypeLabel(item.type)}
 							</span>
 							{item.featured && (
-								<span className="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-medium uppercase tracking-wider text-amber-400">
+								<span className="rounded-none bg-amber-500/20 px-3 py-1 text-xs font-medium uppercase tracking-wider text-amber-400">
 									Featured
 								</span>
 							)}
 						</div>
 
 						<h1
-							className="mb-4 text-3xl font-bold tracking-tight text-white md:text-5xl lg:text-6xl"
-							style={{ fontFamily: "var(--font-space-grotesk)" }}
+							className="mb-4 text-3xl font-bold tracking-tight text-ink md:text-5xl lg:text-6xl"
+							style={{ fontFamily: "var(--font-display)" }}
 						>
 							{item.title}
 						</h1>
 
 						{item.description && (
-							<p className="mb-8 max-w-2xl text-lg text-neutral-400 md:text-xl">
+							<p className="mb-8 max-w-2xl text-lg text-dim md:text-xl">
 								{item.description}
 							</p>
 						)}
@@ -93,7 +92,7 @@ export function CollectionItemDetail({ item }: CollectionItemDetailProps) {
 								{item.tags.map((tag) => (
 									<span
 										key={tag}
-										className="rounded-full bg-neutral-800 px-3 py-1 text-sm text-neutral-400"
+										className="rounded-none bg-yellow px-3 py-1 text-sm text-dim"
 									>
 										{tag}
 									</span>
@@ -106,7 +105,7 @@ export function CollectionItemDetail({ item }: CollectionItemDetailProps) {
 								href={item.url}
 								target="_blank"
 								rel="noopener noreferrer"
-								className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-medium text-neutral-900 transition-all hover:bg-neutral-200"
+								className="inline-flex items-center gap-2 rounded-none bg-yellow px-6 py-3 text-base font-medium text-ink border border-ink transition-colors hover:bg-paper"
 							>
 								Visit
 								<svg
@@ -129,14 +128,14 @@ export function CollectionItemDetail({ item }: CollectionItemDetailProps) {
 			</section>
 
 			{metadata && Object.keys(metadata).length > 0 && (
-				<section className="border-t border-neutral-800/50 px-4 py-12 md:px-6">
+				<section className="border-t border-rule px-4 py-12 md:px-6">
 					<div className="mx-auto max-w-4xl">
 						<motion.div
 							initial={{ opacity: 0, y: 20 }}
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: 0.2, duration: 0.6 }}
 						>
-							<h2 className="mb-6 text-lg font-medium text-white">Details</h2>
+							<h2 className="mb-6 text-lg font-medium text-ink">Details</h2>
 							<div className="grid gap-4 md:grid-cols-2">
 								{Object.entries(metadata).map(([key, value]) => {
 									if (!value) return null;
@@ -144,11 +143,11 @@ export function CollectionItemDetail({ item }: CollectionItemDetailProps) {
 										.replace(/([A-Z])/g, " $1")
 										.replace(/^./, (str) => str.toUpperCase());
 									return (
-										<div key={key} className="rounded-lg bg-neutral-900/50 p-4">
-											<dt className="mb-1 text-xs uppercase tracking-wider text-neutral-500">
+										<div key={key} className="rounded-none bg-white p-4">
+											<dt className="mb-1 text-xs uppercase tracking-wider text-dim">
 												{label}
 											</dt>
-											<dd className="text-white">
+											<dd className="text-ink">
 												{Array.isArray(value)
 													? value.join(", ")
 													: String(value)}
@@ -162,8 +161,8 @@ export function CollectionItemDetail({ item }: CollectionItemDetailProps) {
 				</section>
 			)}
 
-			<footer className="border-t border-neutral-800/50 px-4 py-8 md:px-6">
-				<div className="mx-auto max-w-4xl text-center text-sm text-neutral-500">
+			<footer className="border-t border-rule px-4 py-8 md:px-6">
+				<div className="mx-auto max-w-4xl text-center text-sm text-dim">
 					<p>
 						Added on{" "}
 						{item.createdAt.toLocaleDateString("en-US", {

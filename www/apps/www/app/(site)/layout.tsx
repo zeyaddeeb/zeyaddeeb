@@ -1,10 +1,7 @@
-import { Footer, Header, type NavItem } from "@zeyaddeeb/ui";
-
-const navItems: NavItem[] = [
-	{ label: "About", href: "/about" },
-	{ label: "Experiments", href: "/experiments" },
-	{ label: "Blog", href: "/blog" },
-];
+import { Footer, Header } from "@zeyaddeeb/ui";
+import { SITE_NAV } from "@/features/catalog/nav";
+import { PresenceMark } from "@/features/live/presence-mark";
+import { Wordmark } from "@/features/mark/wordmark";
 
 export default function SiteLayout({
 	children,
@@ -13,9 +10,16 @@ export default function SiteLayout({
 }>) {
 	return (
 		<>
-			<Header navItems={navItems} variant="solid" />
-			{children}
-			<Footer />
+			<div className="site-stage">
+				<Header
+					navItems={SITE_NAV}
+					wordmark={<Wordmark />}
+					className="site-header"
+					status={<PresenceMark />}
+				/>
+				{children}
+			</div>
+			<Footer className="site-footer" />
 		</>
 	);
 }

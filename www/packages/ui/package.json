@@ -1,52 +1,52 @@
 {
-  "name": "@zeyaddeeb/ui",
-  "version": "0.0.0",
-  "private": true,
-  "type": "module",
-  "sideEffects": [
-    "**/*.css"
-  ],
-  "files": [
-    "dist"
-  ],
-  "exports": {
-    "./styles.css": {
-      "types": "./src/styles.css.d.ts",
-      "default": "./dist/index.css"
-    },
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./components": {
-      "types": "./dist/components/index.d.ts",
-      "default": "./dist/components/index.js"
-    },
-    "./postcss": "./postcss.config.js"
-  },
-  "scripts": {
-    "build:styles": "tailwindcss -i ./src/styles.css -o ./dist/index.css",
-    "build:components": "tsc",
-    "check-types": "tsc --noEmit",
-    "dev:styles": "tailwindcss -i ./src/styles.css -o ./dist/index.css --watch",
-    "dev:components": "tsc --watch",
-    "lint": "eslint src --max-warnings 0"
-  },
-  "peerDependencies": {
-    "react": "^19"
-  },
-  "dependencies": {
-    "framer-motion": "^13.2.0",
-    "next": "16.3.4"
-  },
-  "devDependencies": {
-    "@tailwindcss/cli": "^4.1.5",
-    "@types/react": "catalog:",
-    "@zeyaddeeb/config": "workspace:*",
-    "eslint": "^10.4.0",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.5",
-    "tw-animate-css": "^1.4.0",
-    "typescript": "catalog:"
-  }
+	"name": "@zeyaddeeb/ui",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"sideEffects": [
+		"**/*.css"
+	],
+	"files": [
+		"dist"
+	],
+	"exports": {
+		"./styles.css": {
+			"types": "./src/styles.css.d.ts",
+			"default": "./dist/index.css"
+		},
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		},
+		"./components": {
+			"types": "./dist/components/index.d.ts",
+			"default": "./dist/components/index.js"
+		},
+		"./postcss": "./postcss.config.js",
+		"./site.css": "./src/site.css"
+	},
+	"scripts": {
+		"build": "bun run build:styles && bun run build:components",
+		"build:styles": "tailwindcss -i ./src/styles.css -o ./dist/index.css",
+		"build:components": "tsc",
+		"check-types": "tsc --noEmit",
+		"dev:styles": "tailwindcss -i ./src/styles.css -o ./dist/index.css --watch",
+		"dev:components": "tsc --watch",
+		"lint": "eslint src --max-warnings 0"
+	},
+	"peerDependencies": {
+		"react": "^19"
+	},
+	"dependencies": {
+		"next": "16.3.5"
+	},
+	"devDependencies": {
+		"@tailwindcss/cli": "^4.1.5",
+		"@types/react": "catalog:",
+		"@zeyaddeeb/config": "workspace:*",
+		"eslint": "^10.4.0",
+		"postcss": "^8.5.6",
+		"tailwindcss": "^4.1.5",
+		"typescript": "catalog:"
+	}
 }

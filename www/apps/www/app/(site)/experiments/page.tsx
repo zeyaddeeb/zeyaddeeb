@@ -1,224 +1,27 @@
-"use client";
+import type { Metadata } from "next";
+import { experiments } from "@/features/catalog/catalog";
+import { ExperimentsIndex } from "@/features/index/experiments-index";
+import "@/features/index/experiments-index.css";
 
-import { motion } from "framer-motion";
-import Link from "next/link";
-
-const experiments = [
-	{
-		title: "Moonspell",
-		description:
-			"An interactive engineering gallery exploring software, collaboration, and the art of making things through hands-on exhibits.",
-		href: "https://moonspell.fm/",
-		tags: ["Engineering", "Interactive", "Creative Coding"],
-		gradient: "from-blue-500 to-orange-500",
-	},
-	{
-		title: "From Floppy to Cloud",
-		description:
-			"A scrollytelling journey through learning to code — from DOS and floppy disks to Kubernetes, Rust, and AI.",
-		href: "/story",
-		tags: ["Scrollytelling", "GSAP", "Lenis"],
-		gradient: "from-purple-500 to-blue-500",
-	},
-	{
-		title: "Portfolio",
-		description: "Infinite-canvas portfolio of client work.",
-		href: "/experiments/portfolio",
-		tags: ["Portfolio", "UX", "Interactive"],
-		gradient: "from-amber-500 to-orange-500",
-	},
-	{
-		title: "WASM Audio Visualizer",
-		description:
-			"Real-time audio visualization powered by WebAssembly. FFT processing in Rust with Canvas rendering.",
-		href: "/experiments/audio-visualizer",
-		tags: ["WebAssembly", "Rust", "Web Audio API"],
-		gradient: "from-violet-500 to-pink-500",
-	},
-	{
-		title: "CRDT Editor",
-		description:
-			"Collaborative text editing with no coordination required. RGA CRDT in Rust/WASM — works offline and syncs via a SurrealDB-backed WebSocket server.",
-		href: "/experiments/crdt",
-		tags: ["WebAssembly", "Rust", "CRDT", "SurrealDB"],
-		gradient: "from-amber-500 to-teal-500",
-	},
-	{
-		title: "Falling Code",
-		description:
-			"A Matrix-inspired rain field using @chenglou/pretext to shape falling glyph streams.",
-		href: "/experiments/pretext-matrix",
-		tags: ["Pretext", "CSS", "ASCII", "Typography"],
-		gradient: "from-green-400 to-cyan-400",
-	},
-	{
-		title: "Conway's Game of Life",
-		description:
-			"High-performance interactive simulation of cellular automata. Powered by WebAssembly and Rust with side-by-side JS benchmark timing.",
-		href: "/experiments/game-of-life",
-		tags: ["WebAssembly", "Rust", "Benchmark", "Canvas"],
-		gradient: "from-emerald-500 to-teal-500",
-	},
-	{
-		title: "Circle Limit",
-		description:
-			"A hyperbolic exhibition after M.C. Escher: six plates of interlocking pinwheels in the Poincaré disk, grown by mirror reflection in Rust/WASM and set in perpetual Möbius drift.",
-		href: "/experiments/circle-limit",
-		tags: ["WebAssembly", "Rust", "Hyperbolic Geometry", "Generative Art"],
-		gradient: "from-amber-500 to-rose-500",
-	},
-	{
-		title: "RL Basketball Agent",
-		href: "https://robot.zeyaddeeb.com",
-		tags: ["Reinforcement Learning", "WebAssembly", "Rust"],
-		gradient: "from-green-500 to-teal-500",
-		description:
-			"Train a basketball agent using reinforcement learning in Rust, running in the browser with WebAssembly.",
-	},
-	{
-		title: "Speaker Diarization Lab",
-		description:
-			"Rust WebRTC backend experiment for identifying who spoke when, designed around ONNX embeddings and Candle inference.",
-		href: "/experiments/speaker-diarization",
-		tags: ["WebRTC", "Rust", "ONNX", "Candle"],
-		gradient: "from-sky-400 to-amber-400",
-	},
-];
+export const metadata: Metadata = {
+	title: "Experiments",
+	description:
+		"Projects in graphics, audio, and distributed systems by Zeyad Deeb.",
+};
 
 export default function ExperimentsPage() {
+	const items = [...experiments].sort((a, b) => a.number - b.number);
 	return (
-		<main className="min-h-screen bg-neutral-950 text-white">
-			<section className="relative min-h-screen overflow-hidden px-6 pt-42 pb-20">
-				<div
-					className="absolute inset-0"
-					style={{
-						background:
-							"linear-gradient(135deg, #101829 0%, #08090c 48%, #050505 100%)",
-					}}
-				/>
-				<div
-					className="absolute top-1/2 left-1/2 h-200 w-200 -translate-x-1/2 -translate-y-1/2 rounded-full blur-[150px]"
-					style={{ backgroundColor: "rgba(95, 139, 173, 0.13)" }}
-				/>
-				<div
-					className="pointer-events-none absolute inset-0 opacity-[0.15]"
-					style={{
-						backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-					}}
-				/>
-
-				<div className="relative z-10 mx-auto max-w-6xl">
-					<motion.div
-						initial={{ opacity: 0, y: 30 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-						className="mb-16 text-center"
-					>
-						<h1
-							className="mb-6 text-[clamp(3rem,10vw,8rem)] font-bold uppercase leading-[0.9] tracking-normal"
-							style={{ fontFamily: "var(--font-anton)" }}
-						>
-							Experiments
-						</h1>
-
-						<motion.p
-							initial={{ opacity: 0 }}
-							animate={{ opacity: 1 }}
-							transition={{ delay: 0.3, duration: 0.8 }}
-							className="mx-auto max-w-2xl text-lg text-neutral-400 md:text-xl"
-						>
-							Creative explorations and interactive experiments
-						</motion.p>
-					</motion.div>
-
-					<motion.div
-						initial={{ opacity: 0, y: 40 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.8, delay: 0.2 }}
-						className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
-					>
-						{experiments.map((experiment) => (
-							<Link
-								key={experiment.href}
-								href={experiment.href}
-								scroll={true}
-								className="group relative overflow-hidden rounded-2xl border border-[#5f8bad]/20 bg-neutral-950/50 p-6 transition-all duration-300 hover:border-[#5f8bad]/45 hover:bg-neutral-900/80"
-							>
-								<div
-									className={`absolute inset-0 bg-linear-to-br ${experiment.gradient} opacity-0 transition-opacity duration-300 group-hover:opacity-5`}
-								/>
-
-								<div className="relative">
-									<h3 className="mb-2 pr-10 text-xl font-semibold transition-colors group-hover:text-[#9fc0d4]">
-										{experiment.title}
-									</h3>
-
-									<p className="mb-4 text-sm text-neutral-400">
-										{experiment.description}
-									</p>
-
-									<div className="flex flex-wrap gap-2">
-										{experiment.tags.map((tag) => (
-											<span
-												key={tag}
-												className="rounded-full bg-neutral-800/50 px-3 py-1 text-xs text-neutral-400"
-											>
-												{tag}
-											</span>
-										))}
-									</div>
-								</div>
-
-								<div className="absolute top-6 right-6 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
-									<svg
-										className="h-5 w-5 text-[#9fc0d4]"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-										aria-hidden="true"
-									>
-										<title>Arrow</title>
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											strokeWidth={2}
-											d="M17 8l4 4m0 0l-4 4m4-4H3"
-										/>
-									</svg>
-								</div>
-							</Link>
-						))}
-
-						<motion.div
-							initial={{ opacity: 0, y: 20 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{ duration: 0.6, delay: 0.4 }}
-							className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-800 bg-neutral-900/20 p-6 text-center"
-						>
-							<div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-800/50">
-								<svg
-									className="h-6 w-6 text-neutral-500"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									aria-hidden="true"
-								>
-									<title>Plus</title>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={1.5}
-										d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-									/>
-								</svg>
-							</div>
-							<span className="text-sm text-neutral-500">
-								More coming soon...
-							</span>
-						</motion.div>
-					</motion.div>
-				</div>
-			</section>
+		<main className="index">
+			<header className="index__head container">
+				<p className="index__eyebrow">{items.length} projects</p>
+				<h1>Experiments</h1>
+				<p className="index__note">
+					Things I’ve built to try an idea or learn how something works. Open a
+					project to try it.
+				</p>
+			</header>
+			<ExperimentsIndex items={items} />
 		</main>
 	);
 }

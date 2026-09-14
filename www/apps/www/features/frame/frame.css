@@ -1,0 +1,255 @@
+.frame {
+	--frame-color: var(--red);
+	padding-bottom: 64px;
+}
+
+.frame[data-accent="1"] {
+	--frame-color: var(--yellow);
+}
+
+.frame[data-accent="2"] {
+	--frame-color: var(--blue);
+}
+
+.frame__head {
+	display: grid;
+	grid-template-columns: 92px minmax(0, 1fr) minmax(0, 0.8fr);
+	gap: 14px 32px;
+	padding-block: 40px 32px;
+	align-items: start;
+}
+
+.frame__number {
+	grid-row: 1 / 4;
+	display: grid;
+	place-items: center;
+	width: 92px;
+	height: 92px;
+	background: var(--frame-color);
+	color: var(--ink);
+	font: 500 44px / 1 var(--font-display);
+	border-radius: 50% 50% 0 0;
+	animation: arch-rise var(--dur-3) var(--ease-out) backwards;
+}
+
+.frame__trail {
+	grid-column: 2;
+	margin: 0;
+}
+
+.frame__title {
+	grid-column: 2;
+	margin: 0;
+	font: 600 clamp(32px, 4vw, 56px) / 1.04 var(--font-display);
+	letter-spacing: -0.045em;
+	overflow-wrap: anywhere;
+}
+
+.frame__intro {
+	grid-column: 3;
+	grid-row: 2 / 4;
+	margin: 0;
+	max-width: 48ch;
+	font-size: 17px;
+	line-height: 1.5;
+	color: var(--dim);
+}
+
+.frame__stack {
+	grid-column: 2;
+	margin: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px 20px;
+}
+
+.frame__stack a {
+	color: var(--ink);
+	font: 400 14px / 1.5 var(--font-display);
+	text-transform: none;
+	letter-spacing: normal;
+}
+
+.frame .eyebrow {
+	font-size: 12px;
+	letter-spacing: 0.04em;
+}
+
+.frame__stage {
+	border-top: 8px solid var(--frame-color);
+	padding: 24px;
+	min-width: 0;
+}
+
+.frame__stage > * {
+	min-width: 0;
+}
+
+.frame__stage button,
+.frame__stage select,
+.frame__stage label {
+	font-size: 13px;
+}
+
+.frame__stage button {
+	min-height: 36px;
+}
+
+.frame__stage input[type="range"] {
+	accent-color: var(--yellow);
+}
+
+.frame__bar {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: 16px;
+	padding-block: 16px;
+	border-top: 1px solid var(--rule);
+}
+
+.frame__controls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.frame__more {
+	display: inline-block;
+	margin-block: 20px 32px;
+	font-size: 14px;
+	text-decoration: underline;
+	text-underline-offset: 4px;
+}
+
+.frame__notes {
+	display: grid;
+	grid-template-columns: 150px minmax(0, 1fr);
+	gap: 32px;
+	padding-block: 40px;
+	border-top: 2px solid var(--ink);
+	scroll-margin-top: 24px;
+}
+
+.frame__notes-body {
+	font-size: 16px;
+	line-height: 1.65;
+}
+
+.frame__notes .text-paper-2 {
+	color: var(--dim);
+}
+
+.frame__notes .font-serif {
+	font-family: var(--font-display);
+}
+
+.frame__nav {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	border: 2px solid var(--ink);
+	margin-top: 24px;
+}
+
+.frame__nav-link {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 24px;
+	color: inherit;
+	text-decoration: none;
+}
+
+.frame__nav-link + .frame__nav-link {
+	border-left: 2px solid var(--ink);
+}
+
+.frame__nav-link:hover {
+	background: var(--yellow);
+}
+
+.frame__nav-link--next {
+	align-items: flex-end;
+	text-align: right;
+}
+
+.frame__nav-title {
+	font: 500 clamp(20px, 2.4vw, 32px) / 1.2 var(--font-display);
+	letter-spacing: -0.03em;
+}
+
+@media (max-width: 900px) {
+	.frame__head {
+		grid-template-columns: 64px minmax(0, 1fr);
+		gap: 14px 20px;
+	}
+
+	.frame__number {
+		width: 64px;
+		height: 64px;
+		font-size: 32px;
+	}
+
+	.frame__intro {
+		grid-column: 2;
+		grid-row: auto;
+	}
+
+	.frame__stage {
+		padding: 16px;
+	}
+}
+
+@media (max-width: 540px) {
+	.frame__head {
+		padding-top: 28px;
+	}
+
+	.frame__intro {
+		grid-column: 1 / -1;
+		font-size: 16px;
+	}
+
+	.frame__stage {
+		padding: 12px;
+		margin-inline: -20px;
+	}
+
+	.frame__notes {
+		grid-template-columns: 1fr;
+		gap: 16px;
+	}
+
+	.frame__nav-link {
+		padding: 16px;
+	}
+}
+
+.frame__stage {
+	padding: clamp(12px, 2vw, 32px);
+	margin-inline: 0;
+	min-height: 70svh;
+}
+
+.frame__more {
+	margin-left: max(20px, calc((100vw - 1256px) / 2));
+}
+
+.frame__bar {
+	padding-inline: max(20px, calc((100vw - 1256px) / 2));
+}
+
+.frame__nav {
+	padding-inline: 0;
+}
+
+.atlas-viewport {
+	height: max(620px, calc(100svh - 160px));
+}
+
+@media (max-width: 640px) {
+	.atlas-viewport {
+		height: 78svh;
+		min-height: 480px;
+	}
+}

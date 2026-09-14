@@ -1,0 +1,390 @@
+.site-stage:has(> .about-page) {
+	display: grid;
+	grid-template-rows: auto 1fr;
+	min-height: 100svh;
+}
+
+.about-page {
+	display: grid;
+	min-width: 0;
+}
+
+.desk {
+	--room: var(--paper);
+	--glow: color-mix(in srgb, var(--yellow) 22%, var(--paper));
+	--beam-1: color-mix(in srgb, var(--yellow) 14%, var(--paper));
+	--beam-2: color-mix(in srgb, var(--yellow) 62%, var(--paper));
+	--beam-3: var(--yellow);
+	padding-bottom: 64px;
+	overflow-x: clip;
+	background: var(--room);
+	transition: background var(--dur-4) var(--ease);
+}
+
+.desk[data-on="true"] {
+	--room: color-mix(in srgb, var(--yellow) 6%, var(--paper));
+}
+
+/* ---- Layout: one grid, two arrangements ---- */
+
+.desk__grid {
+	display: grid;
+	grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+	grid-template-areas:
+		"lamp eyebrow"
+		"lamp title"
+		"lamp lede"
+		"lamp body"
+		"facts facts"
+		"caption caption";
+	column-gap: 0;
+	padding-top: 56px;
+}
+
+.desk__eyebrow {
+	grid-area: eyebrow;
+	margin: 0;
+	font: 400 12px / 1.6 var(--font-mono);
+	color: var(--dim);
+}
+
+.desk__title {
+	grid-area: title;
+	margin: 24px 0;
+	font: 600 clamp(44px, 5.5vw, 84px) / 1 var(--font-display);
+	letter-spacing: -0.045em;
+}
+
+.desk__period {
+	display: inline-block;
+	color: var(--red);
+	animation: dot-in var(--dur-2) var(--ease-out) var(--dur-3) backwards;
+}
+
+.desk__lede {
+	grid-area: lede;
+	max-width: 32ch;
+	margin: 0;
+	font-size: 21px;
+	line-height: 1.45;
+}
+
+.desk__eyebrow,
+.desk__title,
+.desk__lede,
+.desk__body {
+	padding-left: clamp(32px, 6vw, 96px);
+}
+
+/* The desk edge is one 2px rule under the lamp and the copy alike. */
+.desk__body {
+	grid-area: body;
+	position: relative;
+	z-index: 1;
+	padding-bottom: 56px;
+	border-bottom: 2px solid var(--ink);
+}
+
+.desk__body p {
+	max-width: 48ch;
+	margin: 18px 0 0;
+	font-size: 16px;
+	line-height: 1.6;
+	color: var(--dim);
+}
+
+.desk__body a {
+	color: var(--ink);
+}
+
+.desk__links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px 28px;
+	margin: 28px 0 0;
+	padding: 0;
+	list-style: none;
+	font-size: 16px;
+}
+
+.desk__links a {
+	color: var(--ink);
+	text-decoration: underline;
+	text-underline-offset: 5px;
+	text-decoration-color: var(--ink);
+}
+
+.desk__links a:hover {
+	color: var(--red);
+}
+
+.desk__lamp-place {
+	grid-area: lamp;
+	position: relative;
+	display: grid;
+	align-items: end;
+	justify-items: center;
+	padding-top: 24px;
+	border-bottom: 2px solid var(--ink);
+}
+
+/* ---- The lamp ---- */
+
+.lamp {
+	--w: clamp(160px, 16vw, 220px);
+	position: relative;
+	display: grid;
+	justify-items: center;
+	width: var(--w);
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--ink);
+	cursor: pointer;
+	appearance: none;
+}
+
+.lamp:focus-visible {
+	outline: 2px solid var(--ink);
+	outline-offset: 12px;
+}
+
+.lamp__shade {
+	position: relative;
+	z-index: 2;
+	width: 100%;
+	aspect-ratio: 2 / 1;
+	border: 2px solid var(--ink);
+	border-radius: 100% 100% 0 0 / 200% 200% 0 0;
+	background: var(--paper-2);
+	transition: background var(--dur-3) var(--ease);
+}
+
+.desk[data-on="true"] .lamp__shade {
+	background: var(--glow);
+}
+
+.lamp__neck {
+	position: relative;
+	z-index: 1;
+	width: 12%;
+	height: 14px;
+	background: var(--ink);
+}
+
+.lamp__stem {
+	position: relative;
+	z-index: 1;
+	width: 5%;
+	height: calc(var(--w) * 0.8);
+	background: var(--ink);
+}
+
+.lamp__base {
+	position: relative;
+	z-index: 1;
+	width: 64%;
+	height: 10px;
+	background: var(--ink);
+}
+
+.lamp__cone {
+	position: absolute;
+	z-index: 0;
+	top: calc(var(--w) / 2);
+	bottom: 10px;
+	left: 50%;
+	width: 200%;
+	background: linear-gradient(
+		180deg,
+		var(--beam-3) 0%,
+		var(--beam-2) 40%,
+		var(--beam-1) 100%
+	);
+	mask: linear-gradient(
+		90deg,
+		transparent 0%,
+		#000 22%,
+		#000 78%,
+		transparent 100%
+	);
+	clip-path: polygon(25% 0, 75% 0, 75% 0, 25% 0);
+	transform: translateX(-50%);
+	transition: clip-path var(--dur-3) var(--ease-out);
+	pointer-events: none;
+}
+
+.desk[data-on="true"] .lamp__cone {
+	clip-path: polygon(25% 0, 75% 0, 100% 100%, 0 100%);
+}
+
+.lamp__cord {
+	position: absolute;
+	z-index: 3;
+	top: 50%;
+	right: 12%;
+	width: 2px;
+	height: calc(var(--w) * 0.5);
+	background: var(--ink);
+	transform-origin: top center;
+	transition: transform var(--dur-3) var(--ease-out);
+}
+
+.lamp[data-pulled="true"] .lamp__cord {
+	transform: scaleY(1.12);
+}
+
+.lamp__pull {
+	position: absolute;
+	bottom: -7px;
+	left: 50%;
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: var(--red);
+	transform: translateX(-50%);
+}
+
+/* ---- Facts, hung from the desk edge ---- */
+
+.desk__facts {
+	grid-area: facts;
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	margin: 0;
+	border: 2px solid var(--ink);
+	border-top: 0;
+}
+
+.desk__facts > div {
+	padding: 20px 24px;
+}
+
+.desk__facts > div + div {
+	border-left: 2px solid var(--ink);
+}
+
+.desk__facts dt {
+	font: 400 12px / 1.6 var(--font-mono);
+	color: var(--dim);
+}
+
+.desk__facts dd {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	white-space: nowrap;
+	margin: 6px 0 0;
+	font: 500 20px / 1.25 var(--font-display);
+	letter-spacing: -0.02em;
+}
+
+.desk__clock {
+	font-variant-numeric: tabular-nums;
+}
+
+.desk__swatch {
+	flex: none;
+	width: 14px;
+	height: 14px;
+	border: 2px solid var(--ink);
+	background: var(--paper-2);
+	transition: background var(--dur-3) var(--ease);
+}
+
+.desk[data-on="true"] .desk__swatch {
+	background: var(--yellow);
+}
+
+.desk__caption {
+	grid-area: caption;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: 8px 32px;
+	margin: 16px 0 0;
+	font: 400 12px / 1.6 var(--font-mono);
+	color: var(--dim);
+}
+
+/* ---- Phone: the desk is one compact band between the lede and the body ---- */
+
+@media (max-width: 760px) {
+	.desk__grid {
+		grid-template-columns: 136px minmax(0, 1fr);
+		grid-template-areas:
+			"eyebrow eyebrow"
+			"title title"
+			"lede lede"
+			"lamp facts"
+			"caption caption"
+			"body body";
+		padding-top: 36px;
+	}
+
+	.desk__eyebrow,
+	.desk__title,
+	.desk__lede,
+	.desk__body {
+		padding-left: 0;
+	}
+
+	.desk__title {
+		font-size: clamp(44px, 12vw, 64px);
+	}
+
+	.desk__lede {
+		max-width: none;
+		margin-bottom: 36px;
+		font-size: 19px;
+	}
+
+	.lamp {
+		--w: 112px;
+	}
+
+	.lamp__cone {
+		width: 170%;
+	}
+
+	.desk__lamp-place {
+		padding-top: 0;
+	}
+
+	.desk__facts {
+		grid-template-columns: 1fr;
+		align-content: end;
+		gap: 14px;
+		padding: 0 0 18px 20px;
+		border: 0;
+		border-bottom: 2px solid var(--ink);
+	}
+
+	.desk__facts > div {
+		padding: 0;
+	}
+
+	.desk__facts > div + div {
+		border: 0;
+	}
+
+	.desk__facts dd {
+		margin-top: 2px;
+		font-size: 17px;
+	}
+
+	.desk__caption {
+		gap: 4px 24px;
+		margin-top: 12px;
+	}
+
+	.desk__body {
+		padding-top: 24px;
+		padding-bottom: 0;
+		border-bottom: 0;
+	}
+
+	.desk__body p:first-child {
+		margin-top: 0;
+	}
+}

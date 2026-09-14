@@ -1,18 +1,32 @@
 import "@zeyaddeeb/ui/styles.css";
+import "@zeyaddeeb/ui/site.css";
+import "./blog.css";
 
-import { Footer, Header } from "@zeyaddeeb/ui";
+import { Footer, Header, LifeMark } from "@zeyaddeeb/ui";
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk } from "next/font/google";
+import { Geist_Mono, Jost, Newsreader } from "next/font/google";
+import { BlogMotion } from "../components/blog-motion";
+import { SitePresence } from "../components/site-presence";
 import { ScrollToTop } from "../lib/hooks/scroll-to-top";
 
-const inter = Inter({
+const jost = Jost({
 	subsets: ["latin"],
-	variable: "--font-inter",
+	variable: "--font-jost",
+	weight: ["400", "500", "600"],
+	display: "swap",
 });
-
-const spaceGrotesk = Space_Grotesk({
+const mono = Geist_Mono({
 	subsets: ["latin"],
-	variable: "--font-space-grotesk",
+	variable: "--font-geist-mono",
+	weight: ["400", "500"],
+	display: "swap",
+});
+const newsreader = Newsreader({
+	subsets: ["latin"],
+	variable: "--font-newsreader",
+	weight: ["300", "400", "500"],
+	style: ["normal", "italic"],
+	display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -21,7 +35,7 @@ export const metadata: Metadata = {
 		template: "%s | Zeyad Deeb",
 	},
 	description:
-		"Personal blog and a curated collection of things I find interesting - books, art, videos, products, and more.",
+		"Personal blog and books, links, and things I find interesting - books, art, videos, products, and more.",
 	keywords: [
 		"Zeyad Deeb",
 		"blog",
@@ -41,7 +55,7 @@ export const metadata: Metadata = {
 		siteName: "Zeyad Deeb - Blog",
 		title: "Zeyad Deeb | Blog & Library",
 		description:
-			"Personal blog and a curated collection of things I find interesting - books, art, videos, products, and more.",
+			"Personal blog and books, links, and things I find interesting - books, art, videos, products, and more.",
 		images: [
 			{
 				url: "/og-image.png",
@@ -55,7 +69,7 @@ export const metadata: Metadata = {
 		card: "summary_large_image",
 		title: "Zeyad Deeb | Blog & Library",
 		description:
-			"Personal blog and a curated collection of things I find interesting - books, art, videos, products, and more.",
+			"Personal blog and books, links, and things I find interesting - books, art, videos, products, and more.",
 		images: ["/og-image.png"],
 		creator: "@zeyad_deeb",
 	},
@@ -76,74 +90,15 @@ export const metadata: Metadata = {
 	},
 };
 
-const BlogIcon = () => (
-	<svg
-		width="18"
-		height="18"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		strokeWidth="2.5"
-		strokeLinecap="round"
-		strokeLinejoin="round"
-		aria-hidden="true"
-	>
-		<path d="M12 19l7-7 3 3-7 7-3-3z" />
-		<path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
-		<path d="M2 2l7.586 7.586" />
-		<circle cx="11" cy="11" r="2" />
-	</svg>
-);
-
-const LibraryIcon = () => (
-	<svg
-		width="18"
-		height="18"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		strokeWidth="2.5"
-		strokeLinecap="round"
-		strokeLinejoin="round"
-		aria-hidden="true"
-	>
-		<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-		<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-	</svg>
-);
-
-const HomeIcon = () => (
-	<svg
-		width="18"
-		height="18"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		strokeWidth="2.5"
-		strokeLinecap="round"
-		strokeLinejoin="round"
-		aria-hidden="true"
-	>
-		<path d="M7 17L17 7" />
-		<path d="M7 7h10v10" />
-	</svg>
-);
-
-const isDev = process.env.NODE_ENV !== "production";
-const baseUrl = isDev
-	? "http://localhost:3000"
-	: process.env.BASE_URL || "https://www.zeyaddeeb.com";
-
+const baseUrl =
+	process.env.NODE_ENV !== "production"
+		? "http://localhost:3000"
+		: process.env.BASE_URL || "https://www.zeyaddeeb.com";
 const navItems = [
-	{ label: "Blog", href: "/posts", icon: <BlogIcon /> },
-	{ label: "Library", href: "/library", icon: <LibraryIcon /> },
-	{
-		href: baseUrl,
-		external: true,
-		primary: true,
-		icon: <HomeIcon />,
-		ariaLabel: "Go to main site",
-	},
+	{ label: "Experiments", href: `${baseUrl}/experiments` },
+	{ label: "About", href: `${baseUrl}/about` },
+	{ label: "Blog", href: "/posts" },
+	{ label: "Library", href: "/library" },
 ];
 
 export default function RootLayout({
@@ -152,24 +107,28 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en">
-			<body
-				className={`${inter.variable} ${spaceGrotesk.variable} min-h-screen bg-neutral-950 font-sans text-white antialiased`}
-			>
+		<html
+			lang="en"
+			className={`${jost.variable} ${mono.variable} ${newsreader.variable}`}
+		>
+			<body className="personal-site blog-site">
 				<ScrollToTop />
+				<SitePresence />
 				<Header
-					logo={
+					wordmark={
 						<>
-							<span className="md:hidden">Z</span>
-							<span className="hidden md:inline">Zeyad Deeb</span>
+							<LifeMark />
+							<span>Zeyad Deeb</span>
 						</>
 					}
-					logoHref="/"
+					logoHref={baseUrl}
 					navItems={navItems}
-					variant="solid"
+					className="site-header"
 				/>
-				<main className="pt-16">{children}</main>
-				<Footer />
+				<BlogMotion>
+					<main>{children}</main>
+				</BlogMotion>
+				<Footer className="site-footer" />
 			</body>
 		</html>
 	);

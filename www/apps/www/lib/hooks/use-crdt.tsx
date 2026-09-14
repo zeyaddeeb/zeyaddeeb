@@ -17,6 +17,15 @@ export interface OpLogEntry {
 	label: string;
 }
 
+export interface RemoteCursor {
+	peer: number;
+	x: number;
+	y: number;
+	at: number;
+}
+
+const CURSOR_TTL = 6_000;
+
 interface RgaDoc {
 	insert(pos: number, value: string): string;
 	delete(pos: number): string | undefined;
@@ -43,7 +52,7 @@ function toWsBase(raw: string) {
 
 function resolveWsBase(explicitBase?: string) {
 	if (explicitBase) return toWsBase(explicitBase);
-	if (typeof window === "undefined") return "ws://localhost:3001";
+	if (typeof window === "undefined") return "ws://localhost:3002";
 
 	const envBase = process.env.NEXT_PUBLIC_CRDT_URL;
 	if (envBase?.trim()) return toWsBase(envBase);
@@ -53,7 +62,7 @@ function resolveWsBase(explicitBase?: string) {
 		hostname === "localhost" ||
 		hostname === "127.0.0.1" ||
 		hostname.endsWith(".local");
-	if (isLocal) return "ws://localhost:3001";
+	if (isLocal) return "ws://localhost:3002";
 
 	const wsProtocol = protocol === "https:" ? "wss:" : "ws:";
 	const rootHost = hostname.replace(/^www\./, "");
@@ -79,6 +88,11 @@ export function useCrdt(docId: string, wsBase?: string) {
 	const [opLog, setOpLog] = useState<OpLogEntry[]>([]);
 	const [pendingCount, setPendingCount] = useState(0);
 	const [totalOps, setTotalOps] = useState(0);
+	const [replayedOps, setReplayedOps] = useState(0);
+	const [peer, setPeer] = useState<number | null>(null);
+	const [peers, setPeers] = useState<number | null>(null);
+	const [cursors, setCursors] = useState<RemoteCursor[]>([]);
+	const lastCursorSentRef = useRef(0);
 
 	const syncState = useCallback(() => {
 		const doc = docRef.current;
@@ -139,7 +153,7 @@ export function useCrdt(docId: string, wsBase?: string) {
 			setStatus("connecting");
 
 			ws.onopen = () => {
-				if (!mountedRef.current) {
+				if (!mountedRef.current || wsRef.current !== ws) {
 					ws.close();
 					return;
 				}
@@ -148,12 +162,16 @@ export function useCrdt(docId: string, wsBase?: string) {
 
 			ws.onmessage = (e: MessageEvent) => {
 				const doc = docRef.current;
-				if (!doc || !mountedRef.current) return;
+				if (!doc || !mountedRef.current || wsRef.current !== ws) return;
 				try {
 					const msg = JSON.parse(e.data as string) as {
 						type: string;
 						ops?: unknown[];
 						op?: { type: string; value?: string };
+						peer?: number;
+						peers?: number;
+						x?: number;
+						y?: number;
 					};
 
 					if (msg.type === "init") {
@@ -162,6 +180,9 @@ export function useCrdt(docId: string, wsBase?: string) {
 						retryRef.current = 0;
 						flushPending(ws);
 						syncState();
+						setReplayedOps(msg.ops?.length ?? 0);
+						if (typeof msg.peer === "number") setPeer(msg.peer);
+						if (typeof msg.peers === "number") setPeers(msg.peers);
 						pushLog("remote", `init — ${msg.ops?.length ?? 0} ops`);
 					} else if (msg.type === "op" && msg.op) {
 						doc.apply_remote(JSON.stringify(msg.op));
@@ -171,20 +192,40 @@ export function useCrdt(docId: string, wsBase?: string) {
 							"remote",
 							o.type === "insert" ? `insert '${o.value ?? ""}'` : "delete",
 						);
+					} else if (msg.type === "presence") {
+						if (typeof msg.peers === "number") setPeers(msg.peers);
+					} else if (msg.type === "cursor") {
+						const { peer: p, x, y } = msg;
+						if (
+							typeof p !== "number" ||
+							typeof x !== "number" ||
+							typeof y !== "number"
+						)
+							return;
+						const now = Date.now();
+						setCursors((prev) => [
+							...prev.filter((c) => c.peer !== p && now - c.at < CURSOR_TTL),
+							{ peer: p, x, y, at: now },
+						]);
+					} else if (msg.type === "leave") {
+						const p = msg.peer;
+						setCursors((prev) => prev.filter((c) => c.peer !== p));
 					}
 				} catch {}
 			};
 
 			ws.onerror = () => {
-				if (mountedRef.current) {
+				if (mountedRef.current && wsRef.current === ws) {
 					setStatus("offline");
 					console.warn("[crdt] websocket error", { wsUrl });
 				}
 			};
 
 			ws.onclose = () => {
-				if (!mountedRef.current) return;
+				if (!mountedRef.current || wsRef.current !== ws) return;
 				setStatus("offline");
+				setPeers(null);
+				setCursors([]);
 				console.warn("[crdt] websocket closed", { wsUrl });
 				scheduleReconnect();
 			};
@@ -200,6 +241,26 @@ export function useCrdt(docId: string, wsBase?: string) {
 			docRef.current = null;
 		};
 	}, [loading, wasm, wsBase, flushPending, syncState, pushLog]);
+
+	useEffect(() => {
+		const id = setInterval(() => {
+			const now = Date.now();
+			setCursors((prev) => {
+				const next = prev.filter((c) => now - c.at < CURSOR_TTL);
+				return next.length === prev.length ? prev : next;
+			});
+		}, 2_000);
+		return () => clearInterval(id);
+	}, []);
+
+	const sendCursor = useCallback((x: number, y: number) => {
+		const ws = wsRef.current;
+		if (ws?.readyState !== WebSocket.OPEN) return;
+		const now = performance.now();
+		if (now - lastCursorSentRef.current < 50) return;
+		lastCursorSentRef.current = now;
+		ws.send(JSON.stringify({ type: "cursor", x, y }));
+	}, []);
 
 	const insert = useCallback(
 		(pos: number, char: string) => {
@@ -235,8 +296,13 @@ export function useCrdt(docId: string, wsBase?: string) {
 		opLog,
 		pendingCount,
 		totalOps,
+		replayedOps,
+		peer,
+		peers,
+		cursors,
 		siteId: siteIdRef.current,
 		insert,
 		delete: del,
+		sendCursor,
 	};
 }

@@ -1,277 +1,59 @@
-"use client";
-
-import { motion } from "framer-motion";
+import { BLOG_URL, SourceLink } from "@zeyaddeeb/ui";
 import Link from "next/link";
-import { useState } from "react";
-
-const isDev = process.env.NODE_ENV !== "production";
-
-interface DiagonalSectionProps {
-	title: string;
-	subtitle: string;
-	href: string;
-	external?: boolean;
-	index: number;
-	activeIndex: number | null;
-	setActiveIndex: (index: number | null) => void;
-}
-
-function DiagonalSection({
-	title,
-	subtitle,
-	href,
-	external,
-	index,
-	activeIndex,
-	setActiveIndex,
-}: DiagonalSectionProps) {
-	const isActive = activeIndex === index;
-	const isOtherActive = activeIndex !== null && activeIndex !== index;
-
-	const sectionStyles = [
-		{
-			background:
-				"linear-gradient(135deg, #271413 0%, #0a0908 46%, #050505 100%)",
-			accent:
-				"radial-gradient(circle at 18% 20%, rgba(199, 100, 72, 0.34), transparent 42%)",
-			glowColor: "rgba(199, 100, 72, 0.32)",
-		},
-		{
-			background:
-				"linear-gradient(135deg, #101829 0%, #08090c 48%, #050505 100%)",
-			accent:
-				"radial-gradient(circle at 50% 18%, rgba(95, 139, 173, 0.28), transparent 45%)",
-			glowColor: "rgba(95, 139, 173, 0.3)",
-		},
-		{
-			background:
-				"linear-gradient(135deg, #132118 0%, #080a08 48%, #050505 100%)",
-			accent:
-				"radial-gradient(circle at 82% 22%, rgba(127, 157, 111, 0.3), transparent 44%)",
-			glowColor: "rgba(127, 157, 111, 0.31)",
-		},
-	];
-
-	const style = sectionStyles[index];
-
-	const content = (
-		<motion.div
-			className="relative flex h-full w-full items-center justify-center overflow-hidden bg-neutral-950"
-			style={{
-				clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)",
-			}}
-			initial={{ opacity: 0, x: index === 0 ? -100 : index === 2 ? 100 : 0 }}
-			animate={{
-				opacity: isOtherActive ? 0.3 : 1,
-				scale: isActive ? 1.02 : 1,
-			}}
-			whileInView={{ opacity: 1, x: 0 }}
-			viewport={{ once: true }}
-			transition={{
-				duration: 0.8,
-				delay: index * 0.15,
-				ease: [0.22, 1, 0.36, 1],
-			}}
-			onMouseEnter={() => setActiveIndex(index)}
-			onMouseLeave={() => setActiveIndex(null)}
-		>
-			<div
-				className="absolute inset-0"
-				style={{ background: style.background }}
-			/>
-
-			<div className="absolute inset-0" style={{ background: style.accent }} />
-
-			<motion.div
-				className="absolute -inset-20 blur-3xl"
-				style={{ backgroundColor: style.glowColor }}
-				initial={{ opacity: 0 }}
-				animate={{ opacity: isActive ? 0.6 : 0 }}
-				transition={{ duration: 0.5 }}
-			/>
-
-			<div
-				className="pointer-events-none absolute inset-0 opacity-[0.15]"
-				style={{
-					backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-				}}
-			/>
-
-			<div
-				className="pointer-events-none absolute inset-0 opacity-[0.03]"
-				style={{
-					backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-						linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-					backgroundSize: "50px 50px",
-				}}
-			/>
-
-			<div className="relative z-10 px-5 text-center sm:px-6">
-				<motion.h2
-					className="text-[clamp(2rem,6vw,5rem)] font-bold uppercase leading-[0.9] tracking-normal text-white drop-shadow-2xl"
-					style={{ fontFamily: "var(--font-anton)" }}
-					animate={{ y: isActive ? -5 : 0 }}
-					transition={{ duration: 0.3 }}
-				>
-					{title}
-				</motion.h2>
-				<motion.p
-					className="mt-4 text-sm uppercase tracking-[0.3em] text-white/60"
-					animate={{ opacity: isActive ? 1 : 0.6 }}
-					transition={{ duration: 0.3 }}
-				>
-					{subtitle}
-				</motion.p>
-			</div>
-
-			<motion.div
-				className="absolute bottom-8 left-8 text-white/40 md:bottom-12 md:left-12"
-				initial={{ opacity: 0, x: -10 }}
-				animate={{ opacity: isActive ? 1 : 0, x: isActive ? 0 : -10 }}
-				transition={{ duration: 0.3 }}
-			>
-				<svg
-					className="h-8 w-8"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-					aria-hidden="true"
-				>
-					<path
-						strokeLinecap="round"
-						strokeLinejoin="round"
-						strokeWidth={2}
-						d="M17 8l4 4m0 0l-4 4m4-4H3"
-					/>
-				</svg>
-			</motion.div>
-
-			<motion.div
-				className="absolute bottom-0 left-0 right-0 h-0.5"
-				style={{
-					backgroundColor: style.glowColor,
-					transformOrigin: "left",
-				}}
-				initial={{ scaleX: 0 }}
-				animate={{ scaleX: isActive ? 1 : 0 }}
-				transition={{ duration: 0.4 }}
-			/>
-		</motion.div>
-	);
-
-	if (external) {
-		return (
-			<a href={href} className="block h-full w-full">
-				{content}
-			</a>
-		);
-	}
-
-	return (
-		<Link href={href} className="block h-full w-full">
-			{content}
-		</Link>
-	);
-}
+import { experiments } from "@/features/catalog/catalog";
+import { PresenceBoard } from "@/features/home/presence-board";
+import "@/features/home/home.css";
 
 export default function HomePage() {
-	const [activeIndex, setActiveIndex] = useState<number | null>(null);
-
-	const sections = [
-		{
-			title: "Blog",
-			subtitle: "Thoughts & Writing",
-			href: isDev ? "http://localhost:3001/blog" : "/blog",
-			external: isDev,
-		},
-		{
-			title: "Experiments",
-			subtitle: "Creative Explorations",
-			href: "/experiments",
-		},
-		{
-			title: "About",
-			subtitle: "Who I Am",
-			href: "/about",
-		},
-	];
-
 	return (
-		<main className="h-dvh overflow-hidden bg-[#050505] text-white">
-			<Link
-				href="/"
-				className="fixed left-4 top-4 z-50 text-xl font-bold uppercase tracking-normal text-white transition-colors hover:text-neutral-300 md:hidden"
-				style={{ fontFamily: "var(--font-anton, inherit)" }}
-			>
-				Z
-			</Link>
-
-			<motion.div
-				className="pointer-events-none fixed right-8 top-8 z-50 hidden text-right md:block"
-				initial={{ opacity: 0, x: 20 }}
-				animate={{ opacity: 1, x: 0 }}
-				transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-			>
-				<motion.h1
-					className="text-4xl font-bold uppercase leading-[0.85] tracking-normal text-white mix-blend-difference lg:text-5xl xl:text-6xl"
-					style={{ fontFamily: "var(--font-anton)" }}
-					initial={{ y: 20, opacity: 0 }}
-					animate={{ y: 0, opacity: 1 }}
-					transition={{ duration: 1.2, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
-				>
-					Zeyad Deeb
-				</motion.h1>
-				<motion.p
-					className="mt-2 text-xs uppercase tracking-[0.3em] text-white/60 mix-blend-difference"
-					initial={{ y: 10, opacity: 0 }}
-					animate={{ y: 0, opacity: 1 }}
-					transition={{ duration: 1, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
-				>
-					AI · Design · Technology
-				</motion.p>
-			</motion.div>
-
-			<div className="flex h-dvh min-h-0 flex-col overflow-hidden md:hidden">
-				{sections.map((section, index) => (
-					<div key={section.title} className="h-[calc(100dvh/3)] min-h-0">
-						<DiagonalSection
-							{...section}
-							index={index}
-							activeIndex={activeIndex}
-							setActiveIndex={setActiveIndex}
-						/>
-					</div>
-				))}
-			</div>
-
-			<div className="relative hidden h-dvh overflow-hidden md:block">
-				<div className="absolute inset-0 flex">
-					{sections.map((section, index) => (
-						<div
-							key={section.title}
-							className="relative h-full"
-							style={{
-								width: "40%",
-								marginLeft: index === 0 ? "0" : "-5%",
-								clipPath:
-									index === 0
-										? "polygon(0 0, 100% 0, 85% 100%, 0 100%)"
-										: index === 1
-											? "polygon(15% 0, 100% 0, 85% 100%, 0 100%)"
-											: "polygon(15% 0, 100% 0, 100% 100%, 0 100%)",
-								zIndex: 3 - index,
-							}}
-						>
-							<DiagonalSection
-								{...section}
-								index={index}
-								activeIndex={activeIndex}
-								setActiveIndex={setActiveIndex}
-							/>
-						</div>
-					))}
+		<main className="home container">
+			<section className="home__opening" aria-labelledby="home-title">
+				<div className="home__bio">
+					<p className="home__eyebrow">Software engineer / Brooklyn, NY</p>
+					<h1 id="home-title">
+						Side projects
+						<br />& notes<span className="home__period">.</span>
+					</h1>
+					<p className="home__intro">
+						I write software, mostly in Rust and TypeScript. This is where I
+						keep my side projects, writing, and things I find interesting.
+					</p>
+					<Link className="home__about" href="/about">
+						A bit about me <span aria-hidden="true">→</span>
+					</Link>
+					<p className="home__source">
+						The site, experiments, and infrastructure are in one repo.{" "}
+						<SourceLink>Browse the code</SourceLink>
+					</p>
 				</div>
-			</div>
+				<PresenceBoard />
+			</section>
+			<nav className="home__directory" aria-label="Explore the site">
+				<Link href="/experiments" className="home__destination">
+					<span className="home__eyebrow">01 / Projects</span>
+					<h2>
+						Experiments <span aria-hidden="true">↗</span>
+					</h2>
+					<p>
+						{experiments.length} projects in graphics, audio, and distributed
+						systems.
+					</p>
+				</Link>
+				<Link href={BLOG_URL} className="home__destination">
+					<span className="home__eyebrow">02 / Writing</span>
+					<h2>
+						Blog <span aria-hidden="true">↗</span>
+					</h2>
+					<p>Notes on what I’m building and learning.</p>
+				</Link>
+				<Link href={`${BLOG_URL}/library`} className="home__destination">
+					<span className="home__eyebrow">03 / Bookmarks</span>
+					<h2>
+						Library <span aria-hidden="true">↗</span>
+					</h2>
+					<p>Books, art, podcasts, and links I’ve saved.</p>
+				</Link>
+			</nav>
 		</main>
 	);
 }

@@ -1,51 +1,51 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
-  "assist": {
-    "actions": {
-      "source": {
-        "organizeImports": {
-          "level": "on",
-          "options": {
-            "groups": [":NODE:", ":PACKAGE:", ":ALIAS:", ":PATH:"]
-          }
-        }
-      }
-    }
-  },
-  "files": {
-    "includes": [
-      "**",
-      "!**/.next",
-      "!**/node_modules",
-      "!**/dist",
-      "!**/build",
-      "!**/coverage",
-      "!**/__codegen__",
-      "!test-results"
-    ]
-  },
-  "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": true,
-      "complexity": {
-        "noForEach": "off",
-        "noUselessFragments": "off"
-      },
-      "correctness": {
-        "useExhaustiveDependencies": "off"
-      },
-      "suspicious": {
-        "noExplicitAny": "off"
-      }
-    }
-  },
-  "formatter": {
-    "enabled": true
-  },
-  "css": {
-    "parser": {
-      "tailwindDirectives": true
-    }
-  }
+	"$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": {
+					"level": "on",
+					"options": {
+						"groups": [":NODE:", ":PACKAGE:", ":ALIAS:", ":PATH:"]
+					}
+				}
+			}
+		}
+	},
+	"files": {
+		"includes": [
+			"**",
+			"!**/.next",
+			"!**/node_modules",
+			"!**/dist",
+			"!**/build",
+			"!**/coverage",
+			"!**/__codegen__",
+			"!test-results"
+		]
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"complexity": {
+				"noForEach": "off",
+				"noUselessFragments": "off"
+			},
+			"correctness": {
+				"useExhaustiveDependencies": "off"
+			},
+			"suspicious": {
+				"noExplicitAny": "off"
+			}
+		}
+	},
+	"formatter": {
+		"enabled": true
+	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
+	}
 }

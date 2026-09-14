@@ -1,91 +1,80 @@
 "use client";
 
-import { motion } from "framer-motion";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { BLOG_URL } from "../urls";
 
 export type NavItem = {
-	label?: string;
+	label: string;
 	href: string;
 	external?: boolean;
-	primary?: boolean;
-	icon?: React.ReactNode;
-	ariaLabel?: string;
 };
 
 export interface HeaderProps {
-	activeSection?: string;
 	navItems?: NavItem[];
-	logo?: React.ReactNode;
+	wordmark?: React.ReactNode;
 	logoHref?: string;
-	variant?: "transparent" | "solid";
+	status?: React.ReactNode;
 	className?: string;
 }
 
-const defaultNavItems: NavItem[] = [{ label: "Blog", href: "/blog" }];
+const defaultNavItems: NavItem[] = [{ label: "Blog", href: BLOG_URL }];
 
 export function Header({
-	activeSection,
 	navItems = defaultNavItems,
-	logo = "Z",
+	wordmark = "Zeyad Deeb",
 	logoHref = "/",
-	variant = "transparent",
+	status,
 	className = "",
 }: HeaderProps) {
-	const baseClasses =
-		variant === "solid"
-			? "fixed left-0 right-0 top-0 z-50 border-b border-neutral-800/50 bg-neutral-950/80 backdrop-blur-xl"
-			: "fixed left-0 right-0 top-0 z-50";
+	const pathname = usePathname();
 
 	return (
-		<motion.header
-			initial={{ y: -20, opacity: 0 }}
-			animate={{ y: 0, opacity: 1 }}
-			transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-			className={`${baseClasses} ${className}`}
+		<header
+			className={`sticky top-0 z-40 border-b border-rule bg-background text-foreground ${className}`}
 		>
-			<nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6">
+			<nav className="container flex h-14 items-center gap-3 sm:gap-6">
 				<Link
 					href={logoHref}
-					onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-					className="text-xl font-bold uppercase tracking-tight text-white transition-colors hover:text-neutral-300"
-					style={{ fontFamily: "var(--font-anton, inherit)" }}
+					className="flex shrink-0 items-center gap-2 font-display text-[14px] sm:gap-3 sm:text-[15px] font-medium tracking-tight"
 				>
-					{logo}
+					{wordmark}
 				</Link>
 
-				<div className="flex items-center gap-1 md:gap-2">
+				{status ? (
+					<div className="hidden min-w-0 flex-1 items-center md:flex">
+						{status}
+					</div>
+				) : (
+					<div className="flex-1" />
+				)}
+
+				<ul className="flex items-center gap-3 font-display text-[12px] sm:gap-5 sm:text-[13px]">
 					{navItems.map((item) => {
-						const isActive = activeSection === item.href;
+						const active =
+							!item.external &&
+							(pathname === item.href ||
+								(item.href !== "/" && pathname?.startsWith(`${item.href}/`)));
 						return (
-							<Link
-								key={item.href}
-								href={item.href}
-								target={item.external ? "_blank" : undefined}
-								rel={item.external ? "noopener noreferrer" : undefined}
-								title={item.label || item.ariaLabel || undefined}
-								aria-label={item.ariaLabel || item.label || undefined}
-								className={`rounded-lg px-2 py-1.5 text-xs font-semibold uppercase tracking-wide transition-all focus:outline-none md:px-4 md:py-2 md:text-sm ${
-									item.primary
-										? "border border-white bg-white text-neutral-900 hover:bg-transparent hover:text-white"
-										: isActive
-											? "bg-neutral-800 text-white"
-											: "text-neutral-300 hover:bg-neutral-800 hover:text-white"
-								}`}
-							>
-								{item.icon && !item.label && <span>{item.icon}</span>}
-								{item.icon && item.label && (
-									<span className="md:hidden">{item.icon}</span>
-								)}
-								{item.label && (
-									<span className={item.icon ? "hidden md:inline" : ""}>
-										{item.label}
-									</span>
-								)}
-							</Link>
+							<li key={item.href}>
+								<Link
+									href={item.href}
+									target={item.external ? "_blank" : undefined}
+									rel={item.external ? "noopener noreferrer" : undefined}
+									aria-current={active ? "page" : undefined}
+									className={`underline-offset-[6px] transition-colors ease-quiet [transition-duration:var(--dur-1)] hover:text-foreground ${
+										active
+											? "text-foreground underline decoration-amber decoration-1"
+											: "text-dim"
+									}`}
+								>
+									{item.label}
+								</Link>
+							</li>
 						);
 					})}
-				</div>
+				</ul>
 			</nav>
-		</motion.header>
+		</header>
 	);
 }

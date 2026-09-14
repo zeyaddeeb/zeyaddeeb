@@ -63,6 +63,13 @@ export function FilterBar({
 		setLocalSearch(searchValue);
 	}, [searchValue]);
 
+	useEffect(
+		() => () => {
+			if (debounceRef.current) clearTimeout(debounceRef.current);
+		},
+		[],
+	);
+
 	const handleSearchInput = (value: string) => {
 		setLocalSearch(value);
 		if (debounceRef.current) {
@@ -74,6 +81,7 @@ export function FilterBar({
 	};
 
 	const clearSearch = () => {
+		if (debounceRef.current) clearTimeout(debounceRef.current);
 		setLocalSearch("");
 		onSearchChange("");
 	};
@@ -82,19 +90,21 @@ export function FilterBar({
 		<div className="mb-6 space-y-4 sm:mb-8">
 			<div className="flex flex-col gap-4 sm:flex-row sm:items-center">
 				<div className="relative flex-1 sm:max-w-xs">
-					<SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
+					<SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-dim" />
 					<input
-						type="text"
+						type="search"
+						aria-label="Search library"
 						value={localSearch}
 						onChange={(e) => handleSearchInput(e.target.value)}
 						placeholder="Search..."
-						className="w-full rounded-lg border border-neutral-800 bg-neutral-900/50 py-2 pl-10 pr-10 text-sm text-white placeholder-neutral-500 transition-colors focus:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-600"
+						className="w-full rounded-none border border-rule bg-white py-2 pl-10 pr-10 text-sm text-ink placeholder-neutral-500 transition-colors focus:border-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-600"
 					/>
 					{localSearch && (
 						<button
 							type="button"
 							onClick={clearSearch}
-							className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300"
+							aria-label="Clear search"
+							className="absolute right-3 top-1/2 -translate-y-1/2 text-dim hover:text-ink"
 						>
 							<XIcon className="h-4 w-4" />
 						</button>
@@ -106,10 +116,11 @@ export function FilterBar({
 						<button
 							type="button"
 							onClick={() => onTypeChange(null)}
-							className={`shrink-0 rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider transition-all ${
+							aria-pressed={selectedType === null}
+							className={`shrink-0 rounded-none px-4 py-2 text-xs font-medium uppercase tracking-wider transition-all ${
 								selectedType === null
-									? "bg-white text-neutral-900"
-									: "bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-300"
+									? "border border-ink bg-yellow text-ink"
+									: "border border-rule bg-paper text-ink hover:bg-yellow"
 							}`}
 						>
 							All
@@ -122,12 +133,13 @@ export function FilterBar({
 									key={type}
 									type="button"
 									onClick={() => onTypeChange(isSelected ? null : type)}
+									aria-pressed={isSelected}
 									whileHover={{ scale: 1.02 }}
 									whileTap={{ scale: 0.98 }}
-									className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wider transition-all ${
+									className={`flex shrink-0 items-center gap-1.5 rounded-none px-4 py-2 text-xs font-medium uppercase tracking-wider transition-all ${
 										isSelected
-											? "bg-white text-neutral-900"
-											: "bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-300"
+											? "border border-ink bg-yellow text-ink"
+											: "border border-rule bg-paper text-ink hover:bg-yellow"
 									}`}
 								>
 									<Icon className="h-3.5 w-3.5" />

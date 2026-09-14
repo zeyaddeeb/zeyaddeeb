@@ -31,12 +31,32 @@ pub enum CrdtOp {
 pub enum ClientMsg {
     Join,
     Op { op: CrdtOp },
+    Cursor { x: f32, y: f32 },
 }
 
 #[derive(Serialize, Debug)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ServerMsg<'a> {
-    Init { ops: &'a [CrdtOp] },
-    Op { op: &'a CrdtOp },
-    Error { message: String },
+    Init {
+        ops: &'a [CrdtOp],
+        peer: u32,
+        peers: usize,
+    },
+    Op {
+        op: &'a CrdtOp,
+    },
+    Presence {
+        peers: usize,
+    },
+    Cursor {
+        peer: u32,
+        x: f32,
+        y: f32,
+    },
+    Leave {
+        peer: u32,
+    },
+    Error {
+        message: String,
+    },
 }

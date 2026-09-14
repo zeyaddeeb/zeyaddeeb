@@ -1,33 +1,24 @@
 "use client";
 
-import { ReactLenis } from "lenis/react";
-import { useState } from "react";
-import { CustomCursor } from "@/components/custom-cursor";
-import { IntroScreen } from "./intro-screen";
+import { MotionConfig } from "framer-motion";
+import { PresenceProvider } from "@/features/live/presence";
+import { QuietTitle } from "@/features/live/quiet-title";
+import { RunningProvider } from "@/features/live/running-context";
 
 interface RootLayoutClientProps {
 	children: React.ReactNode;
 }
 
 export function RootLayoutClient({ children }: RootLayoutClientProps) {
-	const [introComplete, setIntroComplete] = useState(false);
-
 	return (
-		<ReactLenis
-			root
-			options={{
-				lerp: 0.1,
-				duration: 1.4,
-			}}
-		>
-			<div
-				className="min-h-screen bg-neutral-950"
-				style={{ opacity: introComplete ? 1 : 0 }}
-			>
-				{children}
-			</div>
-			<IntroScreen onComplete={() => setIntroComplete(true)} />
-			<CustomCursor />
-		</ReactLenis>
+		<MotionConfig reducedMotion="user">
+			<RunningProvider>
+				<PresenceProvider>
+					<QuietTitle />
+					<span className="site-progress" aria-hidden="true" />
+					<div className="min-h-screen">{children}</div>
+				</PresenceProvider>
+			</RunningProvider>
+		</MotionConfig>
 	);
 }

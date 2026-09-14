@@ -8,7 +8,7 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
     routing::get,
-    Router,
+    Json, Router,
 };
 use tower_http::{
     cors::{Any, CorsLayer},
@@ -32,14 +32,15 @@ async fn main() -> anyhow::Result<()> {
     let app = Router::new()
         .route("/ws/{doc_id}", get(ws_upgrade))
         .route("/health", get(health_check))
+        .route("/stats", get(stats))
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 
-    let addr = "0.0.0.0:3001";
+    let addr = std::env::var("CRDT_BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:3001".into());
     info!("crdt server listening on {addr}");
 
-    let listener = tokio::net::TcpListener::bind(addr).await?;
+    let listener = tokio::net::TcpListener::bind(&addr).await?;
     axum::serve(listener, app).await?;
 
     Ok(())
@@ -47,6 +48,14 @@ async fn main() -> anyhow::Result<()> {
 
 async fn health_check() -> impl IntoResponse {
     "ok"
+}
+
+async fn stats(State(state): State<AppState>) -> impl IntoResponse {
+    Json(serde_json::json!({
+        "rooms": state.rooms.len(),
+        "peers": state.total_peers(),
+        "ops": state.ops_seen(),
+    }))
 }
 
 async fn ws_upgrade(

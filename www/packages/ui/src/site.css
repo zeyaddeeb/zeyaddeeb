@@ -1,0 +1,172 @@
+.personal-site {
+	--paper: #f9f8f2;
+	--paper-2: #dddcd4;
+	--ink: #111111;
+	--dim: #565650;
+	--red: #e83025;
+	--blue: #0089c8;
+	--yellow: #ffbc00;
+	--amber: var(--red);
+	--background: var(--paper);
+	--foreground: var(--ink);
+}
+
+.personal-site .charcoal {
+	--amber: #ffbc00;
+}
+
+.personal-site > div {
+	min-height: 100vh;
+}
+
+.personal-site .container {
+	max-width: 1320px;
+}
+
+.site-wordmark-dot {
+	color: var(--red);
+}
+
+.site-header {
+	position: relative;
+	border-bottom: 2px solid var(--ink);
+}
+
+.site-header nav {
+	height: 80px;
+}
+
+.site-header nav > a {
+	font-size: 22px;
+	font-weight: 600;
+}
+
+.site-header nav ul {
+	font-size: 16px;
+	margin-left: auto;
+}
+
+.site-footer {
+	border-top: 2px solid var(--ink);
+	--amber: var(--red);
+}
+
+.site-footer > div > div:first-child > span {
+	border-radius: 0;
+	width: 24px;
+	height: 24px;
+}
+
+@media (max-width: 640px) {
+	.site-header nav {
+		height: 68px;
+		gap: 12px;
+	}
+
+	.site-header nav > a {
+		font-size: 17px;
+	}
+
+	.site-header nav ul {
+		font-size: 14px;
+		gap: 14px;
+		margin-left: auto;
+	}
+}
+
+@media (max-width: 359px) {
+	.site-header nav {
+		flex-wrap: wrap;
+		height: auto;
+		padding-block: 16px;
+	}
+
+	.site-header nav ul {
+		width: 100%;
+		margin-left: 0;
+	}
+}
+
+.personal-site main {
+	animation: page-in var(--dur-2) var(--ease) backwards;
+}
+
+@keyframes page-in {
+	from {
+		opacity: 0;
+	}
+
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes dot-in {
+	from {
+		opacity: 0;
+	}
+
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes arch-rise {
+	from {
+		opacity: 0;
+		translate: 0 8px;
+	}
+
+	to {
+		opacity: 1;
+		translate: 0 0;
+	}
+}
+
+.site-progress {
+	position: fixed;
+	top: 0;
+	left: 0;
+	z-index: 60;
+	width: 100%;
+	height: 3px;
+	background: var(--red);
+	transform: scaleX(0);
+	transform-origin: left;
+	pointer-events: none;
+	animation: site-progress linear both;
+	animation-timeline: scroll(root);
+}
+
+@keyframes site-progress {
+	from {
+		transform: scaleX(0);
+	}
+
+	to {
+		transform: scaleX(1);
+	}
+}
+
+.site-header nav ul a {
+	position: relative;
+	text-decoration: none;
+}
+
+.site-header nav ul a::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: -6px;
+	height: 2px;
+	background: var(--red);
+	transform: scaleX(0);
+	transform-origin: left;
+	transition: transform var(--dur-2) var(--ease);
+}
+
+.site-header nav ul a:hover::after,
+.site-header nav ul a[aria-current="page"]::after {
+	transform: scaleX(1);
+}

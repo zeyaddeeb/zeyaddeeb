@@ -62,19 +62,8 @@ export function BlogContent({
 	};
 
 	return (
-		<div className="min-h-screen bg-neutral-950">
-			<section className="relative overflow-hidden border-b border-neutral-800/50">
-				<div
-					className="absolute inset-0"
-					style={{
-						background:
-							"linear-gradient(135deg, rgba(39, 20, 19, 0.68) 0%, rgba(10, 9, 8, 0.92) 48%, #050505 100%)",
-					}}
-				/>
-				<div
-					className="pointer-events-none absolute -left-40 -top-44 h-80 w-80 rounded-full blur-3xl"
-					style={{ backgroundColor: "rgba(199, 100, 72, 0.16)" }}
-				/>
+		<div className="min-h-screen bg-paper">
+			<section className="blog-list-heading border-b border-rule">
 				<div className="relative mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-12">
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
@@ -82,14 +71,13 @@ export function BlogContent({
 						transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
 					>
 						<h1
-							className="text-2xl font-bold tracking-tight text-white md:text-3xl"
-							style={{ fontFamily: "var(--font-space-grotesk)" }}
+							className="text-2xl font-bold tracking-tight text-ink md:text-3xl"
+							style={{ fontFamily: "var(--font-display)" }}
 						>
 							Blog
 						</h1>
-						<p className="mt-1 text-sm text-neutral-400 md:text-base">
-							Thoughts on software development, technology, and the things I'm
-							learning along the way.
+						<p className="mt-1 text-sm text-dim md:text-base">
+							Notes on software and things I’m learning.
 						</p>
 					</motion.div>
 				</div>
@@ -106,25 +94,24 @@ export function BlogContent({
 					>
 						<div className="relative">
 							<input
-								type="text"
+								type="search"
+								aria-label="Search posts"
 								value={searchValue}
 								onChange={(e) => setSearchValue(e.target.value)}
 								placeholder="Search posts..."
-								className="w-full rounded-lg border border-neutral-800 bg-neutral-900/50 px-4 py-3 text-white placeholder:text-neutral-500 focus:border-[#c76448]/70 focus:outline-none focus:ring-1 focus:ring-[#c76448]/50"
+								className="w-full rounded-none border border-rule bg-white px-4 py-3 text-ink placeholder:text-dim focus:border-ink focus:outline-none focus:ring-1 focus:ring-red"
 							/>
 							<button
 								type="submit"
 								disabled={isPending}
-								className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-[#271413] px-4 py-1.5 text-sm text-white transition-colors hover:bg-[#3a1c19] disabled:opacity-50"
+								className="absolute right-2 top-1/2 -translate-y-1/2 rounded-none bg-yellow px-4 py-1.5 text-sm text-ink transition-colors hover:bg-yellow disabled:opacity-50"
 							>
 								Search
 							</button>
 						</div>
 					</motion.form>
 
-					{isPending && (
-						<div className="mb-4 text-sm text-neutral-500">Loading...</div>
-					)}
+					{isPending && <div className="mb-4 text-sm text-dim">Loading...</div>}
 
 					{initialData.items.length > 0 ? (
 						<div className="space-y-6">
@@ -134,21 +121,18 @@ export function BlogContent({
 									initial={{ opacity: 0, y: 20 }}
 									animate={{ opacity: 1, y: 0 }}
 									transition={{
-										delay: 0.1 * index,
+										delay: Math.min(0.035 * index, 0.2),
 										duration: 0.5,
 										ease: [0.22, 1, 0.36, 1],
 									}}
 								>
 									<Link
 										href={`/posts/${post.slug}`}
-										className="group relative block overflow-hidden rounded-2xl bg-linear-to-br from-neutral-900 to-neutral-950 transition-all duration-500 hover:shadow-2xl hover:shadow-[#271413]/35"
+										className="group relative block border-t-2 border-ink bg-paper transition-colors duration-200 hover:bg-white"
 									>
-										<div className="absolute inset-0 rounded-2xl bg-linear-to-br from-[#c76448]/25 via-transparent to-[#f0b66a]/10 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-										<div className="absolute inset-px rounded-2xl bg-linear-to-br from-neutral-900 to-neutral-950" />
-
 										<div className="relative flex flex-col gap-4 p-6 md:flex-row md:items-start md:gap-6">
 											{post.coverImage && (
-												<div className="relative aspect-video w-full overflow-hidden rounded-xl md:aspect-square md:w-32 md:min-w-32 lg:w-40 lg:min-w-40">
+												<div className="relative aspect-video w-full overflow-hidden rounded-none md:aspect-square md:w-32 md:min-w-32 lg:w-40 lg:min-w-40">
 													<Image
 														src={post.coverImage}
 														alt={post.title}
@@ -162,7 +146,7 @@ export function BlogContent({
 												<div>
 													<div className="mb-3 flex items-center gap-3">
 														{post.publishedAt && (
-															<time className="text-xs font-medium uppercase tracking-wider text-neutral-500">
+															<time className="text-xs font-medium uppercase tracking-wider text-dim">
 																{new Date(post.publishedAt).toLocaleDateString(
 																	"en-US",
 																	{
@@ -176,20 +160,20 @@ export function BlogContent({
 													</div>
 
 													<h2
-														className="text-xl font-bold tracking-normal text-white transition-colors duration-300 group-hover:text-[#f8e8c9] md:text-2xl"
-														style={{ fontFamily: "var(--font-space-grotesk)" }}
+														className="text-xl font-bold tracking-normal text-ink transition-colors duration-300 group-hover:text-red md:text-2xl"
+														style={{ fontFamily: "var(--font-display)" }}
 													>
 														{post.title}
 													</h2>
 
 													{post.excerpt && (
-														<p className="mt-3 line-clamp-2 text-sm leading-relaxed text-neutral-400 md:text-base">
+														<p className="mt-3 line-clamp-2 text-sm leading-relaxed text-dim md:text-base">
 															{post.excerpt}
 														</p>
 													)}
 												</div>
 
-												<div className="mt-4 flex items-center gap-2 text-sm font-medium text-neutral-500 transition-all duration-300 group-hover:gap-3 group-hover:text-[#f0b66a]">
+												<div className="mt-4 flex items-center gap-2 text-sm font-medium text-dim transition-all duration-300 group-hover:gap-3 group-hover:text-red">
 													<span>Read article</span>
 													<svg
 														className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
@@ -218,18 +202,18 @@ export function BlogContent({
 										type="button"
 										onClick={() => handlePageChange(currentPage - 1)}
 										disabled={!initialData.hasPreviousPage || isPending}
-										className="rounded-lg border border-neutral-800 px-4 py-2 text-sm text-neutral-400 transition-colors hover:border-neutral-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+										className="rounded-none border border-rule px-4 py-2 text-sm text-dim transition-colors hover:border-ink hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
 									>
 										Previous
 									</button>
-									<span className="px-4 text-sm text-neutral-500">
+									<span className="px-4 text-sm text-dim">
 										Page {currentPage} of {initialData.totalPages}
 									</span>
 									<button
 										type="button"
 										onClick={() => handlePageChange(currentPage + 1)}
 										disabled={!initialData.hasNextPage || isPending}
-										className="rounded-lg border border-neutral-800 px-4 py-2 text-sm text-neutral-400 transition-colors hover:border-neutral-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+										className="rounded-none border border-rule px-4 py-2 text-sm text-dim transition-colors hover:border-ink hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
 									>
 										Next
 									</button>
@@ -242,7 +226,7 @@ export function BlogContent({
 							animate={{ opacity: 1 }}
 							className="flex h-64 items-center justify-center"
 						>
-							<p className="text-neutral-500">
+							<p className="text-dim">
 								{currentSearch
 									? "No posts match your search."
 									: "No posts yet."}
