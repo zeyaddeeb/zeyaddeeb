@@ -26,46 +26,24 @@ export function CollectionGrid({
 	filterKey = "all",
 	columns,
 }: CollectionGridProps) {
-	const getGridClass = (size: string | null, index: number) => {
-		if (columns) {
-			return "col-span-1 row-span-1";
-		}
-
-		const baseSize = size || "medium";
-
-		switch (baseSize) {
-			case "large":
-				return "col-span-1 sm:col-span-2 sm:row-span-2";
-			case "wide":
-				return "col-span-1 sm:col-span-2 sm:row-span-1";
-			case "tall":
-				return "col-span-1 sm:row-span-2";
-			case "small":
-				return "col-span-1 row-span-1";
-			default: {
-				const patterns = [
-					"col-span-1 row-span-1",
-					"col-span-1 sm:col-span-1 row-span-1",
-					"col-span-1 sm:row-span-2",
-					"col-span-1 sm:col-span-2 sm:row-span-1",
-					"col-span-1 row-span-1",
-				];
-				return patterns[index % patterns.length];
-			}
-		}
+	const getGridSize = (size: string | null, index: number) => {
+		if (columns) return "medium";
+		if (size && size !== "medium") return size;
+		const pattern = ["medium", "medium", "tall", "wide", "medium"];
+		return pattern[index % pattern.length];
 	};
 
 	const getGridClassName = () => {
 		if (columns === 2) {
-			return "grid grid-cols-1 gap-4 sm:grid-cols-2 sm:auto-rows-[minmax(140px,auto)]";
+			return "library-grid grid grid-cols-1 gap-4 sm:grid-cols-2";
 		}
 		if (columns === 3) {
-			return "grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 sm:auto-rows-[minmax(160px,auto)]";
+			return "library-grid grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3";
 		}
 		if (columns === 4) {
-			return "grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:auto-rows-[minmax(160px,auto)]";
+			return "library-grid grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
 		}
-		return "grid grid-cols-1 gap-4 sm:grid-cols-2 sm:auto-rows-[minmax(180px,auto)] md:grid-cols-3 md:gap-5 lg:grid-cols-4 lg:gap-6 xl:grid-cols-5";
+		return "library-grid grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 md:gap-5 lg:grid-cols-4 lg:gap-6 xl:grid-cols-5";
 	};
 
 	return (
@@ -75,12 +53,14 @@ export function CollectionGrid({
 			initial="hidden"
 			animate="visible"
 			className={getGridClassName()}
+			data-layout={columns ? "uniform" : "bento"}
 		>
 			{items.map((item, index) => (
 				<CollectionCard
 					key={item.id}
 					item={item}
-					className={getGridClass(item.gridSize, index)}
+					className="library-grid__item"
+					layoutSize={getGridSize(item.gridSize, index)}
 					index={index}
 				/>
 			))}

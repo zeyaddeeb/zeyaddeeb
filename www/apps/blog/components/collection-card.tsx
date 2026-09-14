@@ -9,14 +9,17 @@ export function CollectionCard({
 	item,
 	className,
 	index,
+	layoutSize,
 }: {
 	item: CollectionItem;
 	className?: string;
 	index: number;
+	layoutSize?: string;
 }) {
 	return (
 		<motion.div
 			className={className}
+			data-size={layoutSize || item.gridSize || "medium"}
 			initial={{ opacity: 0, y: 8 }}
 			animate={{ opacity: 1, y: 0 }}
 			transition={{ duration: 0.25, delay: Math.min(index * 0.035, 0.2) }}

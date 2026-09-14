@@ -1,24 +1,45 @@
-# Hey, I'm Z 👋
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/header-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/readme/header-light.svg">
+  <img src="assets/readme/header-light.svg" alt="Zeyad Deeb — Machine learning and distributed systems. Brooklyn, NY." width="100%">
+</picture>
 
-## 🛠️ What I'm Into
+<p align="center">
+  <a href="https://www.zeyaddeeb.com">Website ↗</a> &nbsp; / &nbsp;
+  <a href="https://www.zeyaddeeb.com/experiments">Experiments</a> &nbsp; / &nbsp;
+  <a href="https://www.linkedin.com/in/zeyaddeeb">LinkedIn</a>
+</p>
 
-- **Kubernetes**: Because why run one container when you can orchestrate a whole bunch?
+I’m Z, a software engineer in Brooklyn. I build machine learning and distributed systems, mostly with **Rust, TypeScript, and Python**.
 
-- **Monorepos**: One repo to rule them all.
+This repo is home to my website and experiments in reinforcement learning, real-time collaboration, audio, and graphics.
 
-- **Infrastructure as Code**: Terraform and Helm are my best friends.
-  
-- **Rust & Typescript**: My go-to languages for building fast and reliable software.
+## Experiments
 
-## 🚀 Tech Stack
+| Project | | Built with |
+| :--- | :--- | :--- |
+| [**RL Basketball Agent ↗**](https://robot.zeyaddeeb.com) | A basketball agent trained with reinforcement learning. | Rust · Bevy · SAC |
+| [**CRDT Editor ↗**](https://www.zeyaddeeb.com/experiments/crdt) | Collaborative text editing with offline synchronization. | Rust · WebAssembly · WebSocket |
+| [**Circle Limit ↗**](https://www.zeyaddeeb.com/experiments/circle-limit) | Animated hyperbolic tilings inspired by M. C. Escher. | Rust · WebAssembly · Canvas |
+| [**Game of Life ↗**](https://www.zeyaddeeb.com/experiments/game-of-life) | Conway’s cellular automaton, with Rust and JavaScript engines. | Rust · TypeScript · Canvas |
+| [**Speaker Diarization ↗**](https://www.zeyaddeeb.com/experiments/speaker-diarization) | An audio pipeline that identifies speaker changes. | Rust · WebRTC · ONNX |
+| [**Audio Visualizer ↗**](https://www.zeyaddeeb.com/experiments/audio-visualizer) | Microphone frequency analysis with four display modes. | Rust · WebAssembly · Web Audio |
 
-All content of this repo is built with Typescript (Next.js), Rust and other fun stuff. Deployed on Kubernetes on AWS (good luck trying to break in), managed with Helm, and provisioned with Terraform.  
-Yes, it's overkill for a personal site. No, I don't care. It's *fun*.
+## Stack
 
-## 📫 Let's Connect
+**Rust · TypeScript · Python · Next.js · WebAssembly**<br>
+**Kubernetes · AWS · Terraform · Helm**
 
-<a href="https://www.linkedin.com/in/zeyaddeeb" target="_blank"><img alt="LinkedIn" src="https://img.shields.io/badge/linkedin-%230077B5.svg?&style=for-the-badge&logo=linkedin&logoColor=white" /></a>
-<a href="https://www.zeyaddeeb.com" target="_blank"><img alt="Personal Website" src="https://img.shields.io/badge/Personal%20Website-%2312100E.svg?&style=for-the-badge&logoColor=white" /></a>
+<details>
+<summary>Repository structure</summary>
 
----
-Feel free to explore the code, suggest improvements, or just say hi!
+| Directory | |
+| :--- | :--- |
+| [`www/`](www) | Website, blog, and shared packages |
+| [`www/packages/wasm/`](www/packages/wasm) | Rust engines compiled to WebAssembly |
+| [`crdt/`](crdt) | Collaborative editing and live presence |
+| [`robot/`](robot) | Basketball simulation and reinforcement learning |
+| [`voice/`](voice) | Speaker diarization service |
+| [`deployments/`](deployments) | Terraform configuration |
+
+</details>

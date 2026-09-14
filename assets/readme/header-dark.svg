@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-labelledby="title desc">
+  <title id="title">Zeyad Deeb — Machine learning and distributed systems.</title>
+  <desc id="desc">Software engineer. Brooklyn, New York. Four phases of a Conway’s Game of Life glider animate on a square grid.</desc>
+  <style>
+    .phase { visibility: hidden; animation: life 4s step-end infinite; }
+    .p0 { visibility: visible; }
+    .p1 { animation-delay: 1s; }
+    .p2 { animation-delay: 2s; }
+    .p3 { animation-delay: 3s; }
+    @keyframes life { 0% { visibility: visible; } 25%, 100% { visibility: hidden; } }
+    @media (prefers-reduced-motion: reduce) { .phase { animation: none; } .p0 { visibility: visible; } }
+  </style>
+  <rect width="1200" height="400" fill="#161615"/>
+  <path d="M0 0H1200" stroke="#ee8064" stroke-width="8"/>
+  <g font-family="'Courier New', Courier, monospace" font-size="15" fill="#b1ab9d">
+    <text x="52" y="60" letter-spacing="2">SOFTWARE ENGINEER</text>
+    <text x="52" y="354" letter-spacing="1">BROOKLYN, NY</text>
+    <text x="1148" y="354" text-anchor="end" font-size="12" letter-spacing="1">CONWAY’S LIFE / GLIDER</text>
+  </g>
+  <text x="48" y="165" fill="#f5f2e9" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="82" font-weight="700" letter-spacing="-4">Zeyad Deeb<tspan fill="#ee8064">.</tspan></text>
+  <text x="52" y="238" fill="#f5f2e9" font-family="Helvetica, Arial, sans-serif" font-size="30" letter-spacing="-0.5">Machine learning &amp; distributed systems.</text>
+  <g fill="#b1ab9d" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19">
+    <text x="52" y="287">Rust / TypeScript / Python</text>
+  </g>
+  <path d="M52 321H730" stroke="#3a3933"/>
+  <path d="M784 48V354" stroke="#3a3933"/>
+  <g aria-hidden="true">
+    <rect x="824" y="70" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="868" y="70" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="912" y="70" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="956" y="70" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="1000" y="70" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="1044" y="70" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="824" y="114" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="868" y="114" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="912" y="114" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="956" y="114" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="1000" y="114" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="1044" y="114" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="824" y="158" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="868" y="158" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="912" y="158" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="956" y="158" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="1000" y="158" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="1044" y="158" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="824" y="202" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="868" y="202" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="912" y="202" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="956" y="202" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="1000" y="202" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="1044" y="202" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="824" y="246" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="868" y="246" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="912" y="246" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="956" y="246" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="1000" y="246" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="1044" y="246" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="824" y="290" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="868" y="290" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="912" y="290" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="956" y="290" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="1000" y="290" width="38" height="38" rx="2" fill="#252521"/>
+    <rect x="1044" y="290" width="38" height="38" rx="2" fill="#252521"/>
+    <g class="phase p0" fill="#ee8064">
+      <rect x="868" y="202" width="38" height="38" rx="2"/>
+      <rect x="912" y="114" width="38" height="38" rx="2"/>
+      <rect x="912" y="202" width="38" height="38" rx="2"/>
+      <rect x="956" y="158" width="38" height="38" rx="2"/>
+      <rect x="956" y="202" width="38" height="38" rx="2"/>
+    </g>
+    <g class="phase p1" fill="#ee8064">
+      <rect x="868" y="114" width="38" height="38" rx="2"/>
+      <rect x="912" y="158" width="38" height="38" rx="2"/>
+      <rect x="912" y="202" width="38" height="38" rx="2"/>
+      <rect x="956" y="114" width="38" height="38" rx="2"/>
+      <rect x="956" y="158" width="38" height="38" rx="2"/>
+    </g>
+    <g class="phase p2" fill="#ee8064">
+      <rect x="868" y="158" width="38" height="38" rx="2"/>
+      <rect x="912" y="202" width="38" height="38" rx="2"/>
+      <rect x="956" y="114" width="38" height="38" rx="2"/>
+      <rect x="956" y="158" width="38" height="38" rx="2"/>
+      <rect x="956" y="202" width="38" height="38" rx="2"/>
+    </g>
+    <g class="phase p3" fill="#ee8064">
+      <rect x="868" y="114" width="38" height="38" rx="2"/>
+      <rect x="868" y="202" width="38" height="38" rx="2"/>
+      <rect x="912" y="158" width="38" height="38" rx="2"/>
+      <rect x="912" y="202" width="38" height="38" rx="2"/>
+      <rect x="956" y="158" width="38" height="38" rx="2"/>
+    </g>
+  </g>
+</svg>

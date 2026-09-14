@@ -117,7 +117,7 @@ export default function RootLayout({
 				<Header
 					wordmark={
 						<>
-							<LifeMark />
+							<LifeMark size={28} />
 							<span>Zeyad Deeb</span>
 						</>
 					}

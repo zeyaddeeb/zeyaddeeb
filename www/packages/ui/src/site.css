@@ -59,7 +59,9 @@
 
 @media (max-width: 640px) {
 	.site-header nav {
-		height: 68px;
+		height: auto;
+		padding-block: 16px;
+		flex-wrap: wrap;
 		gap: 12px;
 	}
 
@@ -70,20 +72,9 @@
 	.site-header nav ul {
 		font-size: 14px;
 		gap: 14px;
-		margin-left: auto;
-	}
-}
-
-@media (max-width: 359px) {
-	.site-header nav {
-		flex-wrap: wrap;
-		height: auto;
-		padding-block: 16px;
-	}
-
-	.site-header nav ul {
 		width: 100%;
 		margin-left: 0;
+		justify-content: space-between;
 	}
 }
 
