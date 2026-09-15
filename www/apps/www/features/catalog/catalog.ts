@@ -138,6 +138,16 @@ export const experiments: Experiment[] = [
 		external: true,
 		span: { cols: 2, rows: 1 },
 	},
+	{
+		id: "wes-anderson",
+		number: 11,
+		title: "One Drawing, Eight Shots",
+		line: "Make a Wes Anderson scene: one flat drawing, a camera that may only slide, cut, or zoom, and a screenplay that runs it.",
+		stack: ["SVG viewBox", "SMIL", "Web Speech", "@property"],
+		href: "/experiments/wes-anderson",
+		kind: "dom",
+		span: { cols: 4, rows: 2 },
+	},
 ];
 
 export function getExperiment(id: string): Experiment {

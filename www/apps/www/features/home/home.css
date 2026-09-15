@@ -109,13 +109,12 @@
 	border-radius: 50%;
 	display: grid;
 	place-items: center;
-	background: var(--red);
+	background: var(--yellow);
 }
 
 .presence-board__count {
 	margin: 0;
-	font: 500 clamp(64px, 14vw, 180px) / 1 var(--font-display);
-	font-size: clamp(48px, 44cqw, 180px);
+	font: 500 clamp(22px, 9cqw, 56px) / 0.95 var(--font-display);
 	letter-spacing: -0.06em;
 	font-variant-numeric: tabular-nums;
 	color: var(--ink);
@@ -158,8 +157,85 @@
 	border-radius: 100% 100% 0 0 / 200% 200% 0 0;
 }
 
-.presence-board__triangles {
+.presence-board__feature {
+	min-width: 0;
+	color: var(--ink);
+	text-decoration: none;
+	isolation: isolate;
+}
+
+.presence-board__feature:focus-visible {
+	outline: 3px solid var(--paper);
+	outline-offset: -6px;
+}
+
+.presence-board__feature-text {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	gap: 5cqw;
+	padding: 10cqw;
+	text-align: center;
+}
+
+.presence-board__feature-eyebrow,
+.presence-board__feature-cta {
+	font: 400 clamp(10px, 2.8cqw, 13px) / 1.5 var(--font-mono);
+}
+
+.presence-board__feature strong {
+	max-width: 10ch;
+	font: 500 clamp(26px, 9.4cqw, 58px) / 1.02 var(--font-display);
+	letter-spacing: -0.045em;
+	text-wrap: balance;
+}
+
+.presence-board__feature-cta {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	text-decoration: underline;
+	text-underline-offset: 4px;
+}
+
+.presence-board__feature-arrow {
+	display: inline-block;
+	transition: translate var(--dur-2) var(--ease);
+}
+
+.presence-board__feature:hover .presence-board__feature-arrow {
+	translate: 3px -3px;
+}
+
+.presence-board__presence {
 	grid-area: 4 / 3 / 5 / 5;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	min-width: 0;
+	background: var(--paper);
+}
+
+.presence-board__presence-text {
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 1px;
+	padding: 1.2cqw 2cqw;
+}
+
+.presence-board__presence-label,
+.presence-board__presence-status {
+	font: 400 clamp(9px, 2cqw, 12px) / 1.2 var(--font-mono);
+	color: var(--ink);
+}
+
+.presence-board__triangles {
+	aspect-ratio: 1;
+	height: 100%;
 	background:
 		linear-gradient(135deg, var(--red) 25%, transparent 25%),
 		linear-gradient(225deg, var(--paper) 25%, transparent 25%),
@@ -328,6 +404,7 @@
 
 .presence-board__composition {
 	position: relative;
+	container-type: inline-size;
 	--pointer-x: 0;
 	--pointer-y: 0;
 }
@@ -449,6 +526,10 @@
 	.presence-board__disc,
 	.presence-board__arch::before {
 		translate: none;
+	}
+
+	.presence-board__feature-arrow {
+		transition: none;
 	}
 
 	.presence-board__visitor {

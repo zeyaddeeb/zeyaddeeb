@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { type CSSProperties, type PointerEvent, useRef, useState } from "react";
+import { getExperiment, number } from "@/features/catalog/catalog";
 import { usePresence } from "@/features/live/presence";
 import { useShouldRun } from "@/features/live/use-running";
 import { useWasm } from "@/lib/hooks/use-wasm";
+
+const featured = getExperiment("wes-anderson");
 
 export function PresenceBoard() {
 	const { peers, peer, cursors, sendCursor, status } = usePresence();
@@ -38,7 +41,7 @@ export function PresenceBoard() {
 	return (
 		<section className="presence-board" aria-labelledby="presence-title">
 			<div className="presence-board__top">
-				<h2 id="presence-title">Here now / {label}</h2>
+				<h2 id="presence-title">Featured experiment</h2>
 				<button
 					type="button"
 					aria-pressed={paused}
@@ -61,8 +64,33 @@ export function PresenceBoard() {
 					} as CSSProperties
 				}
 			>
-				<div className="presence-board__stage">
-					<div className="presence-board__disc">
+				<Link
+					href={featured.href}
+					className="presence-board__stage presence-board__feature"
+				>
+					<span className="presence-board__disc" aria-hidden="true" />
+					<span className="presence-board__feature-text">
+						<span className="presence-board__feature-eyebrow">
+							Experiment / {number(featured.number)}
+						</span>
+						<strong>{featured.title}</strong>
+						<span className="presence-board__feature-cta">
+							Explore experiment{" "}
+							<span
+								className="presence-board__feature-arrow"
+								aria-hidden="true"
+							>
+								↗
+							</span>
+						</span>
+					</span>
+				</Link>
+				<div className="presence-board__stripes" aria-hidden="true" />
+				<div className="presence-board__quarter" aria-hidden="true" />
+				<div className="presence-board__arch" aria-hidden="true" />
+				<div className="presence-board__presence">
+					<div className="presence-board__presence-text">
+						<span className="presence-board__presence-label">Here now</span>
 						<p
 							className="presence-board__count"
 							role="status"
@@ -75,7 +103,7 @@ export function PresenceBoard() {
 								aria-hidden="true"
 								style={
 									connected && peers >= 1000
-										? { fontSize: `${120 / String(peers).length}cqw` }
+										? { fontSize: `${38 / String(peers).length}cqw` }
 										: undefined
 								}
 							>
@@ -89,12 +117,10 @@ export function PresenceBoard() {
 										: "Connecting to the live count."}
 							</span>
 						</p>
+						<span className="presence-board__presence-status">{label}</span>
 					</div>
+					<span className="presence-board__triangles" aria-hidden="true" />
 				</div>
-				<div className="presence-board__stripes" aria-hidden="true" />
-				<div className="presence-board__quarter" aria-hidden="true" />
-				<div className="presence-board__arch" aria-hidden="true" />
-				<div className="presence-board__triangles" aria-hidden="true" />
 				{connected &&
 					cursors
 						.filter((cursor) => cursor.peer !== peer)

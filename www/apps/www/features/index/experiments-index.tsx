@@ -140,18 +140,47 @@ export function ExperimentsIndex({ items }: { items: Experiment[] }) {
 	const listRef = useRef<HTMLOListElement>(null);
 	useEffect(() => {
 		if (window.matchMedia("(hover: hover)").matches) return;
-		const rows = listRef.current?.querySelectorAll<HTMLElement>("li[data-id]");
-		if (!rows?.length) return;
-		const observer = new IntersectionObserver(
-			(entries) => {
-				for (const entry of entries)
-					if (entry.isIntersecting)
-						setActive(entry.target.getAttribute("data-id"));
-			},
-			{ rootMargin: "-45% 0px -45% 0px" },
-		);
-		for (const row of rows) observer.observe(row);
-		return () => observer.disconnect();
+		const list = listRef.current;
+		if (!list) return;
+		let frame = 0;
+		const update = () => {
+			frame = 0;
+			const mid = window.innerHeight / 2;
+			const bounds = list.getBoundingClientRect();
+			if (bounds.top > mid || bounds.bottom < mid) {
+				setActive(null);
+				return;
+			}
+			let best: HTMLElement | null = null;
+			let bestDistance = Number.POSITIVE_INFINITY;
+			for (const row of list.querySelectorAll<HTMLElement>("li[data-id]")) {
+				const rect = row.getBoundingClientRect();
+				if (rect.top <= mid && rect.bottom >= mid) {
+					best = row;
+					break;
+				}
+				const distance = Math.min(
+					Math.abs(rect.top - mid),
+					Math.abs(rect.bottom - mid),
+				);
+				if (distance < bestDistance) {
+					bestDistance = distance;
+					best = row;
+				}
+			}
+			setActive(best?.getAttribute("data-id") ?? null);
+		};
+		const schedule = () => {
+			if (!frame) frame = requestAnimationFrame(update);
+		};
+		update();
+		window.addEventListener("scroll", schedule, { passive: true });
+		window.addEventListener("resize", schedule);
+		return () => {
+			cancelAnimationFrame(frame);
+			window.removeEventListener("scroll", schedule);
+			window.removeEventListener("resize", schedule);
+		};
 	}, [items]);
 	return (
 		<ol className="rows container" ref={listRef}>
