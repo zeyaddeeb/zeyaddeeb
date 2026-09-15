@@ -152,7 +152,7 @@ export function ExperimentsIndex({ items }: { items: Experiment[] }) {
 		);
 		for (const row of rows) observer.observe(row);
 		return () => observer.disconnect();
-	}, []);
+	}, [items]);
 	return (
 		<ol className="rows container" ref={listRef}>
 			{items.map((experiment) => (

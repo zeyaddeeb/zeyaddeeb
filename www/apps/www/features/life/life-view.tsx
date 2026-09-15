@@ -7,6 +7,8 @@ import {
 	useImperativeHandle,
 	useRef,
 } from "react";
+import { CanvasTouchToggle } from "@/components/canvas-touch-toggle";
+import { useCanvasInteraction } from "@/lib/hooks/use-canvas-interaction";
 import { useWasm } from "@/lib/hooks/use-wasm";
 import {
 	type DrawOptions,
@@ -69,7 +71,9 @@ export const LifeView = forwardRef<LifeHandle, LifeViewProps>(function LifeView(
 	const engineRef = useRef<LifeEngine | null>(null);
 	const cellSizeRef = useRef(4);
 	const dirtyRef = useRef(true);
-	const pointerDownRef = useRef(false);
+	const pointerDownRef = useRef<number | null>(null);
+	const { touchActive, setTouchActive, canInteract, touchAction } =
+		useCanvasInteraction();
 
 	const optsRef = useRef<
 		DrawOptions & { backend: LifeBackend; tickMs: number }
@@ -227,15 +231,25 @@ export const LifeView = forwardRef<LifeHandle, LifeViewProps>(function LifeView(
 	};
 
 	return (
-		<div ref={wrapRef} className={`grid place-items-center ${className}`}>
+		<div
+			ref={wrapRef}
+			className={`grid place-items-center ${interactive ? "relative" : ""} ${className}`}
+		>
+			{interactive && (
+				<div className="absolute right-3 top-3 z-10">
+					<CanvasTouchToggle active={touchActive} onChange={setTouchActive} />
+				</div>
+			)}
 			<canvas
 				ref={canvasRef}
-				className={`block ${interactive ? "cursor-crosshair touch-none" : ""}`}
+				className={`block ${interactive ? "cursor-crosshair" : ""}`}
+				style={{ touchAction: interactive ? touchAction : "auto" }}
 				aria-label="Game of Life"
 				onPointerDown={
 					interactive
 						? (e) => {
-								pointerDownRef.current = true;
+								if (!canInteract(e) || e.button !== 0 || !e.isPrimary) return;
+								pointerDownRef.current = e.pointerId;
 								e.currentTarget.setPointerCapture(e.pointerId);
 								stamp(e);
 							}
@@ -244,24 +258,28 @@ export const LifeView = forwardRef<LifeHandle, LifeViewProps>(function LifeView(
 				onPointerMove={
 					interactive
 						? (e) => {
-								if (pointerDownRef.current) stamp(e);
+								if (canInteract(e) && pointerDownRef.current === e.pointerId)
+									stamp(e);
 							}
 						: undefined
 				}
 				onPointerUp={
 					interactive
 						? () => {
-								pointerDownRef.current = false;
+								pointerDownRef.current = null;
 							}
 						: undefined
 				}
 				onPointerCancel={
 					interactive
 						? () => {
-								pointerDownRef.current = false;
+								pointerDownRef.current = null;
 							}
 						: undefined
 				}
+				onLostPointerCapture={() => {
+					pointerDownRef.current = null;
+				}}
 			/>
 		</div>
 	);

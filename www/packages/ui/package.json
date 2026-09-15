@@ -11,6 +11,7 @@
   ],
   "exports": {
     "./seo": "./src/seo.ts",
+    "./pagination": "./src/components/pagination.tsx",
     "./json-ld": "./src/components/json-ld.tsx",
     "./styles.css": {
       "types": "./src/styles.css.d.ts",

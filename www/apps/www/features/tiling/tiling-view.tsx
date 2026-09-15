@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useReducedMotion } from "@/features/live/use-running";
+import { useCanvasWheel } from "@/lib/hooks/use-canvas-interaction";
 import { drawTiling, glide, useTiling, type Variant } from "./engine";
 
 interface TilingViewProps {
@@ -38,6 +39,18 @@ export function TilingView({
 	const clockRef = useRef({ theta: phaseSeed * 1.31, phase: phaseSeed * 2.17 });
 	const dirtyRef = useRef(true);
 	const dprRef = useRef(1);
+	useCanvasWheel(
+		canvasRef,
+		(delta) => {
+			const zoom = zoomRef.current;
+			zoom.target = Math.min(
+				6,
+				Math.max(1, zoom.target * Math.exp(-delta * 0.0015)),
+			);
+			dirtyRef.current = true;
+		},
+		zoomable,
+	);
 
 	useEffect(() => {
 		const wrap = wrapRef.current;
@@ -56,24 +69,13 @@ export function TilingView({
 			dirtyRef.current = true;
 		};
 
-		const onWheel = (e: WheelEvent) => {
-			e.preventDefault();
-			const zoom = zoomRef.current;
-			zoom.target = Math.min(
-				6,
-				Math.max(1, zoom.target * Math.exp(-e.deltaY * 0.0015)),
-			);
-		};
-
 		resize();
 		const ro = new ResizeObserver(resize);
 		ro.observe(wrap);
-		if (zoomable) canvas.addEventListener("wheel", onWheel, { passive: false });
 		return () => {
 			ro.disconnect();
-			canvas.removeEventListener("wheel", onWheel);
 		};
-	}, [zoomable]);
+	}, []);
 
 	useEffect(() => {
 		let raf = 0;
@@ -122,7 +124,7 @@ export function TilingView({
 				now / 1000 + phaseSeed * 1.7,
 				zoom.cur,
 			);
-			dirtyRef.current = false;
+			dirtyRef.current = Math.abs(zoom.target - zoom.cur) > 0.001;
 		};
 
 		raf = requestAnimationFrame(loop);

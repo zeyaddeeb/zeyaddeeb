@@ -2,7 +2,12 @@
 
 import { motion } from "framer-motion";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { CanvasTouchToggle } from "@/components/canvas-touch-toggle";
+import {
+	useCanvasInteraction,
+	useCanvasWheel,
+} from "@/lib/hooks/use-canvas-interaction";
 
 type WebsiteCard = {
 	title: string;
@@ -68,6 +73,13 @@ export function WebsiteAtlas() {
 	const [zoomLevel, setZoomLevel] = useState(1);
 	const [dragging, setDragging] = useState(false);
 	const dragAnchor = useRef({ x: 0, y: 0, startX: 0, startY: 0 });
+	const { touchActive, setTouchActive, canInteract, touchAction } =
+		useCanvasInteraction();
+	useCanvasWheel(interactionRef, (delta) => {
+		setZoomLevel((level) =>
+			Math.min(1.9, Math.max(0.55, level - delta * 0.0015)),
+		);
+	});
 
 	const columns = viewport.width < 700 || websites.length <= 2 ? 1 : 2;
 
@@ -129,20 +141,6 @@ export function WebsiteAtlas() {
 		return () => observer.disconnect();
 	}, []);
 
-	useEffect(() => {
-		const surface = interactionRef.current;
-		if (!surface) return;
-		const wheel = (event: globalThis.WheelEvent) => {
-			if (!event.metaKey && !event.ctrlKey) return;
-			event.preventDefault();
-			setZoomLevel((level) =>
-				Math.min(1.9, Math.max(0.55, level - event.deltaY * 0.0015)),
-			);
-		};
-		surface.addEventListener("wheel", wheel, { passive: false });
-		return () => surface.removeEventListener("wheel", wheel);
-	}, []);
-
 	function clamp(value: number, min: number, max: number) {
 		return Math.min(max, Math.max(min, value));
 	}
@@ -158,6 +156,8 @@ export function WebsiteAtlas() {
 
 	function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
 		if (
+			!canInteract(event) ||
+			!event.isPrimary ||
 			event.button !== 0 ||
 			(event.target as HTMLElement).closest("a,button")
 		) {
@@ -175,7 +175,7 @@ export function WebsiteAtlas() {
 	}
 
 	function onPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
-		if (!dragging) {
+		if (!dragging || !canInteract(event)) {
 			return;
 		}
 
@@ -207,7 +207,8 @@ export function WebsiteAtlas() {
 				}}
 			/>
 
-			<div className="absolute right-3 top-3 z-30 flex items-center gap-1">
+			<div className="absolute left-3 right-3 top-3 z-30 flex flex-wrap items-center justify-end gap-1">
+				<CanvasTouchToggle active={touchActive} onChange={setTouchActive} />
 				{[
 					["Out", () => updateZoom(zoomLevel - 0.12)],
 					["In", () => updateZoom(zoomLevel + 0.12)],
@@ -233,8 +234,9 @@ export function WebsiteAtlas() {
 				onPointerMove={onPointerMove}
 				onPointerUp={onPointerEnd}
 				onPointerCancel={onPointerEnd}
+				onLostPointerCapture={onPointerEnd}
 				onPointerLeave={onPointerEnd}
-				style={{ touchAction: "pan-y pinch-zoom" }}
+				style={{ touchAction }}
 			>
 				<motion.div
 					className="absolute left-1/2 top-1/2"

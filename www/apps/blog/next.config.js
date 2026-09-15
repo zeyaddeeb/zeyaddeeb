@@ -4,7 +4,7 @@ const nextConfig = {
 	output: "standalone",
 	reactStrictMode: true,
 	transpilePackages: ["@zeyaddeeb/ui", "@zeyaddeeb/db"],
-
+	agentRules: false,
 	experimental: {
 		scrollRestoration: true,
 	},

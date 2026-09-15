@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CanvasTouchToggle } from "@/components/canvas-touch-toggle";
 import {
 	drawTiling,
 	glide,
@@ -9,6 +10,10 @@ import {
 	type Variant,
 } from "@/features/tiling/engine";
 import { TilingView } from "@/features/tiling/tiling-view";
+import {
+	useCanvasInteraction,
+	useCanvasWheel,
+} from "@/lib/hooks/use-canvas-interaction";
 import { useWasm } from "@/lib/hooks/use-wasm";
 
 function StagedPlate({
@@ -25,6 +30,14 @@ function StagedPlate({
 	const driftRef = useRef({ angle: 0, velocity: 0 });
 	const zoomRef = useRef({ cur: 1, target: 1 });
 	const dragRef = useRef<{ x: number; y: number } | null>(null);
+	const { touchActive, setTouchActive, canInteract, touchAction } =
+		useCanvasInteraction();
+	useCanvasWheel(canvasRef, (delta) => {
+		zoomRef.current.target = Math.min(
+			2.7,
+			Math.max(0.82, zoomRef.current.target * Math.exp(-delta * 0.0012)),
+		);
+	});
 
 	useEffect(() => {
 		const wrapper = wrapperRef.current;
@@ -52,6 +65,7 @@ function StagedPlate({
 		const pointers = new Map<number, { x: number; y: number }>();
 		let pinchDist = 0;
 		const onDown = (e: PointerEvent) => {
+			if (!canInteract(e) || e.button !== 0) return;
 			el.setPointerCapture(e.pointerId);
 			pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 			if (pointers.size === 2) {
@@ -63,8 +77,8 @@ function StagedPlate({
 			}
 		};
 		const onMove = (e: PointerEvent) => {
-			if (pointers.has(e.pointerId))
-				pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+			if (!pointers.has(e.pointerId)) return;
+			pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 			if (pointers.size === 2) {
 				const [p1, p2] = [...pointers.values()];
 				const d = Math.hypot(p1.x - p2.x, p1.y - p2.y);
@@ -86,16 +100,10 @@ function StagedPlate({
 			dragRef.current = { x: e.clientX, y: e.clientY };
 		};
 		const onUp = (e: PointerEvent) => {
+			if (!pointers.has(e.pointerId)) return;
 			pointers.delete(e.pointerId);
 			if (pointers.size < 2) pinchDist = 0;
 			dragRef.current = null;
-		};
-		const onWheel = (e: WheelEvent) => {
-			e.preventDefault();
-			zoomRef.current.target = Math.min(
-				2.7,
-				Math.max(0.82, zoomRef.current.target * Math.exp(-e.deltaY * 0.0012)),
-			);
 		};
 		const onDouble = () => {
 			driftRef.current = { angle: 0, velocity: 0 };
@@ -105,7 +113,7 @@ function StagedPlate({
 		el.addEventListener("pointermove", onMove);
 		el.addEventListener("pointerup", onUp);
 		el.addEventListener("pointercancel", onUp);
-		el.addEventListener("wheel", onWheel, { passive: false });
+		el.addEventListener("lostpointercapture", onUp);
 		el.addEventListener("dblclick", onDouble);
 
 		let raf = 0;
@@ -186,22 +194,30 @@ function StagedPlate({
 		raf = requestAnimationFrame(loop);
 
 		return () => {
+			dragRef.current = null;
+			for (const id of pointers.keys()) {
+				if (el.hasPointerCapture(id)) el.releasePointerCapture(id);
+			}
 			cancelAnimationFrame(raf);
 			observer.disconnect();
 			el.removeEventListener("pointerdown", onDown);
 			el.removeEventListener("pointermove", onMove);
 			el.removeEventListener("pointerup", onUp);
 			el.removeEventListener("pointercancel", onUp);
-			el.removeEventListener("wheel", onWheel);
+			el.removeEventListener("lostpointercapture", onUp);
 			el.removeEventListener("dblclick", onDouble);
 		};
-	}, [handlesRef]);
+	}, [handlesRef, canInteract]);
 
 	return (
 		<div ref={wrapperRef} className="absolute inset-0">
+			<div className="absolute right-3 top-3 z-10">
+				<CanvasTouchToggle active={touchActive} onChange={setTouchActive} />
+			</div>
 			<canvas
 				ref={canvasRef}
-				className="block h-full w-full cursor-grab touch-none active:cursor-grabbing"
+				className="block h-full w-full cursor-grab active:cursor-grabbing"
+				style={{ touchAction }}
 				aria-label={`${variant.title}, hyperbolic tiling`}
 			/>
 		</div>
@@ -271,7 +287,9 @@ export default function CircleLimitGallery() {
 							? `${tileCounts[hero.id].toLocaleString()} reflected tiles`
 							: "—"}
 						<br />
-						drag to rotate · scroll to zoom · double-click to recenter
+						drag to rotate · Ctrl/⌘ + scroll to zoom · double-click to recenter
+						<br />
+						Touch: tap Interact to rotate and pinch. Tap Done to scroll.
 					</p>
 				</figcaption>
 			</figure>
@@ -279,7 +297,7 @@ export default function CircleLimitGallery() {
 			<div className="mt-16">
 				<div className="mb-6 flex items-baseline justify-between">
 					<h2 className="eyebrow">Choose a tiling</h2>
-					<p className="eyebrow">Select a tiling · scroll to zoom</p>
+					<p className="eyebrow">Select a tiling · Ctrl/⌘ + scroll to zoom</p>
 				</div>
 
 				<ol className="grid grid-cols-1 gap-px border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-3">

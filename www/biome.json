@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.13/schema.json",
   "assist": {
     "actions": {
       "source": {
@@ -21,11 +21,46 @@
       "!**/build",
       "!**/coverage",
       "!**/__codegen__",
-      "!test-results"
+      "!test-results",
+      "!!**/*.json",
+      "!**/*.md",
+      "!**/*.yaml"
     ]
   },
+  "linter": {
+    "enabled": true,
+    "includes": [
+      "**",
+      "!packages/ui/src/styles.css",
+      "!apps/admin/app/globals.css"
+    ],
+    "rules": {
+      "complexity": {
+        "noForEach": "off",
+        "noUselessFragments": "off"
+      },
+      "correctness": {
+        "useExhaustiveDependencies": "off"
+      },
+      "suspicious": {
+        "noExplicitAny": "off",
+        "noUnknownAtRules": {
+          "level": "error",
+          "options": {
+            "ignore": ["tailwind"]
+          }
+        }
+      }
+    }
+  },
   "formatter": {
-    "enabled": true
+    "enabled": true,
+    "includes": ["**", "!packages/ui/src/styles.css"]
+  },
+  "json": {
+    "formatter": {
+      "enabled": false
+    }
   },
   "css": {
     "parser": {
