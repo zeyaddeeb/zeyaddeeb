@@ -282,7 +282,7 @@ export default function CircleLimitGallery() {
 					<p className="eyebrow">Select a tiling · scroll to zoom</p>
 				</div>
 
-				<ol className="grid gap-px border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-3">
+				<ol className="grid grid-cols-1 gap-px border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-3">
 					{VARIANTS.map((variant, index) => {
 						const onView = variant.id === heroId;
 						return (
@@ -291,9 +291,9 @@ export default function CircleLimitGallery() {
 									type="button"
 									onClick={() => stage(variant.id)}
 									aria-pressed={onView}
-									className="group grid w-full text-left"
+									className="group grid w-full min-w-0 grid-cols-1 text-left"
 								>
-									<div className="aspect-square p-6">
+									<div className="relative aspect-square min-w-0">
 										<TilingView
 											variant={variant}
 											running
@@ -301,7 +301,7 @@ export default function CircleLimitGallery() {
 											rimGlow={false}
 											zoomable
 											onBuilt={handleBuilt}
-											className="h-full w-full"
+											className="absolute inset-6 min-h-0 min-w-0 overflow-hidden"
 										/>
 									</div>
 									<div className="border-t border-rule p-5 transition-colors group-hover:bg-charcoal-2">
