@@ -1,4 +1,4 @@
-import { Footer, Header } from "@zeyaddeeb/ui";
+import { ArrowIcon, Footer, Header } from "@zeyaddeeb/ui";
 import Link from "next/link";
 import { SITE_NAV } from "@/features/catalog/nav";
 import { PresenceMark } from "@/features/live/presence-mark";
@@ -25,7 +25,10 @@ export default function NotFound() {
 						<p className="notice__line">
 							The page isn’t here. The rest of the corner is.{" "}
 							<Link href="/" className="notice__link">
-								Back to the start <span aria-hidden="true">→</span>
+								Back to the start{" "}
+								<span aria-hidden="true">
+									<ArrowIcon direction="right" />
+								</span>
 							</Link>
 						</p>
 					</div>

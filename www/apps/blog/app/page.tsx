@@ -1,3 +1,4 @@
+import { ArrowIcon } from "@zeyaddeeb/ui";
 import Image from "next/image";
 import Link from "next/link";
 import { CollectionGrid } from "@/components";
@@ -33,7 +34,9 @@ export default async function HomePage() {
 				<section>
 					<div className="blog-section-heading">
 						<h2>Latest writing</h2>
-						<Link href="/posts">All posts →</Link>
+						<Link href="/posts">
+							All posts <ArrowIcon direction="right" />
+						</Link>
 					</div>
 					{recentPosts.length ? (
 						recentPosts.map((post) => (
@@ -79,7 +82,9 @@ export default async function HomePage() {
 				<section>
 					<div className="blog-section-heading">
 						<h2>From the library</h2>
-						<Link href="/library">All items →</Link>
+						<Link href="/library">
+							All items <ArrowIcon direction="right" />
+						</Link>
 					</div>
 					{featuredItems.length ? (
 						<CollectionGrid

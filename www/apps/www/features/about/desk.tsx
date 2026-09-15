@@ -1,6 +1,6 @@
 "use client";
 
-import { SourceLink } from "@zeyaddeeb/ui";
+import { ArrowIcon, SourceLink } from "@zeyaddeeb/ui";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import "./desk.css";
@@ -118,13 +118,19 @@ export function Desk() {
 							l.external ? (
 								<li key={l.href}>
 									<a href={l.href} target="_blank" rel="noopener noreferrer">
-										{l.label} <span aria-hidden="true">↗</span>
+										{l.label}{" "}
+										<span aria-hidden="true">
+											<ArrowIcon direction="up-right" />
+										</span>
 									</a>
 								</li>
 							) : (
 								<li key={l.href}>
 									<Link href={l.href}>
-										{l.label} <span aria-hidden="true">→</span>
+										{l.label}{" "}
+										<span aria-hidden="true">
+											<ArrowIcon direction="right" />
+										</span>
 									</Link>
 								</li>
 							),

@@ -1,6 +1,7 @@
 "use client";
 
 import type { Post } from "@zeyaddeeb/db/schema";
+import { ArrowIcon } from "@zeyaddeeb/ui";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -22,9 +23,9 @@ export function BlogPostDetail({ post }: BlogPostDetailProps) {
 					>
 						<Link
 							href="/posts"
-							className="mb-8 inline-flex items-center text-sm text-dim transition-colors hover:text-ink"
+							className="mb-8 inline-flex items-center gap-2 text-sm text-dim transition-colors hover:text-ink"
 						>
-							← Back to Blog
+							<ArrowIcon direction="left" /> Back to Blog
 						</Link>
 
 						<div className="mb-6 flex items-center gap-3 text-sm text-dim">

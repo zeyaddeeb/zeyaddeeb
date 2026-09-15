@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowIcon } from "@zeyaddeeb/ui";
 import { useRef, useState } from "react";
 import { type SyncStatus, useCrdt } from "@/lib/hooks/use-crdt";
 import { useWasm } from "@/lib/hooks/use-wasm";
@@ -105,7 +106,11 @@ function OpLog({
 							: "border-rule text-paper-2"
 					}`}
 				>
-					{op.dir === "local" ? "→" : "←"} {op.label}
+					<ArrowIcon direction={op.dir === "local" ? "right" : "left"} />{" "}
+					<span className="sr-only">
+						{op.dir === "local" ? "Sent: " : "Received: "}
+					</span>
+					{op.label}
 				</li>
 			))}
 		</ul>

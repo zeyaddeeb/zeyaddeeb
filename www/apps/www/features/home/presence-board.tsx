@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowIcon } from "@zeyaddeeb/ui";
 import Link from "next/link";
 import { type CSSProperties, type PointerEvent, useRef, useState } from "react";
 import { getExperiment, number } from "@/features/catalog/catalog";
@@ -80,7 +81,7 @@ export function PresenceBoard() {
 								className="presence-board__feature-arrow"
 								aria-hidden="true"
 							>
-								↗
+								<ArrowIcon direction="up-right" />
 							</span>
 						</span>
 					</span>

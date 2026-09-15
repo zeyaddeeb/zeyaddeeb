@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ArrowIcon } from "./arrow-icon";
 
 export const SOURCE_REPOSITORY = "https://github.com/zeyaddeeb/zeyaddeeb";
 
@@ -16,7 +17,8 @@ export function SourceLink({
 			rel="noopener noreferrer"
 			className={className}
 		>
-			{children}&nbsp;<span aria-hidden="true">↗</span>
+			{children}&nbsp;
+			<ArrowIcon direction="up-right" />
 		</a>
 	);
 }

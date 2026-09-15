@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowIcon } from "@zeyaddeeb/ui";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { neighbors, number } from "@/features/catalog/catalog";
@@ -202,7 +203,10 @@ export function Story() {
 				<nav aria-label="Next experiment" className="story__nav container">
 					<Link href={nav.prev.href} className="story__nav-link">
 						<span className="eyebrow">
-							<span aria-hidden="true">←</span> {number(nav.prev.number)}
+							<span aria-hidden="true">
+								<ArrowIcon direction="left" />
+							</span>{" "}
+							{number(nav.prev.number)}
 						</span>
 						<span className="story__nav-title">{nav.prev.title}</span>
 					</Link>
@@ -211,7 +215,10 @@ export function Story() {
 						className="story__nav-link story__nav-link--next"
 					>
 						<span className="eyebrow">
-							{number(nav.next.number)} <span aria-hidden="true">→</span>
+							{number(nav.next.number)}{" "}
+							<span aria-hidden="true">
+								<ArrowIcon direction="right" />
+							</span>
 						</span>
 						<span className="story__nav-title">{nav.next.title}</span>
 					</Link>

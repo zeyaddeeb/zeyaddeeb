@@ -1,4 +1,6 @@
+import { ArrowIcon } from "@zeyaddeeb/ui";
 import { pageMetadata } from "@zeyaddeeb/ui/seo";
+import { Fragment } from "react";
 import { education, experience, skills } from "@/features/resume/content";
 import "@/features/resume/resume.css";
 
@@ -98,7 +100,17 @@ export default function ResumePage() {
 							{role.progression && (
 								<p className="resume__progression">
 									<span>Promotions</span>
-									{role.progression}
+									{role.progression.split(" → ").map((title, index) => (
+										<Fragment key={title}>
+											{index > 0 && (
+												<>
+													{" "}
+													<ArrowIcon /> <span className="sr-only">to </span>
+												</>
+											)}
+											{title}
+										</Fragment>
+									))}
 								</p>
 							)}
 						</article>
@@ -125,7 +137,7 @@ export default function ResumePage() {
 									target="_blank"
 									rel="noopener noreferrer"
 								>
-									Pulvi ↗
+									Pulvi <ArrowIcon direction="up-right" />
 								</a>
 							</h3>
 							<p className="resume__title">Product & Engineering</p>
@@ -202,14 +214,14 @@ export default function ResumePage() {
 						target="_blank"
 						rel="noopener noreferrer"
 					>
-						LinkedIn ↗
+						LinkedIn <ArrowIcon direction="up-right" />
 					</a>
 					<a
 						href="https://github.com/zeyaddeeb"
 						target="_blank"
 						rel="noopener noreferrer"
 					>
-						GitHub ↗
+						GitHub <ArrowIcon direction="up-right" />
 					</a>
 				</div>
 			</section>

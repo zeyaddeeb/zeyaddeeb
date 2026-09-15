@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowIcon } from "@zeyaddeeb/ui";
 import {
 	type CSSProperties,
 	useEffect,
@@ -389,7 +390,7 @@ export function Film() {
 							disabled={cue.index === 0}
 							onClick={() => playShot(cue.index - 1)}
 						>
-							←
+							<ArrowIcon direction="left" />
 						</button>
 						<button type="button" className="film-play" onClick={togglePlay}>
 							{playing
@@ -405,7 +406,7 @@ export function Film() {
 							disabled={cue.index === cues.length - 1}
 							onClick={() => playShot(cue.index + 1)}
 						>
-							→
+							<ArrowIcon direction="right" />
 						</button>
 						<span className="film-clock">
 							{clock(time)} / {clock(total)}
@@ -484,7 +485,10 @@ export function Film() {
 								disabled={cue.index === 0}
 								onClick={() => playShot(cue.index - 1)}
 							>
-								<span aria-hidden="true">←</span> Previous
+								<span aria-hidden="true">
+									<ArrowIcon direction="left" />
+								</span>{" "}
+								Previous
 							</button>
 							<button
 								type="button"
@@ -498,7 +502,10 @@ export function Film() {
 								disabled={cue.index === cues.length - 1}
 								onClick={() => playShot(cue.index + 1)}
 							>
-								Next <span aria-hidden="true">→</span>
+								Next{" "}
+								<span aria-hidden="true">
+									<ArrowIcon direction="right" />
+								</span>
 							</button>
 						</div>
 						<p className="film-hint">
@@ -557,7 +564,10 @@ export function Film() {
 						className="film-link"
 						onClick={() => window.print()}
 					>
-						Print the board <span aria-hidden="true">↗</span>
+						Print the board{" "}
+						<span aria-hidden="true">
+							<ArrowIcon direction="up-right" />
+						</span>
 					</button>
 				</header>
 				<ol className="film-frames" ref={board}>
@@ -708,7 +718,10 @@ export function Film() {
 						Fountain, with camera cues in double brackets
 					</span>
 					<button type="button" className="film-link" onClick={download}>
-						Save .fountain <span aria-hidden="true">↓</span>
+						Save .fountain{" "}
+						<span aria-hidden="true">
+							<ArrowIcon direction="down" />
+						</span>
 					</button>
 				</header>
 				<div className="film-script-body">
@@ -725,7 +738,10 @@ export function Film() {
 						/>
 						<div className="film-script-actions">
 							<button type="button" className="film-thread" onClick={thread}>
-								Thread this script <span aria-hidden="true">→</span>
+								Thread this script{" "}
+								<span aria-hidden="true">
+									<ArrowIcon direction="right" />
+								</span>
 							</button>
 							<button
 								type="button"
