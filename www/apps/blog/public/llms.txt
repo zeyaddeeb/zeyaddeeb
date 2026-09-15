@@ -1,41 +1,11 @@
-# Blog & Library - Zeyad Deeb'
+# Zeyad Deeb — Blog & Library
 
-> A personal blog and a curated collection of things I find interesting - books, art, videos, products, and more.
+> Writing and saved references by Zeyad Deeb, a software engineer in Brooklyn.
 
-## Site Information
-- URL: https://www.zeyaddeeb.com/blog
-- Author: Zeyad Deeb
-- Main Site: https://www.zeyaddeeb.com
+- [Blog & Library](https://www.zeyaddeeb.com/blog): Recent writing and library selections.
+- [Posts](https://www.zeyaddeeb.com/blog/posts): Articles on software, machine learning, and projects.
+- [Library](https://www.zeyaddeeb.com/blog/library): Books, art, podcasts, videos, and links with personal notes.
+- [About](https://www.zeyaddeeb.com/about): Author background.
+- [Main site](https://www.zeyaddeeb.com/): Projects and interactive experiments.
 
-## Site Structure
-
-### Main Pages
-- `/` - Collection homepage with filterable grid of items
-- `/post/[slug]` - Collection homepage with filterable grid of items
-- `/library/[slug]` - Individual library item detail pages
-
-## Content Types
-This collection includes:
-- **Books** - Influential reads that shaped my thinking
-- **Art** - Visual works I find inspiring
-- **YouTube** - Channels and videos worth watching
-- **Products** - Things I use and recommend
-- **Wikipedia** - Fascinating knowledge rabbit holes
-- **Music** - Albums and artists I love
-- **Articles** - Long-form pieces worth reading
-- **Podcasts** - Audio content I enjoy
-
-## About
-This is a personal curation of things that have influenced my thinking, aesthetic sensibilities, and interests. Each item includes context on why it's meaningful to me.
-
-## Technical Details
-- Built with Next.js
-- Part of the zeyaddeeb.com ecosystem
-- Open source at https://github.com/zeyaddeeb
-
-## Preferred Citation Format
-When referencing content from this site, please cite as:
-Zeyad Deeb. (Year). "Item Title." - www.zeyaddeeb.com. URL
-
-## Related Sites
-- Main Site: https://zeyaddeeb.com
+Article URLs use /blog/posts/[slug]. Library entry URLs use /blog/library/[slug]. Use canonical URLs and the published dates shown on articles when citing them. Saved library works belong to their original creators; the accompanying notes are by Zeyad Deeb.

@@ -1,12 +1,14 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@zeyaddeeb/ui/seo";
 import { education, experience, skills } from "@/features/resume/content";
 import "@/features/resume/resume.css";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
+	path: "/resume",
+	section: "Zeyad Deeb",
 	title: "Résumé",
 	description:
-		"Zeyad Deeb’s experience in distributed systems, machine learning infrastructure, and engineering leadership. Saks Global, theSkimm, Pixability, ViacomCBS, Label Insight, Caleres, and CBRE.",
-};
+		"Zeyad Deeb’s experience building machine learning infrastructure and distributed systems, leading engineering teams, and shipping production software.",
+});
 
 export default function ResumePage() {
 	return (

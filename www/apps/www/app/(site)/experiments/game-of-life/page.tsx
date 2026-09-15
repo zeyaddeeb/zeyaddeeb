@@ -1,12 +1,14 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@zeyaddeeb/ui/seo";
 import { ExperimentFrame } from "@/features/frame/experiment-frame";
 import GameOfLifeLab from "./canvas";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
+	path: "/experiments/game-of-life",
+	section: "Experiments",
 	title: "Game of Life",
 	description:
 		"Conway's Game of Life computed in Rust compiled to WebAssembly, with a live JavaScript benchmark and a canvas you can draw on.",
-};
+});
 
 export default function GameOfLifePage() {
 	return (

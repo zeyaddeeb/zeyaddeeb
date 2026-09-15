@@ -1,11 +1,6 @@
-import type { Metadata } from "next";
+import { listingMetadata, pageNumber } from "@zeyaddeeb/ui/seo";
 import { getPosts } from "@/lib/actions";
 import { BlogContent } from "./blog-content";
-
-export const metadata: Metadata = {
-	title: "Blog",
-	description: "Thoughts on software development, technology, and life.",
-};
 
 interface PageProps {
 	searchParams: Promise<{
@@ -14,9 +9,22 @@ interface PageProps {
 	}>;
 }
 
+export async function generateMetadata({ searchParams }: PageProps) {
+	const params = await searchParams;
+	return listingMetadata({
+		title: "Blog",
+		description:
+			"Notes by Zeyad Deeb on software engineering, machine learning, Rust, and the ideas behind his projects.",
+		path: "/blog/posts",
+		section: "Blog",
+		filters: { search: params.search },
+		page: params.page,
+	});
+}
+
 export default async function BlogPage({ searchParams }: PageProps) {
 	const params = await searchParams;
-	const page = Number(params.page) || 1;
+	const page = pageNumber(params.page);
 	const search = params.search || "";
 
 	const result = await getPosts({

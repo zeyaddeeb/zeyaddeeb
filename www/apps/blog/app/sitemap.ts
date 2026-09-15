@@ -1,27 +1,25 @@
 import { collectionItem, db, eq, post } from "@zeyaddeeb/db";
+import { siteUrl } from "@zeyaddeeb/ui/seo";
 import type { MetadataRoute } from "next";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-	const baseUrl = process.env.BASE_URL || "https://www.zeyaddeeb.com/blog";
+	const baseUrl = siteUrl("/blog");
 
 	const staticPages: MetadataRoute.Sitemap = [
 		{
-			url: `${baseUrl}/blog`,
-			lastModified: new Date(),
+			url: baseUrl,
 			changeFrequency: "weekly",
 			priority: 1,
 		},
 		{
 			url: `${baseUrl}/posts`,
-			lastModified: new Date(),
 			changeFrequency: "weekly",
 			priority: 0.9,
 		},
 		{
 			url: `${baseUrl}/library`,
-			lastModified: new Date(),
 			changeFrequency: "weekly",
 			priority: 0.9,
 		},
@@ -34,7 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
 	const collectionPages: MetadataRoute.Sitemap = collectionItems.map(
 		(item) => ({
-			url: `${baseUrl}/library/${item.slug}`,
+			url: `${baseUrl}/library/${encodeURIComponent(item.slug)}`,
 			lastModified: item.updatedAt,
 			changeFrequency: "monthly" as const,
 			priority: item.featured ? 0.8 : 0.6,
@@ -47,7 +45,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		.where(eq(post.published, true));
 
 	const blogPages: MetadataRoute.Sitemap = blogPosts.map((p) => ({
-		url: `${baseUrl}/posts/${p.slug}`,
+		url: `${baseUrl}/posts/${encodeURIComponent(p.slug)}`,
 		lastModified: p.updatedAt,
 		changeFrequency: "monthly" as const,
 		priority: 0.7,

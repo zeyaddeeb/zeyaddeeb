@@ -1,12 +1,14 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@zeyaddeeb/ui/seo";
 import { ExperimentFrame } from "@/features/frame/experiment-frame";
 import { AudioLab } from "./lab";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
+	path: "/experiments/audio-visualizer",
+	section: "Experiments",
 	title: "Audio Visualizer",
 	description:
 		"Real-time audio visualization: FFT computed in Rust/WASM, rendered on canvas from your microphone.",
-};
+});
 
 export default function AudioVisualizerPage() {
 	return (

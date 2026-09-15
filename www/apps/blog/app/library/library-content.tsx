@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useTransition } from "react";
 import { CollectionGrid, FilterBar } from "@/components";
+import { Pagination } from "@/components/pagination";
 import type { PaginatedResult } from "@/lib/actions";
 
 interface ThingsILikeContentProps {
@@ -27,7 +28,7 @@ export function ThingsILikeContent({
 	const [isPending, startTransition] = useTransition();
 
 	const updateFilters = useCallback(
-		(updates: { type?: string | null; search?: string; page?: number }) => {
+		(updates: { type?: string | null; search?: string }) => {
 			const params = new URLSearchParams(searchParams.toString());
 
 			if (updates.type !== undefined) {
@@ -36,7 +37,7 @@ export function ThingsILikeContent({
 				} else {
 					params.delete("type");
 				}
-				params.delete("page"); // Reset page when filter changes
+				params.delete("page");
 			}
 
 			if (updates.search !== undefined) {
@@ -45,15 +46,7 @@ export function ThingsILikeContent({
 				} else {
 					params.delete("q");
 				}
-				params.delete("page"); // Reset page when search changes
-			}
-
-			if (updates.page !== undefined) {
-				if (updates.page > 1) {
-					params.set("page", updates.page.toString());
-				} else {
-					params.delete("page");
-				}
+				params.delete("page");
 			}
 
 			startTransition(() => {
@@ -69,10 +62,6 @@ export function ThingsILikeContent({
 
 	const handleSearchChange = (search: string) => {
 		updateFilters({ search });
-	};
-
-	const handlePageChange = (page: number) => {
-		updateFilters({ page });
 	};
 
 	return (
@@ -123,27 +112,11 @@ export function ThingsILikeContent({
 							/>
 
 							{initialData.totalPages > 1 && (
-								<div className="mt-12 flex items-center justify-center gap-2">
-									<button
-										type="button"
-										onClick={() => handlePageChange(currentPage - 1)}
-										disabled={!initialData.hasPreviousPage || isPending}
-										className="rounded-none border border-rule px-4 py-2 text-sm text-dim transition-colors hover:border-ink hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
-									>
-										Previous
-									</button>
-									<span className="px-4 text-sm text-dim">
-										Page {currentPage} of {initialData.totalPages}
-									</span>
-									<button
-										type="button"
-										onClick={() => handlePageChange(currentPage + 1)}
-										disabled={!initialData.hasNextPage || isPending}
-										className="rounded-none border border-rule px-4 py-2 text-sm text-dim transition-colors hover:border-ink hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
-									>
-										Next
-									</button>
-								</div>
+								<Pagination
+									page={currentPage}
+									totalPages={initialData.totalPages}
+									disabled={isPending}
+								/>
 							)}
 						</>
 					) : (

@@ -1,13 +1,15 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@zeyaddeeb/ui/seo";
 import { experiments } from "@/features/catalog/catalog";
 import { ExperimentsIndex } from "@/features/index/experiments-index";
 import "@/features/index/experiments-index.css";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
+	path: "/experiments",
+	section: "Experiments",
 	title: "Experiments",
 	description:
-		"Projects in graphics, audio, and distributed systems by Zeyad Deeb.",
-};
+		"Interactive experiments by Zeyad Deeb in Rust and WebAssembly: graphics, collaborative editing, audio processing, and reinforcement learning.",
+});
 
 export default function ExperimentsPage() {
 	const items = [...experiments].sort((a, b) => a.number - b.number);

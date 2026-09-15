@@ -1,12 +1,14 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@zeyaddeeb/ui/seo";
 import { ExperimentFrame } from "@/features/frame/experiment-frame";
 import CircleLimitGallery from "./gallery";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
+	path: "/experiments/circle-limit",
+	section: "Experiments",
 	title: "Circle Limit",
 	description:
 		"Six animated hyperbolic tilings inspired by M. C. Escher, generated in Rust and WebAssembly.",
-};
+});
 
 export default function CircleLimitPage() {
 	return (

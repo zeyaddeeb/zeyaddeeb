@@ -1,11 +1,14 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@zeyaddeeb/ui/seo";
 import { ExperimentFrame } from "@/features/frame/experiment-frame";
 import { WebsiteAtlas } from "./atlas";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
+	path: "/experiments/portfolio",
+	section: "Experiments",
 	title: "Portfolio Atlas",
-	description: "An infinite canvas of selected client web work. Drag around.",
-};
+	description:
+		"Explore selected websites and client projects by Zeyad Deeb on a draggable canvas, including Pulsar Labs, Pulvi, and Moonspell.",
+});
 
 export default function PortfolioPage() {
 	return (

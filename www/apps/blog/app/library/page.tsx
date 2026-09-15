@@ -1,13 +1,7 @@
 import type { CollectionItemType } from "@zeyaddeeb/db/schema";
-import type { Metadata } from "next";
+import { listingMetadata, pageNumber } from "@zeyaddeeb/ui/seo";
 import { getAllCollectionTypes, getCollectionItems } from "@/lib/actions";
 import { ThingsILikeContent } from "./library-content";
-
-export const metadata: Metadata = {
-	title: "Library",
-	description:
-		"A curated collection of things I find interesting - books, art, videos, products, and more.",
-};
 
 interface PageProps {
 	searchParams: Promise<{
@@ -17,9 +11,22 @@ interface PageProps {
 	}>;
 }
 
+export async function generateMetadata({ searchParams }: PageProps) {
+	const params = await searchParams;
+	return listingMetadata({
+		title: "Library",
+		description:
+			"Books, art, podcasts, videos, and links saved by Zeyad Deeb, with notes on what makes each worth exploring.",
+		path: "/blog/library",
+		section: "Library",
+		filters: { type: params.type, q: params.q },
+		page: params.page,
+	});
+}
+
 export default async function ThingsILikePage({ searchParams }: PageProps) {
 	const params = await searchParams;
-	const page = Number(params.page) || 1;
+	const page = pageNumber(params.page);
 	const type = (params.type as CollectionItemType) || null;
 	const search = params.q || "";
 

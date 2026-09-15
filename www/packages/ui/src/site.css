@@ -59,22 +59,61 @@
 
 @media (max-width: 640px) {
 	.site-header nav {
-		height: auto;
-		padding-block: 16px;
-		flex-wrap: wrap;
+		height: 64px;
 		gap: 12px;
 	}
 
 	.site-header nav > a {
-		font-size: 17px;
+		font-size: 19px;
+	}
+
+	.site-header .site-menu-toggle {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+		min-height: 44px;
+		margin-left: auto;
+		padding-inline: 8px;
+		font-size: 14px;
+		font-weight: 500;
+		cursor: pointer;
 	}
 
 	.site-header nav ul {
-		font-size: 14px;
-		gap: 14px;
+		display: none;
+		position: absolute;
+		top: 100%;
+		left: 0;
 		width: 100%;
-		margin-left: 0;
-		justify-content: space-between;
+		margin: 0;
+		padding: 12px 20px 20px;
+		background: var(--paper);
+		border-bottom: 2px solid var(--ink);
+		box-shadow: 0 12px 16px -16px rgb(0 0 0 / 25%);
+		font-size: 18px;
+	}
+
+	.site-header nav ul[data-open="true"] {
+		display: block;
+	}
+
+	.site-header nav li + li {
+		border-top: 1px solid var(--paper-2);
+	}
+
+	.site-header nav ul a {
+		display: flex;
+		align-items: center;
+		min-height: 48px;
+	}
+
+	.site-header nav ul a[aria-current="page"] {
+		color: var(--red);
+	}
+
+	.site-header nav ul a::after {
+		display: none;
 	}
 }
 

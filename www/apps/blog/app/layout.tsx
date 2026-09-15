@@ -1,3 +1,5 @@
+import { JsonLd } from "@zeyaddeeb/ui/json-ld";
+import { pageMetadata, siteSchema } from "@zeyaddeeb/ui/seo";
 import "@zeyaddeeb/ui/styles.css";
 import "@zeyaddeeb/ui/site.css";
 import "./blog.css";
@@ -30,64 +32,18 @@ const newsreader = Newsreader({
 });
 
 export const metadata: Metadata = {
+	...pageMetadata({
+		title: "Blog & Library",
+		description:
+			"Writing by Zeyad Deeb on software, machine learning, and the projects he builds. Browse a personal library of books, art, podcasts, and saved links.",
+		path: "/blog",
+		section: "Writing & bookmarks",
+	}),
 	title: {
-		default: "Zeyad Deeb | Blog & Library",
+		default: "Blog & Library | Zeyad Deeb",
 		template: "%s | Zeyad Deeb",
 	},
-	description:
-		"Personal blog and books, links, and things I find interesting - books, art, videos, products, and more.",
-	keywords: [
-		"Zeyad Deeb",
-		"blog",
-		"personal blog",
-		"collection",
-		"books",
-		"art",
-		"technology",
-	],
-	authors: [{ name: "Zeyad Deeb" }],
-	creator: "Zeyad Deeb",
-	metadataBase: new URL("https://www.zeyaddeeb.com/blog"),
-	openGraph: {
-		type: "website",
-		locale: "en_US",
-		url: "https://www.zeyaddeeb.com/blog",
-		siteName: "Zeyad Deeb - Blog",
-		title: "Zeyad Deeb | Blog & Library",
-		description:
-			"Personal blog and books, links, and things I find interesting - books, art, videos, products, and more.",
-		images: [
-			{
-				url: "/og-image.png",
-				width: 1200,
-				height: 630,
-				alt: "Zeyad Deeb - Blog & Library",
-			},
-		],
-	},
-	twitter: {
-		card: "summary_large_image",
-		title: "Zeyad Deeb | Blog & Library",
-		description:
-			"Personal blog and books, links, and things I find interesting - books, art, videos, products, and more.",
-		images: ["/og-image.png"],
-		creator: "@zeyad_deeb",
-	},
-	robots: {
-		index: true,
-		follow: true,
-		googleBot: {
-			index: true,
-			follow: true,
-			"max-video-preview": -1,
-			"max-image-preview": "large",
-			"max-snippet": -1,
-		},
-	},
-	icons: {
-		icon: "/icon.svg",
-		apple: "/apple-touch-icon.svg",
-	},
+	icons: { icon: "/blog/icon.svg", apple: "/blog/apple-touch-icon.png" },
 };
 
 const baseUrl =
@@ -112,6 +68,7 @@ export default function RootLayout({
 			className={`${jost.variable} ${mono.variable} ${newsreader.variable}`}
 		>
 			<body className="personal-site blog-site">
+				<JsonLd data={siteSchema} />
 				<ScrollToTop />
 				<SitePresence />
 				<Header

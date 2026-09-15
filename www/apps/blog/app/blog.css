@@ -282,6 +282,7 @@
 	font-family: var(--font-display);
 	font-weight: 600;
 	line-height: 1.05;
+	overflow-wrap: anywhere;
 }
 
 .blog-site .markdown-content {

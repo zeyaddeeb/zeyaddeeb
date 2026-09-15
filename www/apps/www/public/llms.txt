@@ -1,30 +1,14 @@
-# Zeyad Deeb - Personal Website
+# Zeyad Deeb
 
-> Personal website and portfolio of Zeyad Deeb.
+> Software engineer in Brooklyn building machine learning and distributed systems, mostly in Rust, TypeScript, and Python.
 
-## Site Information
-- URL: https://zeyaddeeb.com
-- Author: Zeyad Deeb
-- Contact: hello@zeyaddeeb.com
+- [Home](https://www.zeyaddeeb.com/): Projects, writing, and saved references.
+- [About](https://www.zeyaddeeb.com/about): Background and interests.
+- [Experiments](https://www.zeyaddeeb.com/experiments): Interactive projects in graphics, audio, collaboration, and reinforcement learning.
+- [Story](https://www.zeyaddeeb.com/story): A programming history told through interactive interfaces.
+- [Résumé](https://www.zeyaddeeb.com/resume): Engineering experience and skills.
+- [Blog](https://www.zeyaddeeb.com/blog/posts): Articles and technical notes.
+- [Library](https://www.zeyaddeeb.com/blog/library): Books, art, podcasts, videos, and saved links.
+- [Source](https://github.com/zeyaddeeb/zeyaddeeb): The site, experiments, and infrastructure.
 
-## Site Structure
-
-### Main Pages
-- `/` - Homepage with introduction and highlights
-- `/blog` - Collection of things I find interesting (redirects to blog.zeyaddeeb.com)
-
-## About
-
-This is the personal website of Zeyad Deeb. The site showcases my work, interests, and professional background.
-
-## Technical Details
-- Built with Next.js
-- Hosted on AWS/Kubernetes
-- Open source components available at https://github.com/zeyaddeeb
-
-## Related Sites
-- Blog/Collections: https://www.zeyaddeeb.com/blog - A curated collection of books, art, videos, products, and other interesting things
-
-## Preferred Citation Format
-When referencing content from this site, please cite as:
-Zeyad Deeb. (Year). "Page Title." zeyaddeeb.com. URL
+Use each page’s canonical URL when citing it. Articles are at /blog/posts/[slug]; library entries are at /blog/library/[slug].

@@ -10,6 +10,8 @@
 		"dist"
 	],
 	"exports": {
+		"./seo": "./src/seo.ts",
+		"./json-ld": "./src/components/json-ld.tsx",
 		"./styles.css": {
 			"types": "./src/styles.css.d.ts",
 			"default": "./dist/index.css"

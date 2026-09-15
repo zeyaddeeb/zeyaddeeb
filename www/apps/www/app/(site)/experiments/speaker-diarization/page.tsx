@@ -1,12 +1,14 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@zeyaddeeb/ui/seo";
 import { ExperimentFrame } from "@/features/frame/experiment-frame";
 import { SpeakerDiarizationLab } from "./lab";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
+	path: "/experiments/speaker-diarization",
+	section: "Experiments",
 	title: "Speaker Diarization",
 	description:
 		"Who spoke when: a Rust WebRTC backend with ONNX speaker embeddings and Candle inference, rendered as a live timeline.",
-};
+});
 
 export default function SpeakerDiarizationPage() {
 	return (

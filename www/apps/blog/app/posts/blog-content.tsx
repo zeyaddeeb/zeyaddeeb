@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
+import { Pagination } from "@/components/pagination";
 import type { PaginatedResult } from "@/lib/actions";
 
 interface BlogContentProps {
@@ -25,7 +26,7 @@ export function BlogContent({
 	const [searchValue, setSearchValue] = useState(currentSearch);
 
 	const updateParams = useCallback(
-		(updates: { search?: string; page?: number }) => {
+		(updates: { search?: string }) => {
 			const params = new URLSearchParams(searchParams.toString());
 
 			if (updates.search !== undefined) {
@@ -35,14 +36,6 @@ export function BlogContent({
 					params.delete("search");
 				}
 				params.delete("page");
-			}
-
-			if (updates.page !== undefined) {
-				if (updates.page > 1) {
-					params.set("page", updates.page.toString());
-				} else {
-					params.delete("page");
-				}
 			}
 
 			startTransition(() => {
@@ -55,10 +48,6 @@ export function BlogContent({
 	const handleSearch = (e: React.FormEvent) => {
 		e.preventDefault();
 		updateParams({ search: searchValue });
-	};
-
-	const handlePageChange = (page: number) => {
-		updateParams({ page });
 	};
 
 	return (
@@ -197,27 +186,11 @@ export function BlogContent({
 							))}
 
 							{initialData.totalPages > 1 && (
-								<div className="mt-12 flex items-center justify-center gap-2">
-									<button
-										type="button"
-										onClick={() => handlePageChange(currentPage - 1)}
-										disabled={!initialData.hasPreviousPage || isPending}
-										className="rounded-none border border-rule px-4 py-2 text-sm text-dim transition-colors hover:border-ink hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
-									>
-										Previous
-									</button>
-									<span className="px-4 text-sm text-dim">
-										Page {currentPage} of {initialData.totalPages}
-									</span>
-									<button
-										type="button"
-										onClick={() => handlePageChange(currentPage + 1)}
-										disabled={!initialData.hasNextPage || isPending}
-										className="rounded-none border border-rule px-4 py-2 text-sm text-dim transition-colors hover:border-ink hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
-									>
-										Next
-									</button>
-								</div>
+								<Pagination
+									page={currentPage}
+									totalPages={initialData.totalPages}
+									disabled={isPending}
+								/>
 							)}
 						</div>
 					) : (

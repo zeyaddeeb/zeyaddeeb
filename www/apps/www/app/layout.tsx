@@ -1,3 +1,10 @@
+import { JsonLd } from "@zeyaddeeb/ui/json-ld";
+import {
+	pageMetadata,
+	SITE_DESCRIPTION,
+	SITE_NAME,
+	siteSchema,
+} from "@zeyaddeeb/ui/seo";
 import "@zeyaddeeb/ui/styles.css";
 import "@zeyaddeeb/ui/site.css";
 
@@ -29,62 +36,17 @@ const newsreader = Newsreader({
 });
 
 export const metadata: Metadata = {
+	...pageMetadata({
+		title: SITE_NAME,
+		description: SITE_DESCRIPTION,
+		path: "/",
+		section: "Software engineer / Brooklyn, NY",
+	}),
 	title: {
-		default: "Zeyad Deeb",
+		default: "Zeyad Deeb | Software Engineer",
 		template: "%s | Zeyad Deeb",
 	},
-	description:
-		"Personal website and portfolio of Zeyad Deeb. Software engineer.",
-	keywords: [
-		"Zeyad Deeb",
-		"software engineer",
-		"web developer",
-		"portfolio",
-		"creative developer",
-	],
-	authors: [{ name: "Zeyad Deeb" }],
-	creator: "Zeyad Deeb",
-	metadataBase: new URL("https://zeyaddeeb.com"),
-	openGraph: {
-		type: "website",
-		locale: "en_US",
-		url: "https://zeyaddeeb.com",
-		siteName: "Zeyad Deeb",
-		title: "Zeyad Deeb",
-		description:
-			"Personal website and portfolio of Zeyad Deeb. Software engineer.",
-		images: [
-			{
-				url: "/og-image.png",
-				width: 1200,
-				height: 630,
-				alt: "Zeyad Deeb - Software Engineer",
-			},
-		],
-	},
-	twitter: {
-		card: "summary_large_image",
-		title: "Zeyad Deeb",
-		description:
-			"Personal website and portfolio of Zeyad Deeb. Software engineer.",
-		images: ["/og-image.png"],
-		creator: "@zeyad_deeb",
-	},
-	robots: {
-		index: true,
-		follow: true,
-		googleBot: {
-			index: true,
-			follow: true,
-			"max-video-preview": -1,
-			"max-image-preview": "large",
-			"max-snippet": -1,
-		},
-	},
-	icons: {
-		icon: "/icon.svg",
-		apple: "/apple-touch-icon.png",
-	},
+	icons: { icon: "/icon.svg", apple: "/apple-touch-icon.png" },
 };
 
 export default function RootLayout({
@@ -98,6 +60,7 @@ export default function RootLayout({
 			className={`${jost.variable} ${geistMono.variable} ${newsreader.variable}`}
 		>
 			<body className="personal-site bg-background text-foreground">
+				<JsonLd data={siteSchema} />
 				<WASMContextProvider>
 					<RootLayoutClient>{children}</RootLayoutClient>
 				</WASMContextProvider>
