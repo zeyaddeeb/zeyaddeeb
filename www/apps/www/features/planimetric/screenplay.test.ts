@@ -42,19 +42,19 @@ describe("screenplay compiler", () => {
 		]);
 		expect(screenplay.shots[4]).toMatchObject({
 			character: "ANNA",
-			parenthetical: "evenly",
-			dialogue: "I would like to stop existing here.",
+			parenthetical: "with surgical patience",
+			dialogue: "Don't delete the room. Set the reservation to zero.",
 		});
 		expect(screenplay.shots[5].action).toBe("PART TWO: DESIRED STATE");
 		expect(screenplay.shots[5].character).toBe("");
-		expect(durationOf(schedule(screenplay.shots))).toBe(38);
+		expect(durationOf(schedule(screenplay.shots))).toBe(47);
 	});
 
 	it("keeps the timeline contiguous and clamps the end", () => {
 		const cues = schedule(compile(INITIAL_SCRIPT).screenplay.shots);
-		expect(cues[1]).toMatchObject({ start: 6, end: 11, index: 1 });
-		expect(locate(cues, 5.99).index).toBe(0);
-		expect(locate(cues, 6).index).toBe(1);
+		expect(cues[1]).toMatchObject({ start: 8, end: 14, index: 1 });
+		expect(locate(cues, 7.99).index).toBe(0);
+		expect(locate(cues, 8).index).toBe(1);
 		expect(locate(cues, 500).index).toBe(7);
 	});
 

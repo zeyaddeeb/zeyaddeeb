@@ -298,7 +298,7 @@ export function Film() {
 		);
 		const anchor = document.createElement("a");
 		anchor.href = url;
-		anchor.download = "the-guest-who-wouldnt-terminate.fountain";
+		anchor.download = "checkout-pending.fountain";
 		anchor.click();
 		setTimeout(() => URL.revokeObjectURL(url), 1000);
 	}

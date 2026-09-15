@@ -41,7 +41,7 @@ export default function WesAndersonPage() {
 	return (
 		<ExperimentFrame
 			id="wes-anderson"
-			intro="A small comedy at Hotel Kubernetes: a guest tries to check out. The desired state disagrees. Eight camera moves, one drawing. Play the scene, explore the shots, or rewrite the script."
+			intro="Checkout Pending: Anna wants to leave Hotel Kubernetes. Valentin guarantees one guest. Otto keeps preparing her replacement room. Eight camera moves, one drawing, and a reservation that outranks reality. Play the scene, explore the shots, or rewrite the script."
 			aside={
 				<dl className="grid gap-6 sm:grid-cols-2">
 					{notes.map(([k, v]) => (

@@ -162,55 +162,55 @@ export interface Cue {
 	end: number;
 }
 
-export const SCRIPT_TITLE = "The Guest Who Wouldn't Terminate";
+export const SCRIPT_TITLE = "Checkout Pending";
 
 export const INITIAL_SCRIPT = `INT. HOTEL KUBERNETES, OFF-SEASON - THURSDAY, 4:03 P.M.
 
-[[WIDE 6]]
-The lobby. Six pigeonholes, two palms, one concierge. The hotel has declared three guests its desired state.
+[[WIDE 8]]
+Anna, in mustard, stands at reception for the third time. Valentin, in black, regards this as excellent customer retention. Otto, in mint, awaits instructions. The reservation still calls for one guest.
 
 NARRATOR
-Hotel Kubernetes guaranteed three guests. Whether they wished to stay was irrelevant.
+Anna had checked out three times. Hotel Kubernetes recorded three successful recoveries.
 
-[[DOLLY 5]]
-Otto walks past the same three doors, checking the same three names.
+[[DOLLY 6]]
+Otto walks the corridor past rooms 101 to 105. Every cancelled room must be prepared again. He is particularly proud of saving the breakfast.
 
 OTTO
-Madame checked out. Her replacement has the same luggage.
+Room 104 is ready again. I rescued your croissant.
 
-[[WHIP 4]]
-The concierge looks from the register to the elevator. Another Anna arrives.
+[[WHIP 6]]
+From Valentin at reception to the empty lift, ready to return Anna to her room. To him, an empty hotel is a service failure.
 
 M. VALENTIN
-Excellent. The reconciliation is working.
+We guarantee one guest, madame. You are the one.
 
-[[OVERHEAD 5]]
-The desk from above: a key, a departure form, a stamp marked PENDING.
-
-ANNA
-I filed my departure in YAML. With the correct indentation.
-
-[[PORTRAIT 4]]
-Anna waits. The concierge stamps her departure form PENDING again.
+[[OVERHEAD 6]]
+A room key, a checkout receipt, a fountain pen and a pastry box. Hands reach across the desk. The receipt and the still-valid key contradict each other.
 
 ANNA
-(evenly)
-I would like to stop existing here.
+Checkout accepted. Then why does my key still work?
+
+[[PORTRAIT 6]]
+Anna holds perfectly still. The camera snaps closer as she identifies the problem: they keep removing the room, but the reservation keeps requesting a replacement.
+
+ANNA
+(with surgical patience)
+Don't delete the room. Set the reservation to zero.
 
 [[CARD 3]]
 PART TWO: DESIRED STATE
 
 [[TABLEAU 5]]
-The three stand in the elevator. The cab rises. Anna keeps her key.
+Anna, Valentin and Otto stand shoulder to shoulder in the lift. They ascend to Reservations. Valentin has come to supervise; Otto has come because nobody told him to stop helping.
 
-M. VALENTIN
-Checkout requires a Helm upgrade. The porter is on lunch.
+OTTO
+Reservations is upstairs. They only accept pull requests.
 
-[[PULL 6]]
-The whole hotel, every room at once. Nothing has changed. This is considered a success.
+[[PULL 7]]
+The camera pulls back from the lift to the whole hotel. The rooms remain immaculate, the linen folded, the pastries boxed. The system is working exactly as specified.
 
 NARRATOR
-By evening, all three guests were Anna. The dashboard was green.`;
+Her checkout was approved. The next release was in November.`;
 
 const HEADING = /^(INT|EXT|INT\.\/EXT|I\/E)[. ]/i;
 const CUE = /^\[\[\s*([A-Z]+)(?:\s+(\d+(?:\.\d+)?))?\s*\]\]$/;
@@ -322,7 +322,6 @@ export function frameRect(frame: string) {
 	return { x, y, w, h };
 }
 
-/** Fit the entire camera move into a phone-sized drawing, with breathing room. */
 export function drawingFrame(shot: Shot) {
 	const rects = setups[shot.setup].frames.map(frameRect);
 	const left = Math.min(...rects.map((rect) => rect.x));
