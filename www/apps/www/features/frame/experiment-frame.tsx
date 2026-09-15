@@ -1,6 +1,7 @@
 import { SourceLink } from "@zeyaddeeb/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { MobileDetails } from "@/components/mobile-details";
 import "./frame.css";
 import { getExperiment, neighbors, number } from "@/features/catalog/catalog";
 
@@ -38,11 +39,13 @@ export function ExperimentFrame({
 						<span aria-hidden="true">/</span> {number(experiment.number)}
 					</p>
 					<h1 className="frame__title">{experiment.title}</h1>
-					<p className="frame__intro">{intro ?? experiment.line}</p>
-					<p className="eyebrow frame__stack">
-						<span>{experiment.stack.join(" · ")}</span>
-						<SourceLink>View source</SourceLink>
-					</p>
+					<MobileDetails label="About this experiment">
+						<p className="frame__intro">{intro ?? experiment.line}</p>
+						<p className="eyebrow frame__stack">
+							<span>{experiment.stack.join(" · ")}</span>
+							<SourceLink>View source</SourceLink>
+						</p>
+					</MobileDetails>
 				</header>
 
 				{status || controls ? (

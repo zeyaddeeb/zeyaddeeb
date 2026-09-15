@@ -360,22 +360,33 @@
 
 	.home__opening {
 		grid-template-columns: 1fr;
-		gap: 40px;
-		padding-block: 36px 40px;
+		gap: 16px;
+		padding-block: 20px 32px;
+	}
+
+	.home__eyebrow {
+		margin: 0;
 	}
 
 	.home__bio h1 {
-		margin-block: 28px;
-		font-size: clamp(54px, 13vw, 84px);
+		margin-block: 12px 8px;
+		font-size: clamp(36px, 9vw, 48px);
+		line-height: 1.02;
 	}
 
 	.home__intro {
 		max-width: 36ch;
-		font-size: 18px;
+		margin: 0;
+		font-size: 16px;
 	}
 
 	.home__about {
-		margin-top: 20px;
+		min-height: 44px;
+		margin-top: 8px;
+	}
+
+	.home__source {
+		margin-top: 12px;
 	}
 
 	.home__directory {

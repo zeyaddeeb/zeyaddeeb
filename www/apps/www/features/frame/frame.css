@@ -200,14 +200,37 @@
 	}
 }
 
-@media (max-width: 540px) {
+@media (max-width: 640px) {
 	.frame__head {
-		padding-top: 28px;
+		grid-template-columns: 32px minmax(0, 1fr);
+		gap: 8px 12px;
+		padding-block: 16px 8px;
+	}
+
+	.frame__number {
+		grid-row: 1;
+		width: 32px;
+		height: 32px;
+		font-size: 18px;
+	}
+
+	.frame__trail {
+		align-self: center;
+	}
+
+	.frame__title {
+		grid-column: 1 / -1;
+		font-size: clamp(26px, 7vw, 32px);
+		line-height: 1.08;
 	}
 
 	.frame__intro {
 		grid-column: 1 / -1;
 		font-size: 16px;
+	}
+
+	.frame__stack {
+		margin-top: 16px;
 	}
 
 	.frame__stage {
