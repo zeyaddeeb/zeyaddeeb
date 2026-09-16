@@ -1,4 +1,4 @@
-import { ArrowIcon } from "@zeyaddeeb/ui";
+import { LifeArrow } from "@zeyaddeeb/ui";
 import { pageMetadata } from "@zeyaddeeb/ui/seo";
 import { Fragment } from "react";
 import { education, experience, skills } from "@/features/resume/content";
@@ -105,7 +105,8 @@ export default function ResumePage() {
 											{index > 0 && (
 												<>
 													{" "}
-													<ArrowIcon /> <span className="sr-only">to </span>
+													<LifeArrow direction="right" />{" "}
+													<span className="sr-only">to </span>
 												</>
 											)}
 											{title}
@@ -137,7 +138,7 @@ export default function ResumePage() {
 									target="_blank"
 									rel="noopener noreferrer"
 								>
-									Pulvi <ArrowIcon direction="up-right" />
+									Pulvi <LifeArrow direction="up-right" />
 								</a>
 							</h3>
 							<p className="resume__title">Product & Engineering</p>
@@ -214,14 +215,14 @@ export default function ResumePage() {
 						target="_blank"
 						rel="noopener noreferrer"
 					>
-						LinkedIn <ArrowIcon direction="up-right" />
+						LinkedIn <LifeArrow direction="up-right" />
 					</a>
 					<a
 						href="https://github.com/zeyaddeeb"
 						target="_blank"
 						rel="noopener noreferrer"
 					>
-						GitHub <ArrowIcon direction="up-right" />
+						GitHub <LifeArrow direction="up-right" />
 					</a>
 				</div>
 			</section>

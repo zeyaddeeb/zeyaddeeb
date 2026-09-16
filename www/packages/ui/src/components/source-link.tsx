@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ArrowIcon } from "./arrow-icon";
+import { LifeArrow } from "./life-arrow";
 
 export const SOURCE_REPOSITORY = "https://github.com/zeyaddeeb/zeyaddeeb";
 
@@ -18,7 +18,7 @@ export function SourceLink({
 			className={className}
 		>
 			{children}&nbsp;
-			<ArrowIcon direction="up-right" />
+			<LifeArrow direction="up-right" />
 		</a>
 	);
 }

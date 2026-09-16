@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowIcon } from "@zeyaddeeb/ui";
+import { LifeArrow } from "@zeyaddeeb/ui";
 import {
 	type CSSProperties,
 	useEffect,
@@ -390,7 +390,7 @@ export function Film() {
 							disabled={cue.index === 0}
 							onClick={() => playShot(cue.index - 1)}
 						>
-							<ArrowIcon direction="left" />
+							<LifeArrow direction="left" />
 						</button>
 						<button type="button" className="film-play" onClick={togglePlay}>
 							{playing
@@ -406,7 +406,7 @@ export function Film() {
 							disabled={cue.index === cues.length - 1}
 							onClick={() => playShot(cue.index + 1)}
 						>
-							<ArrowIcon direction="right" />
+							<LifeArrow direction="right" />
 						</button>
 						<span className="film-clock">
 							{clock(time)} / {clock(total)}
@@ -486,7 +486,7 @@ export function Film() {
 								onClick={() => playShot(cue.index - 1)}
 							>
 								<span aria-hidden="true">
-									<ArrowIcon direction="left" />
+									<LifeArrow direction="left" />
 								</span>{" "}
 								Previous
 							</button>
@@ -504,7 +504,7 @@ export function Film() {
 							>
 								Next{" "}
 								<span aria-hidden="true">
-									<ArrowIcon direction="right" />
+									<LifeArrow direction="right" />
 								</span>
 							</button>
 						</div>
@@ -566,7 +566,7 @@ export function Film() {
 					>
 						Print the board{" "}
 						<span aria-hidden="true">
-							<ArrowIcon direction="up-right" />
+							<LifeArrow direction="up-right" />
 						</span>
 					</button>
 				</header>
@@ -720,7 +720,7 @@ export function Film() {
 					<button type="button" className="film-link" onClick={download}>
 						Save .fountain{" "}
 						<span aria-hidden="true">
-							<ArrowIcon direction="down" />
+							<LifeArrow direction="down" />
 						</span>
 					</button>
 				</header>
@@ -740,7 +740,7 @@ export function Film() {
 							<button type="button" className="film-thread" onClick={thread}>
 								Thread this script{" "}
 								<span aria-hidden="true">
-									<ArrowIcon direction="right" />
+									<LifeArrow direction="right" />
 								</span>
 							</button>
 							<button

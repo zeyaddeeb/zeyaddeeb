@@ -1,4 +1,4 @@
-import { ArrowIcon, SourceLink } from "@zeyaddeeb/ui";
+import { LifeArrow, SourceLink } from "@zeyaddeeb/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { MobileDetails } from "@/components/mobile-details";
@@ -66,7 +66,7 @@ export function ExperimentFrame({
 					<a href="#notes" className="frame__more">
 						Notes on how it works{" "}
 						<span aria-hidden="true">
-							<ArrowIcon direction="down" />
+							<LifeArrow direction="down" />
 						</span>
 					</a>
 				) : null}
@@ -84,7 +84,7 @@ export function ExperimentFrame({
 					<Link href={nav.prev.href} className="frame__nav-link">
 						<span className="eyebrow">
 							<span aria-hidden="true">
-								<ArrowIcon direction="left" />
+								<LifeArrow direction="left" />
 							</span>{" "}
 							{number(nav.prev.number)}
 						</span>
@@ -97,7 +97,7 @@ export function ExperimentFrame({
 						<span className="eyebrow">
 							{number(nav.next.number)}{" "}
 							<span aria-hidden="true">
-								<ArrowIcon direction="right" />
+								<LifeArrow direction="right" />
 							</span>
 						</span>
 						<span className="frame__nav-title">{nav.next.title}</span>

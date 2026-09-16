@@ -1,4 +1,4 @@
-import { ArrowIcon, Footer, Header } from "@zeyaddeeb/ui";
+import { Footer, Header, LifeArrow } from "@zeyaddeeb/ui";
 import Link from "next/link";
 import { SITE_NAV } from "@/features/catalog/nav";
 import { PresenceMark } from "@/features/live/presence-mark";
@@ -27,7 +27,7 @@ export default function NotFound() {
 							<Link href="/" className="notice__link">
 								Back to the start{" "}
 								<span aria-hidden="true">
-									<ArrowIcon direction="right" />
+									<LifeArrow direction="right" />
 								</span>
 							</Link>
 						</p>

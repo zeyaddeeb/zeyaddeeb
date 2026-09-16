@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowIcon } from "@zeyaddeeb/ui";
+import { LifeArrow } from "@zeyaddeeb/ui";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { neighbors, number } from "@/features/catalog/catalog";
@@ -204,7 +204,7 @@ export function Story() {
 					<Link href={nav.prev.href} className="story__nav-link">
 						<span className="eyebrow">
 							<span aria-hidden="true">
-								<ArrowIcon direction="left" />
+								<LifeArrow direction="left" />
 							</span>{" "}
 							{number(nav.prev.number)}
 						</span>
@@ -217,7 +217,7 @@ export function Story() {
 						<span className="eyebrow">
 							{number(nav.next.number)}{" "}
 							<span aria-hidden="true">
-								<ArrowIcon direction="right" />
+								<LifeArrow direction="right" />
 							</span>
 						</span>
 						<span className="story__nav-title">{nav.next.title}</span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowIcon } from "@zeyaddeeb/ui";
+import { LifeArrow } from "@zeyaddeeb/ui";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -126,7 +126,7 @@ function Row({
 					) : null}
 				</span>
 				<span className="row__arrow" aria-hidden="true">
-					<ArrowIcon direction={experiment.external ? "up-right" : "right"} />
+					<LifeArrow direction={experiment.external ? "up-right" : "right"} />
 				</span>
 				{experiment.external ? (
 					<span className="sr-only">(opens in a new tab)</span>

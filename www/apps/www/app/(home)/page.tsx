@@ -1,4 +1,4 @@
-import { ArrowIcon, BLOG_URL, SourceLink } from "@zeyaddeeb/ui";
+import { BLOG_URL, LifeArrow, SourceLink } from "@zeyaddeeb/ui";
 import Link from "next/link";
 import { MobileDetails } from "@/components/mobile-details";
 import { experiments } from "@/features/catalog/catalog";
@@ -23,7 +23,7 @@ export default function HomePage() {
 						<Link className="home__about" href="/about">
 							A bit about me{" "}
 							<span aria-hidden="true">
-								<ArrowIcon direction="right" />
+								<LifeArrow direction="right" />
 							</span>
 						</Link>
 						<p className="home__source">
@@ -40,7 +40,7 @@ export default function HomePage() {
 					<h2>
 						Experiments{" "}
 						<span aria-hidden="true">
-							<ArrowIcon direction="up-right" />
+							<LifeArrow direction="up-right" />
 						</span>
 					</h2>
 					<p>
@@ -53,7 +53,7 @@ export default function HomePage() {
 					<h2>
 						Blog{" "}
 						<span aria-hidden="true">
-							<ArrowIcon direction="up-right" />
+							<LifeArrow direction="up-right" />
 						</span>
 					</h2>
 					<p>Notes on what I’m building and learning.</p>
@@ -63,7 +63,7 @@ export default function HomePage() {
 					<h2>
 						Library{" "}
 						<span aria-hidden="true">
-							<ArrowIcon direction="up-right" />
+							<LifeArrow direction="up-right" />
 						</span>
 					</h2>
 					<p>Books, art, podcasts, and links I’ve saved.</p>
