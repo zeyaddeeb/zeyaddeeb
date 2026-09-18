@@ -1,6 +1,8 @@
 use ::robot::{camera, robot, ui};
 use avian3d::prelude::*;
-use bevy::{audio::PlaybackMode, prelude::*, render::settings::WgpuSettings};
+use bevy::{
+    asset::AssetMetaCheck, audio::PlaybackMode, prelude::*, render::settings::WgpuSettings,
+};
 
 fn setup_music(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
@@ -24,6 +26,10 @@ fn main() {
     App::new()
         .add_plugins(
             DefaultPlugins
+                .set(AssetPlugin {
+                    meta_check: AssetMetaCheck::Never,
+                    ..default()
+                })
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         title: "Robot Basketball - WASM".into(),

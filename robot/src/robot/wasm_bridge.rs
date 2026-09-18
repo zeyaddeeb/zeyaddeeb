@@ -23,12 +23,19 @@ pub enum WsState {
     Disconnected,
 }
 
+const RETRY_MIN_SECS: f32 = 2.0;
+const RETRY_MAX_SECS: f32 = 60.0;
+const RETRY_RESET_SECS: f32 = 10.0;
+
 #[derive(Resource)]
 pub struct WsBridge {
     socket: Option<WebSocket>,
     state: Rc<RefCell<WsState>>,
     action_queue: Rc<RefCell<Vec<ActionMsg>>>,
     url: String,
+    retry_in: f32,
+    retry_delay: f32,
+    alive: f32,
 }
 
 unsafe impl Send for WsBridge {}
@@ -41,6 +48,9 @@ impl WsBridge {
             state: Rc::new(RefCell::new(WsState::Disconnected)),
             action_queue: Rc::new(RefCell::new(Vec::new())),
             url: url.to_string(),
+            retry_in: 0.0,
+            retry_delay: RETRY_MIN_SECS,
+            alive: 0.0,
         }
     }
 
@@ -62,7 +72,6 @@ impl WsBridge {
 
         let state_open = Rc::clone(&state);
         let onopen_callback = Closure::<dyn FnMut()>::new(move || {
-            web_sys::console::log_1(&"WebSocket connected".into());
             *state_open.borrow_mut() = WsState::Connected;
             update_ws_status("Connected", "connected");
         });
@@ -78,7 +87,6 @@ impl WsBridge {
 
         let state_close = Rc::clone(&state);
         let onclose_callback = Closure::<dyn FnMut()>::new(move || {
-            web_sys::console::log_1(&"WebSocket disconnected".into());
             *state_close.borrow_mut() = WsState::Disconnected;
             update_ws_status("Disconnected", "disconnected");
         });
@@ -157,9 +165,30 @@ fn update_training_stats(stats: &TrainStatsMsg) {
     }
 }
 
-pub fn ws_connection_system(mut bridge: ResMut<WsBridge>) {
-    if !bridge.is_connected() && bridge.socket.is_none() {
-        bridge.connect();
+pub fn ws_connection_system(mut bridge: ResMut<WsBridge>, time: Res<Time<Real>>) {
+    let state = *bridge.state.borrow();
+    match state {
+        WsState::Connecting => {}
+        WsState::Connected => {
+            bridge.alive += time.delta_secs();
+            if bridge.alive > RETRY_RESET_SECS {
+                bridge.retry_delay = RETRY_MIN_SECS;
+            }
+        }
+        WsState::Disconnected => {
+            if bridge.socket.take().is_some() {
+                bridge.alive = 0.0;
+                bridge.retry_in = bridge.retry_delay;
+                bridge.retry_delay = (bridge.retry_delay * 2.0).min(RETRY_MAX_SECS);
+            }
+            bridge.retry_in -= time.delta_secs();
+            if bridge.retry_in <= 0.0 {
+                bridge.connect();
+                if bridge.socket.is_none() {
+                    bridge.retry_in = bridge.retry_delay;
+                }
+            }
+        }
     }
 }
 
@@ -325,33 +354,11 @@ fn finish_episode(sim: &mut SimulationState, reason: EpisodeEndReason, ball_pos:
     if sim.stage_episodes >= STAGE_MIN_EPISODES && sim.stage_success_streak >= STAGE_SUCCESS_STREAK
     {
         if let Some(stage) = next_stage(sim.curriculum_stage) {
-            web_sys::console::log_1(
-                &format!(
-                    "Advancing to {} after {} episodes",
-                    stage.as_str(),
-                    sim.stage_episodes
-                )
-                .into(),
-            );
             sim.curriculum_stage = stage;
             sim.stage_episodes = 0;
             sim.stage_success_streak = 0;
         }
     }
-
-    web_sys::console::log_1(
-        &format!(
-            "Episode {} ended: {} after {} steps | Reward: {:.2} | EMA: {:.2} | Baskets: {}/{}",
-            sim.episode,
-            reason.as_str(),
-            sim.step,
-            sim.episode_reward,
-            sim.episode_reward_ema,
-            sim.baskets_made,
-            sim.episode + 1
-        )
-        .into(),
-    );
 
     sim.needs_reset = true;
     sim.cooldown = RESET_COOLDOWN;

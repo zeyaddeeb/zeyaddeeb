@@ -269,9 +269,14 @@ const MARKERS: Record<string, string> = {
 function TrainingRows({ rows, phase }: { rows: string[]; phase: Phase }) {
 	const sft = phase === "sft";
 	const lines = rows.length ? rows : ["", "", "", ""];
+	const batch = useRef<HTMLOListElement>(null);
+	useEffect(() => {
+		for (const row of batch.current?.children ?? [])
+			row.scrollLeft = sft && rows.length ? row.scrollWidth : 0;
+	}, [rows, sft]);
 	return (
 		<div className="ds-input">
-			<ol className="ds-batch">
+			<ol className="ds-batch" ref={batch}>
 				{lines.map((text, i) => {
 					const words = text ? text.split(" ") : [];
 					const arrow = words.indexOf("→");

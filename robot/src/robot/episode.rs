@@ -69,6 +69,7 @@ impl EpisodeEndReason {
         }
     }
 
+    #[cfg(feature = "native")]
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::TorsoFell => "torso_fell",

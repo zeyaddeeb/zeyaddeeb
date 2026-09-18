@@ -1,6 +1,6 @@
 [package]
 name = "robot"
-version = "0.2.7"
+version = "0.2.8"
 edition = "2021"
 
 [features]
@@ -72,3 +72,11 @@ web-sys = { version = "0.3.105", features = [
 ] }
 console_error_panic_hook = "0.1"
 js-sys = "0.3.105"
+
+[profile.wasm-release]
+inherits = "release"
+opt-level = "s"
+lto = "thin"
+codegen-units = 1
+strip = "debuginfo"
+panic = "abort"
