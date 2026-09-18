@@ -10,6 +10,7 @@ import {
 	useState,
 } from "react";
 import type { LayerTrace, ModelInfo, ProbeView } from "./protocol";
+import { useScrub } from "./scrub";
 
 const percent = (value: number) =>
 	value >= 0.995
@@ -17,6 +18,11 @@ const percent = (value: number) =>
 		: value < 0.01
 			? "<1%"
 			: `${Math.round(value * 100)}%`;
+
+const fine = (value: number) =>
+	value >= 0.1
+		? `${Math.round(value * 100)}%`
+		: `${(value * 100).toFixed(value >= 0.01 ? 1 : 2)}%`;
 
 function looks(layer: LayerTrace, length: number) {
 	const near = Array.from({ length }, (_, i) => layer.tokens[i] ?? 0);
@@ -161,6 +167,7 @@ interface LineProps {
 	onSelect: (slot: number) => void;
 	inside: boolean;
 	layer: number | null;
+	hint: boolean;
 }
 
 export function Line({
@@ -171,6 +178,7 @@ export function Line({
 	onSelect,
 	inside,
 	layer,
+	hint,
 }: LineProps) {
 	const { line, focus } = probe;
 	const tokens = line.tokens;
@@ -277,6 +285,12 @@ export function Line({
 					</li>
 				)}
 			</ol>
+			{hint ? (
+				<p className="ds-line-hint">
+					Each bar shows how likely the model found that token. Select a token
+					to see what it expected instead.
+				</p>
+			) : null}
 		</div>
 	);
 }
@@ -349,6 +363,13 @@ export function Expected({ probe, model, selected }: ExpectedProps) {
 		REGIONS[0].until(word),
 	);
 	const peak = Math.max(...focus.distribution, 0.0001);
+	const scrub = useScrub(focus.distribution.length, "cells");
+	const moved = !!baseline && baseline.step !== probe.step;
+	const leaderId = focus.distribution.indexOf(peak);
+	const readId = scrub.index ?? (expectedId >= 0 ? expectedId : leaderId);
+	const readProbability = focus.distribution[readId] ?? 0;
+	const rank =
+		focus.distribution.filter((value) => value > readProbability).length + 1;
 
 	return (
 		<section
@@ -373,30 +394,44 @@ export function Expected({ probe, model, selected }: ExpectedProps) {
 						: `Update ${probe.step.toLocaleString("en-US")}`}
 				</span>
 			</header>
-			<div className="ds-prediction-leaders" aria-hidden={pending}>
-				<div>
-					<span>First seen · update {baseline?.step ?? probe.step}</span>
-					<b>{baseline?.leader ?? leader?.text ?? "?"}</b>
-					<span>
-						{percent(baseline?.probability ?? leader?.probability ?? 0)} chance
-					</span>
-				</div>
-				<span className="ds-prediction-arrow" aria-hidden="true" />
+			<div
+				className="ds-prediction-leaders"
+				aria-hidden={pending}
+				data-moved={moved}
+			>
+				{moved ? (
+					<>
+						<div>
+							<span>First seen · update {baseline.step}</span>
+							<b>{baseline.leader}</b>
+							<span>{percent(baseline.probability)} chance</span>
+						</div>
+						<span className="ds-prediction-arrow" aria-hidden="true" />
+					</>
+				) : null}
 				<div data-current data-hit={leader?.text === expected}>
-					<span>Now · update {probe.step.toLocaleString("en-US")}</span>
+					<span>
+						{moved ? "Now" : "Top prediction"} · update{" "}
+						{probe.step.toLocaleString("en-US")}
+					</span>
 					<b key={`${predictionKey}:${leader?.text}`}>{leader?.text ?? "?"}</b>
 					<span>{percent(leader?.probability ?? 0)} chance</span>
 				</div>
 			</div>
-			<div className="ds-prediction-columns" aria-hidden="true">
+			<div
+				className="ds-prediction-columns"
+				aria-hidden="true"
+				data-moved={moved}
+			>
 				<span>Token</span>
-				<span>First seen</span>
+				<span>Before</span>
 				<span>Now</span>
 			</div>
 			<ol
 				className="ds-prediction-ranks"
 				aria-label="Token probabilities, first seen and now"
 				aria-hidden={pending}
+				data-moved={moved}
 			>
 				{candidates.map((candidate) => {
 					const tokenId = model.vocabulary.indexOf(candidate.text);
@@ -424,21 +459,46 @@ export function Expected({ probe, model, selected }: ExpectedProps) {
 			</ol>
 			<details className="ds-vocabulary">
 				<summary>All {model.vocabSize} tokens</summary>
+				<p className="ds-strip-readout" aria-hidden="true">
+					<b>{model.vocabulary[readId] ?? "?"}</b>
+					<span>{fine(readProbability)}</span>
+					<span>
+						rank {rank} of {model.vocabSize}
+					</span>
+					{readId === expectedId ? (
+						<span>
+							{actual ? "the actual next token" : "the correct answer"}
+						</span>
+					) : null}
+					{scrub.index === null ? (
+						<span className="ds-strip-how">slide across to read any bar</span>
+					) : null}
+				</p>
 				<div
 					className="ds-strip"
-					role="img"
+					role="slider"
+					tabIndex={0}
 					aria-label={`Probability of each of the ${model.vocabSize} tokens`}
+					aria-valuemin={1}
+					aria-valuemax={model.vocabSize}
+					aria-valuenow={readId + 1}
+					aria-valuetext={`${model.vocabulary[readId] ?? "?"}, ${fine(readProbability)}, rank ${rank}`}
+					{...scrub.handlers}
 				>
 					{focus.distribution.map((probability, id) => (
-						<i
+						<span
 							key={model.vocabulary[id] ?? id}
+							data-on={scrub.index === id}
 							data-hit={
 								actual ? actual.id === id : model.vocabulary[id] === line.truth
 							}
-							style={{
-								height: `${Math.max(1.5, (probability / Math.max(peak, 0.35)) * 100)}%`,
-							}}
-						/>
+						>
+							<i
+								style={{
+									height: `${Math.max(1.5, (probability / Math.max(peak, 0.35)) * 100)}%`,
+								}}
+							/>
+						</span>
 					))}
 				</div>
 				<p className="ds-strip-scale" aria-hidden="true">

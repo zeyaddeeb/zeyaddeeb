@@ -42,6 +42,7 @@ export function DeepSeekLab() {
 	const [layer, setLayer] = useState<number | null>(null);
 	const [confirming, setConfirming] = useState(false);
 	const [expanded, setExpanded] = useState(false);
+	const [explored, setExplored] = useState(false);
 
 	useEffect(() => {
 		if (!flagsKey) return;
@@ -195,6 +196,8 @@ export function DeepSeekLab() {
 		: {};
 
 	const operation = state.operation;
+	const writes =
+		story.beat === "reads" && !inside ? (state.dreams.at(-1) ?? null) : null;
 	const eta =
 		operation && running && state.step
 			? remaining(
@@ -271,9 +274,13 @@ export function DeepSeekLab() {
 								codeOnly={codeOnly}
 								answerOnly={state.operation?.phase === "sft" && busy}
 								selected={selected}
-								onSelect={setSelected}
+								onSelect={(slot) => {
+									setExplored(true);
+									setSelected(slot);
+								}}
 								inside={inside}
 								layer={layer}
+								hint={!explored && !inside}
 							/>
 							<Expected
 								key={`expected:${session.id}:${session.generation}`}
@@ -357,6 +364,12 @@ export function DeepSeekLab() {
 								<p key={paragraph}>{paragraph}</p>
 							))}
 							{story.kept ? <p className="ds-kept">{story.kept}</p> : null}
+							{writes ? (
+								<p className="ds-writes" data-compiles={writes.compiles}>
+									<span>It writes · update {count(writes.step)}</span>
+									<code>{writes.tokens.map((t) => t.text).join(" ")}</code>
+								</p>
+							) : null}
 							{state.error && story.beat !== "yours" ? (
 								<p className="ds-form-error" role="alert">
 									{state.error}

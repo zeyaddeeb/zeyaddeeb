@@ -1,7 +1,8 @@
 "use client";
 
-import { type SubmitEvent, useId, useState } from "react";
+import { type SubmitEvent, useEffect, useId, useRef, useState } from "react";
 import type { Phase } from "./protocol";
+import { useScrub } from "./scrub";
 import type { LabState } from "./use-lab";
 
 const percent = (value: number) =>
@@ -18,6 +19,7 @@ interface ChartProps {
 	reference?: { value: number; label: string };
 	tone: "error" | "belief";
 	label: string;
+	readout: (index: number) => string;
 }
 
 export function Chart({
@@ -27,6 +29,7 @@ export function Chart({
 	reference,
 	tone,
 	label,
+	readout,
 }: ChartProps) {
 	const width = 600;
 	const height = 160;
@@ -37,55 +40,126 @@ export function Chart({
 	const points = values
 		.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`)
 		.join(" ");
+	const scrub = useScrub(values.length, "points");
+	const read = scrub.index ?? values.length - 1;
 	return (
 		<figure className="ds-chart" data-tone={tone}>
-			<svg
-				viewBox={`0 0 ${width} ${height}`}
-				preserveAspectRatio="none"
-				role="img"
+			{values.length ? (
+				<p className="ds-chart-readout" aria-hidden="true">
+					<span>{scrub.index === null ? "latest" : "selected"}</span>
+					<b>{readout(read)}</b>
+				</p>
+			) : null}
+			<div
+				className="ds-chart-plot"
+				role="slider"
+				tabIndex={values.length ? 0 : -1}
 				aria-label={label}
+				aria-valuemin={1}
+				aria-valuemax={Math.max(1, values.length)}
+				aria-valuenow={read + 1}
+				aria-valuetext={values.length ? readout(read) : "no data"}
+				{...scrub.handlers}
 			>
-				{reference ? (
+				<svg
+					viewBox={`0 0 ${width} ${height}`}
+					preserveAspectRatio="none"
+					aria-hidden="true"
+				>
+					{reference ? (
+						<line
+							className="ds-chart-ref"
+							x1="0"
+							x2={width}
+							y1={y(reference.value)}
+							y2={y(reference.value)}
+						/>
+					) : null}
 					<line
-						className="ds-chart-ref"
+						className="ds-chart-base"
 						x1="0"
 						x2={width}
-						y1={y(reference.value)}
-						y2={y(reference.value)}
+						y1={height - 1}
+						y2={height - 1}
+					/>
+					{values.length > 1 ? <polyline points={points} /> : null}
+					{marks.map((mark) => (
+						<rect
+							key={mark.at}
+							x={x(mark.at) - 3}
+							y={y(mark.value) - 3}
+							width="6"
+							height="6"
+						/>
+					))}
+					{scrub.index !== null ? (
+						<line
+							className="ds-chart-cursor"
+							x1={x(scrub.index)}
+							x2={x(scrub.index)}
+							y1="0"
+							y2={height}
+						/>
+					) : null}
+				</svg>
+				{scrub.index !== null ? (
+					<i
+						className="ds-chart-dot"
+						style={{
+							left: `${(x(scrub.index) / width) * 100}%`,
+							top: `${(y(values[scrub.index]) / height) * 100}%`,
+						}}
 					/>
 				) : null}
-				<line
-					className="ds-chart-base"
-					x1="0"
-					x2={width}
-					y1={height - 1}
-					y2={height - 1}
-				/>
-				{values.length > 1 ? <polyline points={points} /> : null}
-				{marks.map((mark) => (
-					<rect
-						key={mark.at}
-						x={x(mark.at) - 3}
-						y={y(mark.value) - 3}
-						width="6"
-						height="6"
-					/>
-				))}
-			</svg>
-			{reference ? (
-				<span
-					className="ds-chart-label"
-					style={{ top: `${(y(reference.value) / height) * 100}%` }}
-				>
-					{reference.label}
-				</span>
-			) : null}
+				{reference ? (
+					<span
+						className="ds-chart-label"
+						style={{ top: `${(y(reference.value) / height) * 100}%` }}
+					>
+						{reference.label}
+					</span>
+				) : null}
+			</div>
 			<figcaption>{label}</figcaption>
 		</figure>
 	);
 }
 
 const DREAM_ROWS = 6;
+
+function DreamLine({
+	text,
+	open,
+	onToggle,
+}: {
+	text: string;
+	open: boolean;
+	onToggle: () => void;
+}) {
+	const code = useRef<HTMLElement>(null);
+	const [clipped, setClipped] = useState(false);
+	useEffect(() => {
+		const node = code.current;
+		if (!node || open) return;
+		const measure = () => setClipped(node.scrollWidth > node.clientWidth + 1);
+		measure();
+		const observer = new ResizeObserver(measure);
+		observer.observe(node);
+		return () => observer.disconnect();
+	}, [text, open]);
+	return (
+		<button
+			type="button"
+			className="ds-dream-line"
+			disabled={!clipped && !open}
+			aria-expanded={clipped || open ? open : undefined}
+			aria-label={`${open ? "Collapse" : "Show all of"}: ${text}`}
+			onClick={onToggle}
+		>
+			<code ref={code}>{text}</code>
+		</button>
+	);
+}
 
 export function Reading({ state }: { state: LabState }) {
 	const model = state.session?.model;
@@ -100,6 +174,7 @@ export function Reading({ state }: { state: LabState }) {
 			value: e.heldOutLoss,
 		}));
 	const dreams = state.dreams.slice(-DREAM_ROWS);
+	const [opened, setOpened] = useState<number | null>(null);
 	const rows = [
 		...dreams,
 		...Array.from({ length: DREAM_ROWS - dreams.length }, () => null),
@@ -114,11 +189,29 @@ export function Reading({ state }: { state: LabState }) {
 							key={i}
 							data-compiles={dream?.compiles ?? false}
 							data-empty={!dream}
+							data-open={!!dream && opened === dream.step}
 						>
 							<span className="ds-dream-step">
-								{dream ? `update ${dream.step}` : "\u00a0"}
+								{dream ? (
+									<>
+										<span>update </span>
+										{dream.step}
+									</>
+								) : (
+									"\u00a0"
+								)}
 							</span>
-							<code>{dream?.tokens.map((t) => t.text).join(" ")}</code>
+							{dream ? (
+								<DreamLine
+									text={dream.tokens.map((t) => t.text).join(" ")}
+									open={opened === dream.step}
+									onToggle={() =>
+										setOpened(opened === dream.step ? null : dream.step)
+									}
+								/>
+							) : (
+								<span />
+							)}
 							<i
 								role="img"
 								aria-hidden={!dream}
@@ -133,7 +226,8 @@ export function Reading({ state }: { state: LabState }) {
 				</ol>
 				<p className="ds-caption">
 					Samples generated without a code prompt. A filled dot means the lab
-					parser accepted the code, not that rustc compiled it.
+					parser accepted the code, not that rustc compiled it. Select a
+					shortened line to read all of it.
 				</p>
 			</section>
 			{curve.length > 1 ? (
@@ -149,6 +243,9 @@ export function Reading({ state }: { state: LabState }) {
 						}
 						tone="error"
 						label="Prediction error (loss) per update. Squares show the score on code excluded from training. Lower is better."
+						readout={(i) =>
+							`update ${curve[i].step.toLocaleString("en-US")} · loss ${curve[i].loss.toFixed(2)}`
+						}
 					/>
 					<section>
 						<h3 className="ds-eyebrow">Training input</h3>
@@ -333,6 +430,9 @@ export function Rollouts({ state }: { state: LabState }) {
 				reference={{ value: 1.1, label: "maximum reward" }}
 				tone="belief"
 				label="Average reward, smoothed over six groups. Higher is better."
+				readout={(i) =>
+					`group ${i + 1} · average reward ${smooth(state.rewards, 6)[i].toFixed(2)}`
+				}
 			/>
 		</div>
 	);
@@ -407,6 +507,9 @@ export function Yours({ state, busy, onAsk }: YoursProps) {
 				ceiling={Math.max(0.5, ...state.divergences.slice(0, 20))}
 				tone="error"
 				label="Student training loss, smoothed over eight updates. Lower is better."
+				readout={(i) =>
+					`update ${i + 1} · student loss ${smooth(state.divergences, 8)[i].toFixed(3)}`
+				}
 			/>
 		</section>
 	) : null;
