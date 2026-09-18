@@ -63,7 +63,7 @@ export function CollectionWriteClient({ user }: CollectionWriteClientProps) {
 		setFormData((prev) => ({ ...prev, tags }));
 	};
 
-	const handleSubmit = async (e: React.FormEvent) => {
+	const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		setIsSubmitting(true);
 		setError(null);

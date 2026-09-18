@@ -16,3 +16,8 @@ module "crdt" {
   source    = "../crdt/deployments"
   namespace = kubernetes_namespace_v1.zeyaddeeb_namespace.metadata[0].name
 }
+
+module "deepseek" {
+  source    = "../deepseek/deployments"
+  namespace = kubernetes_namespace_v1.zeyaddeeb_namespace.metadata[0].name
+}

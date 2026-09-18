@@ -1,0 +1,14 @@
+fullnameOverride: "deepseek"
+
+image:
+  repository: ${image_repository}
+
+entrypoint: "./deepseek-lab"
+
+service:
+  type: ClusterIP
+  port: 3004
+
+env:
+  RUST_LOG: "error"
+  DEEPSEEK_BIND: "0.0.0.0"

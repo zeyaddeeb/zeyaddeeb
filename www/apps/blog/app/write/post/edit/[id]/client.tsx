@@ -34,7 +34,7 @@ export function PostEditClient({ user, post }: PostEditClientProps) {
 		publishedAt: post.publishedAt,
 	});
 
-	const handleSubmit = async (e: React.FormEvent) => {
+	const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		setIsSubmitting(true);
 		setError(null);

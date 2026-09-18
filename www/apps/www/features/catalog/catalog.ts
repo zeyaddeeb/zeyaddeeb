@@ -148,6 +148,16 @@ export const experiments: Experiment[] = [
 		kind: "dom",
 		span: { cols: 4, rows: 2 },
 	},
+	{
+		id: "deepseek",
+		number: 12,
+		title: "A very fancy calculator",
+		line: "Train a small model inspired by DeepSeek V4.1 on Rust code, questions, and scored answers. Inspect live predictions and training results.",
+		stack: ["Rust", "Candle", "Axum", "SSE", "SVG"],
+		href: "/experiments/deepseek",
+		kind: "network",
+		span: { cols: 4, rows: 2 },
+	},
 ];
 
 export function getExperiment(id: string): Experiment {

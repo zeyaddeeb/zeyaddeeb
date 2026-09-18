@@ -45,7 +45,7 @@ export function BlogContent({
 		[router, searchParams],
 	);
 
-	const handleSearch = (e: React.FormEvent) => {
+	const handleSearch = (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		updateParams({ search: searchValue });
 	};

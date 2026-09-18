@@ -74,3 +74,4 @@ env:
   APP_NAME: "www"
   BASE_URL: "https://www.zeyaddeeb.com"
   NEXT_PUBLIC_CRDT_URL: "wss://crdt.zeyaddeeb.com"
+  DEEPSEEK_BACKEND_URL: "http://deepseek:3004"

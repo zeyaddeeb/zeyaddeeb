@@ -558,7 +558,7 @@ function LinkModal({
 		setText(initialText);
 	}, [initialUrl, initialText]);
 
-	const handleSubmit = (e: React.FormEvent) => {
+	const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		e.stopPropagation();
 		if (url) {
@@ -624,7 +624,7 @@ function ImageModal({ isOpen, onClose, onSubmit }: ImageModalProps) {
 	const imageAltId = useId();
 	const imageWidthId = useId();
 
-	const handleSubmit = (e: React.FormEvent) => {
+	const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		e.stopPropagation();
 		if (url) {

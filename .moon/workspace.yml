@@ -16,3 +16,4 @@ projects:
   www: "www"
   robot: "robot"
   crdt: "crdt"
+  deepseek: "deepseek"
