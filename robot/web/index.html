@@ -173,9 +173,9 @@
     </div>
 
     <script type="module">
-        import init from './robot_wasm.js';
+        import init from './robot_wasm.js?v=__BUILD__';
 
-        init().then(() => {
+        init({ module_or_path: './robot_wasm_bg.wasm?v=__BUILD__' }).then(() => {
             document.getElementById('loading').style.display = 'none';
             console.log('WASM module loaded successfully');
         }).catch((error) => {

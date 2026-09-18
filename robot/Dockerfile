@@ -32,7 +32,7 @@ RUN wasm-bindgen --target web --out-dir /out/web --out-name robot_wasm \
     target/wasm32-unknown-unknown/wasm-release/robot-wasm.wasm
 RUN wasm-opt -Os -o /out/web/robot_wasm_bg.wasm /out/web/robot_wasm_bg.wasm
 RUN gzip -9 -k /out/web/robot_wasm_bg.wasm /out/web/robot_wasm.js
-RUN cp web/index.html /out/web/index.html
+RUN sed "s/__BUILD__/$(cat /out/web/robot_wasm_bg.wasm /out/web/robot_wasm.js | sha256sum | cut -c1-16)/g" web/index.html > /out/web/index.html
 RUN cp -r assets /out/web/assets
 
 RUN cargo build --locked --release --bin ws-server

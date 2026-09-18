@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use web_sys::{ErrorEvent, MessageEvent, WebSocket};
+use web_sys::{MessageEvent, WebSocket};
 
 use super::episode::*;
 use super::observation::{
@@ -78,8 +78,8 @@ impl WsBridge {
         ws.set_onopen(Some(onopen_callback.as_ref().unchecked_ref()));
         onopen_callback.forget();
 
-        let onerror_callback = Closure::<dyn FnMut(_)>::new(move |e: ErrorEvent| {
-            web_sys::console::error_1(&format!("WebSocket error: {:?}", e.message()).into());
+        let onerror_callback = Closure::<dyn FnMut()>::new(move || {
+            web_sys::console::error_1(&"WebSocket error".into());
             update_ws_status("Disconnected", "disconnected");
         });
         ws.set_onerror(Some(onerror_callback.as_ref().unchecked_ref()));
