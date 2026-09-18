@@ -60,10 +60,18 @@ pub fn training_loop(
             (pos.0, lin_vel.0)
         };
 
-        let obs = get_observation(&state, ball_pos, ball_v, training.ball_released);
+        let obs = get_observation(
+            &state,
+            ball_pos,
+            ball_v,
+            training.ball_released,
+            training.curriculum_stage,
+            training.step,
+        );
 
         let end_reason = EpisodeEndReason::check(
             ball_pos,
+            training.prev_ball_pos,
             state.torso_pos,
             state.torso_up,
             training.ball_released,
@@ -88,8 +96,11 @@ pub fn training_loop(
             if training.ball_released && training.steps_since_release == 0 {
                 reward += release_reward(ball_pos, ball_v);
                 let miss = shot_miss_distance(ball_pos, ball_v);
-                training.shot_miss_ema =
-                    Some(training.shot_miss_ema.map_or(miss, |ema| 0.95 * ema + 0.05 * miss));
+                training.shot_miss_ema = Some(
+                    training
+                        .shot_miss_ema
+                        .map_or(miss, |ema| 0.95 * ema + 0.05 * miss),
+                );
             }
             if !training.ball_released {
                 training.episode_best_aim = training
@@ -98,12 +109,18 @@ pub fn training_loop(
             }
             if end_reason == Some(EpisodeEndReason::BasketMade) {
                 reward += BASKET_REWARD;
+            } else if end_reason.is_some() && training.curriculum_stage == CurriculumStage::Shooting
+            {
+                reward -= 5.0;
             }
 
             training.episode_reward += reward;
 
             if let Some(bridge) = zenoh.as_deref_mut() {
                 let _ = bridge.obs_tx.send(ObservationMsg {
+                    protocol_version: crate::rl::ENVIRONMENT_VERSION,
+                    episode: training.episode as u64,
+                    request_id: training.step as u64,
                     step: training.step as u64,
                     obs: obs.clone(),
                     reward,
@@ -167,6 +184,7 @@ pub fn training_loop(
 
         training.prev_obs = Some(obs);
         training.prev_action = Some(action);
+        training.prev_ball_pos = Some(ball_pos);
         training.prev_torso_pos = Some(state.torso_pos);
         training.step += 1;
     }
@@ -213,19 +231,6 @@ fn finish_episode(training: &mut TrainingState, reason: EpisodeEndReason, ball_p
         .sac_trainer
         .record_episode(training.episode_reward, training.curriculum_stage.index());
 
-    if (training.episode + 1) % 50 == 0 {
-        training.sac_trainer.save_checkpoint();
-    }
-
-    if (training.episode + 1) % 200 == 0 {
-        if let Ok(agent) = training.sac_trainer.agent.lock() {
-            let buffer_path = std::path::Path::new("checkpoints_sac").join("sac_buffer.bin");
-            if let Err(e) = agent.replay_buffer.save(&buffer_path) {
-                warn!("Failed to save replay buffer: {}", e);
-            }
-        }
-    }
-
     if reason.is_stage_success(training.curriculum_stage, ball_pos) {
         training.stage_success_streak += 1;
     } else {
@@ -250,17 +255,34 @@ fn finish_episode(training: &mut TrainingState, reason: EpisodeEndReason, ball_p
 
     let aim = training.episode_best_aim;
     if aim.is_finite() {
-        training.best_aim_ema = Some(training.best_aim_ema.map_or(aim, |ema| 0.95 * ema + 0.05 * aim));
+        training.best_aim_ema = Some(
+            training
+                .best_aim_ema
+                .map_or(aim, |ema| 0.95 * ema + 0.05 * aim),
+        );
     }
     training.episode_best_aim = f32::INFINITY;
 
     training.needs_reset = true;
     training.cooldown = RESET_COOLDOWN;
     training.episode += 1;
+    training
+        .sac_trainer
+        .set_progress(crate::rl::TrainingProgress {
+            episodes: training.episode,
+            curriculum_stage: training.curriculum_stage.index(),
+            stage_episodes: training.stage_episodes,
+            stage_success_streak: training.stage_success_streak,
+            baskets_made: training.baskets_made,
+        });
+    if training.episode % 200 == 0 {
+        training.sac_trainer.save_checkpoint();
+    }
     training.step = 0;
     training.episode_reward = 0.0;
     training.ball_released = false;
     training.steps_since_release = 0;
+    training.prev_ball_pos = None;
     training.prev_obs = None;
     training.prev_action = None;
 }

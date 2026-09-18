@@ -12,17 +12,33 @@ pub struct OrbitCamera {
     pub pitch: f32,
 }
 
+impl Default for OrbitCamera {
+    fn default() -> Self {
+        let focus = Vec3::new(0.0, 1.2, 0.0);
+        let offset = Vec3::new(-3.0, 4.0, 8.0) - focus;
+        Self {
+            focus,
+            radius: offset.length(),
+            yaw: offset.z.atan2(offset.x),
+            pitch: (offset.y / offset.length()).asin(),
+        }
+    }
+}
+
+impl OrbitCamera {
+    fn transform(&self) -> Transform {
+        let offset = Vec3::new(
+            self.yaw.cos() * self.pitch.cos(),
+            self.pitch.sin(),
+            self.yaw.sin() * self.pitch.cos(),
+        ) * self.radius;
+        Transform::from_translation(self.focus + offset).looking_at(self.focus, Vec3::Y)
+    }
+}
+
 pub fn spawn_camera(mut commands: Commands) {
-    commands.spawn((
-        Camera3d::default(),
-        Transform::from_xyz(-3.0, 4.0, 8.0).looking_at(Vec3::new(0.0, 1.2, 0.0), Vec3::Y),
-        OrbitCamera {
-            focus: Vec3::new(0.0, 1.2, 0.0),
-            radius: 8.0,
-            yaw: -0.35,
-            pitch: 0.25,
-        },
-    ));
+    let orbit = OrbitCamera::default();
+    commands.spawn((Camera3d::default(), orbit.transform(), orbit));
 }
 
 pub fn orbit_camera(
@@ -44,9 +60,32 @@ pub fn orbit_camera(
     orbit.radius -= scroll.delta.y * 0.5;
     orbit.radius = orbit.radius.clamp(2.0, 25.0);
 
-    let x = orbit.focus.x + orbit.radius * orbit.yaw.cos() * orbit.pitch.cos();
-    let y = orbit.focus.y + orbit.radius * orbit.pitch.sin();
-    let z = orbit.focus.z + orbit.radius * orbit.yaw.sin() * orbit.pitch.cos();
-    transform.translation = Vec3::new(x, y, z);
-    transform.look_at(orbit.focus, Vec3::Y);
+    *transform = orbit.transform();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn first_orbit_update_preserves_the_side_view() {
+        let mut app = App::new();
+        app.init_resource::<ButtonInput<MouseButton>>()
+            .init_resource::<AccumulatedMouseMotion>()
+            .init_resource::<AccumulatedMouseScroll>()
+            .add_systems(Startup, spawn_camera)
+            .add_systems(Update, orbit_camera);
+        app.update();
+        let mut query = app.world_mut().query::<(&Transform, &OrbitCamera)>();
+        let (transform, orbit) = query.single(app.world()).unwrap();
+        assert!(transform
+            .translation
+            .abs_diff_eq(Vec3::new(-3.0, 4.0, 8.0), 1e-5));
+        let screen_right = transform.rotation * Vec3::X;
+        assert!(
+            screen_right.dot(Vec3::X) > 0.9,
+            "hoop must appear to the right"
+        );
+        assert!(orbit.radius > 8.0);
+    }
 }

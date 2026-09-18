@@ -82,6 +82,12 @@ istio:
 
 env:
   WS_BIND_ADDR: "0.0.0.0:9001"
+  CANDLE_NUM_THREADS: "1"
+  RAYON_NUM_THREADS: "1"
+  SELF_TRAIN_HZ: "16"
+  SELF_TRAIN_SUBSTEPS: "12"
+  SAC_TRAIN_HZ: "8"
+  SAC_TRAIN_DUTY_PERCENT: "50"
 
 persistence:
   enabled: true

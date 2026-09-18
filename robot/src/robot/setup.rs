@@ -1,6 +1,9 @@
 use super::builder::spawn_robot;
 use super::components::*;
 use super::constants::*;
+#[cfg(feature = "native")]
+use super::episode::held_ball_position;
+use super::reset::get_initial_poses;
 #[allow(unused_imports)]
 use super::resources::*;
 
@@ -71,17 +74,9 @@ pub fn setup(
 
     let robot_entities = spawn_robot(&mut commands, &mut meshes, &mut materials);
 
-    let torso_pos = Vec3::new(0.0, TORSO_Y, 0.0);
-    let right_shoulder = torso_pos + SHOULDER_OFFSET_RIGHT;
-    let right_elbow = right_shoulder + Vec3::new(UPPER_ARM_LENGTH, 0.0, 0.0);
-    let right_hand_pos = right_elbow + Vec3::new(FOREARM_LENGTH + HAND_RADIUS, 0.0, 0.0);
-
-    let left_shoulder = torso_pos + SHOULDER_OFFSET_LEFT;
-    let left_elbow = left_shoulder + Vec3::new(UPPER_ARM_LENGTH, 0.0, 0.0);
-    let left_hand_pos = left_elbow + Vec3::new(FOREARM_LENGTH + HAND_RADIUS, 0.0, 0.0);
-
-    let _hands_mid = (right_hand_pos + left_hand_pos) * 0.5;
-    let ball_start = Vec3::new(0.5, 1.5, 0.0);
+    let poses = get_initial_poses();
+    let torso_pos = poses.torso.position;
+    let ball_start = poses.ball_position();
 
     let ball_mat = materials.add(StandardMaterial {
         base_color: Color::srgb(0.85, 0.45, 0.15),
@@ -120,7 +115,10 @@ pub fn setup(
     });
     commands.spawn((
         Hoop,
-        Mesh3d(meshes.add(Torus::new(0.20, 0.23))),
+        Mesh3d(meshes.add(Torus::new(
+            super::episode::RIM_INNER_RADIUS,
+            super::episode::RIM_INNER_RADIUS + 0.03,
+        ))),
         MeshMaterial3d(hoop_mat),
         Transform::from_translation(HOOP_POS),
     ));
@@ -155,16 +153,17 @@ pub fn setup(
             Some(shared) => (shared.trainer.clone(), shared.headless),
             None => (std::sync::Arc::new(SacAsyncTrainer::new()), false),
         };
+        let progress = sac_trainer.progress();
         commands.insert_resource(TrainingState {
             sac_trainer,
             headless,
-            episode: 0,
+            episode: progress.episodes,
             step: 0,
             episode_reward: 0.0,
             episode_reward_ema: 0.0,
             episode_reward_ema_initialized: false,
             best_episode_reward: f32::NEG_INFINITY,
-            baskets_made: 0,
+            baskets_made: progress.baskets_made,
             ball_released: false,
             steps_since_release: 0,
             shot_miss_ema: None,
@@ -175,9 +174,9 @@ pub fn setup(
             } else {
                 TrainingPhase::Training
             },
-            curriculum_stage: CurriculumStage::Standing,
-            stage_episodes: 0,
-            stage_success_streak: 0,
+            curriculum_stage: CurriculumStage::from_index(progress.curriculum_stage),
+            stage_episodes: progress.stage_episodes,
+            stage_success_streak: progress.stage_success_streak,
             cooldown: 0,
             needs_reset: false,
             ball_entity: Some(ball),
@@ -185,6 +184,7 @@ pub fn setup(
             prev_obs: None,
             prev_action: None,
 
+            prev_ball_pos: None,
             prev_torso_pos: Some(torso_pos),
             prev_left_foot_pos: None,
             prev_right_foot_pos: None,
@@ -215,6 +215,7 @@ pub fn setup(
             prev_obs: None,
             prev_action: None,
             last_action: None,
+            prev_ball_pos: None,
             prev_torso_pos: Some(torso_pos),
             prev_left_foot_pos: None,
             prev_right_foot_pos: None,
@@ -232,7 +233,6 @@ pub fn respawn_ball(
     mut training: ResMut<TrainingState>,
     robot: Option<Res<RobotEntities>>,
     hand_query: Query<&Transform, With<RobotHand>>,
-    left_hand_query: Query<&Transform, With<RobotLeftHand>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
@@ -244,12 +244,7 @@ pub fn respawn_ball(
     let Ok(hand_tf) = hand_query.single() else {
         return;
     };
-    let Ok(left_hand_tf) = left_hand_query.single() else {
-        return;
-    };
-
-    let _hands_mid = (hand_tf.translation + left_hand_tf.translation) * 0.5;
-    let ball_start = Vec3::new(0.5, 1.5, 0.0);
+    let ball_start = held_ball_position(hand_tf.translation);
 
     let ball_mat = materials.add(StandardMaterial {
         base_color: Color::srgb(0.9, 0.5, 0.2),

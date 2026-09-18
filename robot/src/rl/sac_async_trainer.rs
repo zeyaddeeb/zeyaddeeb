@@ -1,13 +1,14 @@
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::mpsc::{sync_channel, Receiver, RecvTimeoutError, SyncSender, TryRecvError};
+use std::sync::mpsc::{sync_channel, Receiver, SyncSender, TryRecvError};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
-use std::time::Duration;
+use std::time::Instant;
 
 use super::buffer::Transition;
 use super::config::MIN_REPLAY_SIZE;
-use super::sac_agent::{SACAgent, SAC_CHECKPOINT_DIR};
+use super::sac_agent::{SACAgent, TrainingProgress, SAC_CHECKPOINT_DIR};
+use super::training_budget::TrainingBudget;
 
 #[derive(Clone, Default)]
 pub struct TrainStats {
@@ -28,13 +29,20 @@ pub struct SacAsyncTrainer {
     episodes: AtomicUsize,
     curriculum_stage: AtomicUsize,
     recent_rewards: Mutex<VecDeque<f32>>,
-    resumed: bool,
     _handle: JoinHandle<()>,
     pub agent: Arc<Mutex<SACAgent>>,
 }
 
 impl SacAsyncTrainer {
     pub fn new() -> Self {
+        Self::start(None)
+    }
+
+    pub fn with_budget(budget: TrainingBudget) -> Self {
+        Self::start(Some(budget))
+    }
+
+    fn start(budget: Option<TrainingBudget>) -> Self {
         let (transition_tx, transition_rx) = sync_channel::<Transition>(256);
         let train_requested = Arc::new(Mutex::new(0usize));
         let train_steps = Arc::new(AtomicUsize::new(0));
@@ -46,10 +54,11 @@ impl SacAsyncTrainer {
             SACAgent::new_or_load(SAC_CHECKPOINT_DIR).expect("Failed to create SAC agent"),
         ));
 
-        let mut resumed = false;
+        let mut progress = TrainingProgress::default();
         if let Ok(a) = agent.lock() {
             buffer_len.store(a.replay_buffer.len(), Ordering::Relaxed);
-            resumed = a.resumed;
+            progress = a.progress.clone();
+            train_steps.store(a.train_steps, Ordering::Relaxed);
         }
 
         let agent_clone = Arc::clone(&agent);
@@ -60,6 +69,7 @@ impl SacAsyncTrainer {
                 agent_clone,
                 train_steps_clone,
                 buffer_len_clone,
+                budget,
             );
         });
 
@@ -68,10 +78,9 @@ impl SacAsyncTrainer {
             train_requested,
             train_steps,
             buffer_len,
-            episodes: AtomicUsize::new(0),
-            curriculum_stage: AtomicUsize::new(0),
+            episodes: AtomicUsize::new(progress.episodes),
+            curriculum_stage: AtomicUsize::new(progress.curriculum_stage),
             recent_rewards: Mutex::new(VecDeque::new()),
-            resumed,
             _handle: handle,
             agent,
         }
@@ -117,6 +126,26 @@ impl SacAsyncTrainer {
         }
     }
 
+    pub fn progress(&self) -> TrainingProgress {
+        self.agent.lock().unwrap().progress.clone()
+    }
+
+    pub fn set_progress(&self, progress: TrainingProgress) {
+        self.curriculum_stage
+            .store(progress.curriculum_stage, Ordering::Relaxed);
+        self.episodes.store(progress.episodes, Ordering::Relaxed);
+        self.agent.lock().unwrap().progress = progress;
+    }
+
+    pub fn get_inference_action(&self, obs: &[f32]) -> Vec<f32> {
+        let mut agent = self.agent.lock().unwrap();
+        let training = agent.is_training;
+        agent.is_training = false;
+        let result = agent.get_action(obs);
+        agent.is_training = training;
+        result.unwrap_or_else(|_| vec![0.0; super::config::ACT_DIM])
+    }
+
     pub fn save_checkpoint(&self) {
         match self.agent.lock() {
             Ok(agent) => {
@@ -131,14 +160,18 @@ impl SacAsyncTrainer {
     }
 
     pub fn needs_random_warmup(&self) -> bool {
-        !self.resumed && self.buffer_len.load(Ordering::Relaxed) < MIN_REPLAY_SIZE
+        self.train_steps.load(Ordering::Relaxed) == 0
+            && self.buffer_len.load(Ordering::Relaxed) < MIN_REPLAY_SIZE
     }
 
     pub fn record_episode(&self, reward: f32, curriculum_stage: usize) {
         self.episodes.fetch_add(1, Ordering::Relaxed);
         self.curriculum_stage
             .store(curriculum_stage, Ordering::Relaxed);
-        let mut recent = self.recent_rewards.lock().unwrap_or_else(|e| e.into_inner());
+        let mut recent = self
+            .recent_rewards
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         recent.push_back(reward);
         if recent.len() > 100 {
             recent.pop_front();
@@ -146,7 +179,10 @@ impl SacAsyncTrainer {
     }
 
     pub fn get_stats(&self) -> TrainStats {
-        let recent = self.recent_rewards.lock().unwrap_or_else(|e| e.into_inner());
+        let recent = self
+            .recent_rewards
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         TrainStats {
             buffer_len: self.buffer_len.load(Ordering::Relaxed),
             train_steps_done: self.train_steps.load(Ordering::Relaxed),
@@ -164,26 +200,26 @@ fn training_worker(
     agent: Arc<Mutex<SACAgent>>,
     train_steps: Arc<AtomicUsize>,
     buffer_len_counter: Arc<AtomicUsize>,
+    budget: Option<TrainingBudget>,
 ) {
     println!("[SAC Training Worker] Started");
-    let mut last_checkpoint_step = 0usize;
+    let mut last_checkpoint_step = train_steps.load(Ordering::Relaxed);
     let mut training_attempted = false;
     const CHECKPOINT_INTERVAL: usize = 5000;
     const MAX_PENDING_UPDATES: usize = 512;
     const DRAIN_LIMIT: usize = 64;
-    const STEPS_PER_DRAIN: usize = 8;
     let mut pending_updates: usize = 0;
 
     loop {
         let mut incoming = Vec::new();
         if pending_updates == 0 {
-            match transition_rx.recv_timeout(Duration::from_millis(50)) {
+            match transition_rx.recv() {
                 Ok(t) => incoming.push(t),
-                Err(RecvTimeoutError::Timeout) => continue,
-                Err(RecvTimeoutError::Disconnected) => return,
+                Err(_) => return,
             }
         }
-        while incoming.len() < DRAIN_LIMIT {
+        // Apply backpressure instead of dropping updates when training falls behind.
+        while incoming.len() < DRAIN_LIMIT.min(MAX_PENDING_UPDATES - pending_updates) {
             match transition_rx.try_recv() {
                 Ok(t) => incoming.push(t),
                 Err(TryRecvError::Empty) => break,
@@ -193,7 +229,7 @@ fn training_worker(
 
         let buffer_len = {
             let Ok(mut agent) = agent.lock() else { return };
-            pending_updates = (pending_updates + incoming.len()).min(MAX_PENDING_UPDATES);
+            pending_updates += incoming.len();
             for t in incoming {
                 agent.replay_buffer.push(t);
             }
@@ -214,7 +250,8 @@ fn training_worker(
             training_attempted = true;
         }
 
-        for _ in 0..pending_updates.min(STEPS_PER_DRAIN) {
+        let work_started = Instant::now();
+        {
             let Ok(mut agent) = agent.lock() else { return };
             match agent.train_step() {
                 Ok(()) => {
@@ -240,9 +277,11 @@ fn training_worker(
                 Err(e) => {
                     eprintln!("[SAC] Train step error: {}", e);
                     pending_updates = 0;
-                    break;
                 }
             }
+        }
+        if let Some(budget) = budget {
+            thread::sleep(budget.rest_after(work_started.elapsed()));
         }
     }
 }

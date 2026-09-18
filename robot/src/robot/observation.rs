@@ -17,10 +17,12 @@ pub fn get_observation(
     ball_pos: Vec3,
     ball_vel: Vec3,
     ball_released: bool,
+    stage: CurriculumStage,
+    step: usize,
 ) -> Vec<f32> {
     let joint_angles = state.joint_angles();
     let joint_vels = state.joint_velocities();
-    let mut obs = Vec::with_capacity(joint_angles.len() * 2 + 20);
+    let mut obs = Vec::with_capacity(crate::rl::OBS_DIM);
 
     for (angle, vel) in joint_angles.iter().zip(&joint_vels) {
         obs.push(angle / PI);
@@ -41,6 +43,10 @@ pub fn get_observation(
     obs.extend(((HOOP_POS - state.torso_pos) / 5.0).to_array());
     obs.push(if ball_released { 1.0 } else { -1.0 });
 
+    for index in 0..3 {
+        obs.push(if stage.index() == index { 1.0 } else { 0.0 });
+    }
+    obs.push(step.min(crate::rl::EPISODE_STEPS) as f32 / crate::rl::EPISODE_STEPS as f32);
     obs
 }
 
@@ -89,24 +95,28 @@ pub fn compute_reward_components(
     let effort = action.iter().map(|a| a * a).sum::<f32>() / action.len().max(1) as f32;
     stand_reward -= 0.5 * effort;
 
-    if ball_released {
-        throw_reward += RAISE_REWARD;
-    } else if stage != CurriculumStage::Standing {
+    if !ball_released && stage != CurriculumStage::Standing {
         throw_reward += RAISE_REWARD * (ball_pos.y - 1.5).clamp(0.0, 1.0);
-        if stage == CurriculumStage::Shooting {
-            throw_reward += AIM_REWARD * shot_quality(ball_pos, ball_vel);
-        }
     }
 
+    // In Shooting, survival and repeated aiming must never outpay a made basket.
+    // Every non-success step has non-positive reward; release shaping is bounded.
+    if stage == CurriculumStage::Shooting {
+        stand_reward = -0.001 - 0.0001 * effort;
+        throw_reward = if ball_released {
+            0.0
+        } else {
+            0.0002 * (ball_pos.y - 1.5).clamp(0.0, 1.0) + 0.0005 * shot_quality(ball_pos, ball_vel)
+        };
+    }
     RewardComponents {
         stand: stand_reward,
         throw: throw_reward,
     }
 }
 
-pub const BASKET_REWARD: f32 = 50.0;
-pub const RELEASE_REWARD: f32 = 300.0;
-const AIM_REWARD: f32 = 3.0;
+pub const BASKET_REWARD: f32 = 100.0;
+pub const RELEASE_REWARD: f32 = 0.25;
 const RAISE_REWARD: f32 = 2.0;
 
 fn shot_quality(ball_pos: Vec3, ball_vel: Vec3) -> f32 {
@@ -116,4 +126,56 @@ fn shot_quality(ball_pos: Vec3, ball_vel: Vec3) -> f32 {
 
 pub fn release_reward(ball_pos: Vec3, ball_vel: Vec3) -> f32 {
     RELEASE_REWARD * shot_quality(ball_pos, ball_vel)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn observation_exposes_stage_and_release_timing() {
+        let state = RobotState::default();
+        let a = get_observation(
+            &state,
+            Vec3::ZERO,
+            Vec3::ZERO,
+            false,
+            CurriculumStage::Standing,
+            39,
+        );
+        let b = get_observation(
+            &state,
+            Vec3::ZERO,
+            Vec3::ZERO,
+            false,
+            CurriculumStage::Shooting,
+            40,
+        );
+        assert_eq!(a.len(), crate::rl::OBS_DIM);
+        assert_eq!(&a[46..49], &[1.0, 0.0, 0.0]);
+        assert_eq!(&b[46..49], &[0.0, 0.0, 1.0]);
+        assert!(b[49] > a[49]);
+    }
+    #[test]
+    fn even_latest_basket_outpays_best_possible_miss_after_sac_scaling() {
+        let gamma = crate::rl::GAMMA as f32;
+        let horizon = crate::rl::EPISODE_STEPS as i32;
+        let worst_step = -0.0011; // Maximum bounded actuator effort.
+        let latest_success = gamma.powi(horizon) * BASKET_REWARD
+            + worst_step * (1.0 - gamma.powi(horizon)) / (1.0 - gamma);
+        // A miss gets at most one release bonus; all other rewards are non-positive.
+        assert!(
+            latest_success * crate::rl::REWARD_SCALE > RELEASE_REWARD * crate::rl::REWARD_SCALE
+        );
+        for released in [false, true] {
+            let reward = compute_reward_components(
+                &RobotState::default(),
+                &[0.0; crate::rl::ACT_DIM],
+                HOOP_POS,
+                Vec3::ZERO,
+                released,
+                CurriculumStage::Shooting,
+            );
+            assert!(reward.stand + reward.throw <= 0.0);
+        }
+    }
 }

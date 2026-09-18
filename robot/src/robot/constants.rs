@@ -3,6 +3,7 @@ use std::f32::consts::PI;
 
 pub const HOOP_POS: Vec3 = Vec3::new(4.0, 3.05, 0.0);
 pub const BALL_RADIUS: f32 = 0.12;
+#[cfg(feature = "native")]
 pub const RAISE_BALL_Y: f32 = 2.0;
 pub const TORSO_HEIGHT: f32 = 0.9;
 pub const TORSO_SIZE_X: f32 = 0.28;

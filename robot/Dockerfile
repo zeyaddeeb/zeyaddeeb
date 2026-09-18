@@ -45,6 +45,7 @@ EXPOSE 8080
 CMD ["nginx", "-g", "daemon off;"]
 
 FROM debian:bookworm-slim AS server
+ENV CANDLE_NUM_THREADS=1 RAYON_NUM_THREADS=1
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     libasound2 \

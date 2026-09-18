@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use std::fs::File;
-use std::io::{BufReader, BufWriter};
+use std::io::{BufReader, BufWriter, Write};
 use std::path::Path;
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -43,6 +43,20 @@ impl ReplayBuffer {
         });
     }
 
+    pub fn is_valid(&self, obs_dim: usize, act_dim: usize) -> bool {
+        self.buffer.iter().all(|t| {
+            t.state.len() == obs_dim
+                && t.next_state.len() == obs_dim
+                && t.action.len() == act_dim
+                && t.reward.is_finite()
+                && t.state
+                    .iter()
+                    .chain(&t.next_state)
+                    .chain(&t.action)
+                    .all(|x| x.is_finite())
+        })
+    }
+
     pub fn sample_batch(&self, batch_size: usize) -> Option<Vec<Transition>> {
         if self.len() < batch_size {
             return None;
@@ -61,7 +75,9 @@ impl ReplayBuffer {
         let mut writer = BufWriter::new(file);
         let data: Vec<&Transition> = self.buffer.iter().collect();
         rmp_serde::encode::write(&mut writer, &data)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+        writer.flush()?;
+        writer.get_ref().sync_all()
     }
 
     pub fn load<P: AsRef<Path>>(&mut self, path: P) -> std::io::Result<()> {

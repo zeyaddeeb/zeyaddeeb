@@ -114,6 +114,7 @@ pub struct TrainingState {
     pub prev_obs: Option<Vec<f32>>,
     pub prev_action: Option<Vec<f32>>,
     pub ball_entity: Option<Entity>,
+    pub prev_ball_pos: Option<Vec3>,
     pub prev_torso_pos: Option<Vec3>,
     pub prev_left_foot_pos: Option<Vec3>,
     pub prev_right_foot_pos: Option<Vec3>,
@@ -140,6 +141,7 @@ pub struct SimulationState {
     pub prev_obs: Option<Vec<f32>>,
     pub prev_action: Option<Vec<f32>>,
     pub last_action: Option<Vec<f32>>,
+    pub prev_ball_pos: Option<Vec3>,
     pub prev_torso_pos: Option<Vec3>,
     pub prev_left_foot_pos: Option<Vec3>,
     pub prev_right_foot_pos: Option<Vec3>,
@@ -148,6 +150,9 @@ pub struct SimulationState {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ObservationMsg {
+    pub protocol_version: u32,
+    pub episode: u64,
+    pub request_id: u64,
     pub obs: Vec<f32>,
     pub reward: f32,
     pub done: bool,
@@ -159,6 +164,9 @@ pub struct ObservationMsg {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ActionMsg {
+    pub protocol_version: u32,
+    pub episode: u64,
+    pub request_id: u64,
     pub action: Vec<f32>,
     #[serde(default)]
     pub stats: Option<TrainStatsMsg>,

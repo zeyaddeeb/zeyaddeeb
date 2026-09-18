@@ -3,6 +3,7 @@ use bevy::prelude::*;
 
 use super::components::*;
 use super::constants::*;
+use super::episode::held_ball_position;
 
 #[derive(Debug, Clone, Copy)]
 pub struct BodyPartPose {
@@ -14,6 +15,10 @@ impl BodyPartPose {
     pub fn new(position: Vec3, rotation: Quat) -> Self {
         Self { position, rotation }
     }
+
+    pub fn transform(&self) -> Transform {
+        Transform::from_translation(self.position).with_rotation(self.rotation)
+    }
 }
 
 pub fn get_randomized_initial_poses() -> RobotPoses {
@@ -22,8 +27,11 @@ pub fn get_randomized_initial_poses() -> RobotPoses {
     #[cfg(not(target_arch = "wasm32"))]
     {
         let mut poses = poses;
-        poses.torso.position.x += rand::random_range(-0.05..0.05);
-        poses.torso.position.z += rand::random_range(-0.05..0.05);
+        poses.translate(Vec3::new(
+            rand::random_range(-0.05..0.05),
+            0.0,
+            rand::random_range(-0.05..0.05),
+        ));
         poses
     }
 
@@ -32,28 +40,12 @@ pub fn get_randomized_initial_poses() -> RobotPoses {
 }
 
 pub fn get_initial_poses() -> RobotPoses {
-    use std::f32::consts::PI;
-
     let torso_pos = Vec3::new(0.0, TORSO_Y, 0.0);
     let torso_rot = Quat::IDENTITY;
 
-    let right_shoulder_world = torso_pos + SHOULDER_OFFSET_RIGHT;
-    let right_upper_arm_center = right_shoulder_world + Vec3::new(UPPER_ARM_LENGTH / 2.0, 0.0, 0.0);
-
-    let elbow_world = right_shoulder_world + Vec3::new(UPPER_ARM_LENGTH, 0.0, 0.0);
-    let forearm_center = elbow_world + Vec3::new(FOREARM_LENGTH / 2.0, 0.0, 0.0);
-
-    let hand_world = elbow_world + Vec3::new(FOREARM_LENGTH + HAND_RADIUS, 0.0, 0.0);
-
-    let shoulder_rot = Quat::from_rotation_z(-PI / 2.0);
-
-    let left_shoulder_world = torso_pos + SHOULDER_OFFSET_LEFT;
-    let left_upper_arm_center = left_shoulder_world + Vec3::new(UPPER_ARM_LENGTH / 2.0, 0.0, 0.0);
-
-    let left_elbow_world = left_shoulder_world + Vec3::new(UPPER_ARM_LENGTH, 0.0, 0.0);
-    let left_forearm_center = left_elbow_world + Vec3::new(FOREARM_LENGTH / 2.0, 0.0, 0.0);
-
-    let left_hand_world = left_elbow_world + Vec3::new(FOREARM_LENGTH + HAND_RADIUS, 0.0, 0.0);
+    let (upper_arm, forearm, hand) = initial_arm_poses(torso_pos + SHOULDER_OFFSET_RIGHT);
+    let (left_upper_arm, left_forearm, left_hand) =
+        initial_arm_poses(torso_pos + SHOULDER_OFFSET_LEFT);
 
     let right_hip_world = torso_pos + HIP_OFFSET_RIGHT;
     let right_thigh_center = right_hip_world + Vec3::new(0.0, -THIGH_LENGTH / 2.0, 0.0);
@@ -75,12 +67,12 @@ pub fn get_initial_poses() -> RobotPoses {
 
     RobotPoses {
         torso: BodyPartPose::new(torso_pos, torso_rot),
-        upper_arm: BodyPartPose::new(right_upper_arm_center, shoulder_rot),
-        forearm: BodyPartPose::new(forearm_center, shoulder_rot),
-        hand: BodyPartPose::new(hand_world, shoulder_rot),
-        left_upper_arm: BodyPartPose::new(left_upper_arm_center, shoulder_rot),
-        left_forearm: BodyPartPose::new(left_forearm_center, shoulder_rot),
-        left_hand: BodyPartPose::new(left_hand_world, shoulder_rot),
+        upper_arm,
+        forearm,
+        hand,
+        left_upper_arm,
+        left_forearm,
+        left_hand,
         left_thigh: BodyPartPose::new(left_thigh_center, Quat::IDENTITY),
         left_shin: BodyPartPose::new(left_shin_center, Quat::IDENTITY),
         left_foot: BodyPartPose::new(left_foot_world, Quat::IDENTITY),
@@ -88,6 +80,28 @@ pub fn get_initial_poses() -> RobotPoses {
         right_shin: BodyPartPose::new(right_shin_center, Quat::IDENTITY),
         right_foot: BodyPartPose::new(right_foot_world, Quat::IDENTITY),
     }
+}
+
+fn initial_arm_poses(shoulder: Vec3) -> (BodyPartPose, BodyPartPose, BodyPartPose) {
+    let upper_rotation = Quat::from_rotation_z(-160.0_f32.to_radians());
+    let forearm_rotation = Quat::from_rotation_z(-50.0_f32.to_radians());
+    let upper_direction = upper_rotation * Vec3::Y;
+    let forearm_direction = forearm_rotation * Vec3::Y;
+    let elbow = shoulder + upper_direction * UPPER_ARM_LENGTH;
+    (
+        BodyPartPose::new(
+            shoulder + upper_direction * UPPER_ARM_LENGTH / 2.0,
+            upper_rotation,
+        ),
+        BodyPartPose::new(
+            elbow + forearm_direction * FOREARM_LENGTH / 2.0,
+            forearm_rotation,
+        ),
+        BodyPartPose::new(
+            elbow + forearm_direction * (FOREARM_LENGTH + HAND_RADIUS),
+            forearm_rotation,
+        ),
+    )
 }
 
 pub struct RobotPoses {
@@ -104,6 +118,33 @@ pub struct RobotPoses {
     pub right_thigh: BodyPartPose,
     pub right_shin: BodyPartPose,
     pub right_foot: BodyPartPose,
+}
+
+impl RobotPoses {
+    pub fn ball_position(&self) -> Vec3 {
+        held_ball_position(self.hand.position)
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn translate(&mut self, offset: Vec3) {
+        for pose in [
+            &mut self.torso,
+            &mut self.upper_arm,
+            &mut self.forearm,
+            &mut self.hand,
+            &mut self.left_upper_arm,
+            &mut self.left_forearm,
+            &mut self.left_hand,
+            &mut self.left_thigh,
+            &mut self.left_shin,
+            &mut self.left_foot,
+            &mut self.right_thigh,
+            &mut self.right_shin,
+            &mut self.right_foot,
+        ] {
+            pose.position += offset;
+        }
+    }
 }
 
 fn reset_entity(
@@ -236,8 +277,7 @@ pub fn reset_robot_positions(
     ) in queries.p1().iter_mut()
     {
         if is_basketball {
-            let spawn_pos = Vec3::new(0.5, 1.5, 0.0);
-            pos.0 = spawn_pos;
+            pos.0 = poses.ball_position();
             rot.0 = Quat::IDENTITY;
             *lv = LinearVelocity::ZERO;
             *av = AngularVelocity::ZERO;
@@ -254,5 +294,51 @@ pub fn reset_robot_positions(
         } else if is_right_foot {
             reset_entity(&mut lv, &mut av, &mut pos, &mut rot, &poses.right_foot);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ready_pose_cradles_ball_clear_of_the_torso() {
+        let poses = get_initial_poses();
+        let ball = poses.ball_position();
+        for hand in [poses.hand, poses.left_hand] {
+            assert!((ball.distance(hand.position) - HAND_RADIUS - BALL_RADIUS).abs() < 1e-5);
+        }
+        assert!(ball.x - BALL_RADIUS > TORSO_SIZE_X / 2.0);
+        assert!(ball.y > TORSO_Y && ball.y < TORSO_Y + TORSO_HEIGHT / 2.0);
+        assert!(ball.z.abs() < 1e-5);
+        assert!(
+            poses.hand.position.x < 0.6,
+            "hands should be close to the chest"
+        );
+    }
+
+    #[test]
+    fn random_reset_translates_the_whole_pose_together() {
+        let initial = get_initial_poses();
+        let reset = get_randomized_initial_poses();
+        let offset = reset.torso.position - initial.torso.position;
+        for (before, after) in [
+            (initial.upper_arm, reset.upper_arm),
+            (initial.forearm, reset.forearm),
+            (initial.hand, reset.hand),
+            (initial.left_upper_arm, reset.left_upper_arm),
+            (initial.left_forearm, reset.left_forearm),
+            (initial.left_hand, reset.left_hand),
+            (initial.left_thigh, reset.left_thigh),
+            (initial.left_shin, reset.left_shin),
+            (initial.left_foot, reset.left_foot),
+            (initial.right_thigh, reset.right_thigh),
+            (initial.right_shin, reset.right_shin),
+            (initial.right_foot, reset.right_foot),
+        ] {
+            assert!((after.position - before.position).abs_diff_eq(offset, 1e-5));
+            assert!(after.rotation.abs_diff_eq(before.rotation, 1e-5));
+        }
+        assert!((reset.ball_position() - initial.ball_position()).abs_diff_eq(offset, 1e-5));
     }
 }

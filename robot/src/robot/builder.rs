@@ -1,5 +1,6 @@
 use super::components::*;
 use super::constants::*;
+use super::reset::get_initial_poses;
 use super::resources::RobotEntities;
 use avian3d::prelude::*;
 use bevy::prelude::*;
@@ -21,12 +22,8 @@ pub fn spawn_robot(
         perceptual_roughness: 0.7,
         ..default()
     });
-    let dark_mat = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.1, 0.1, 0.12),
-        ..default()
-    });
-
-    let torso_pos = Vec3::new(0.0, TORSO_Y, 0.0);
+    let poses = get_initial_poses();
+    let torso_pos = poses.torso.position;
 
     let torso = commands
         .spawn((
@@ -56,29 +53,15 @@ pub fn spawn_robot(
                 MeshMaterial3d(gold_mat.clone()),
                 Transform::from_xyz(0.0, TORSO_HEIGHT / 2.0 + NECK_HEIGHT + HEAD_RADIUS, 0.0),
             ));
-            parent.spawn((
-                Mesh3d(meshes.add(Sphere::new(0.03))),
-                MeshMaterial3d(dark_mat.clone()),
-                Transform::from_xyz(0.06, TORSO_HEIGHT / 2.0 + NECK_HEIGHT + HEAD_RADIUS, 0.14),
-            ));
-            parent.spawn((
-                Mesh3d(meshes.add(Sphere::new(0.03))),
-                MeshMaterial3d(dark_mat.clone()),
-                Transform::from_xyz(-0.06, TORSO_HEIGHT / 2.0 + NECK_HEIGHT + HEAD_RADIUS, 0.14),
-            ));
         })
         .id();
-
-    let right_shoulder_pos = torso_pos + SHOULDER_OFFSET_RIGHT;
-    let right_up_arm_pos = right_shoulder_pos + Vec3::new(UPPER_ARM_LENGTH / 2.0, 0.0, 0.0);
 
     let right_upper_arm = commands
         .spawn((
             RobotUpperArm,
             Mesh3d(meshes.add(Capsule3d::new(UPPER_ARM_RADIUS, UPPER_ARM_LENGTH))),
             MeshMaterial3d(gold_mat.clone()),
-            Transform::from_translation(right_up_arm_pos)
-                .with_rotation(Quat::from_rotation_z(-PI / 2.0)),
+            poses.upper_arm.transform(),
             RigidBody::Dynamic,
             ConstantTorque::new(0.0, 0.0, 0.0),
             Collider::capsule(UPPER_ARM_RADIUS, UPPER_ARM_LENGTH),
@@ -94,6 +77,7 @@ pub fn spawn_robot(
     let right_shoulder = commands
         .spawn((
             RevoluteJoint::new(torso, right_upper_arm)
+                .with_local_basis2(Quat::from_rotation_z(PI / 2.0))
                 .with_local_anchor1(SHOULDER_OFFSET_RIGHT)
                 .with_local_anchor2(Vec3::new(0.0, -UPPER_ARM_LENGTH / 2.0, 0.0))
                 .with_angle_limits(SHOULDER_MIN, SHOULDER_MAX)
@@ -107,16 +91,12 @@ pub fn spawn_robot(
         ))
         .id();
 
-    let right_elbow_world = right_shoulder_pos + Vec3::new(UPPER_ARM_LENGTH, 0.0, 0.0);
-    let right_forearm_pos = right_elbow_world + Vec3::new(FOREARM_LENGTH / 2.0, 0.0, 0.0);
-
     let right_forearm = commands
         .spawn((
             RobotForearm,
             Mesh3d(meshes.add(Capsule3d::new(FOREARM_RADIUS, FOREARM_LENGTH))),
             MeshMaterial3d(gold_mat.clone()),
-            Transform::from_translation(right_forearm_pos)
-                .with_rotation(Quat::from_rotation_z(-PI / 2.0)),
+            poses.forearm.transform(),
             RigidBody::Dynamic,
             ConstantTorque::new(0.0, 0.0, 0.0),
             Collider::capsule(FOREARM_RADIUS, FOREARM_LENGTH),
@@ -145,14 +125,12 @@ pub fn spawn_robot(
         ))
         .id();
 
-    let right_hand_pos = right_elbow_world + Vec3::new(FOREARM_LENGTH + HAND_RADIUS, 0.0, 0.0);
-
     let right_hand = commands
         .spawn((
             RobotHand,
             Mesh3d(meshes.add(Sphere::new(HAND_RADIUS))),
             MeshMaterial3d(gold_mat.clone()),
-            Transform::from_translation(right_hand_pos),
+            poses.hand.transform(),
             RigidBody::Dynamic,
             ConstantTorque::new(0.0, 0.0, 0.0),
             Collider::sphere(HAND_RADIUS),
@@ -179,16 +157,12 @@ pub fn spawn_robot(
         )
         .id();
 
-    let left_shoulder_pos = torso_pos + SHOULDER_OFFSET_LEFT;
-    let left_up_arm_pos = left_shoulder_pos + Vec3::new(UPPER_ARM_LENGTH / 2.0, 0.0, 0.0);
-
     let left_upper_arm = commands
         .spawn((
             RobotLeftUpperArm,
             Mesh3d(meshes.add(Capsule3d::new(UPPER_ARM_RADIUS, UPPER_ARM_LENGTH))),
             MeshMaterial3d(gold_mat.clone()),
-            Transform::from_translation(left_up_arm_pos)
-                .with_rotation(Quat::from_rotation_z(-PI / 2.0)),
+            poses.left_upper_arm.transform(),
             RigidBody::Dynamic,
             ConstantTorque::new(0.0, 0.0, 0.0),
             Collider::capsule(UPPER_ARM_RADIUS, UPPER_ARM_LENGTH),
@@ -204,6 +178,7 @@ pub fn spawn_robot(
     let left_shoulder = commands
         .spawn((
             RevoluteJoint::new(torso, left_upper_arm)
+                .with_local_basis2(Quat::from_rotation_z(PI / 2.0))
                 .with_local_anchor1(SHOULDER_OFFSET_LEFT)
                 .with_local_anchor2(Vec3::new(0.0, -UPPER_ARM_LENGTH / 2.0, 0.0))
                 .with_angle_limits(LEFT_SHOULDER_MIN, LEFT_SHOULDER_MAX)
@@ -217,16 +192,12 @@ pub fn spawn_robot(
         ))
         .id();
 
-    let left_elbow_world = left_shoulder_pos + Vec3::new(UPPER_ARM_LENGTH, 0.0, 0.0);
-    let left_forearm_pos = left_elbow_world + Vec3::new(FOREARM_LENGTH / 2.0, 0.0, 0.0);
-
     let left_forearm = commands
         .spawn((
             RobotLeftForearm,
             Mesh3d(meshes.add(Capsule3d::new(FOREARM_RADIUS, FOREARM_LENGTH))),
             MeshMaterial3d(gold_mat.clone()),
-            Transform::from_translation(left_forearm_pos)
-                .with_rotation(Quat::from_rotation_z(-PI / 2.0)),
+            poses.left_forearm.transform(),
             RigidBody::Dynamic,
             ConstantTorque::new(0.0, 0.0, 0.0),
             Collider::capsule(FOREARM_RADIUS, FOREARM_LENGTH),
@@ -255,14 +226,12 @@ pub fn spawn_robot(
         ))
         .id();
 
-    let left_hand_pos = left_elbow_world + Vec3::new(FOREARM_LENGTH + HAND_RADIUS, 0.0, 0.0);
-
     let left_hand = commands
         .spawn((
             RobotLeftHand,
             Mesh3d(meshes.add(Sphere::new(HAND_RADIUS))),
             MeshMaterial3d(gold_mat.clone()),
-            Transform::from_translation(left_hand_pos),
+            poses.left_hand.transform(),
             RigidBody::Dynamic,
             ConstantTorque::new(0.0, 0.0, 0.0),
             Collider::sphere(HAND_RADIUS),
@@ -389,9 +358,10 @@ pub fn spawn_robot(
 
     let left_ankle = commands
         .spawn(
-            FixedJoint::new(left_shin, left_foot)
+            RevoluteJoint::new(left_shin, left_foot)
+                .with_angle_limits(-0.6, 0.6)
                 .with_local_anchor1(Vec3::new(0.0, -SHIN_LENGTH / 2.0, 0.0))
-                .with_local_anchor2(Vec3::new(-FOOT_FORWARD_OFFSET, 0.0, 0.0))
+                .with_local_anchor2(Vec3::new(-FOOT_FORWARD_OFFSET, FOOT_SIZE_Y / 2.0, 0.0))
                 .with_point_compliance(0.0001),
         )
         .id();
@@ -496,9 +466,10 @@ pub fn spawn_robot(
 
     let right_ankle = commands
         .spawn(
-            FixedJoint::new(right_shin, right_foot)
+            RevoluteJoint::new(right_shin, right_foot)
+                .with_angle_limits(-0.6, 0.6)
                 .with_local_anchor1(Vec3::new(0.0, -SHIN_LENGTH / 2.0, 0.0))
-                .with_local_anchor2(Vec3::new(-FOOT_FORWARD_OFFSET, 0.0, 0.0))
+                .with_local_anchor2(Vec3::new(-FOOT_FORWARD_OFFSET, FOOT_SIZE_Y / 2.0, 0.0))
                 .with_point_compliance(0.0001),
         )
         .id();
@@ -533,5 +504,98 @@ pub fn spawn_robot(
         left_hip,
         left_knee,
         left_ankle,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn spawn_matches_reset_and_starts_with_aligned_hinges() {
+        let mut app = App::new();
+        app.init_resource::<Assets<Mesh>>()
+            .init_resource::<Assets<StandardMaterial>>()
+            .add_systems(
+                Startup,
+                |mut commands: Commands,
+                 mut meshes: ResMut<Assets<Mesh>>,
+                 mut materials: ResMut<Assets<StandardMaterial>>| {
+                    let robot = spawn_robot(&mut commands, &mut meshes, &mut materials);
+                    commands.insert_resource(robot);
+                },
+            );
+        app.update();
+        let poses = get_initial_poses();
+        let robot = app.world().resource::<RobotEntities>();
+        for (entity, pose) in [
+            (robot.torso, poses.torso),
+            (robot.right_upper_arm, poses.upper_arm),
+            (robot.right_forearm, poses.forearm),
+            (robot.right_hand, poses.hand),
+            (robot.left_upper_arm, poses.left_upper_arm),
+            (robot.left_forearm, poses.left_forearm),
+            (robot.left_hand, poses.left_hand),
+            (robot.left_thigh, poses.left_thigh),
+            (robot.left_shin, poses.left_shin),
+            (robot.left_foot, poses.left_foot),
+            (robot.right_thigh, poses.right_thigh),
+            (robot.right_shin, poses.right_shin),
+            (robot.right_foot, poses.right_foot),
+        ] {
+            let transform = app.world().get::<Transform>(entity).unwrap();
+            assert!(transform.translation.abs_diff_eq(pose.position, 1e-5));
+            assert!(transform.rotation.abs_diff_eq(pose.rotation, 1e-5));
+        }
+
+        assert!(app.world().get::<RevoluteJoint>(robot.left_ankle).is_some());
+        assert!(app
+            .world()
+            .get::<RevoluteJoint>(robot.right_ankle)
+            .is_some());
+        let body_rotations: Vec<_> = app
+            .world_mut()
+            .query::<(Entity, &Transform, &ConstantTorque)>()
+            .iter(app.world())
+            .map(|(entity, transform, _)| (entity, transform.rotation))
+            .collect();
+        assert_eq!(body_rotations.len(), 13);
+        for (entity, rotation) in body_rotations {
+            app.world_mut()
+                .entity_mut(entity)
+                .insert(Rotation(Quat::from_rotation_x(0.3) * rotation));
+        }
+        let mut torque_system = bevy::ecs::system::SystemState::<
+            super::super::torque::TorqueWriteQuery,
+        >::new(app.world_mut());
+        let torques =
+            super::super::torque::ComputedTorques::from_action(&[0.5; crate::rl::ACT_DIM]);
+        super::super::torque::apply_torques(
+            &mut torque_system.get_mut(app.world_mut()).unwrap(),
+            &torques,
+        );
+        let mut forces = app.world_mut().query::<&ConstantTorque>();
+        let total: Vec3 = forces.iter(app.world()).map(|t| t.0).sum();
+        assert!(
+            total.length() < 1e-5,
+            "Internal actuators must conserve angular momentum: {total}"
+        );
+
+        let mut joints = app.world_mut().query::<&RevoluteJoint>();
+        for joint in joints.iter(app.world()) {
+            let first = app.world().get::<Transform>(joint.body1).unwrap();
+            let second = app.world().get::<Transform>(joint.body2).unwrap();
+            let anchor1 = first.transform_point(joint.local_anchor1().unwrap());
+            let anchor2 = second.transform_point(joint.local_anchor2().unwrap());
+            assert!(anchor1.abs_diff_eq(anchor2, 1e-5));
+            let basis1 = first.rotation * joint.local_basis1().unwrap();
+            let basis2 = second.rotation * joint.local_basis2().unwrap();
+            let angle = (basis1.inverse() * basis2).to_euler(EulerRot::ZYX).0;
+            let limits = joint.angle_limit.unwrap();
+            assert!(
+                angle >= limits.min && angle <= limits.max,
+                "joint starts outside limits: {angle}"
+            );
+        }
     }
 }

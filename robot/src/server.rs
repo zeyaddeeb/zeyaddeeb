@@ -1,5 +1,5 @@
 use futures_util::{SinkExt, StreamExt};
-use robot::rl::{SacAsyncTrainer, Transition};
+use robot::rl::{SacAsyncTrainer, TrainingBudget, Transition};
 use robot::robot::{ActionMsg, ObservationMsg, TrainStatsMsg};
 use std::{
     sync::Arc,
@@ -22,6 +22,32 @@ use tokio_tungstenite::{
 
 use sha2::{Digest, Sha256};
 use subtle::ConstantTimeEq;
+
+fn parse_setting<T>(name: &str, value: &str, min: T, max: T) -> anyhow::Result<T>
+where
+    T: std::str::FromStr + PartialOrd + std::fmt::Display,
+{
+    let parsed = value
+        .parse::<T>()
+        .map_err(|_| anyhow::anyhow!("invalid {name}: {value}"))?;
+    anyhow::ensure!(
+        parsed >= min && parsed <= max,
+        "{name} must be between {min} and {max}"
+    );
+    Ok(parsed)
+}
+
+fn setting<T>(name: &str, default: &str, min: T, max: T) -> anyhow::Result<T>
+where
+    T: std::str::FromStr + PartialOrd + std::fmt::Display,
+{
+    let value = match std::env::var(name) {
+        Ok(value) => value,
+        Err(std::env::VarError::NotPresent) => default.to_owned(),
+        Err(e) => return Err(anyhow::anyhow!("invalid {name}: {e}")),
+    };
+    parse_setting(name, &value, min, max)
+}
 
 fn can_train(request: &Request, credential: Option<&str>) -> Result<bool, ErrorResponse> {
     let Some(header) = request.headers().get("authorization") else {
@@ -50,15 +76,20 @@ async fn main() -> anyhow::Result<()> {
         "ROBOT_TRAINING_TOKEN must be at least 32 characters"
     );
     let credential = Arc::new(credential);
-    let trainer = Arc::new(SacAsyncTrainer::new());
+    let train_hz = setting("SAC_TRAIN_HZ", "8", 0.1, 1000.0)?;
+    let train_duty = setting("SAC_TRAIN_DUTY_PERCENT", "50", 1u32, 100)?;
+    let budget = TrainingBudget::new(train_hz, train_duty)?;
+    println!("[SAC] Training budget: {train_hz} updates/s, {train_duty}% duty cycle");
+    let trainer = Arc::new(SacAsyncTrainer::with_budget(budget));
     if std::env::var("SELF_TRAIN").map_or(true, |v| v != "0") {
-        let max_steps_per_second = std::env::var("SELF_TRAIN_HZ")
-            .ok()
-            .and_then(|v| v.parse::<f64>().ok())
-            .unwrap_or(64.0);
+        let max_steps_per_second = setting("SELF_TRAIN_HZ", "16", 0.1, 1000.0)?;
+        let substeps = setting("SELF_TRAIN_SUBSTEPS", "12", 1u32, 64)?;
+        println!(
+            "[SAC] Self-training: {max_steps_per_second} steps/s, {substeps} physics substeps"
+        );
         let trainer = trainer.clone();
         std::thread::spawn(move || {
-            robot::robot::run_headless(trainer, Some(max_steps_per_second));
+            robot::robot::run_headless_with_substeps(trainer, Some(max_steps_per_second), substeps);
         });
     }
     loop {
@@ -114,6 +145,7 @@ async fn handle_connection(
     .await??;
 
     let mut previous: Option<(Vec<f32>, Vec<f32>)> = None;
+    let mut last_request: Option<(u64, u64, u64, bool)> = None;
     let mut total_reward = 0.0f32;
     let mut rate = (Instant::now(), 0u32);
     while let Some(message) = timeout(Duration::from_secs(60), ws.next()).await? {
@@ -130,7 +162,8 @@ async fn handle_connection(
         }
         let observation: ObservationMsg = serde_json::from_str(&message.into_text()?)?;
         anyhow::ensure!(
-            observation.obs.len() == robot::rl::OBS_DIM
+            observation.protocol_version == robot::rl::ENVIRONMENT_VERSION
+                && observation.obs.len() == robot::rl::OBS_DIM
                 && observation
                     .obs
                     .iter()
@@ -139,6 +172,19 @@ async fn handle_connection(
                 && observation.reward.abs() <= 10000.0,
             "invalid observation"
         );
+        if let Some((episode, request_id, step, done)) = last_request {
+            anyhow::ensure!(observation.request_id > request_id, "out-of-order request");
+            if observation.episode != episode || observation.step != step + 1 || done {
+                previous = None;
+                total_reward = 0.0;
+            }
+        }
+        last_request = Some((
+            observation.episode,
+            observation.request_id,
+            observation.step,
+            observation.done,
+        ));
         if trusted {
             total_reward = (total_reward + observation.reward).clamp(-1e9, 1e9);
             if observation.done {
@@ -157,9 +203,19 @@ async fn handle_connection(
         }
         let worker = trainer.clone();
         let obs = observation.obs.clone();
-        let action = tokio::task::spawn_blocking(move || worker.get_action(&obs)).await?;
+        let action = tokio::task::spawn_blocking(move || {
+            if trusted {
+                worker.get_action(&obs)
+            } else {
+                worker.get_inference_action(&obs)
+            }
+        })
+        .await?;
         let stats = trainer.get_stats();
         let response = ActionMsg {
+            protocol_version: robot::rl::ENVIRONMENT_VERSION,
+            episode: observation.episode,
+            request_id: observation.request_id,
             action: action.clone(),
             stats: Some(TrainStatsMsg {
                 buffer_size: stats.buffer_len,
@@ -185,6 +241,27 @@ async fn handle_connection(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn invalid_rates_cannot_enable_an_unbounded_simulation() {
+        for value in ["0", "-1", "NaN", "inf", "1001", "invalid"] {
+            assert!(parse_setting("SELF_TRAIN_HZ", value, 0.1, 1000.0).is_err());
+        }
+        assert_eq!(
+            parse_setting("SELF_TRAIN_HZ", "16", 0.1, 1000.0).unwrap(),
+            16.0
+        );
+    }
+
+    #[test]
+    fn physics_substeps_must_be_positive_integers_within_bounds() {
+        for value in ["0", "-1", "12.5", "65"] {
+            assert!(parse_setting("SELF_TRAIN_SUBSTEPS", value, 1u32, 64).is_err());
+        }
+        for value in ["12", "24"] {
+            assert!(parse_setting("SELF_TRAIN_SUBSTEPS", value, 1u32, 64).is_ok());
+        }
+    }
 
     #[test]
     fn only_authenticated_connections_can_train() {

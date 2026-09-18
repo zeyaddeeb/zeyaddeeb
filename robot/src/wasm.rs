@@ -51,7 +51,7 @@ fn main() {
                 }),
         )
         .add_plugins(PhysicsPlugins::default())
-        .insert_resource(SubstepCount(20))
+        .insert_resource(SubstepCount(12))
         .insert_resource(Gravity(Vec3::new(0.0, -9.81, 0.0)))
         .add_systems(
             Startup,

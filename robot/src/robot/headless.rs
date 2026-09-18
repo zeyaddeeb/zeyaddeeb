@@ -17,6 +17,15 @@ fn should_reset(training: Option<Res<TrainingState>>) -> bool {
 }
 
 pub fn run_headless(trainer: Arc<SacAsyncTrainer>, max_steps_per_second: Option<f64>) {
+    run_headless_with_substeps(trainer, max_steps_per_second, 24);
+}
+
+pub fn run_headless_with_substeps(
+    trainer: Arc<SacAsyncTrainer>,
+    max_steps_per_second: Option<f64>,
+    substeps: u32,
+) {
+    assert!(substeps > 0, "physics substeps must be positive");
     let runner = match max_steps_per_second {
         Some(hz) if hz > 0.0 => ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(1.0 / hz)),
         _ => ScheduleRunnerPlugin::default(),
@@ -37,7 +46,7 @@ pub fn run_headless(trainer: Arc<SacAsyncTrainer>, max_steps_per_second: Option<
             headless: true,
         })
         .insert_resource(TimeUpdateStrategy::FixedTimesteps(1))
-        .insert_resource(SubstepCount(24))
+        .insert_resource(SubstepCount(substeps))
         .insert_resource(Gravity(Vec3::new(0.0, -9.81, 0.0)))
         .add_systems(Startup, setup)
         .add_systems(Update, reset_robot_positions.run_if(should_reset))

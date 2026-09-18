@@ -1,3 +1,5 @@
+#[cfg(any(feature = "wasm", test))]
+mod action_mailbox;
 mod builder;
 mod components;
 mod constants;
@@ -8,6 +10,9 @@ mod resources;
 mod setup;
 mod state;
 mod torque;
+
+#[cfg(all(test, feature = "native"))]
+mod learning_check;
 
 #[cfg(feature = "native")]
 mod headless;
@@ -24,7 +29,7 @@ pub use reset::{get_initial_poses, reset_robot_positions, BodyPartPose, RobotPos
 pub use setup::*;
 
 #[cfg(feature = "native")]
-pub use headless::run_headless;
+pub use headless::{run_headless, run_headless_with_substeps};
 #[cfg(feature = "native")]
 pub use training::*;
 #[cfg(feature = "native")]
