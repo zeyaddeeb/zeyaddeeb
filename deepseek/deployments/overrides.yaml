@@ -12,3 +12,11 @@ service:
 env:
   RUST_LOG: "error"
   DEEPSEEK_BIND: "0.0.0.0"
+  DEEPSEEK_WORKERS: "1"
+  RAYON_NUM_THREADS: "1"
+  CANDLE_NUM_THREADS: "1"
+  DEEPSEEK_OPERATION_SECONDS: "600"
+
+resources:
+  limits:
+    cpu: "1"

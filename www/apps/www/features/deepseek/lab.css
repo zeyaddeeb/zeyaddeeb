@@ -984,12 +984,15 @@
 
 .ds-reading-side {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
 	gap: 20px;
 	align-content: start;
+	min-width: 0;
 }
 
 .ds-reading-side section {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
 	gap: 8px;
 }
 
@@ -1013,6 +1016,7 @@
 
 .ds-input {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
 	gap: 10px;
 }
 

@@ -9,7 +9,10 @@ use candle_nn::{
     ops::{log_softmax, softmax},
     AdamW, Optimizer, ParamsAdamW,
 };
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    time::{Duration, Instant},
+};
 
 pub const BATCH: usize = 4;
 pub const GROUP: usize = 4;
@@ -19,6 +22,7 @@ const RL_KL: f64 = 0.04;
 const RL_EPOCHS: usize = 2;
 const ANSWER_TOKENS: usize = 2;
 const EVALUATION_PER_FAMILY: usize = 4;
+const DREAM_INTERVAL: Duration = Duration::from_millis(2500);
 
 pub trait Control {
     fn check(&mut self, stage: &str) -> Result<()>;
@@ -69,6 +73,7 @@ pub struct Brain {
     opt: AdamW,
     rng: Rng,
     dream_rng: Rng,
+    last_dream: Option<(u64, Instant)>,
     pub dreaming: bool,
     pub step: u64,
     pub revision: u64,
@@ -152,6 +157,7 @@ impl Brain {
             opt,
             rng: Rng::new(seed ^ 0x5eed),
             dream_rng: Rng::new(seed ^ 0xd4ea),
+            last_dream: None,
             dreaming: true,
             step: 0,
             revision: 0,
@@ -739,6 +745,10 @@ impl Brain {
     }
 
     pub fn probe(&mut self) -> Result<ProbeView> {
+        self.probe_at(Instant::now())
+    }
+
+    fn probe_at(&mut self, now: Instant) -> Result<ProbeView> {
         let mut rows = Vec::new();
         let mut answer_at = Vec::new();
         for example in self.evaluation.iter().chain(&self.cards) {
@@ -850,8 +860,16 @@ impl Brain {
         let next = self.candidates(&top(&probabilities[specimen_row][focus], 5));
         let trace = out.trace.unwrap_or_default();
         let engram = self.engram_traces(&trace);
-        let dream = if self.dreaming {
-            Some(self.dream()?)
+        // Autoregressive samples cost up to 16 forward passes. Keep their
+        // cadence independent of the frequent prediction/focus probes, and
+        // don't regenerate samples when only the selected token changes.
+        let dream_due = self.last_dream.is_none_or(|(revision, at)| {
+            revision != self.revision && now.duration_since(at) >= DREAM_INTERVAL
+        });
+        let dream = if self.dreaming && dream_due {
+            let dream = self.dream()?;
+            self.last_dream = Some((self.revision, now));
+            Some(dream)
         } else {
             None
         };
@@ -1188,4 +1206,52 @@ pub fn check_snippet(code: &str, question: &str) -> Result<()> {
         "Ask either \"value of x ?\" or \"valid reassignment ?\"."
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn probes_stay_fresh_while_generated_samples_are_rate_limited() {
+        let mut brain = Brain::new(3).unwrap();
+        let now = Instant::now();
+        assert!(brain.probe_at(now).unwrap().dream.is_some());
+
+        brain
+            .language_step(Phase::Pretrain, &mut Unattended)
+            .unwrap();
+        brain.set_focus(1);
+        let fresh = brain.probe_at(now + Duration::from_millis(450)).unwrap();
+        assert_eq!(fresh.revision, 1);
+        assert_eq!(fresh.focus.position, 1);
+        assert!(fresh.dream.is_none());
+
+        let sampled = brain.probe_at(now + DREAM_INTERVAL).unwrap();
+        assert_eq!(sampled.dream.unwrap().step, 1);
+
+        brain.set_focus(2);
+        let idle = brain.probe_at(now + DREAM_INTERVAL * 2).unwrap();
+        assert_eq!(idle.focus.position, 2);
+        assert!(idle.dream.is_none(), "focus changes must not resample");
+
+        brain.dreaming = false;
+        brain.language_step(Phase::Sft, &mut Unattended).unwrap();
+        assert!(brain
+            .probe_at(now + DREAM_INTERVAL * 3)
+            .unwrap()
+            .dream
+            .is_none());
+
+        brain.dreaming = true;
+        assert_eq!(
+            brain
+                .probe_at(now + DREAM_INTERVAL * 4)
+                .unwrap()
+                .dream
+                .unwrap()
+                .step,
+            2
+        );
+    }
 }
