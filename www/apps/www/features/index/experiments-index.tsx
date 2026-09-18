@@ -126,7 +126,10 @@ function Row({
 					) : null}
 				</span>
 				<span className="row__arrow" aria-hidden="true">
-					<LifeArrow direction={experiment.external ? "up-right" : "right"} />
+					<LifeArrow
+						direction={experiment.external ? "up-right" : "right"}
+						active={active && shouldRun}
+					/>
 				</span>
 				{experiment.external ? (
 					<span className="sr-only">(opens in a new tab)</span>

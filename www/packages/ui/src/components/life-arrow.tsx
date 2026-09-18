@@ -89,9 +89,11 @@ const directions = {
 export function LifeArrow({
 	direction = "right",
 	className,
+	active,
 }: {
 	direction?: keyof typeof directions;
 	className?: string;
+	active?: boolean;
 }) {
 	const ref = useRef<SVGSVGElement>(null);
 	const [gen, setGen] = useState(0);
@@ -105,34 +107,87 @@ export function LifeArrow({
 		if (!svg) return;
 		const host = svg.closest("a, button") ?? svg;
 		const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+		const hover = window.matchMedia("(hover: hover)");
+		let inView = false;
+		let hovered = false;
+		let focused = host.contains(document.activeElement);
 		let timers: number[] = [];
 		const clear = () => {
 			for (const t of timers) clearTimeout(t);
 			timers = [];
 		};
-		const sail = () => {
-			if (motion.matches) return;
+		const sail = (repeat: boolean) => {
 			clear();
 			for (let g = 1; g <= PERIOD; g++) {
 				timers.push(window.setTimeout(() => setGen(g), (g - 1) * GEN_MS));
+			}
+			if (repeat) {
+				timers.push(window.setTimeout(() => setGen(0), PERIOD * GEN_MS));
+				timers.push(window.setTimeout(() => sail(true), (PERIOD + 4) * GEN_MS));
 			}
 		};
 		const rest = () => {
 			clear();
 			setGen(0);
 		};
-		host.addEventListener("pointerenter", sail);
-		host.addEventListener("pointerleave", rest);
-		host.addEventListener("focusin", sail);
-		host.addEventListener("focusout", rest);
+		const update = () => {
+			const enabled = active ?? (hover.matches ? hovered || focused : inView);
+			if (
+				enabled &&
+				!motion.matches &&
+				document.visibilityState === "visible"
+			) {
+				sail(active !== undefined || !hover.matches);
+			} else {
+				rest();
+			}
+		};
+		const enter = () => {
+			hovered = true;
+			update();
+		};
+		const leave = () => {
+			hovered = false;
+			update();
+		};
+		const focus = () => {
+			focused = true;
+			update();
+		};
+		const blur = () => {
+			focused = false;
+			update();
+		};
+		const observer =
+			active === undefined
+				? new IntersectionObserver(([entry]) => {
+						inView = entry?.isIntersecting ?? false;
+						if (!hover.matches) update();
+					})
+				: null;
+		observer?.observe(svg);
+		if (active === undefined) {
+			host.addEventListener("pointerenter", enter);
+			host.addEventListener("pointerleave", leave);
+			host.addEventListener("focusin", focus);
+			host.addEventListener("focusout", blur);
+		}
+		motion.addEventListener("change", update);
+		hover.addEventListener("change", update);
+		document.addEventListener("visibilitychange", update);
+		update();
 		return () => {
 			clear();
-			host.removeEventListener("pointerenter", sail);
-			host.removeEventListener("pointerleave", rest);
-			host.removeEventListener("focusin", sail);
-			host.removeEventListener("focusout", rest);
+			observer?.disconnect();
+			host.removeEventListener("pointerenter", enter);
+			host.removeEventListener("pointerleave", leave);
+			host.removeEventListener("focusin", focus);
+			host.removeEventListener("focusout", blur);
+			motion.removeEventListener("change", update);
+			hover.removeEventListener("change", update);
+			document.removeEventListener("visibilitychange", update);
 		};
-	}, []);
+	}, [active]);
 
 	return (
 		<svg
