@@ -6,7 +6,9 @@ import {
 	collectionItem,
 	db,
 } from "@zeyaddeeb/db";
-import { and, asc, count, desc, eq, sql } from "drizzle-orm";
+import { and, arrayOverlaps, asc, count, desc, eq, sql } from "drizzle-orm";
+import { z } from "zod";
+import { pagination, resultLimit } from "./read-validation";
 
 export interface PaginatedResult<T> {
 	items: T[];
@@ -25,30 +27,41 @@ export interface GetCollectionItemsParams {
 	tags?: string[];
 	search?: string;
 	featured?: boolean;
-	published?: boolean;
 }
 
 export async function getCollectionItems(
 	params: GetCollectionItemsParams = {},
 ): Promise<PaginatedResult<CollectionItem>> {
-	const {
-		page = 1,
-		pageSize = 12,
-		type = null,
-		tags = [],
-		search = "",
-		featured,
-		published = true,
-	} = params;
+	const { page, pageSize, type, tags, search, featured } = z
+		.object({
+			...pagination,
+			pageSize: pagination.pageSize.default(12),
+			type: z
+				.enum([
+					"wikipedia",
+					"art",
+					"book",
+					"youtube",
+					"product",
+					"music",
+					"article",
+					"podcast",
+					"movie",
+					"github",
+					"other",
+				])
+				.nullable()
+				.default(null),
+			tags: z.array(z.string().min(1).max(64)).max(20).default([]),
+			search: z.string().max(256).default(""),
+			featured: z.boolean().optional(),
+		})
+		.parse(params);
 
 	try {
 		const offset = (page - 1) * pageSize;
 
-		const conditions = [];
-
-		if (published !== undefined) {
-			conditions.push(eq(collectionItem.published, published));
-		}
+		const conditions = [eq(collectionItem.published, true)];
 
 		if (type) {
 			conditions.push(eq(collectionItem.type, type));
@@ -59,9 +72,7 @@ export async function getCollectionItems(
 		}
 
 		if (tags.length > 0) {
-			conditions.push(
-				sql`${collectionItem.tags} && ${sql.raw(`ARRAY[${tags.map((t) => `'${t}'`).join(",")}]::text[]`)}`,
-			);
+			conditions.push(arrayOverlaps(collectionItem.tags, tags));
 		}
 
 		if (search.trim()) {
@@ -178,7 +189,7 @@ export async function getFeaturedCollectionItems(
 				asc(sql`NULLIF(${collectionItem.displayOrder}, 0)`),
 				desc(collectionItem.createdAt),
 			)
-			.limit(limit);
+			.limit(resultLimit.parse(limit));
 	} catch (error) {
 		console.error("Failed to fetch featured collection items:", error);
 		return [];

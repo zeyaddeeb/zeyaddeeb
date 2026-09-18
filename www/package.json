@@ -1,6 +1,6 @@
 {
   "name": "zeyaddeeb",
-  "version": "0.1.44",
+  "version": "0.1.45",
   "private": true,
   "scripts": {
     "build": "turbo build",
@@ -14,8 +14,8 @@
     "clean": "turbo clean"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.13",
-    "turbo": "^2.10.12",
+    "@biomejs/biome": "^2.5.14",
+    "turbo": "^2.10.13",
     "typescript": "^7.0.2"
   },
   "engines": {
@@ -29,7 +29,10 @@
   "catalog": {
     "@tanstack/react-query": "^5.100.10",
     "@types/node": "26.0.1",
-    "@types/react": "^19.2.14",
+    "@types/react": "^19.3.0",
     "typescript": "^7.0.2"
+  },
+  "overrides": {
+    "esbuild": "0.28.2"
   }
 }

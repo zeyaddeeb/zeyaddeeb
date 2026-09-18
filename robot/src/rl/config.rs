@@ -28,10 +28,10 @@ pub const SAC_TARGET_ENTROPY: f32 = -(ACT_DIM as f32);
 #[cfg(feature = "native")]
 pub const SAC_LOG_STD_MIN: f32 = -5.0;
 #[cfg(feature = "native")]
-pub const SAC_LOG_STD_MAX: f32 = 2.5;
+pub const SAC_LOG_STD_MAX: f32 = 2.0;
 
 #[cfg(feature = "native")]
-pub const REWARD_SCALE: f32 = 1.0;
+pub const REWARD_SCALE: f32 = 0.2;
 
 #[cfg(feature = "native")]
 pub const HIDDEN_DIM: usize = 256;
@@ -56,6 +56,6 @@ pub const TRAINING_ITERS: usize = 50;
 pub const JOINT_COUNT: usize = 13;
 
 #[cfg(feature = "native")]
-pub const OBS_DIM: usize = JOINT_COUNT * 2 + 9;
+pub const OBS_DIM: usize = JOINT_COUNT * 2 + 20;
 
 pub const ACT_DIM: usize = JOINT_COUNT + 1;

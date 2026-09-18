@@ -48,3 +48,11 @@ pub async fn load_ops(db: &Db, doc_id: &str) -> Result<Vec<CrdtOp>> {
     records.sort_by_key(|record| record.seq.unwrap_or(0));
     Ok(records.into_iter().map(|r| r.op).collect())
 }
+
+pub async fn delete_ops(db: &Db, doc_id: &str) -> Result<()> {
+    db.query("DELETE ops WHERE doc_id = $doc_id")
+        .bind(("doc_id", doc_id.to_owned()))
+        .await?
+        .check()?;
+    Ok(())
+}

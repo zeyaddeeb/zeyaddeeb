@@ -81,11 +81,15 @@ export function DeepSeekLab() {
 	}, [lineKey]);
 
 	const focus = probe?.focus.position;
+	const live = state.connection === "live";
 	useEffect(() => {
-		if (selected === null || focus === undefined || selected - 1 === focus)
-			return;
-		void send({ type: "focus", position: selected - 1 });
-	}, [selected, focus, send]);
+		if (!live || selected === null || focus === undefined) return;
+		if (selected - 1 === focus) return;
+		const ask = () => void send({ type: "focus", position: selected - 1 });
+		ask();
+		const timer = window.setInterval(ask, 4000);
+		return () => window.clearInterval(timer);
+	}, [live, selected, focus, send]);
 
 	const act = (id: ActionId) => {
 		setConfirming(false);

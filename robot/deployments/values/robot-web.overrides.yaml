@@ -6,7 +6,11 @@ image:
 
 service:
   type: ClusterIP
-  port: 80
+  port: 8080
+
+securityContext:
+  runAsUser: 101
+  runAsGroup: 101
 
 ingress:
   enabled: false

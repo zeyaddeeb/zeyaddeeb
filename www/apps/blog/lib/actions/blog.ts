@@ -1,7 +1,9 @@
 "use server";
 
 import { db, type Post, post } from "@zeyaddeeb/db";
-import { and, count, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, ilike, or, type SQL, sql } from "drizzle-orm";
+import { z } from "zod";
+import { pagination, resultLimit } from "./read-validation";
 
 export interface PaginatedResult<T> {
 	items: T[];
@@ -17,22 +19,19 @@ export interface GetPostsParams {
 	page?: number;
 	pageSize?: number;
 	search?: string;
-	published?: boolean;
 }
 
 export async function getPosts(
 	params: GetPostsParams = {},
 ): Promise<PaginatedResult<Post>> {
-	const { page = 1, pageSize = 10, search, published = true } = params;
+	const { page, pageSize, search } = z
+		.object({ ...pagination, pageSize: pagination.pageSize.default(10) })
+		.parse(params);
 
 	try {
 		const offset = (page - 1) * pageSize;
 
-		const conditions = [];
-
-		if (published !== undefined) {
-			conditions.push(eq(post.published, published));
-		}
+		const conditions: (SQL | undefined)[] = [eq(post.published, true)];
 
 		if (search) {
 			conditions.push(
@@ -108,7 +107,7 @@ export async function getRecentPosts(limit = 5): Promise<Post[]> {
 			.from(post)
 			.where(eq(post.published, true))
 			.orderBy(desc(post.publishedAt), desc(post.createdAt))
-			.limit(limit);
+			.limit(resultLimit.parse(limit));
 	} catch (error) {
 		console.error("Failed to fetch recent posts:", error);
 		return [];
@@ -125,7 +124,7 @@ export async function getRelatedPosts(
 			.from(post)
 			.where(and(eq(post.published, true), sql`${post.id} != ${currentPostId}`))
 			.orderBy(desc(post.publishedAt), desc(post.createdAt))
-			.limit(limit);
+			.limit(resultLimit.parse(limit));
 	} catch (error) {
 		console.error("Failed to fetch related posts:", error);
 		return [];

@@ -6,7 +6,9 @@ use std::sync::mpsc::Sender;
 use std::sync::Mutex;
 
 #[cfg(feature = "native")]
-use crate::rl::{AsyncTrainer, SacAsyncTrainer};
+use crate::rl::SacAsyncTrainer;
+#[cfg(feature = "native")]
+use std::sync::Arc;
 
 #[cfg(feature = "native")]
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -19,15 +21,31 @@ pub enum TrainingPhase {
 pub enum CurriculumStage {
     #[default]
     Standing,
-    ApproachBall,
+    RaiseBall,
     Shooting,
 }
 
 impl CurriculumStage {
+    pub fn index(&self) -> usize {
+        match self {
+            CurriculumStage::Standing => 0,
+            CurriculumStage::RaiseBall => 1,
+            CurriculumStage::Shooting => 2,
+        }
+    }
+
+    pub fn from_index(index: usize) -> Self {
+        match index {
+            0 => CurriculumStage::Standing,
+            1 => CurriculumStage::RaiseBall,
+            _ => CurriculumStage::Shooting,
+        }
+    }
+
     pub fn as_str(&self) -> &'static str {
         match self {
             CurriculumStage::Standing => "Standing",
-            CurriculumStage::ApproachBall => "Approach Ball",
+            CurriculumStage::RaiseBall => "Raise Ball",
             CurriculumStage::Shooting => "Shooting",
         }
     }
@@ -64,9 +82,16 @@ pub struct RobotEntities {
 
 #[cfg(feature = "native")]
 #[derive(Resource)]
+pub struct SharedTrainer {
+    pub trainer: Arc<SacAsyncTrainer>,
+    pub headless: bool,
+}
+
+#[cfg(feature = "native")]
+#[derive(Resource)]
 pub struct TrainingState {
-    pub trainer: AsyncTrainer,
-    pub sac_trainer: SacAsyncTrainer,
+    pub sac_trainer: Arc<SacAsyncTrainer>,
+    pub headless: bool,
     pub episode: usize,
     pub step: usize,
     pub episode_reward: f32,
@@ -75,6 +100,10 @@ pub struct TrainingState {
     pub best_episode_reward: f32,
     pub baskets_made: usize,
     pub ball_released: bool,
+    pub steps_since_release: usize,
+    pub shot_miss_ema: Option<f32>,
+    pub best_aim_ema: Option<f32>,
+    pub episode_best_aim: f32,
     pub phase: TrainingPhase,
     pub curriculum_stage: CurriculumStage,
     pub stage_episodes: usize,
@@ -101,6 +130,7 @@ pub struct SimulationState {
     pub best_episode_reward: f32,
     pub baskets_made: usize,
     pub ball_released: bool,
+    pub steps_since_release: usize,
     pub ball_entity: Option<Entity>,
     pub curriculum_stage: CurriculumStage,
     pub stage_episodes: usize,
@@ -109,6 +139,7 @@ pub struct SimulationState {
     pub needs_reset: bool,
     pub prev_obs: Option<Vec<f32>>,
     pub prev_action: Option<Vec<f32>>,
+    pub last_action: Option<Vec<f32>>,
     pub prev_torso_pos: Option<Vec3>,
     pub prev_left_foot_pos: Option<Vec3>,
     pub prev_right_foot_pos: Option<Vec3>,
@@ -120,6 +151,8 @@ pub struct ObservationMsg {
     pub obs: Vec<f32>,
     pub reward: f32,
     pub done: bool,
+    #[serde(default)]
+    pub truncated: bool,
     pub step: u64,
     pub ball_released: bool,
 }
@@ -138,6 +171,8 @@ pub struct TrainStatsMsg {
     pub episodes: usize,
     pub avg_reward: f32,
     pub recent_reward: f32,
+    #[serde(default)]
+    pub curriculum_stage: Option<usize>,
 }
 
 #[cfg(feature = "native")]

@@ -41,8 +41,8 @@ impl Limits {
                 .unwrap_or(default)
         };
         Self {
-            workers: number("DEEPSEEK_WORKERS", 2) as usize,
-            sessions: number("DEEPSEEK_MAX_SESSIONS", 1000) as usize,
+            workers: number("DEEPSEEK_WORKERS", 2).clamp(1, 8) as usize,
+            sessions: number("DEEPSEEK_MAX_SESSIONS", 16).clamp(1, 64) as usize,
             idle: Duration::from_secs(number("DEEPSEEK_IDLE_SECONDS", 60)),
             budget: Duration::from_secs(number("DEEPSEEK_OPERATION_SECONDS", 300)),
         }
@@ -64,6 +64,12 @@ struct Board {
 }
 
 pub struct Session {
+    access_token: Uuid,
+    _slot: OwnedSemaphorePermit,
+    resetting: Arc<Semaphore>,
+    reset_at: Mutex<Option<Instant>>,
+    rate: Mutex<(Instant, u32)>,
+    maintenance: Arc<Semaphore>,
     pub id: Uuid,
     generation: AtomicU64,
     brain: Mutex<Brain>,
@@ -87,12 +93,73 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
+fn try_lock<T>(mutex: &Mutex<T>) -> Option<MutexGuard<'_, T>> {
+    match mutex.try_lock() {
+        Ok(guard) => Some(guard),
+        Err(std::sync::TryLockError::Poisoned(poisoned)) => Some(poisoned.into_inner()),
+        Err(std::sync::TryLockError::WouldBlock) => None,
+    }
+}
+
 impl Session {
+    // This capability is returned only at creation, never in snapshots/events.
+    pub fn access_token(&self) -> String {
+        self.access_token.to_string()
+    }
+
+    pub fn authorized(&self, token: &str) -> bool {
+        Uuid::parse_str(token).is_ok_and(|token| token == self.access_token)
+    }
+
+    pub fn reader_count(&self) -> usize {
+        self.connections.load(Ordering::SeqCst)
+    }
+
     pub fn generation(&self) -> u64 {
         self.generation.load(Ordering::SeqCst)
     }
 
-    /// Resolves once the session is closed, including at server shutdown.
+    fn has_pending(&self) -> bool {
+        lock(&self.pending_specimen).is_some() || lock(&self.pending_focus).is_some()
+    }
+
+    fn apply_pending(&self, brain: &mut Brain) -> bool {
+        let mut changed = false;
+        if let Some((code, question)) = lock(&self.pending_specimen).take() {
+            if let Err(error) = brain.set_specimen("heldOut", &code, &question) {
+                self.error(None, "unsupported", error.to_string());
+            }
+            changed = true;
+        }
+        if let Some(position) = lock(&self.pending_focus).take() {
+            brain.set_focus(position);
+            changed = true;
+        }
+        changed
+    }
+
+    fn settle(&self) {
+        // Only one probe per invocation; pending input is coalesced and bounded.
+        let Ok(_permit) = self.maintenance.try_acquire() else {
+            return;
+        };
+        {
+            let Some(mut brain) = try_lock(&self.brain) else {
+                return;
+            };
+            if self.apply_pending(&mut brain) {
+                match brain.probe() {
+                    Ok(probe) => self.publish(ServerEvent::Probe(Box::new(probe))),
+                    Err(error) => self.error(None, "probe", error.to_string()),
+                }
+            }
+            drop(brain);
+            if !self.has_pending() {
+                return;
+            }
+        }
+    }
+
     pub async fn closed(&self) {
         self.token.cancelled().await
     }
@@ -185,6 +252,8 @@ pub struct Stats {
 pub struct AppState {
     sessions: Arc<DashMap<Uuid, Arc<Session>>>,
     permits: Arc<Semaphore>,
+    slots: Arc<Semaphore>,
+    maintenance: Arc<Semaphore>,
     pub limits: Limits,
     pub root: CancellationToken,
     pub stats: Arc<Stats>,
@@ -200,6 +269,8 @@ impl AppState {
         Self {
             sessions: Arc::new(DashMap::new()),
             permits: Arc::new(Semaphore::new(limits.workers)),
+            slots: Arc::new(Semaphore::new(limits.sessions)),
+            maintenance: Arc::new(Semaphore::new(limits.workers.max(1))),
             limits,
             root: CancellationToken::new(),
             stats: Arc::new(Stats::default()),
@@ -222,21 +293,41 @@ impl AppState {
     }
 
     pub async fn create_session(&self) -> Result<SessionView, CreateError> {
-        if self.sessions.len() >= self.limits.sessions {
+        if self.root.is_cancelled() {
             return Err(CreateError::Full);
         }
+        let slot = self
+            .slots
+            .clone()
+            .try_acquire_owned()
+            .map_err(|_| CreateError::Full)?;
+        let initialization = self
+            .maintenance
+            .clone()
+            .try_acquire_owned()
+            .map_err(|_| CreateError::Full)?;
         let id = Uuid::new_v4();
         let seed = id.as_u128() as u64;
-        let brain = tokio::task::spawn_blocking(move || -> anyhow::Result<(Brain, ProbeView)> {
-            let mut brain = Brain::new(seed)?;
-            let probe = brain.probe()?;
-            Ok((brain, probe))
-        })
+        let brain = tokio::task::spawn_blocking(
+            move || -> anyhow::Result<(Brain, ProbeView, OwnedSemaphorePermit)> {
+                let _initialization = initialization;
+                // Keep both reservations even if the request future is canceled.
+                let mut brain = Brain::new(seed)?;
+                let probe = brain.probe()?;
+                Ok((brain, probe, slot))
+            },
+        )
         .await
         .map_err(|e| CreateError::Failed(e.to_string()))?
         .map_err(|e| CreateError::Failed(e.to_string()))?;
-        let (brain, probe) = brain;
+        let (brain, probe, slot) = brain;
         let session = Arc::new(Session {
+            access_token: Uuid::new_v4(),
+            _slot: slot,
+            resetting: Arc::new(Semaphore::new(1)),
+            reset_at: Mutex::new(None),
+            rate: Mutex::new((Instant::now(), 0)),
+            maintenance: self.maintenance.clone(),
             id,
             generation: AtomicU64::new(1),
             info: brain.info(),
@@ -303,9 +394,18 @@ impl AppState {
         }
     }
 
-    pub fn connected(&self, session: &Session) {
-        session.connections.fetch_add(1, Ordering::SeqCst);
+    pub fn connected(&self, session: &Session) -> bool {
+        if session
+            .connections
+            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |n| {
+                (n < 4).then_some(n + 1)
+            })
+            .is_err()
+        {
+            return false;
+        }
         *lock(&session.idle_since) = Instant::now();
+        true
     }
 
     pub fn disconnected(&self, session: &Session) {
@@ -318,8 +418,21 @@ impl AppState {
     }
 
     pub async fn dispatch(&self, session: Arc<Session>, command: ClientCommand) {
-        *lock(&session.idle_since) = Instant::now();
         let (command_id, generation) = command.ids();
+        {
+            let mut rate = lock(&session.rate);
+            if rate.0.elapsed() >= Duration::from_secs(1) {
+                *rate = (Instant::now(), 0);
+            }
+            if rate.1 >= 30 {
+                return;
+            }
+            rate.1 += 1;
+        }
+        if session.token.is_cancelled() {
+            return;
+        }
+        *lock(&session.idle_since) = Instant::now();
         {
             let mut seen = lock(&session.commands);
             if seen.contains(&command_id) {
@@ -338,6 +451,30 @@ impl AppState {
             );
             return;
         }
+        let admission = if matches!(
+            command,
+            ClientCommand::Start { .. } | ClientCommand::Ask { .. } | ClientCommand::Reset { .. }
+        ) {
+            match session.resetting.clone().try_acquire_owned() {
+                Ok(guard) => Some(guard),
+                Err(_) => {
+                    return session.error(
+                        Some(command_id),
+                        "busy",
+                        "A model change is already in progress.",
+                    )
+                }
+            }
+        } else {
+            if session.resetting.available_permits() == 0 {
+                return session.error(
+                    Some(command_id),
+                    "busy",
+                    "A model change is already in progress.",
+                );
+            }
+            None
+        };
         match command {
             ClientCommand::Start { phase, steps, .. } => {
                 if phase == Phase::Generate {
@@ -354,7 +491,16 @@ impl AppState {
                         "Stop the current run before asking.",
                     );
                 }
-                let prepared = lock(&session.brain).set_specimen("visitor", &code, &question);
+                let prepared = match try_lock(&session.brain) {
+                    Some(mut brain) => brain.set_specimen("visitor", &code, &question),
+                    None => {
+                        return session.error(
+                            Some(command_id),
+                            "busy",
+                            "Model is busy. Try again shortly.",
+                        )
+                    }
+                };
                 match prepared {
                     Ok(()) => self.start(session, command_id, Phase::Generate, 1),
                     Err(error) => session.error(Some(command_id), "unsupported", error.to_string()),
@@ -364,24 +510,8 @@ impl AppState {
                 if let Err(error) = crate::train::check_snippet(&code, &question) {
                     return session.error(Some(command_id), "unsupported", error.to_string());
                 }
-                if session.active().map(|op| op.state()) == Some(OperationState::Running) {
-                    *lock(&session.pending_specimen) = Some((code, question));
-                } else {
-                    let worker = session.clone();
-                    let _ = tokio::task::spawn_blocking(move || {
-                        let mut brain = lock(&worker.brain);
-                        let shown = brain
-                            .set_specimen("heldOut", &code, &question)
-                            .and_then(|_| brain.probe());
-                        match shown {
-                            Ok(probe) => worker.publish(ServerEvent::Probe(Box::new(probe))),
-                            Err(error) => {
-                                worker.error(Some(command_id), "unsupported", error.to_string())
-                            }
-                        }
-                    })
-                    .await;
-                }
+                *lock(&session.pending_specimen) = Some((code, question));
+                let _ = tokio::task::spawn_blocking(move || session.settle()).await;
             }
             ClientCommand::Pause { .. } => {
                 if let Some(op) = session.active() {
@@ -402,24 +532,13 @@ impl AppState {
                     }
                 }
             }
-            ClientCommand::Reset { .. } => self.reset(session, command_id).await,
+            ClientCommand::Reset { .. } => {
+                self.reset(session, command_id, admission.expect("reset reservation"))
+                    .await
+            }
             ClientCommand::Focus { position, .. } => {
-                if session.active().map(|op| op.state()) == Some(OperationState::Running) {
-                    *lock(&session.pending_focus) = Some(position);
-                } else {
-                    let worker = session.clone();
-                    let _ = tokio::task::spawn_blocking(move || {
-                        let mut brain = lock(&worker.brain);
-                        brain.set_focus(position);
-                        match brain.probe() {
-                            Ok(probe) => worker.publish(ServerEvent::Probe(Box::new(probe))),
-                            Err(error) => {
-                                worker.error(Some(command_id), "probe", error.to_string())
-                            }
-                        }
-                    })
-                    .await;
-                }
+                *lock(&session.pending_focus) = Some(position);
+                let _ = tokio::task::spawn_blocking(move || session.settle()).await;
             }
         }
     }
@@ -427,7 +546,10 @@ impl AppState {
     fn cancel(&self, session: &Arc<Session>, op: &Arc<Operation>, reason: &str) {
         if op.request_cancel(reason) {
             let (state, session, op) = (self.clone(), session.clone(), op.clone());
-            tokio::task::spawn_blocking(move || state.finish_canceled(&session, &op, None));
+            tokio::task::spawn_blocking(move || {
+                state.finish_canceled(&session, &op, None);
+                session.settle();
+            });
         }
     }
 
@@ -485,6 +607,7 @@ impl AppState {
                 lock(&session.brain).release_teacher();
                 op.failed(format!("The worker stopped unexpectedly: {panic}"));
             }
+            let _ = tokio::task::spawn_blocking(move || session.settle()).await;
         });
     }
 
@@ -510,12 +633,7 @@ impl AppState {
         let mut outcome: anyhow::Result<()> = Ok(());
 
         while !op.finished() {
-            if let Some((code, question)) = lock(&session.pending_specimen).take() {
-                let _ = brain.set_specimen("heldOut", &code, &question);
-                last_probe = Instant::now() - PROBE_INTERVAL;
-            }
-            if let Some(position) = lock(&session.pending_focus).take() {
-                brain.set_focus(position);
+            if session.apply_pending(&mut brain) {
                 last_probe = Instant::now() - PROBE_INTERVAL;
             }
             let started = Instant::now();
@@ -693,6 +811,7 @@ impl AppState {
     }
 
     fn probe(&self, session: &Session, op: &Operation, brain: &mut Brain, divergence: Option<f32>) {
+        session.apply_pending(brain);
         let current = lock(&session.board).probe.as_ref().is_some_and(|p| {
             p.revision == brain.revision
                 && p.focus.position == brain.focus
@@ -723,7 +842,26 @@ impl AppState {
         }
     }
 
-    async fn reset(&self, session: Arc<Session>, command_id: Uuid) {
+    async fn reset(
+        &self,
+        session: Arc<Session>,
+        command_id: Uuid,
+        reset_guard: OwnedSemaphorePermit,
+    ) {
+        let Ok(initialization) = self.maintenance.clone().try_acquire_owned() else {
+            return session.error(
+                Some(command_id),
+                "busy",
+                "Model initialization is at capacity.",
+            );
+        };
+        {
+            let mut at = lock(&session.reset_at);
+            if at.is_some_and(|at| at.elapsed() < Duration::from_secs(10)) {
+                return session.error(Some(command_id), "rate", "Wait ten seconds between resets.");
+            }
+            *at = Some(Instant::now());
+        }
         if let Some(op) = session.active() {
             self.cancel(&session, &op, "reset requested");
             if !wait_terminal(&op, Duration::from_secs(20)).await {
@@ -736,16 +874,21 @@ impl AppState {
         }
         let generation = session.generation() + 1;
         let seed = (session.id.as_u128() as u64) ^ generation.wrapping_mul(0x9e37_79b9_7f4a_7c15);
-        let fresh = tokio::task::spawn_blocking(move || -> anyhow::Result<(Brain, ProbeView)> {
-            let mut brain = Brain::new(seed)?;
-            let probe = brain.probe()?;
-            Ok((brain, probe))
-        })
+        let fresh = tokio::task::spawn_blocking(
+            move || -> anyhow::Result<(Brain, ProbeView, OwnedSemaphorePermit)> {
+                let _initialization = initialization;
+                let mut brain = Brain::new(seed)?;
+                let probe = brain.probe()?;
+                Ok((brain, probe, reset_guard))
+            },
+        )
         .await;
         match fresh {
-            Ok(Ok((brain, probe))) => {
+            Ok(Ok((brain, probe, _reset_guard))) => {
                 *lock(&session.brain) = brain;
                 *lock(&session.active) = None;
+                *lock(&session.pending_focus) = None;
+                *lock(&session.pending_specimen) = None;
                 *lock(&session.board) = Board {
                     evaluations: vec![evaluation(&probe, Phase::Pretrain)],
                     dreams: probe.dream.iter().cloned().collect(),

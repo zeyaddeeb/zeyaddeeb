@@ -1,195 +1,206 @@
 use futures_util::{SinkExt, StreamExt};
 use robot::rl::{SacAsyncTrainer, Transition};
 use robot::robot::{ActionMsg, ObservationMsg, TrainStatsMsg};
-use serde_json::json;
-use std::env;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpListener;
-use tokio::sync::Mutex;
-use tokio_tungstenite::accept_async;
-use tokio_tungstenite::tungstenite::Message;
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
+use tokio::{
+    io::AsyncWriteExt,
+    net::{TcpListener, TcpStream},
+    sync::Semaphore,
+    time::timeout,
+};
+use tokio_tungstenite::{
+    accept_hdr_async_with_config,
+    tungstenite::{
+        handshake::server::{ErrorResponse, Request, Response},
+        protocol::WebSocketConfig,
+        Message,
+    },
+};
 
-struct RewardTracker {
-    episode_rewards: Vec<f32>,
-    current_episode_reward: f32,
-    episodes_completed: AtomicUsize,
-}
+use sha2::{Digest, Sha256};
+use subtle::ConstantTimeEq;
 
-impl RewardTracker {
-    fn new() -> Self {
-        Self {
-            episode_rewards: Vec::new(),
-            current_episode_reward: 0.0,
-            episodes_completed: AtomicUsize::new(0),
+fn can_train(request: &Request, credential: Option<&str>) -> Result<bool, ErrorResponse> {
+    let Some(header) = request.headers().get("authorization") else {
+        return Ok(false);
+    };
+    let supplied = header.to_str().ok().and_then(|v| v.strip_prefix("Bearer "));
+    if let (Some(expected), Some(supplied)) = (credential, supplied) {
+        if bool::from(Sha256::digest(expected).ct_eq(&Sha256::digest(supplied))) {
+            return Ok(true);
         }
     }
-
-    fn add_reward(&mut self, reward: f32) {
-        self.current_episode_reward += reward;
-    }
-
-    fn end_episode(&mut self) {
-        self.episode_rewards.push(self.current_episode_reward);
-        self.episodes_completed.fetch_add(1, Ordering::Relaxed);
-        self.current_episode_reward = 0.0;
-    }
-
-    fn get_stats(&self) -> (usize, f32, f32) {
-        let count = self.episode_rewards.len();
-        if count == 0 {
-            return (0, 0.0, 0.0);
-        }
-        let avg = self.episode_rewards.iter().sum::<f32>() / count as f32;
-        let recent_count = count.min(10);
-        let recent_avg: f32 = self.episode_rewards[count - recent_count..]
-            .iter()
-            .sum::<f32>()
-            / recent_count as f32;
-        (count, avg, recent_avg)
-    }
+    Err(Response::builder()
+        .status(401)
+        .body(Some("unauthorized".into()))
+        .unwrap())
 }
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let bind_addr = env::var("WS_BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:9001".to_string());
-    let listener = TcpListener::bind(&bind_addr).await?;
-    println!("[WS] Listening on {}", bind_addr);
-    println!("[WS] Training runs continuously in the background");
-
+    let addr = std::env::var("WS_BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:9001".into());
+    let listener = TcpListener::bind(addr).await?;
+    let connections = Arc::new(Semaphore::new(32));
+    let credential = std::env::var("ROBOT_TRAINING_TOKEN").ok();
+    anyhow::ensure!(
+        credential.as_ref().is_none_or(|token| token.len() >= 32),
+        "ROBOT_TRAINING_TOKEN must be at least 32 characters"
+    );
+    let credential = Arc::new(credential);
     let trainer = Arc::new(SacAsyncTrainer::new());
-    let reward_tracker = Arc::new(Mutex::new(RewardTracker::new()));
-
-    {
-        let trainer = Arc::clone(&trainer);
-        let reward_tracker = Arc::clone(&reward_tracker);
-        tokio::spawn(async move {
-            let mut interval = tokio::time::interval(std::time::Duration::from_secs(10));
-            loop {
-                interval.tick().await;
-                let stats = trainer.get_stats();
-                let (ep_count, avg_reward, recent_avg) = reward_tracker.lock().await.get_stats();
-                println!(
-                    "[SAC] Buffer: {} | Steps: {} | Episodes: {} | Avg reward: {:.2} | Recent(10): {:.2}",
-                    stats.buffer_len, stats.train_steps_done, ep_count, avg_reward, recent_avg
-                );
-            }
+    if std::env::var("SELF_TRAIN").map_or(true, |v| v != "0") {
+        let max_steps_per_second = std::env::var("SELF_TRAIN_HZ")
+            .ok()
+            .and_then(|v| v.parse::<f64>().ok())
+            .unwrap_or(64.0);
+        let trainer = trainer.clone();
+        std::thread::spawn(move || {
+            robot::robot::run_headless(trainer, Some(max_steps_per_second));
         });
     }
-
-    while let Ok((mut stream, addr)) = listener.accept().await {
-        let mut peek_buf = [0u8; 512];
-        match stream.peek(&mut peek_buf).await {
-            Ok(n) if n > 0 => {
-                let request = String::from_utf8_lossy(&peek_buf[..n]);
-
-                if request.starts_with("GET /health") || request.starts_with("HEAD /health") {
-                    let mut discard = vec![0u8; n];
-                    let _ = stream.read(&mut discard).await;
-
-                    let response = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nContent-Type: text/plain\r\n\r\nok";
-                    let _ = stream.write_all(response.as_bytes()).await;
-                    continue;
-                }
-
-                if !request.contains("Upgrade: websocket")
-                    && !request.contains("upgrade: websocket")
-                {
-                    let mut discard = vec![0u8; n];
-                    let _ = stream.read(&mut discard).await;
-
-                    let response = "HTTP/1.1 400 Bad Request\r\nContent-Length: 26\r\n\r\nWebSocket upgrade required";
-                    let _ = stream.write_all(response.as_bytes()).await;
-                    continue;
-                }
-            }
-            _ => continue,
-        }
-
-        println!("[WS] Client connected: {}", addr);
-        let trainer = Arc::clone(&trainer);
-        let reward_tracker = Arc::clone(&reward_tracker);
+    loop {
+        let (stream, _) = listener.accept().await?;
+        let Ok(permit) = connections.clone().try_acquire_owned() else {
+            continue;
+        };
+        let trainer = trainer.clone();
+        let credential = credential.clone();
         tokio::spawn(async move {
-            if let Err(err) = handle_connection(stream, trainer, reward_tracker).await {
-                eprintln!("[WS] Connection error: {}", err);
-            }
+            let _permit = permit;
+            let _ = timeout(
+                Duration::from_secs(1800),
+                handle_connection(stream, trainer, credential),
+            )
+            .await;
         });
     }
-
-    Ok(())
 }
 
 async fn handle_connection(
-    stream: tokio::net::TcpStream,
+    mut stream: TcpStream,
     trainer: Arc<SacAsyncTrainer>,
-    reward_tracker: Arc<Mutex<RewardTracker>>,
+    credential: Arc<Option<String>>,
 ) -> anyhow::Result<()> {
-    let mut ws = accept_async(stream).await?;
-    let mut last_obs: Option<Vec<f32>> = None;
-    let mut last_action: Option<Vec<f32>> = None;
+    let mut peek = [0u8; 512];
+    let n = timeout(Duration::from_secs(5), stream.peek(&mut peek)).await??;
+    let request = String::from_utf8_lossy(&peek[..n]);
+    if request.starts_with("GET /health") || request.starts_with("HEAD /health") {
+        timeout(
+            Duration::from_secs(5),
+            stream
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok"),
+        )
+        .await??;
+        return Ok(());
+    }
+    let mut trusted = false;
+    let config = WebSocketConfig::default()
+        .max_message_size(Some(8192))
+        .max_frame_size(Some(8192));
+    let mut ws = timeout(
+        Duration::from_secs(5),
+        accept_hdr_async_with_config(
+            stream,
+            |request: &Request, response: Response| {
+                trusted = can_train(request, credential.as_deref())?;
+                Ok(response)
+            },
+            Some(config),
+        ),
+    )
+    .await??;
 
-    while let Some(msg) = ws.next().await {
-        let msg = msg?;
-        if !msg.is_text() {
+    let mut previous: Option<(Vec<f32>, Vec<f32>)> = None;
+    let mut total_reward = 0.0f32;
+    let mut rate = (Instant::now(), 0u32);
+    while let Some(message) = timeout(Duration::from_secs(60), ws.next()).await? {
+        let message = message?;
+        if !message.is_text() {
             continue;
         }
-        let text = msg.into_text()?;
-        let obs_msg: ObservationMsg = match serde_json::from_str(&text) {
-            Ok(v) => v,
-            Err(_) => {
-                let err = json!({"error": "invalid_observation"}).to_string();
-                let _ = ws.send(Message::Text(err.into())).await;
-                continue;
+        if rate.0.elapsed() >= Duration::from_secs(1) {
+            rate = (Instant::now(), 0);
+        }
+        rate.1 += 1;
+        if rate.1 > 120 {
+            break;
+        }
+        let observation: ObservationMsg = serde_json::from_str(&message.into_text()?)?;
+        anyhow::ensure!(
+            observation.obs.len() == robot::rl::OBS_DIM
+                && observation
+                    .obs
+                    .iter()
+                    .all(|x| x.is_finite() && x.abs() <= 10000.0)
+                && observation.reward.is_finite()
+                && observation.reward.abs() <= 10000.0,
+            "invalid observation"
+        );
+        if trusted {
+            total_reward = (total_reward + observation.reward).clamp(-1e9, 1e9);
+            if observation.done {
+                trainer.record_episode(total_reward, trainer.get_stats().curriculum_stage);
+                total_reward = 0.0;
             }
-        };
-
-        {
-            let mut tracker = reward_tracker.lock().await;
-            tracker.add_reward(obs_msg.reward);
-            if obs_msg.done {
-                tracker.end_episode();
+            if let Some((state, action)) = previous.take() {
+                trainer.add_transition(Transition {
+                    state,
+                    action,
+                    reward: observation.reward,
+                    next_state: observation.obs.clone(),
+                    done: observation.done && !observation.truncated,
+                });
             }
         }
-
-        if let (Some(prev_obs), Some(prev_action)) = (last_obs.take(), last_action.take()) {
-            let transition = Transition {
-                state: prev_obs,
-                action: prev_action,
-                reward: obs_msg.reward,
-                next_state: obs_msg.obs.clone(),
-                done: obs_msg.done,
-            };
-            trainer.add_transition(transition);
-        }
-
-        let action = trainer.get_action(&obs_msg.obs);
-
-        let sac_stats = trainer.get_stats();
-        let (ep_count, avg_reward, recent_avg) = reward_tracker.lock().await.get_stats();
-        let stats_msg = TrainStatsMsg {
-            buffer_size: sac_stats.buffer_len,
-            train_steps: sac_stats.train_steps_done,
-            episodes: ep_count,
-            avg_reward,
-            recent_reward: recent_avg,
-        };
-
-        let action_msg = ActionMsg {
+        let worker = trainer.clone();
+        let obs = observation.obs.clone();
+        let action = tokio::task::spawn_blocking(move || worker.get_action(&obs)).await?;
+        let stats = trainer.get_stats();
+        let response = ActionMsg {
             action: action.clone(),
-            stats: Some(stats_msg),
+            stats: Some(TrainStatsMsg {
+                buffer_size: stats.buffer_len,
+                train_steps: stats.train_steps_done,
+                episodes: stats.episodes_completed,
+                avg_reward: stats.avg_reward,
+                recent_reward: stats.recent_reward,
+                curriculum_stage: Some(stats.curriculum_stage),
+            }),
         };
-        let action_text = serde_json::to_string(&action_msg)?;
-        ws.send(Message::Text(action_text.into())).await?;
-
-        if obs_msg.done {
-            last_obs = None;
-            last_action = None;
-        } else {
-            last_obs = Some(obs_msg.obs);
-            last_action = Some(action);
+        timeout(
+            Duration::from_secs(5),
+            ws.send(Message::Text(serde_json::to_string(&response)?.into())),
+        )
+        .await??;
+        if trusted && !observation.done {
+            previous = Some((observation.obs, action));
         }
     }
-
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn only_authenticated_connections_can_train() {
+        let token = "a-test-training-credential-at-least-32-bytes";
+        let public = Request::builder().body(()).unwrap();
+        assert!(!can_train(&public, Some(token)).unwrap());
+        let authenticated = Request::builder()
+            .header("authorization", format!("Bearer {token}"))
+            .body(())
+            .unwrap();
+        assert!(can_train(&authenticated, Some(token)).unwrap());
+        assert!(can_train(&authenticated, None).is_err());
+        assert!(can_train(
+            &authenticated,
+            Some("different-training-credential-32-bytes")
+        )
+        .is_err());
+    }
 }

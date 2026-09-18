@@ -1,7 +1,6 @@
 "use client";
 
 import { definer as terraformDefiner } from "@taga3s/highlightjs-terraform";
-import type { Schema } from "hast-util-sanitize";
 import "highlight.js/styles/github-dark.css";
 import parse from "html-react-parser";
 import "katex/dist/katex.min.css";
@@ -10,7 +9,7 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
 import rehypeParse from "rehype-parse";
 import rehypeRaw from "rehype-raw";
-import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
+import rehypeSanitize, { defaultSchema, type Options } from "rehype-sanitize";
 import rehypeStringify from "rehype-stringify";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -22,7 +21,7 @@ interface MarkdownRendererProps {
 	className?: string;
 }
 
-const safeHtmlSchema: Schema = {
+const safeHtmlSchema: Options = {
 	...defaultSchema,
 	attributes: {
 		...defaultSchema.attributes,

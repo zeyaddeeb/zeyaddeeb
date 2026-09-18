@@ -25,18 +25,18 @@ COPY assets ./assets
 RUN rustup target add wasm32-unknown-unknown
 RUN cargo install wasm-bindgen-cli
 
-RUN cargo build --release --bin robot-wasm --target wasm32-unknown-unknown --no-default-features --features wasm
+RUN cargo build --locked --release --bin robot-wasm --target wasm32-unknown-unknown --no-default-features --features wasm
 RUN wasm-bindgen --target web --out-dir /out/web --out-name robot_wasm \
     target/wasm32-unknown-unknown/release/robot-wasm.wasm
 RUN cp web/index.html /out/web/index.html
 RUN cp -r assets /out/web/assets
 
-RUN cargo build --release --bin ws-server
+RUN cargo build --locked --release --bin ws-server
 RUN cp target/release/ws-server /out/ws-server
 
-FROM nginx:alpine AS web
+FROM nginxinc/nginx-unprivileged:alpine AS web
 COPY --from=builder /out/web /usr/share/nginx/html
-EXPOSE 80
+EXPOSE 8080
 CMD ["nginx", "-g", "daemon off;"]
 
 FROM debian:bookworm-slim AS server
@@ -54,8 +54,8 @@ RUN apt-get update \
     libxrender1 \
     libxfixes3 \
     && rm -rf /var/lib/apt/lists/*
-RUN useradd -m -u 1000 app
+RUN groupadd --gid 1000 app && useradd --uid 1000 --gid 1000 --create-home app
 COPY --from=builder /out/ws-server /usr/local/bin/ws-server
-USER app
+USER 1000:1000
 EXPOSE 9001
 ENTRYPOINT ["/usr/local/bin/ws-server"]

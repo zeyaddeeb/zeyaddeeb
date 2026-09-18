@@ -1,3 +1,8 @@
+# One persisted model shared by all visitors. Do not scale independent trainers.
+replicaCount: 1
+autoscaling:
+  enabled: false
+
 fullnameOverride: "robot-ws"
 
 image:
@@ -9,6 +14,10 @@ strategy:
 
 podSecurityContext:
   fsGroup: 1000
+
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
 
 service:
   type: ClusterIP

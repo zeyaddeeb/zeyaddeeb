@@ -70,13 +70,20 @@ pub struct SACAgent {
     pub replay_buffer: ReplayBuffer,
 
     pub is_training: bool,
+    pub resumed: bool,
 }
 
 impl SACAgent {
     pub fn new_or_load(checkpoint_dir: &str) -> CResult<Self> {
         let checkpoint_path = Path::new(checkpoint_dir);
         if checkpoint_path.join(POLICY_CHECKPOINT).exists() {
-            Self::new_internal(Some(checkpoint_dir))
+            Self::new_internal(Some(checkpoint_dir)).or_else(|e| {
+                println!(
+                    "[SAC] Checkpoint in {} is incompatible ({}) - starting fresh",
+                    checkpoint_dir, e
+                );
+                Self::new_internal(None)
+            })
         } else {
             Self::new_internal(None)
         }
@@ -172,7 +179,10 @@ impl SACAgent {
         if let Some(dir) = checkpoint_dir {
             let buffer_path = Path::new(dir).join(BUFFER_CHECKPOINT);
             if buffer_path.exists() {
-                match replay_buffer.load(&buffer_path) {
+                match replay_buffer
+                    .load(&buffer_path)
+                    .map(|_| replay_buffer.retain_shape(OBS_DIM, ACT_DIM))
+                {
                     Ok(_) => println!(
                         "[SAC] Loaded replay buffer: {} samples",
                         replay_buffer.len()
@@ -203,6 +213,7 @@ impl SACAgent {
             target_entropy: SAC_TARGET_ENTROPY,
             replay_buffer,
             is_training: true,
+            resumed: checkpoint_dir.is_some(),
         })
     }
 
@@ -270,7 +281,7 @@ impl SACAgent {
 
         let rewards: Vec<f32> = batch
             .iter()
-            .map(|t| (t.reward * REWARD_SCALE).clamp(-10.0, 10.0))
+            .map(|t| (t.reward * REWARD_SCALE).clamp(-10.0, 100.0))
             .collect();
         let rewards = Tensor::from_vec(rewards, (BATCH_SIZE, 1), &dev)?;
 
@@ -357,7 +368,9 @@ impl SACAgent {
         self.log_alpha
             .as_tensor()
             .exp()
-            .and_then(|t| t.to_vec0())
+            .and_then(|t| t.to_vec1::<f32>())
+            .ok()
+            .and_then(|v| v.first().copied())
             .unwrap_or(SAC_ALPHA_INIT)
     }
 }

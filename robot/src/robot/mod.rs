@@ -1,6 +1,7 @@
 mod builder;
 mod components;
 mod constants;
+mod episode;
 mod observation;
 mod reset;
 mod resources;
@@ -8,6 +9,8 @@ mod setup;
 mod state;
 mod torque;
 
+#[cfg(feature = "native")]
+mod headless;
 #[cfg(feature = "native")]
 mod training;
 #[cfg(feature = "native")]
@@ -20,6 +23,8 @@ pub use builder::spawn_robot;
 pub use reset::{get_initial_poses, reset_robot_positions, BodyPartPose, RobotPoses};
 pub use setup::*;
 
+#[cfg(feature = "native")]
+pub use headless::run_headless;
 #[cfg(feature = "native")]
 pub use training::*;
 #[cfg(feature = "native")]

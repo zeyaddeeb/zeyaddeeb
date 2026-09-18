@@ -21,6 +21,9 @@ pub struct RobotState {
     pub torso_pos: Vec3,
     pub torso_up: Vec3,
     pub torso_ang_vel: Vec3,
+    pub torso_lin_vel: Vec3,
+    pub hand_pos: Vec3,
+    pub hand_vel: Vec3,
     pub torso: JointState,
 
     pub shoulder: JointState,
@@ -86,7 +89,7 @@ pub type JointReadQuery<'w, 's> = Query<
     's,
     (
         &'static Transform,
-        &'static AngularVelocity,
+        (&'static AngularVelocity, &'static LinearVelocity),
         Option<&'static RobotTorso>,
         Option<&'static RobotUpperArm>,
         Option<&'static RobotForearm>,
@@ -118,6 +121,17 @@ pub type JointReadQuery<'w, 's> = Query<
     )>,
 >;
 
+pub type BallQuery<'w, 's> = Query<
+    'w,
+    's,
+    (
+        &'static mut Position,
+        &'static mut LinearVelocity,
+        &'static mut AngularVelocity,
+    ),
+    With<Basketball>,
+>;
+
 pub fn extract_robot_state(query: &JointReadQuery) -> Option<RobotState> {
     let mut state = RobotState::default();
     let mut torso_raw = None;
@@ -136,7 +150,7 @@ pub fn extract_robot_state(query: &JointReadQuery) -> Option<RobotState> {
 
     for (
         tf,
-        ang_vel,
+        (ang_vel, lin_vel),
         torso,
         upper,
         forearm,
@@ -162,12 +176,15 @@ pub fn extract_robot_state(query: &JointReadQuery) -> Option<RobotState> {
             state.torso_pos = tf.translation;
             state.torso_up = up_vec;
             state.torso_ang_vel = ang3;
+            state.torso_lin_vel = lin_vel.0;
         } else if upper.is_some() {
             upper_raw = Some((angle, vel));
         } else if forearm.is_some() {
             forearm_raw = Some((angle, vel));
         } else if hand.is_some() {
             hand_raw = Some((angle, vel));
+            state.hand_pos = tf.translation;
+            state.hand_vel = lin_vel.0;
         } else if left_upper.is_some() {
             left_upper_raw = Some((angle, vel));
         } else if left_forearm.is_some() {

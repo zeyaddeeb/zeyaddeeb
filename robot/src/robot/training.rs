@@ -1,86 +1,20 @@
-use avian3d::prelude::*;
 use bevy::prelude::*;
 
-use super::components::*;
-use super::constants::*;
-use super::observation::{compute_reward_components_curriculum, get_observation};
+use super::episode::*;
+use super::observation::{
+    compute_reward_components, get_observation, release_reward, BASKET_REWARD,
+};
 use super::resources::*;
-use super::state::{extract_robot_state, JointReadQuery};
+use super::state::{extract_robot_state, BallQuery, JointReadQuery};
 use super::torque::{apply_torques, ComputedTorques, TorqueWriteQuery};
 #[cfg(feature = "native")]
 use crate::rl::{Transition, ACT_DIM};
 
-const TORSO_FALL_Y: f32 = 0.40;
-const SETTLE_STEPS: usize = 60;
-const BOUNDS_SIZE: f32 = 5.0;
-
-#[derive(Debug, Clone, Copy)]
-pub enum EpisodeEndReason {
-    BallSettled,
-    BallFell,
-    TorsoFell,
-    TimedOut,
-    OutOfBounds,
-    BasketMade,
-}
-
-fn is_out_of_bounds(pos: Vec3) -> bool {
-    pos.x.abs() > BOUNDS_SIZE || pos.z.abs() > BOUNDS_SIZE
-}
-
-impl EpisodeEndReason {
-    fn check(
-        ball_pos: Vec3,
-        ball_vel: Vec3,
-        torso_pos: Vec3,
-        ball_released: bool,
-        basket_made: bool,
-        step: usize,
-        max_steps: usize,
-    ) -> Option<Self> {
-        let ball_settled = ball_released && ball_vel.length() < 0.05 && step > 60;
-        let ball_fell = ball_pos.y < -0.5;
-        let torso_fell = step > SETTLE_STEPS && torso_pos.y < TORSO_FALL_Y;
-        let timed_out = step >= max_steps;
-        let out_of_bounds = is_out_of_bounds(torso_pos) || is_out_of_bounds(ball_pos);
-
-        if basket_made {
-            Some(Self::BasketMade)
-        } else if out_of_bounds {
-            Some(Self::OutOfBounds)
-        } else if torso_fell {
-            Some(Self::TorsoFell)
-        } else if ball_fell {
-            Some(Self::BallFell)
-        } else if ball_settled {
-            Some(Self::BallSettled)
-        } else if timed_out {
-            Some(Self::TimedOut)
-        } else {
-            None
-        }
-    }
-
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::BallSettled => "ball_settled",
-            Self::BallFell => "ball_fell",
-            Self::TorsoFell => "torso_fell",
-            Self::TimedOut => "timed_out",
-            Self::OutOfBounds => "out_of_bounds",
-            Self::BasketMade => "basket_made",
-        }
-    }
-}
-
 pub fn training_loop(
-    #[cfg(feature = "native")] _commands: Commands,
     #[cfg(feature = "native")] mut training: ResMut<TrainingState>,
     #[cfg(feature = "native")] robot: Option<Res<RobotEntities>>,
-    #[cfg(feature = "native")] _time: Res<Time>,
     #[cfg(feature = "native")] mut zenoh: Option<ResMut<ZenohBridge>>,
-    mut queries: ParamSet<(JointReadQuery, TorqueWriteQuery)>,
-    ball_query: Query<(&Transform, &LinearVelocity), With<Basketball>>,
+    mut queries: ParamSet<(JointReadQuery, TorqueWriteQuery, BallQuery)>,
 ) {
     #[cfg(not(feature = "native"))]
     {
@@ -94,6 +28,10 @@ pub fn training_loop(
         }
 
         let Some(_robot) = robot else { return };
+
+        if training.needs_reset {
+            return;
+        }
 
         if training.cooldown > 0 {
             training.cooldown -= 1;
@@ -109,65 +47,60 @@ pub fn training_loop(
             return;
         };
 
-        let Ok((ball_tf, ball_vel)) = ball_query.single() else {
-            return;
+        let (ball_pos, ball_v) = {
+            let mut q = queries.p2();
+            let Ok((mut pos, mut lin_vel, mut ang_vel)) = q.single_mut() else {
+                return;
+            };
+            if !training.ball_released {
+                pos.0 = held_ball_position(state.hand_pos);
+                lin_vel.0 = state.hand_vel;
+                ang_vel.0 = Vec3::ZERO;
+            }
+            (pos.0, lin_vel.0)
         };
 
-        let ball_pos = ball_tf.translation;
-        let ball_v = Vec3::new(ball_vel.x, ball_vel.y, ball_vel.z);
-
-        let obs = get_observation(
-            &state.joint_angles(),
-            &state.joint_velocities(),
-            ball_pos,
-            ball_v,
-        );
-
-        let dist_to_hoop = (ball_pos - HOOP_POS).length();
-        let basket_made = dist_to_hoop < 0.3;
+        let obs = get_observation(&state, ball_pos, ball_v, training.ball_released);
 
         let end_reason = EpisodeEndReason::check(
             ball_pos,
-            ball_v,
             state.torso_pos,
+            state.torso_up,
             training.ball_released,
-            basket_made,
             training.step,
             crate::rl::EPISODE_STEPS,
         );
+        let terminal = end_reason.is_some_and(|r| r.is_terminal());
 
         if let (Some(prev_obs), Some(prev_action)) =
-            (training.prev_obs.clone(), training.prev_action.clone())
+            (training.prev_obs.take(), training.prev_action.take())
         {
-            let (comps, stage_success) = compute_reward_components_curriculum(
+            let comps = compute_reward_components(
+                &state,
+                &prev_action,
                 ball_pos,
                 ball_v,
                 training.ball_released,
-                false,
-                state.torso_pos,
-                state.torso_up,
-                state.left_foot_pos,
-                state.right_foot_pos,
                 training.curriculum_stage,
             );
 
-            if stage_success {
-                training.stage_success_streak += 1;
-            } else {
-                training.stage_success_streak = 0;
+            let mut reward = comps.stand + comps.throw;
+            if training.ball_released && training.steps_since_release == 0 {
+                reward += release_reward(ball_pos, ball_v);
+                let miss = shot_miss_distance(ball_pos, ball_v);
+                training.shot_miss_ema =
+                    Some(training.shot_miss_ema.map_or(miss, |ema| 0.95 * ema + 0.05 * miss));
+            }
+            if !training.ball_released {
+                training.episode_best_aim = training
+                    .episode_best_aim
+                    .min(shot_miss_distance(ball_pos, ball_v));
+            }
+            if end_reason == Some(EpisodeEndReason::BasketMade) {
+                reward += BASKET_REWARD;
             }
 
-            let reward = comps.stand + comps.throw;
-
             training.episode_reward += reward;
-
-            training.sac_trainer.add_transition(Transition {
-                state: prev_obs,
-                action: prev_action,
-                reward,
-                next_state: obs.clone(),
-                done: end_reason.is_some(),
-            });
 
             if let Some(bridge) = zenoh.as_deref_mut() {
                 let _ = bridge.obs_tx.send(ObservationMsg {
@@ -175,12 +108,34 @@ pub fn training_loop(
                     obs: obs.clone(),
                     reward,
                     done: end_reason.is_some(),
+                    truncated: end_reason.is_some() && !terminal,
                     ball_released: training.ball_released,
                 });
             }
+
+            let transition = Transition {
+                state: prev_obs,
+                action: prev_action,
+                reward,
+                next_state: obs.clone(),
+                done: terminal,
+            };
+            if training.headless {
+                training.sac_trainer.add_transition_blocking(transition);
+            } else {
+                training.sac_trainer.add_transition(transition);
+            }
         }
 
-        let mut action = if training.episode < 10 {
+        if let Some(reason) = end_reason {
+            finish_episode(&mut training, reason, ball_pos);
+            let mut q = queries.p1();
+            apply_torques(&mut q, &ComputedTorques::default());
+            return;
+        }
+
+        let warming_up = training.sac_trainer.needs_random_warmup();
+        let mut action = if warming_up {
             (0..ACT_DIM)
                 .map(|_| rand::random::<f32>() * 2.0 - 1.0)
                 .collect()
@@ -204,110 +159,108 @@ pub fn training_loop(
             apply_torques(&mut q, &torques);
         }
 
-        let release_signal = action[13];
-        if !training.ball_released && release_signal > 0.0 {
+        if training.ball_released {
+            training.steps_since_release += 1;
+        } else if should_release(training.curriculum_stage, training.step, action[13]) {
             training.ball_released = true;
         }
 
-        training.prev_obs = Some(obs.clone());
+        training.prev_obs = Some(obs);
         training.prev_action = Some(action);
         training.prev_torso_pos = Some(state.torso_pos);
         training.step += 1;
+    }
+}
 
-        if let Some(reason) = end_reason {
-            if !training.episode_reward_ema_initialized {
-                training.episode_reward_ema = training.episode_reward;
-                training.episode_reward_ema_initialized = true;
-            } else {
-                training.episode_reward_ema =
-                    0.95 * training.episode_reward_ema + 0.05 * training.episode_reward;
+#[cfg(feature = "native")]
+fn finish_episode(training: &mut TrainingState, reason: EpisodeEndReason, ball_pos: Vec3) {
+    if !training.episode_reward_ema_initialized {
+        training.episode_reward_ema = training.episode_reward;
+        training.episode_reward_ema_initialized = true;
+    } else {
+        training.episode_reward_ema =
+            0.95 * training.episode_reward_ema + 0.05 * training.episode_reward;
+    }
+
+    let is_best = training.episode_reward > training.best_episode_reward;
+    if is_best {
+        training.best_episode_reward = training.episode_reward;
+    }
+
+    if reason == EpisodeEndReason::BasketMade {
+        training.baskets_made += 1;
+    }
+
+    if (training.episode + 1) % 25 == 0 || reason == EpisodeEndReason::BasketMade {
+        info!(
+            "Episode {} [{}] ended: {} after {} steps | Reward: {:.2} | EMA: {:.2} | Best: {:.2} | Baskets: {}/{} | Shot miss: {:.2} m | Best aim while holding: {:.2} m | Train steps: {}",
+            training.episode,
+            training.curriculum_stage.as_str(),
+            reason.as_str(),
+            training.step,
+            training.episode_reward,
+            training.episode_reward_ema,
+            training.best_episode_reward,
+            training.baskets_made,
+            training.episode + 1,
+            training.shot_miss_ema.unwrap_or(f32::NAN),
+            training.best_aim_ema.unwrap_or(f32::NAN),
+            training.sac_trainer.get_stats().train_steps_done
+        );
+    }
+
+    training
+        .sac_trainer
+        .record_episode(training.episode_reward, training.curriculum_stage.index());
+
+    if (training.episode + 1) % 50 == 0 {
+        training.sac_trainer.save_checkpoint();
+    }
+
+    if (training.episode + 1) % 200 == 0 {
+        if let Ok(agent) = training.sac_trainer.agent.lock() {
+            let buffer_path = std::path::Path::new("checkpoints_sac").join("sac_buffer.bin");
+            if let Err(e) = agent.replay_buffer.save(&buffer_path) {
+                warn!("Failed to save replay buffer: {}", e);
             }
-
-            let is_best = training.episode_reward > training.best_episode_reward;
-            if is_best {
-                training.best_episode_reward = training.episode_reward;
-            }
-
-            if basket_made {
-                training.baskets_made += 1;
-            }
-
-            let should_log = (training.episode + 1) % 50 == 0 || is_best || basket_made;
-            if should_log {
-                info!(
-                "Episode {} [{}] ended: {} | Reward: {:.2} | EMA: {:.2} | Best: {:.2} | Baskets: {}/{} ({:.1}%)",
-                training.episode,
-                training.curriculum_stage.as_str(),
-                reason.as_str(),
-                training.episode_reward,
-                training.episode_reward_ema,
-                training.best_episode_reward,
-                training.baskets_made,
-                training.episode + 1,
-                (training.baskets_made as f32 / (training.episode + 1) as f32) * 100.0
-            );
-            }
-
-            if (training.episode + 1) % 10 == 0 || is_best {
-                info!("[Checkpoint] Saving at episode {}...", training.episode + 1);
-                training.sac_trainer.save_checkpoint();
-
-                if let Ok(agent) = training.sac_trainer.agent.lock() {
-                    let buffer_path =
-                        std::path::Path::new("checkpoints_sac").join("sac_buffer.bin");
-                    if let Err(e) = agent.replay_buffer.save(&buffer_path) {
-                        warn!("Failed to save replay buffer: {}", e);
-                    } else {
-                        info!(
-                            "[Checkpoint] Saved replay buffer ({} samples)",
-                            agent.replay_buffer.len()
-                        );
-                    }
-                }
-            }
-
-            training.stage_episodes += 1;
-            let success_threshold = 5;
-            let min_episodes_per_stage = 100;
-
-            if training.stage_episodes >= min_episodes_per_stage
-                && training.stage_success_streak >= success_threshold
-            {
-                let next_stage = match training.curriculum_stage {
-                    CurriculumStage::Standing => {
-                        info!(
-                        "[Curriculum] Advancing to ApproachBall after {} episodes with {} successes!",
-                        training.stage_episodes,
-                        training.stage_success_streak
-                    );
-                        Some(CurriculumStage::ApproachBall)
-                    }
-                    CurriculumStage::ApproachBall => {
-                        info!(
-                        "[Curriculum] Advancing to Shooting after {} episodes with {} successes!",
-                        training.stage_episodes,
-                        training.stage_success_streak
-                    );
-                        Some(CurriculumStage::Shooting)
-                    }
-                    CurriculumStage::Shooting => None,
-                };
-
-                if let Some(stage) = next_stage {
-                    training.curriculum_stage = stage;
-                    training.stage_episodes = 0;
-                    training.stage_success_streak = 0;
-                }
-            }
-
-            training.needs_reset = true;
-            training.cooldown = 30;
-            training.episode += 1;
-            training.step = 0;
-            training.episode_reward = 0.0;
-            training.ball_released = false;
-            training.prev_obs = None;
-            training.prev_action = None;
         }
     }
+
+    if reason.is_stage_success(training.curriculum_stage, ball_pos) {
+        training.stage_success_streak += 1;
+    } else {
+        training.stage_success_streak = 0;
+    }
+    training.stage_episodes += 1;
+
+    if training.stage_episodes >= STAGE_MIN_EPISODES
+        && training.stage_success_streak >= STAGE_SUCCESS_STREAK
+    {
+        if let Some(stage) = next_stage(training.curriculum_stage) {
+            info!(
+                "[Curriculum] Advancing to {} after {} episodes",
+                stage.as_str(),
+                training.stage_episodes
+            );
+            training.curriculum_stage = stage;
+            training.stage_episodes = 0;
+            training.stage_success_streak = 0;
+        }
+    }
+
+    let aim = training.episode_best_aim;
+    if aim.is_finite() {
+        training.best_aim_ema = Some(training.best_aim_ema.map_or(aim, |ema| 0.95 * ema + 0.05 * aim));
+    }
+    training.episode_best_aim = f32::INFINITY;
+
+    training.needs_reset = true;
+    training.cooldown = RESET_COOLDOWN;
+    training.episode += 1;
+    training.step = 0;
+    training.episode_reward = 0.0;
+    training.ball_released = false;
+    training.steps_since_release = 0;
+    training.prev_obs = None;
+    training.prev_action = None;
 }

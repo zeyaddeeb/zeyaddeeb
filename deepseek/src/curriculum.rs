@@ -115,6 +115,7 @@ struct Parser {
     tokens: Vec<String>,
     pos: usize,
     vars: BTreeMap<String, (Value, bool)>,
+    depth: usize,
 }
 
 impl Parser {
@@ -147,6 +148,14 @@ impl Parser {
     }
 
     fn expr(&mut self, min: u8) -> Result<Value> {
+        ensure!(self.depth < 48, "Expression nesting exceeds 48 levels");
+        self.depth += 1;
+        let result = self.expr_inner(min);
+        self.depth -= 1;
+        result
+    }
+
+    fn expr_inner(&mut self, min: u8) -> Result<Value> {
         let mut lhs = if self.take("if") {
             let Value::Bool(condition) = self.expr(0)? else {
                 bail!("if needs a bool condition")
@@ -175,7 +184,10 @@ impl Parser {
             let Value::Int(v) = self.expr(4)? else {
                 bail!("Negation requires an integer")
             };
-            Value::Int(-v)
+            Value::Int(
+                v.checked_neg()
+                    .ok_or_else(|| anyhow::anyhow!("Integer overflow"))?,
+            )
         } else {
             let t = self.pop()?;
             match t.as_str() {
@@ -291,6 +303,7 @@ pub fn evaluate(code: &str, binding: &str) -> Result<Value> {
         tokens: lex(code)?,
         pos: 0,
         vars: BTreeMap::new(),
+        depth: 0,
     };
     p.run()?;
     Ok(p.vars
@@ -514,6 +527,17 @@ impl Rng {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn hostile_expressions_return_errors() {
+        assert!(evaluate("let x = -(-32 * 64 * 64 * 64 * 64 * 4);", "x").is_err());
+        let nested = format!("let x = {}1{};", "(".repeat(2000), ")".repeat(2000));
+        assert!(evaluate(&nested, "x").is_err());
+        assert!(Vocabulary::default().encode(&"x".repeat(4097)).is_err());
+        assert!(Vocabulary::default()
+            .encode("std::process::exit(0)")
+            .is_err());
+    }
+
     #[test]
     fn evaluator_checks_types_and_mutability() {
         assert_eq!(

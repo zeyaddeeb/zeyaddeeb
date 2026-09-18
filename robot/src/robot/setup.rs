@@ -5,7 +5,7 @@ use super::constants::*;
 use super::resources::*;
 
 #[cfg(feature = "native")]
-use crate::rl::{AsyncTrainer, SacAsyncTrainer};
+use crate::rl::SacAsyncTrainer;
 use avian3d::prelude::*;
 use bevy::prelude::*;
 
@@ -36,6 +36,7 @@ pub fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    #[cfg(feature = "native")] shared_trainer: Option<Res<SharedTrainer>>,
 ) {
     commands.spawn((
         DirectionalLight {
@@ -103,10 +104,10 @@ pub fn setup(
             Collider::sphere(BALL_RADIUS),
             ColliderDensity(20.0),
             CollisionMargin(0.02),
-            CollisionLayers::new(GameLayer::Ball, [GameLayer::Ground, GameLayer::Robot]),
+            CollisionLayers::new(GameLayer::Ball, [GameLayer::Ground]),
             Restitution::new(0.82),
             AngularDamping(0.3),
-            LinearDamping(0.2),
+            LinearDamping(0.0),
         ))
         .id();
 
@@ -150,11 +151,13 @@ pub fn setup(
 
     #[cfg(feature = "native")]
     {
-        let trainer = AsyncTrainer::new();
-        let sac_trainer = SacAsyncTrainer::new();
+        let (sac_trainer, headless) = match shared_trainer {
+            Some(shared) => (shared.trainer.clone(), shared.headless),
+            None => (std::sync::Arc::new(SacAsyncTrainer::new()), false),
+        };
         commands.insert_resource(TrainingState {
-            trainer,
             sac_trainer,
+            headless,
             episode: 0,
             step: 0,
             episode_reward: 0.0,
@@ -163,6 +166,10 @@ pub fn setup(
             best_episode_reward: f32::NEG_INFINITY,
             baskets_made: 0,
             ball_released: false,
+            steps_since_release: 0,
+            shot_miss_ema: None,
+            best_aim_ema: None,
+            episode_best_aim: f32::INFINITY,
             phase: if std::env::var("DEMO").is_ok() {
                 TrainingPhase::Showcasing
             } else {
@@ -198,6 +205,7 @@ pub fn setup(
             best_episode_reward: f32::NEG_INFINITY,
             baskets_made: 0,
             ball_released: false,
+            steps_since_release: 0,
             ball_entity: Some(ball),
             curriculum_stage: CurriculumStage::Standing,
             stage_episodes: 0,
@@ -206,6 +214,7 @@ pub fn setup(
             needs_reset: false,
             prev_obs: None,
             prev_action: None,
+            last_action: None,
             prev_torso_pos: Some(torso_pos),
             prev_left_foot_pos: None,
             prev_right_foot_pos: None,
@@ -262,7 +271,7 @@ pub fn respawn_ball(
             Collider::sphere(BALL_RADIUS),
             ColliderDensity(80.0),
             CollisionMargin(0.02),
-            CollisionLayers::new(GameLayer::Ball, [GameLayer::Ground, GameLayer::Robot]),
+            CollisionLayers::new(GameLayer::Ball, [GameLayer::Ground]),
             Restitution::new(0.7),
             Friction::new(0.6),
         ))

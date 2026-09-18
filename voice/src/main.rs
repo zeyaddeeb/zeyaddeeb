@@ -31,6 +31,17 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let state = AppState::new()?;
+    let sweeper = state.clone();
+    tokio::spawn(async move {
+        let mut tick = tokio::time::interval(std::time::Duration::from_secs(30));
+        loop {
+            tick.tick().await;
+            sweeper.sessions.retain(|_, session| {
+                session.connected_clients > 0
+                    || session.created.elapsed() < std::time::Duration::from_secs(60)
+            });
+        }
+    });
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods(Any)
@@ -68,7 +79,10 @@ async fn create_session(
     headers: HeaderMap,
 ) -> impl IntoResponse {
     let host = request_host(&headers).unwrap_or_else(|| addr.to_string());
-    Json(state.create_session(&host))
+    match state.create_session(&host) {
+        Some(session) => Json(session).into_response(),
+        None => (StatusCode::TOO_MANY_REQUESTS, "session capacity reached").into_response(),
+    }
 }
 
 async fn get_session(
@@ -104,7 +118,20 @@ async fn ws_upgrade(
     }
 
     let host = request_host(&headers).unwrap_or_else(|| addr.to_string());
-    ws.on_upgrade(move |socket| ws::handle(socket, session_id, state, host))
+    ws.max_message_size(256 * 1024)
+        .max_frame_size(256 * 1024)
+        .on_upgrade(move |socket| async move {
+            let handled = tokio::time::timeout(
+                std::time::Duration::from_secs(600),
+                ws::handle(socket, session_id, state.clone(), host),
+            )
+            .await;
+            if matches!(handled, Ok(false)) {
+                return;
+            }
+            rtc::close_session(&state, session_id).await;
+            state.sessions.remove(&session_id);
+        })
 }
 
 fn request_host(headers: &HeaderMap) -> Option<String> {

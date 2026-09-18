@@ -36,13 +36,12 @@ pub fn spawn_robot(
             Transform::from_translation(torso_pos),
             RigidBody::Dynamic,
             ConstantTorque::new(0.0, 0.0, 0.0),
-            Collider::cuboid(TORSO_SIZE_X / 2.0, TORSO_HEIGHT / 2.0, TORSO_SIZE_Z / 2.0),
-            ColliderDensity(100.0),
+            Collider::cuboid(TORSO_SIZE_X, TORSO_HEIGHT, TORSO_SIZE_Z),
+            ColliderDensity(180.0),
             CollisionMargin(0.001),
             CollisionLayers::new(GameLayer::Robot, [GameLayer::Ground, GameLayer::Ball]),
             Friction::new(0.3).with_combine_rule(CoefficientCombine::Average),
             Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
-            GravityScale(1.5),
             AngularDamping(0.5),
             LinearDamping(0.3),
         ))
@@ -82,8 +81,8 @@ pub fn spawn_robot(
                 .with_rotation(Quat::from_rotation_z(-PI / 2.0)),
             RigidBody::Dynamic,
             ConstantTorque::new(0.0, 0.0, 0.0),
-            Collider::capsule(UPPER_ARM_LENGTH / 2.0, UPPER_ARM_RADIUS),
-            ColliderDensity(80.0),
+            Collider::capsule(UPPER_ARM_RADIUS, UPPER_ARM_LENGTH),
+            ColliderDensity(400.0),
             CollisionMargin(0.001),
             CollisionLayers::new(GameLayer::Robot, [GameLayer::Ground, GameLayer::Ball]),
             LockedAxes::new(),
@@ -120,8 +119,8 @@ pub fn spawn_robot(
                 .with_rotation(Quat::from_rotation_z(-PI / 2.0)),
             RigidBody::Dynamic,
             ConstantTorque::new(0.0, 0.0, 0.0),
-            Collider::capsule(FOREARM_LENGTH / 2.0, FOREARM_RADIUS),
-            ColliderDensity(60.0),
+            Collider::capsule(FOREARM_RADIUS, FOREARM_LENGTH),
+            ColliderDensity(400.0),
             CollisionMargin(0.001),
             CollisionLayers::new(GameLayer::Robot, [GameLayer::Ground, GameLayer::Ball]),
             LockedAxes::new(),
@@ -157,7 +156,7 @@ pub fn spawn_robot(
             RigidBody::Dynamic,
             ConstantTorque::new(0.0, 0.0, 0.0),
             Collider::sphere(HAND_RADIUS),
-            ColliderDensity(50.0),
+            ColliderDensity(300.0),
             CollisionMargin(0.001),
             CollisionLayers::new(GameLayer::Robot, [GameLayer::Ground, GameLayer::Ball]),
             Friction::new(0.4).with_combine_rule(CoefficientCombine::Average),
@@ -192,8 +191,8 @@ pub fn spawn_robot(
                 .with_rotation(Quat::from_rotation_z(-PI / 2.0)),
             RigidBody::Dynamic,
             ConstantTorque::new(0.0, 0.0, 0.0),
-            Collider::capsule(UPPER_ARM_LENGTH / 2.0, UPPER_ARM_RADIUS),
-            ColliderDensity(80.0),
+            Collider::capsule(UPPER_ARM_RADIUS, UPPER_ARM_LENGTH),
+            ColliderDensity(400.0),
             CollisionMargin(0.001),
             CollisionLayers::new(GameLayer::Robot, [GameLayer::Ground, GameLayer::Ball]),
             LockedAxes::new().lock_rotation_x().lock_rotation_y(),
@@ -230,8 +229,8 @@ pub fn spawn_robot(
                 .with_rotation(Quat::from_rotation_z(-PI / 2.0)),
             RigidBody::Dynamic,
             ConstantTorque::new(0.0, 0.0, 0.0),
-            Collider::capsule(FOREARM_LENGTH / 2.0, FOREARM_RADIUS),
-            ColliderDensity(60.0),
+            Collider::capsule(FOREARM_RADIUS, FOREARM_LENGTH),
+            ColliderDensity(400.0),
             CollisionMargin(0.001),
             CollisionLayers::new(GameLayer::Robot, [GameLayer::Ground, GameLayer::Ball]),
             LockedAxes::new().lock_rotation_x().lock_rotation_y(),
@@ -267,7 +266,7 @@ pub fn spawn_robot(
             RigidBody::Dynamic,
             ConstantTorque::new(0.0, 0.0, 0.0),
             Collider::sphere(HAND_RADIUS),
-            ColliderDensity(50.0),
+            ColliderDensity(300.0),
             CollisionMargin(0.001),
             CollisionLayers::new(GameLayer::Robot, [GameLayer::Ground, GameLayer::Ball]),
             Friction::new(0.4).with_combine_rule(CoefficientCombine::Average),
@@ -301,8 +300,8 @@ pub fn spawn_robot(
             Transform::from_translation(left_thigh_pos),
             RigidBody::Dynamic,
             ConstantTorque::new(0.0, 0.0, 0.0),
-            Collider::capsule(THIGH_LENGTH / 2.0, THIGH_RADIUS),
-            ColliderDensity(80.0),
+            Collider::capsule(THIGH_RADIUS, THIGH_LENGTH),
+            ColliderDensity(800.0),
             CollisionMargin(0.001),
             CollisionLayers::new(GameLayer::Robot, [GameLayer::Ground, GameLayer::Ball]),
             Friction::new(0.3).with_combine_rule(CoefficientCombine::Average),
@@ -318,9 +317,9 @@ pub fn spawn_robot(
                 .with_local_anchor1(HIP_OFFSET_LEFT)
                 .with_local_anchor2(Vec3::new(0.0, THIGH_LENGTH / 2.0, 0.0))
                 .with_angle_limits(HIP_MIN, HIP_MAX)
-                .with_point_compliance(0.0005)
-                .with_align_compliance(0.0005)
-                .with_limit_compliance(0.001),
+                .with_point_compliance(0.00001)
+                .with_align_compliance(0.00001)
+                .with_limit_compliance(0.0001),
         )
         .id();
 
@@ -334,8 +333,8 @@ pub fn spawn_robot(
             Transform::from_translation(left_shin_pos),
             RigidBody::Dynamic,
             ConstantTorque::new(0.0, 0.0, 0.0),
-            Collider::capsule(SHIN_LENGTH / 2.0, SHIN_RADIUS),
-            ColliderDensity(120.0),
+            Collider::capsule(SHIN_RADIUS, SHIN_LENGTH),
+            ColliderDensity(700.0),
             CollisionMargin(0.001),
             CollisionLayers::new(GameLayer::Robot, [GameLayer::Ground, GameLayer::Ball]),
             Friction::new(0.3).with_combine_rule(CoefficientCombine::Average),
@@ -351,9 +350,9 @@ pub fn spawn_robot(
                 .with_local_anchor1(Vec3::new(0.0, -THIGH_LENGTH / 2.0, 0.0))
                 .with_local_anchor2(Vec3::new(0.0, SHIN_LENGTH / 2.0, 0.0))
                 .with_angle_limits(KNEE_MIN, KNEE_MAX)
-                .with_point_compliance(0.0005)
-                .with_align_compliance(0.0005)
-                .with_limit_compliance(0.001),
+                .with_point_compliance(0.00001)
+                .with_align_compliance(0.00001)
+                .with_limit_compliance(0.0001),
         )
         .id();
 
@@ -377,8 +376,8 @@ pub fn spawn_robot(
                 ..default()
             },
             ConstantTorque::new(0.0, 0.0, 0.0),
-            Collider::cuboid(FOOT_SIZE_X / 2.0, FOOT_SIZE_Y / 2.0, FOOT_SIZE_Z / 2.0),
-            ColliderDensity(50.0),
+            Collider::cuboid(FOOT_SIZE_X, FOOT_SIZE_Y, FOOT_SIZE_Z),
+            ColliderDensity(300.0),
             CollisionMargin(0.001),
             CollisionLayers::new(GameLayer::Robot, [GameLayer::Ground, GameLayer::Ball]),
             Friction::new(0.7).with_combine_rule(CoefficientCombine::Max),
@@ -408,8 +407,8 @@ pub fn spawn_robot(
             Transform::from_translation(right_thigh_pos),
             RigidBody::Dynamic,
             ConstantTorque::new(0.0, 0.0, 0.0),
-            Collider::capsule(THIGH_LENGTH / 2.0, THIGH_RADIUS),
-            ColliderDensity(80.0),
+            Collider::capsule(THIGH_RADIUS, THIGH_LENGTH),
+            ColliderDensity(800.0),
             CollisionMargin(0.001),
             CollisionLayers::new(GameLayer::Robot, [GameLayer::Ground, GameLayer::Ball]),
             Friction::new(0.3).with_combine_rule(CoefficientCombine::Average),
@@ -425,9 +424,9 @@ pub fn spawn_robot(
                 .with_local_anchor1(HIP_OFFSET_RIGHT)
                 .with_local_anchor2(Vec3::new(0.0, THIGH_LENGTH / 2.0, 0.0))
                 .with_angle_limits(HIP_MIN, HIP_MAX)
-                .with_point_compliance(0.0005)
-                .with_align_compliance(0.0005)
-                .with_limit_compliance(0.001),
+                .with_point_compliance(0.00001)
+                .with_align_compliance(0.00001)
+                .with_limit_compliance(0.0001),
         )
         .id();
 
@@ -441,8 +440,8 @@ pub fn spawn_robot(
             Transform::from_translation(right_shin_pos),
             RigidBody::Dynamic,
             ConstantTorque::new(0.0, 0.0, 0.0),
-            Collider::capsule(SHIN_LENGTH / 2.0, SHIN_RADIUS),
-            ColliderDensity(120.0),
+            Collider::capsule(SHIN_RADIUS, SHIN_LENGTH),
+            ColliderDensity(700.0),
             CollisionMargin(0.001),
             CollisionLayers::new(GameLayer::Robot, [GameLayer::Ground, GameLayer::Ball]),
             Friction::new(0.3).with_combine_rule(CoefficientCombine::Average),
@@ -458,9 +457,9 @@ pub fn spawn_robot(
                 .with_local_anchor1(Vec3::new(0.0, -THIGH_LENGTH / 2.0, 0.0))
                 .with_local_anchor2(Vec3::new(0.0, SHIN_LENGTH / 2.0, 0.0))
                 .with_angle_limits(KNEE_MIN, KNEE_MAX)
-                .with_point_compliance(0.0005)
-                .with_align_compliance(0.0005)
-                .with_limit_compliance(0.001),
+                .with_point_compliance(0.00001)
+                .with_align_compliance(0.00001)
+                .with_limit_compliance(0.0001),
         )
         .id();
 
@@ -484,8 +483,8 @@ pub fn spawn_robot(
                 ..default()
             },
             ConstantTorque::new(0.0, 0.0, 0.0),
-            Collider::cuboid(FOOT_SIZE_X / 2.0, FOOT_SIZE_Y / 2.0, FOOT_SIZE_Z / 2.0),
-            ColliderDensity(50.0),
+            Collider::cuboid(FOOT_SIZE_X, FOOT_SIZE_Y, FOOT_SIZE_Z),
+            ColliderDensity(300.0),
             CollisionMargin(0.001),
             CollisionLayers::new(GameLayer::Robot, [GameLayer::Ground, GameLayer::Ball]),
             Friction::new(0.7).with_combine_rule(CoefficientCombine::Max),

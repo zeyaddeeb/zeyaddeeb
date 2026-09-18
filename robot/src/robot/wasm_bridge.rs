@@ -1,4 +1,3 @@
-use avian3d::prelude::*;
 use bevy::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -7,28 +6,15 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{ErrorEvent, MessageEvent, WebSocket};
 
-use super::components::*;
-use super::constants::*;
-use super::observation::{compute_reward_components, get_observation};
+use super::episode::*;
+use super::observation::{
+    compute_reward_components, get_observation, release_reward, BASKET_REWARD,
+};
 use super::resources::CurriculumStage;
 use super::resources::{ActionMsg, ObservationMsg, SimulationState, TrainStatsMsg};
-use super::state::{extract_robot_state, JointReadQuery};
+use super::state::{extract_robot_state, BallQuery, JointReadQuery};
 use super::torque::{apply_torques, ComputedTorques, TorqueWriteQuery};
 use crate::rl::{ACT_DIM, EPISODE_STEPS};
-
-const TORSO_FALL_Y: f32 = 0.40;
-const SETTLE_STEPS: usize = 60;
-const BOUNDS_SIZE: f32 = 5.0;
-
-#[derive(Debug, Clone, Copy)]
-enum EpisodeEndReason {
-    BallSettled,
-    BallFell,
-    TorsoFell,
-    TimedOut,
-    OutOfBounds,
-    BasketMade,
-}
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum WsState {
@@ -124,7 +110,7 @@ impl WsBridge {
     }
 
     pub fn get_action(&self) -> Option<ActionMsg> {
-        self.action_queue.borrow_mut().pop()
+        self.action_queue.borrow_mut().drain(..).last()
     }
 
     pub fn is_connected(&self) -> bool {
@@ -177,61 +163,15 @@ pub fn ws_connection_system(mut bridge: ResMut<WsBridge>) {
     }
 }
 
-fn is_out_of_bounds(pos: Vec3) -> bool {
-    pos.x.abs() > BOUNDS_SIZE || pos.z.abs() > BOUNDS_SIZE
-}
-
-impl EpisodeEndReason {
-    fn check(
-        ball_pos: Vec3,
-        ball_vel: Vec3,
-        torso_pos: Vec3,
-        ball_released: bool,
-        basket_made: bool,
-        step: usize,
-        max_steps: usize,
-    ) -> Option<Self> {
-        let ball_settled = ball_released && ball_vel.length() < 0.05 && step > 60;
-        let ball_fell = ball_pos.y < -0.5;
-        let torso_fell = step > SETTLE_STEPS && torso_pos.y < TORSO_FALL_Y;
-        let timed_out = step >= max_steps;
-        let out_of_bounds = is_out_of_bounds(torso_pos) || is_out_of_bounds(ball_pos);
-
-        if basket_made {
-            Some(Self::BasketMade)
-        } else if out_of_bounds {
-            Some(Self::OutOfBounds)
-        } else if torso_fell {
-            Some(Self::TorsoFell)
-        } else if ball_fell {
-            Some(Self::BallFell)
-        } else if ball_settled {
-            Some(Self::BallSettled)
-        } else if timed_out {
-            Some(Self::TimedOut)
-        } else {
-            None
-        }
-    }
-
-    fn as_str(&self) -> &'static str {
-        match self {
-            Self::BallSettled => "ball_settled",
-            Self::BallFell => "ball_fell",
-            Self::TorsoFell => "torso_fell",
-            Self::TimedOut => "timed_out",
-            Self::OutOfBounds => "out_of_bounds",
-            Self::BasketMade => "basket_made",
-        }
-    }
-}
-
 pub fn wasm_training_loop(
     mut sim: ResMut<SimulationState>,
-    mut queries: ParamSet<(JointReadQuery, TorqueWriteQuery)>,
-    ball_query: Query<(&Transform, &LinearVelocity), With<Basketball>>,
+    mut queries: ParamSet<(JointReadQuery, TorqueWriteQuery, BallQuery)>,
     bridge: Option<Res<WsBridge>>,
 ) {
+    if sim.needs_reset {
+        return;
+    }
+
     if sim.cooldown > 0 {
         sim.cooldown -= 1;
         return;
@@ -244,89 +184,93 @@ pub fn wasm_training_loop(
 
     let Some(state) = state else { return };
 
-    let Ok((ball_tf, ball_vel)) = ball_query.single() else {
-        return;
+    let (ball_pos, ball_v) = {
+        let mut q = queries.p2();
+        let Ok((mut pos, mut lin_vel, mut ang_vel)) = q.single_mut() else {
+            return;
+        };
+        if !sim.ball_released {
+            pos.0 = held_ball_position(state.hand_pos);
+            lin_vel.0 = state.hand_vel;
+            ang_vel.0 = Vec3::ZERO;
+        }
+        (pos.0, lin_vel.0)
     };
 
-    let ball_pos = ball_tf.translation;
-    let ball_v = Vec3::new(ball_vel.x, ball_vel.y, ball_vel.z);
-
-    let obs = get_observation(
-        &state.joint_angles(),
-        &state.joint_velocities(),
-        ball_pos,
-        ball_v,
-    );
-
-    let dist_to_hoop = (ball_pos - HOOP_POS).length();
-    let basket_made = dist_to_hoop < 0.3;
+    let obs = get_observation(&state, ball_pos, ball_v, sim.ball_released);
 
     let end_reason = EpisodeEndReason::check(
         ball_pos,
-        ball_v,
         state.torso_pos,
+        state.torso_up,
         sim.ball_released,
-        basket_made,
         sim.step,
         EPISODE_STEPS,
     );
+    let terminal = end_reason.is_some_and(|r| r.is_terminal());
 
-    if let (Some(_prev_obs), Some(_prev_action)) = (sim.prev_obs.clone(), sim.prev_action.clone()) {
-        let (comps, _stage_success) = compute_reward_components(
+    let mut reward = 0.0;
+    if let Some(prev_action) = sim.prev_action.take() {
+        let comps = compute_reward_components(
+            &state,
+            &prev_action,
             ball_pos,
             ball_v,
             sim.ball_released,
-            false,
-            state.torso_pos,
-            state.torso_up,
-            state.left_foot_pos,
-            state.right_foot_pos,
             sim.curriculum_stage,
         );
 
-        let reward = comps.stand + comps.throw;
-        sim.episode_reward += reward;
-
-        if let Some(bridge) = bridge.as_ref() {
-            if bridge.is_connected() {
-                bridge.send_observation(&ObservationMsg {
-                    obs: obs.clone(),
-                    reward,
-                    done: end_reason.is_some(),
-                    step: sim.step as u64,
-                    ball_released: sim.ball_released,
-                });
-            }
+        reward = comps.stand + comps.throw;
+        if sim.ball_released && sim.steps_since_release == 0 {
+            reward += release_reward(ball_pos, ball_v);
         }
+        if end_reason == Some(EpisodeEndReason::BasketMade) {
+            reward += BASKET_REWARD;
+        }
+        sim.episode_reward += reward;
     }
 
-    let mut action = if let Some(bridge) = bridge.as_ref() {
-        if bridge.is_connected() {
-            if let Some(action_msg) = bridge.get_action() {
-                if let Some(stats) = action_msg.stats {
-                    update_training_stats(&stats);
-                    sim.server_stats = Some(stats);
+    let connected = bridge.as_ref().is_some_and(|b| b.is_connected());
+    if let Some(bridge) = bridge.as_ref().filter(|_| connected) {
+        bridge.send_observation(&ObservationMsg {
+            obs: obs.clone(),
+            reward,
+            done: end_reason.is_some(),
+            truncated: end_reason.is_some() && !terminal,
+            step: sim.step as u64,
+            ball_released: sim.ball_released,
+        });
+    }
+
+    if let Some(reason) = end_reason {
+        finish_episode(&mut sim, reason, ball_pos);
+        let mut q = queries.p1();
+        apply_torques(&mut q, &ComputedTorques::default());
+        return;
+    }
+
+    let fresh = bridge
+        .as_ref()
+        .filter(|_| connected)
+        .and_then(|b| b.get_action());
+    let mut action = match fresh {
+        Some(action_msg) => {
+            if let Some(stats) = action_msg.stats {
+                if let Some(stage) = stats.curriculum_stage {
+                    sim.curriculum_stage = CurriculumStage::from_index(stage);
                 }
-                action_msg.action
-            } else {
-                (0..ACT_DIM)
-                    .map(|_| rand::random::<f32>() * 2.0 - 1.0)
-                    .collect()
+                update_training_stats(&stats);
+                sim.server_stats = Some(stats);
             }
-        } else {
-            (0..ACT_DIM)
-                .map(|_| rand::random::<f32>() * 2.0 - 1.0)
-                .collect()
+            action_msg.action
         }
-    } else {
-        (0..ACT_DIM)
-            .map(|_| rand::random::<f32>() * 2.0 - 1.0)
-            .collect()
+        None => sim
+            .last_action
+            .clone()
+            .unwrap_or_else(|| vec![0.0; ACT_DIM]),
     };
 
-    if action.len() < ACT_DIM {
-        action.resize(ACT_DIM, 0.0);
-    }
+    action.resize(ACT_DIM, 0.0);
     for a in action.iter_mut() {
         if !a.is_finite() {
             *a = 0.0;
@@ -340,112 +284,83 @@ pub fn wasm_training_loop(
         apply_torques(&mut q, &torques);
     }
 
-    let release_signal = action.get(13).copied().unwrap_or(0.0);
-    if !sim.ball_released && release_signal > 0.0 {
+    if sim.ball_released {
+        sim.steps_since_release += 1;
+    } else if should_release(sim.curriculum_stage, sim.step, action[13]) {
         sim.ball_released = true;
     }
 
     sim.prev_obs = Some(obs);
+    sim.last_action = Some(action.clone());
     sim.prev_action = Some(action);
     sim.prev_torso_pos = Some(state.torso_pos);
     sim.prev_left_foot_pos = Some(state.left_foot_pos);
     sim.prev_right_foot_pos = Some(state.right_foot_pos);
     sim.step += 1;
+}
 
-    if let Some(reason) = end_reason {
-        if !sim.episode_reward_ema_initialized {
-            sim.episode_reward_ema = sim.episode_reward;
-            sim.episode_reward_ema_initialized = true;
-        } else {
-            sim.episode_reward_ema = 0.95 * sim.episode_reward_ema + 0.05 * sim.episode_reward;
-        }
+fn finish_episode(sim: &mut SimulationState, reason: EpisodeEndReason, ball_pos: Vec3) {
+    if !sim.episode_reward_ema_initialized {
+        sim.episode_reward_ema = sim.episode_reward;
+        sim.episode_reward_ema_initialized = true;
+    } else {
+        sim.episode_reward_ema = 0.95 * sim.episode_reward_ema + 0.05 * sim.episode_reward;
+    }
 
-        let is_best = sim.episode_reward > sim.best_episode_reward;
-        if is_best {
-            sim.best_episode_reward = sim.episode_reward;
-        }
+    if sim.episode_reward > sim.best_episode_reward {
+        sim.best_episode_reward = sim.episode_reward;
+    }
 
-        if basket_made {
-            sim.baskets_made += 1;
-        }
+    if reason == EpisodeEndReason::BasketMade {
+        sim.baskets_made += 1;
+    }
 
-        let (_final_comps, stage_success) = compute_reward_components(
-            ball_pos,
-            ball_v,
-            sim.ball_released,
-            true,
-            state.torso_pos,
-            state.torso_up,
-            state.left_foot_pos,
-            state.right_foot_pos,
-            sim.curriculum_stage,
-        );
+    if reason.is_stage_success(sim.curriculum_stage, ball_pos) {
+        sim.stage_success_streak += 1;
+    } else {
+        sim.stage_success_streak = 0;
+    }
+    sim.stage_episodes += 1;
 
-        if stage_success {
-            sim.stage_success_streak += 1;
-        } else {
+    if sim.stage_episodes >= STAGE_MIN_EPISODES && sim.stage_success_streak >= STAGE_SUCCESS_STREAK
+    {
+        if let Some(stage) = next_stage(sim.curriculum_stage) {
+            web_sys::console::log_1(
+                &format!(
+                    "Advancing to {} after {} episodes",
+                    stage.as_str(),
+                    sim.stage_episodes
+                )
+                .into(),
+            );
+            sim.curriculum_stage = stage;
+            sim.stage_episodes = 0;
             sim.stage_success_streak = 0;
         }
-
-        sim.stage_episodes += 1;
-        let success_threshold = 5;
-        let min_episodes_per_stage = 100;
-
-        if sim.stage_episodes >= min_episodes_per_stage
-            && sim.stage_success_streak >= success_threshold
-        {
-            let next_stage = match sim.curriculum_stage {
-                CurriculumStage::Standing => {
-                    web_sys::console::log_1(
-                        &format!(
-                            "Advancing to ApproachBall after {} episodes with {} successes!",
-                            sim.stage_episodes, sim.stage_success_streak
-                        )
-                        .into(),
-                    );
-                    Some(CurriculumStage::ApproachBall)
-                }
-                CurriculumStage::ApproachBall => {
-                    web_sys::console::log_1(
-                        &format!(
-                            "Advancing to Shooting after {} episodes with {} successes!",
-                            sim.stage_episodes, sim.stage_success_streak
-                        )
-                        .into(),
-                    );
-                    Some(CurriculumStage::Shooting)
-                }
-                CurriculumStage::Shooting => None,
-            };
-
-            if let Some(stage) = next_stage {
-                sim.curriculum_stage = stage;
-                sim.stage_episodes = 0;
-                sim.stage_success_streak = 0;
-            }
-        }
-
-        web_sys::console::log_1(
-            &format!(
-                "Episode {} ended: {} | Reward: {:.2} | EMA: {:.2} | Baskets: {}/{} ({:.1}%)",
-                sim.episode,
-                reason.as_str(),
-                sim.episode_reward,
-                sim.episode_reward_ema,
-                sim.baskets_made,
-                sim.episode + 1,
-                (sim.baskets_made as f32 / (sim.episode + 1) as f32) * 100.0
-            )
-            .into(),
-        );
-
-        sim.needs_reset = true;
-        sim.cooldown = 30;
-        sim.episode += 1;
-        sim.step = 0;
-        sim.episode_reward = 0.0;
-        sim.ball_released = false;
-        sim.prev_obs = None;
-        sim.prev_action = None;
     }
+
+    web_sys::console::log_1(
+        &format!(
+            "Episode {} ended: {} after {} steps | Reward: {:.2} | EMA: {:.2} | Baskets: {}/{}",
+            sim.episode,
+            reason.as_str(),
+            sim.step,
+            sim.episode_reward,
+            sim.episode_reward_ema,
+            sim.baskets_made,
+            sim.episode + 1
+        )
+        .into(),
+    );
+
+    sim.needs_reset = true;
+    sim.cooldown = RESET_COOLDOWN;
+    sim.episode += 1;
+    sim.step = 0;
+    sim.episode_reward = 0.0;
+    sim.ball_released = false;
+    sim.steps_since_release = 0;
+    sim.prev_obs = None;
+    sim.prev_action = None;
+    sim.last_action = None;
 }

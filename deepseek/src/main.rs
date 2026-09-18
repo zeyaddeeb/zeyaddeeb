@@ -1,6 +1,6 @@
 use axum::{
-    extract::{Path, State},
-    http::{header, StatusCode},
+    extract::{DefaultBodyLimit, Path, State},
+    http::{header, HeaderMap, StatusCode},
     response::{
         sse::{Event, KeepAlive, Sse},
         IntoResponse,
@@ -34,6 +34,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/sessions/{id}", get(get_session).delete(delete_session))
         .route("/sessions/{id}/commands", post(command))
         .route("/sessions/{id}/events", get(events))
+        .layer(DefaultBodyLimit::max(16 * 1024))
         .with_state(state.clone());
 
     let sweeper = state.clone();
@@ -93,16 +94,37 @@ async fn stats(State(state): State<AppState>) -> impl IntoResponse {
     }))
 }
 
-fn find(state: &AppState, id: &str) -> Result<Arc<Session>, (StatusCode, &'static str)> {
+fn find(
+    state: &AppState,
+    id: &str,
+    headers: &HeaderMap,
+) -> Result<Arc<Session>, (StatusCode, &'static str)> {
     let id = Uuid::from_str(id).map_err(|_| (StatusCode::BAD_REQUEST, "invalid session id"))?;
-    state
+    let session = state
         .session(id)
-        .ok_or((StatusCode::NOT_FOUND, "session not found"))
+        .ok_or((StatusCode::NOT_FOUND, "session not found"))?;
+    let token = headers
+        .get(header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .unwrap_or("");
+    if !session.authorized(token) {
+        return Err((StatusCode::FORBIDDEN, "invalid session capability"));
+    }
+    Ok(session)
 }
 
 async fn create_session(State(state): State<AppState>) -> impl IntoResponse {
     match state.create_session().await {
-        Ok(view) => (StatusCode::CREATED, Json(view)).into_response(),
+        Ok(view) => {
+            let token = state.session(view.id).expect("new session").access_token();
+            (
+                StatusCode::CREATED,
+                [("x-session-token", token)],
+                Json(view),
+            )
+                .into_response()
+        }
         Err(CreateError::Full) => (
             StatusCode::SERVICE_UNAVAILABLE,
             [(header::RETRY_AFTER, "30")],
@@ -115,8 +137,12 @@ async fn create_session(State(state): State<AppState>) -> impl IntoResponse {
     }
 }
 
-async fn get_session(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
-    match find(&state, &id) {
+async fn get_session(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    match find(&state, &id, &headers) {
         Ok(session) => Json(state.snapshot(&session)).into_response(),
         Err(error) => error.into_response(),
     }
@@ -125,8 +151,9 @@ async fn get_session(State(state): State<AppState>, Path(id): Path<String>) -> i
 async fn delete_session(
     State(state): State<AppState>,
     Path(id): Path<String>,
+    headers: HeaderMap,
 ) -> impl IntoResponse {
-    match find(&state, &id) {
+    match find(&state, &id, &headers) {
         Ok(session) => {
             tokio::spawn(async move { state.close(session.id, "session deleted").await });
             StatusCode::ACCEPTED.into_response()
@@ -138,9 +165,10 @@ async fn delete_session(
 async fn command(
     State(state): State<AppState>,
     Path(id): Path<String>,
+    headers: HeaderMap,
     Json(command): Json<ClientCommand>,
 ) -> impl IntoResponse {
-    match find(&state, &id) {
+    match find(&state, &id, &headers) {
         Ok(session) => {
             state.dispatch(session, command).await;
             StatusCode::ACCEPTED.into_response()
@@ -159,13 +187,19 @@ impl Drop for Reader {
     }
 }
 
-async fn events(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
-    let session = match find(&state, &id) {
+async fn events(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    let session = match find(&state, &id, &headers) {
         Ok(session) => session,
         Err(error) => return error.into_response(),
     };
+    if !state.connected(&session) {
+        return (StatusCode::TOO_MANY_REQUESTS, "too many readers").into_response();
+    }
     let (snapshot, mut receiver) = state.subscribe(&session);
-    state.connected(&session);
     let reader = Reader {
         state: state.clone(),
         session: session.clone(),
@@ -205,25 +239,34 @@ async fn events(State(state): State<AppState>, Path(id): Path<String>) -> impl I
 fn async_stream<F, Fut>(body: F) -> impl Stream<Item = Result<Event, Infallible>>
 where
     F: FnOnce(
-        Box<
-            dyn FnMut(
-                    deepseek_lab::protocol::Envelope,
-                ) -> futures_util::future::BoxFuture<'static, ()>
-                + Send,
-        >,
-    ) -> Fut,
+            Box<
+                dyn FnMut(
+                        deepseek_lab::protocol::Envelope,
+                    ) -> futures_util::future::BoxFuture<'static, ()>
+                    + Send,
+            >,
+        ) -> Fut
+        + Send
+        + 'static,
     Fut: std::future::Future<Output = ()> + Send + 'static,
 {
     let (tx, rx) = tokio::sync::mpsc::channel::<Event>(64);
+    let sender_tx = tx.clone();
     let sender = move |envelope: deepseek_lab::protocol::Envelope| -> futures_util::future::BoxFuture<'static, ()> {
-        let tx = tx.clone();
+        let tx = sender_tx.clone();
         Box::pin(async move {
             if let Ok(data) = serde_json::to_string(&envelope) {
                 let _ = tx.send(Event::default().id(envelope.seq.to_string()).data(data)).await;
             }
         })
     };
-    tokio::spawn(body(Box::new(sender)));
+    let disconnected = tx.clone();
+    tokio::spawn(async move {
+        tokio::select! {
+            _ = disconnected.closed() => {},
+            _ = body(Box::new(sender)) => {},
+        }
+    });
     futures_util::stream::unfold(rx, |mut rx| async move {
         rx.recv().await.map(|event| (Ok(event), rx))
     })

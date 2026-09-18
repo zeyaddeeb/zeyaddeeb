@@ -37,6 +37,12 @@ impl ReplayBuffer {
         self.buffer.len()
     }
 
+    pub fn retain_shape(&mut self, obs_dim: usize, act_dim: usize) {
+        self.buffer.retain(|t| {
+            t.state.len() == obs_dim && t.next_state.len() == obs_dim && t.action.len() == act_dim
+        });
+    }
+
     pub fn sample_batch(&self, batch_size: usize) -> Option<Vec<Transition>> {
         if self.len() < batch_size {
             return None;

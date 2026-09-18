@@ -15,7 +15,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 
-const ALLOWED_ADMIN_ID = process.env.ADMIN_ID || "admin";
+const ALLOWED_ADMIN_ID = process.env.ADMIN_ID;
 
 export type WriteResult<T> =
 	| { success: true; data: T }

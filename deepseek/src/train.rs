@@ -209,6 +209,7 @@ impl Brain {
     }
 
     pub fn set_specimen(&mut self, source: &str, code: &str, question: &str) -> Result<()> {
+        check_snippet(code, question)?;
         let mut ids = vec![BOS];
         ids.extend(self.vocab.encode(code)?);
         anyhow::ensure!(ids.len() > 1, "Write a line of Rust first.");
@@ -248,7 +249,7 @@ impl Brain {
     }
 
     pub fn set_focus(&mut self, position: usize) {
-        self.focus = position.clamp(1, self.specimen.ids.len() - 1);
+        self.focus = position.min(self.specimen.ids.len() - 1);
     }
 
     fn batch(&mut self, pretrain: bool) -> Result<Batch> {
@@ -1171,11 +1172,13 @@ pub fn interrupted(error: &anyhow::Error) -> bool {
 
 pub fn check_snippet(code: &str, question: &str) -> Result<()> {
     let vocab = Vocabulary::default();
+    let code_len = vocab.encode(code)?.len();
+    anyhow::ensure!(code_len > 0, "Write a line of Rust first.");
+    let question_len = vocab.encode(question)?.len();
     anyhow::ensure!(
-        !vocab.encode(code)?.is_empty(),
-        "Write a line of Rust first."
+        2 + code_len + question_len + ANSWER_TOKENS <= 48,
+        "That snippet is too long for a 48-token line."
     );
-    vocab.encode(question)?;
     let words: Vec<&str> = question.split_whitespace().collect();
     anyhow::ensure!(
         matches!(

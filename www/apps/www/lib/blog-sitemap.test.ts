@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@zeyaddeeb/db", () => {
+vi.mock("../../../packages/db/src/index", () => {
 	const collectionItem = { published: "collection.published" };
 	const post = { published: "post.published" };
 	return {

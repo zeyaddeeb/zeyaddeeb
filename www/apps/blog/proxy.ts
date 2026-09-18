@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 
-const ALLOWED_ADMIN_ID = process.env.ADMIN_ID || "admin";
+const ALLOWED_ADMIN_ID = process.env.ADMIN_ID;
 const BASE_PATH = "/blog";
 
 function buildRedirectUrl(path: string, request: NextRequest): URL {

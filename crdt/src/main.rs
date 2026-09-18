@@ -23,6 +23,14 @@ async fn main() -> anyhow::Result<()> {
     let db = db::connect().await?;
 
     let state = AppState::new(db);
+    let sweeper = state.clone();
+    tokio::spawn(async move {
+        let mut tick = tokio::time::interval(std::time::Duration::from_secs(30));
+        loop {
+            tick.tick().await;
+            sweeper.sweep().await;
+        }
+    });
 
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -66,5 +74,13 @@ async fn ws_upgrade(
     if doc_id.len() > 64 || !doc_id.chars().all(|c| c.is_alphanumeric() || c == '-') {
         return (StatusCode::BAD_REQUEST, "invalid doc_id").into_response();
     }
-    ws.on_upgrade(move |socket| ws::handle(socket, doc_id, state))
+    let Ok(permit) = state.connections.clone().try_acquire_owned() else {
+        return (StatusCode::TOO_MANY_REQUESTS, "server at capacity").into_response();
+    };
+    ws.max_message_size(4096)
+        .max_frame_size(4096)
+        .on_upgrade(move |socket| async move {
+            let _permit = permit;
+            ws::handle(socket, doc_id, state).await;
+        })
 }

@@ -27,7 +27,7 @@ pub async fn accept_offer(
     session_id: Uuid,
     state: AppState,
     sdp: String,
-    events: mpsc::UnboundedSender<ServerMessage>,
+    events: mpsc::Sender<ServerMessage>,
 ) -> anyhow::Result<String> {
     let peer = create_peer_connection(session_id, state.clone(), events).await?;
 
@@ -88,7 +88,7 @@ pub async fn close_session(state: &AppState, session_id: Uuid) {
 async fn create_peer_connection(
     session_id: Uuid,
     state: AppState,
-    events: mpsc::UnboundedSender<ServerMessage>,
+    events: mpsc::Sender<ServerMessage>,
 ) -> anyhow::Result<Arc<dyn PeerConnection>> {
     let mut media_engine = MediaEngine::default();
     media_engine.register_default_codecs()?;
@@ -143,7 +143,7 @@ fn udp_addr() -> String {
 struct SessionHandler {
     session_id: Uuid,
     state: AppState,
-    events: mpsc::UnboundedSender<ServerMessage>,
+    events: mpsc::Sender<ServerMessage>,
 }
 
 #[async_trait]
@@ -151,7 +151,7 @@ impl PeerConnectionEventHandler for SessionHandler {
     async fn on_ice_candidate(&self, event: RTCPeerConnectionIceEvent) {
         match event.candidate.to_json() {
             Ok(candidate) => {
-                let _ = self.events.send(ServerMessage::IceCandidate {
+                let _ = self.events.try_send(ServerMessage::IceCandidate {
                     candidate: candidate.candidate,
                 });
             }
@@ -190,7 +190,7 @@ impl PeerConnectionEventHandler for SessionHandler {
             return;
         }
 
-        let _ = self.events.send(ServerMessage::TrackStarted {
+        let _ = self.events.try_send(ServerMessage::TrackStarted {
             codec: mime_type.clone(),
         });
         info!("session {session_id} received WebRTC audio track: {mime_type}");

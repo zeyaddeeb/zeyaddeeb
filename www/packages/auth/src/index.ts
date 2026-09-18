@@ -2,7 +2,8 @@ import { db } from "@zeyaddeeb/db";
 import type { BetterAuthOptions, BetterAuthPlugin } from "better-auth";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { oAuthProxy } from "better-auth/plugins";
+import { APIError, createAuthMiddleware } from "better-auth/api";
+import { consumeLoginAttempt } from "./throttle";
 
 export function initAuth<
 	TExtraPlugins extends BetterAuthPlugin[] = [],
@@ -23,17 +24,22 @@ export function initAuth<
 		emailAndPassword: {
 			enabled: true,
 			requireEmailVerification: false,
+			disableSignUp: true,
 		},
-		plugins: [
-			oAuthProxy({
-				productionURL: options.productionUrl,
+		hooks: {
+			before: createAuthMiddleware(async (ctx) => {
+				if (ctx.path === "/sign-in/email" && !(await consumeLoginAttempt())) {
+					throw new APIError("TOO_MANY_REQUESTS", {
+						message: "Too many sign-in attempts. Try again in a minute.",
+					});
+				}
 			}),
-			...(options.extraPlugins ?? []),
-		],
+		},
+		plugins: [...(options.extraPlugins ?? [])],
 		socialProviders: {},
 		onAPIError: {
-			onError(error, ctx) {
-				console.error("BETTER AUTH API ERROR", error, ctx);
+			onError() {
+				console.error("Authentication request failed");
 			},
 		},
 	} satisfies BetterAuthOptions;
