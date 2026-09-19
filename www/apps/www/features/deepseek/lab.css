@@ -2206,12 +2206,38 @@
 		display: grid;
 	}
 
+	/* Keep the opening example and answers together on small screens. */
+	.ds[data-shot="cover"] .ds-screen {
+		grid-template-rows: auto auto;
+		min-height: 0;
+	}
+
+	.ds[data-shot="cover"] .ds-board {
+		grid-template-rows: auto auto;
+		gap: 24px;
+	}
+
+	.frame__stage .ds[data-shot="cover"] .ds-token {
+		grid-template-rows: auto;
+	}
+
+	.ds[data-shot="cover"] .ds-bar,
+	.ds[data-shot="cover"] .ds-token-p {
+		display: none;
+	}
+
+	.ds[data-shot="cover"] .ds-caption-band[data-pinned="true"] {
+		position: static;
+	}
+
 	.ds-figure .ds-choices {
+		display: block;
 		align-self: center;
-		gap: 16px;
 	}
 
 	.ds-figure .ds-choices legend {
+		float: none;
+		margin-bottom: 16px;
 		font-size: 24px;
 		letter-spacing: -0.03em;
 	}
