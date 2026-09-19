@@ -2223,8 +2223,8 @@
 	}
 
 	.frame__stage .ds .ds-figure .ds-choices button {
-		height: clamp(96px, 17svh, 140px);
-		font-size: 34px;
+		height: 60px;
+		font-size: 26px;
 	}
 
 	.ds-bet {
