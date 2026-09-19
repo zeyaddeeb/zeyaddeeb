@@ -106,10 +106,19 @@ impl SACAgent {
             {
                 candle_core::bail!("Invalid checkpoint generation");
             }
-            Self::new_internal(Some(root.join(generation.trim()).to_str().unwrap()))
+            let path = root.join(generation.trim());
+            let outdated = std::fs::read(path.join("metadata.json"))
+                .ok()
+                .and_then(|bytes| serde_json::from_slice::<CheckpointMetadata>(&bytes).ok())
+                .is_some_and(|metadata| metadata.environment_version < ENVIRONMENT_VERSION);
+            if outdated {
+                println!("[SAC] Checkpoint from an older environment replaced by a fresh version-{ENVIRONMENT_VERSION} training run");
+                return Self::new_internal(None);
+            }
+            Self::new_internal(Some(path.to_str().unwrap()))
         } else {
             if root.join(POLICY_CHECKPOINT).exists() {
-                println!("[SAC] Legacy environment checkpoint replaced by a fresh version-2 training run");
+                println!("[SAC] Legacy environment checkpoint replaced by a fresh version-{ENVIRONMENT_VERSION} training run");
             }
             Self::new_internal(None)
         }
@@ -237,7 +246,7 @@ impl SACAgent {
             mean.tanh()?
         };
 
-        Ok(action.squeeze(0)?.to_vec1()?)
+        action.squeeze(0)?.to_vec1()
     }
 
     fn sample_action_and_log_prob(&self, states: &Tensor) -> CResult<(Tensor, Tensor)> {

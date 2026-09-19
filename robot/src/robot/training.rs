@@ -4,6 +4,7 @@ use super::episode::*;
 use super::observation::{
     compute_reward_components, get_observation, release_reward, BASKET_REWARD,
 };
+use super::reset::release_ball;
 use super::resources::*;
 use super::state::{extract_robot_state, BallQuery, JointReadQuery};
 use super::torque::{apply_torques, ComputedTorques, TorqueWriteQuery};
@@ -14,6 +15,8 @@ pub fn training_loop(
     #[cfg(feature = "native")] mut training: ResMut<TrainingState>,
     #[cfg(feature = "native")] robot: Option<Res<RobotEntities>>,
     #[cfg(feature = "native")] mut zenoh: Option<ResMut<ZenohBridge>>,
+    #[cfg(feature = "native")] mut commands: Commands,
+    #[cfg(feature = "native")] grip: Option<Res<BallGrip>>,
     mut queries: ParamSet<(JointReadQuery, TorqueWriteQuery, BallQuery)>,
 ) {
     #[cfg(not(feature = "native"))]
@@ -48,15 +51,10 @@ pub fn training_loop(
         };
 
         let (ball_pos, ball_v) = {
-            let mut q = queries.p2();
-            let Ok((mut pos, mut lin_vel, mut ang_vel)) = q.single_mut() else {
+            let q = queries.p2();
+            let Ok((pos, lin_vel, _)) = q.single() else {
                 return;
             };
-            if !training.ball_released {
-                pos.0 = held_ball_position(state.hand_pos);
-                lin_vel.0 = state.hand_vel;
-                ang_vel.0 = Vec3::ZERO;
-            }
             (pos.0, lin_vel.0)
         };
 
@@ -180,6 +178,9 @@ pub fn training_loop(
             training.steps_since_release += 1;
         } else if should_release(training.curriculum_stage, training.step, action[13]) {
             training.ball_released = true;
+            if let Some(grip) = grip.as_deref() {
+                release_ball(&mut commands, grip);
+            }
         }
 
         training.prev_obs = Some(obs);
@@ -209,7 +210,7 @@ fn finish_episode(training: &mut TrainingState, reason: EpisodeEndReason, ball_p
         training.baskets_made += 1;
     }
 
-    if (training.episode + 1) % 25 == 0 || reason == EpisodeEndReason::BasketMade {
+    if (training.episode + 1).is_multiple_of(25) || reason == EpisodeEndReason::BasketMade {
         info!(
             "Episode {} [{}] ended: {} after {} steps | Reward: {:.2} | EMA: {:.2} | Best: {:.2} | Baskets: {}/{} | Shot miss: {:.2} m | Best aim while holding: {:.2} m | Train steps: {}",
             training.episode,
@@ -275,7 +276,7 @@ fn finish_episode(training: &mut TrainingState, reason: EpisodeEndReason, ball_p
             stage_success_streak: training.stage_success_streak,
             baskets_made: training.baskets_made,
         });
-    if training.episode % 200 == 0 {
+    if training.episode.is_multiple_of(200) {
         training.sac_trainer.save_checkpoint();
     }
     training.step = 0;

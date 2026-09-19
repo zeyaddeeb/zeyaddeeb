@@ -22,6 +22,12 @@ pub struct AsyncTrainer {
     pub agent: Arc<Mutex<DDPGAgent>>,
 }
 
+impl Default for AsyncTrainer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AsyncTrainer {
     pub fn new() -> Self {
         let (transition_tx, transition_rx) = channel::<Transition>();
@@ -126,11 +132,9 @@ fn training_worker(
 
         if steps_to_train > 0 {
             if let Ok(mut agent) = agent.lock() {
-                if agent.replay_buffer.len() >= BATCH_SIZE {
-                    if agent.train_step().is_ok() {
-                        if let Ok(mut s) = stats.try_lock() {
-                            s.train_steps_done += 1;
-                        }
+                if agent.replay_buffer.len() >= BATCH_SIZE && agent.train_step().is_ok() {
+                    if let Ok(mut s) = stats.try_lock() {
+                        s.train_steps_done += 1;
                     }
                 }
             }

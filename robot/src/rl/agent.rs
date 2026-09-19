@@ -210,7 +210,7 @@ impl DDPGAgent {
 
     pub fn save_checkpoint(&self, checkpoint_dir: &str) -> CResult<()> {
         let path = Path::new(checkpoint_dir);
-        std::fs::create_dir_all(path).map_err(|e| candle_core::Error::Io(e))?;
+        std::fs::create_dir_all(path).map_err(candle_core::Error::Io)?;
 
         self.actor_varmap.save(path.join(ACTOR_CHECKPOINT))?;
         self.target_actor_varmap

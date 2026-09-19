@@ -1,16 +1,15 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
 import {
 	type CSSProperties,
 	Fragment,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
 } from "react";
 import type { LayerTrace, ModelInfo, ProbeView } from "./protocol";
-import { useScrub } from "./scrub";
 
 const percent = (value: number) =>
 	value >= 0.995
@@ -18,11 +17,6 @@ const percent = (value: number) =>
 		: value < 0.01
 			? "<1%"
 			: `${Math.round(value * 100)}%`;
-
-const fine = (value: number) =>
-	value >= 0.1
-		? `${Math.round(value * 100)}%`
-		: `${(value * 100).toFixed(value >= 0.01 ? 1 : 2)}%`;
 
 function looks(layer: LayerTrace, length: number) {
 	const near = Array.from({ length }, (_, i) => layer.tokens[i] ?? 0);
@@ -165,9 +159,17 @@ interface LineProps {
 	answerOnly: boolean;
 	selected: number;
 	onSelect: (slot: number) => void;
-	inside: boolean;
+	covered: boolean;
+	bars: boolean;
+	rays: boolean;
 	layer: number | null;
-	hint: boolean;
+}
+
+interface Wire {
+	key: string;
+	path: string;
+	width: number;
+	via: "window" | "memory" | "rail";
 }
 
 export function Line({
@@ -176,9 +178,10 @@ export function Line({
 	answerOnly,
 	selected,
 	onSelect,
-	inside,
+	covered,
+	bars,
+	rays,
 	layer,
-	hint,
 }: LineProps) {
 	const { line, focus } = probe;
 	const tokens = line.tokens;
@@ -187,25 +190,123 @@ export function Line({
 		() => attention(focus.layers, layer, tokens.length),
 		[focus.layers, layer, tokens.length],
 	);
-	const strongest = Math.max(
-		0.05,
-		...look.near.map((near, i) => (i < selected ? near + look.far[i] : 0)),
-	);
 	const answer = line.answer[0];
 	const correct = line.truth !== null && answer?.text === line.truth;
+	const frame = useRef<HTMLDivElement>(null);
+	const [drawn, setDrawn] = useState<Wire[]>([]);
+	const lineKey = JSON.stringify([line.code, line.question]);
+
+	const seen = useMemo(() => {
+		const weights = tokens.map((_, i) =>
+			i < selected ? look.near[i] + look.far[i] : 0,
+		);
+		const strongest = Math.max(0.05, ...weights);
+		return weights.map((weight, i) => ({
+			strength: weight / strongest,
+			via: (look.far[i] > look.near[i] ? "memory" : "window") as
+				| "memory"
+				| "window",
+		}));
+	}, [tokens, selected, look]);
+	const lit = rays && traced;
+
+	useLayoutEffect(() => {
+		const root = frame.current;
+		if (!root || !lit) {
+			setDrawn([]);
+			return;
+		}
+		const measure = () => {
+			const box = root.getBoundingClientRect();
+			const source = root
+				.querySelector('[data-slot="true"]')
+				?.getBoundingClientRect();
+			if (!source) return setDrawn([]);
+			const sx = source.left + source.width / 2 - box.left;
+			const middle = (rect: DOMRect) => rect.top + rect.height / 2;
+			const targets = [...root.querySelectorAll<HTMLElement>("[data-index]")]
+				.map((node) => ({
+					index: Number(node.dataset.index),
+					rect: node.getBoundingClientRect(),
+				}))
+				.filter(({ index }) => (seen[index]?.strength ?? 0) >= 0.1);
+			const beside = targets.filter(
+				({ rect }) =>
+					Math.abs(middle(rect) - middle(source)) < source.height / 2,
+			);
+			const above = targets.filter(
+				({ rect }) => rect.bottom <= source.top + source.height / 2,
+			);
+			const onRow = beside.length > 0 && beside.length >= above.length;
+			const floor = Math.max(0, ...above.map(({ rect }) => rect.bottom));
+			const reached = onRow
+				? beside
+				: above.filter(({ rect }) => floor - rect.bottom < rect.height / 2);
+			if (!reached.length) return setDrawn([]);
+			const rail = onRow
+				? Math.min(source.top, ...reached.map(({ rect }) => rect.top)) -
+					box.top -
+					16
+				: (floor + 8 + source.top) / 2 - box.top;
+			const xs = reached.map(
+				({ rect }) => rect.left + rect.width / 2 - box.left,
+			);
+			const from = source.top - box.top - 3;
+			const next: Wire[] = [
+				{
+					key: "rail",
+					path: `M${Math.min(sx, ...xs).toFixed(1)} ${rail.toFixed(1)} H${Math.max(sx, ...xs).toFixed(1)}`,
+					width: 1,
+					via: "rail",
+				},
+				{
+					key: "trunk",
+					path: `M${sx.toFixed(1)} ${from.toFixed(1)} V${rail.toFixed(1)}`,
+					width: 1,
+					via: "rail",
+				},
+			];
+			reached.forEach(({ index, rect }, i) => {
+				const to = onRow ? rect.top - box.top - 3 : rect.bottom - box.top + 9;
+				next.push({
+					key: `stub-${index}`,
+					path: `M${xs[i].toFixed(1)} ${rail.toFixed(1)} V${to.toFixed(1)}`,
+					width: 1 + seen[index].strength * 5,
+					via: seen[index].via,
+				});
+			});
+			setDrawn(next);
+		};
+		measure();
+		const observer = new ResizeObserver(measure);
+		observer.observe(root);
+		return () => observer.disconnect();
+	}, [lit, seen, lineKey, codeOnly]);
 
 	return (
-		<div className="ds-line" data-inside={inside}>
+		<div className="ds-line" data-rays={rays} ref={frame}>
+			<svg className="ds-rays" aria-hidden="true">
+				{drawn.map((wire) => (
+					<path
+						key={wire.key}
+						d={wire.path}
+						data-via={wire.via}
+						style={{ strokeWidth: wire.width }}
+					/>
+				))}
+			</svg>
 			<ol
 				className="ds-tokens"
-				key={JSON.stringify([line.code, line.question])}
+				key={lineKey}
+				data-mode={codeOnly ? "code" : "asked"}
+				data-bars={bars && !rays}
 			>
 				{tokens.map((token, index) => {
 					if (token.role === "start") return null;
 					if (codeOnly && token.role !== "code") return null;
 					const given = token.role !== "code";
-					const seen = traced && inside && index < selected;
 					const first = given && tokens[index - 1]?.role === "code";
+					const hidden = covered && selected === index;
 					return (
 						<Fragment key={`${index}-${token.id}`}>
 							{first ? <li className="ds-break" aria-hidden="true" /> : null}
@@ -213,36 +314,38 @@ export function Line({
 								<button
 									type="button"
 									className="ds-token"
-									disabled={given}
+									disabled={given || covered}
 									data-selected={selected === index}
+									data-slot={selected === index}
+									data-covered={hidden}
+									data-unseen={!given && index > selected}
 									data-dim={answerOnly && !given}
 									aria-pressed={selected === index}
 									aria-label={
-										given
-											? token.text
-											: `${token.text}: the model gave it ${percent(token.probability)}`
+										hidden
+											? "covered token"
+											: given || covered
+												? token.text
+												: `${token.text}: the model gave it ${percent(token.probability)}`
 									}
 									onClick={() => onSelect(index)}
 								>
-									<span className="ds-look" aria-hidden="true">
-										{seen ? (
-											<i
-												data-via={
-													look.far[index] > look.near[index]
-														? "memory"
-														: "window"
-												}
-												style={
-													{
-														"--look": Math.sqrt(
-															(look.near[index] + look.far[index]) / strongest,
-														),
-													} as CSSProperties
-												}
-											/>
-										) : null}
+									<span
+										className="ds-token-text"
+										data-index={index}
+										data-via={
+											lit && seen[index].strength >= 0.1
+												? seen[index].via
+												: undefined
+										}
+										style={
+											{
+												"--look": lit ? seen[index].strength : 0,
+											} as CSSProperties
+										}
+									>
+										{hidden ? "\u00a0" : token.text}
 									</span>
-									<span className="ds-token-text">{token.text}</span>
 									<span className="ds-bar" aria-hidden="true">
 										<i
 											style={{
@@ -264,6 +367,7 @@ export function Line({
 							type="button"
 							className="ds-answer"
 							data-selected={selected === tokens.length}
+							data-slot={selected === tokens.length}
 							data-verdict={
 								line.truth === null ? "unknown" : correct ? "right" : "wrong"
 							}
@@ -280,235 +384,12 @@ export function Line({
 								? (line.note ?? "no single right answer")
 								: correct
 									? "correct"
-									: `correct answer: ${line.truth}`}
+									: `should be ${line.truth}`}
 						</span>
 					</li>
 				)}
 			</ol>
-			{hint ? (
-				<p className="ds-line-hint">
-					Each bar shows how likely the model found that token. Select a token
-					to see what it expected instead.
-				</p>
-			) : null}
 		</div>
-	);
-}
-
-const REGIONS = [
-	{
-		label: "keywords and symbols",
-		until: (word: string) => /^\d+$/.test(word),
-	},
-	{ label: "numbers 0 to 64", until: () => false },
-];
-
-interface ExpectedProps {
-	probe: ProbeView;
-	model: ModelInfo;
-	selected: number;
-}
-
-interface PredictionSnapshot {
-	step: number;
-	distribution: number[];
-	leader: string;
-	probability: number;
-}
-
-export function Expected({ probe, model, selected }: ExpectedProps) {
-	const { focus, line } = probe;
-	const reducedMotion = useReducedMotion();
-	const [snapshots, setSnapshots] = useState<
-		Record<string, PredictionSnapshot>
-	>({});
-	const pending = focus.position + 1 !== selected;
-	const actual = selected < line.tokens.length ? line.tokens[selected] : null;
-	const predictionKey = JSON.stringify([
-		line.code,
-		line.question,
-		focus.position,
-	]);
-	useEffect(() => {
-		if (pending || !focus.next.length) return;
-		setSnapshots((previous) =>
-			previous[predictionKey]
-				? previous
-				: {
-						...previous,
-						[predictionKey]: {
-							step: probe.step,
-							distribution: [...focus.distribution],
-							leader: focus.next[0].text,
-							probability: focus.next[0].probability,
-						},
-					},
-		);
-	}, [pending, predictionKey, probe.step, focus.distribution, focus.next]);
-	const baseline = snapshots[predictionKey];
-	const expected = actual?.text ?? line.truth;
-	const candidates = focus.next.slice(0, 4);
-	const expectedId = model.vocabulary.indexOf(expected ?? "");
-	if (
-		expectedId >= 0 &&
-		!candidates.some((candidate) => candidate.text === expected)
-	) {
-		candidates.splice(3, 1, {
-			text: model.vocabulary[expectedId],
-			probability: focus.distribution[expectedId] ?? 0,
-		});
-	}
-	const leader = focus.next[0];
-	const firstNumber = model.vocabulary.findIndex((word) =>
-		REGIONS[0].until(word),
-	);
-	const peak = Math.max(...focus.distribution, 0.0001);
-	const scrub = useScrub(focus.distribution.length, "cells");
-	const moved = !!baseline && baseline.step !== probe.step;
-	const leaderId = focus.distribution.indexOf(peak);
-	const readId = scrub.index ?? (expectedId >= 0 ? expectedId : leaderId);
-	const readProbability = focus.distribution[readId] ?? 0;
-	const rank =
-		focus.distribution.filter((value) => value > readProbability).length + 1;
-
-	return (
-		<section
-			className="ds-expected"
-			aria-label="Next-token predictions"
-			aria-busy={pending}
-			data-pending={pending}
-		>
-			<header>
-				<h3 className="ds-eyebrow">
-					{actual ? (
-						<>
-							Predictions before <b>{actual.text}</b>
-						</>
-					) : (
-						"Answer predictions"
-					)}
-				</h3>
-				<span className="ds-prediction-update">
-					{pending
-						? "Reading token…"
-						: `Update ${probe.step.toLocaleString("en-US")}`}
-				</span>
-			</header>
-			<div
-				className="ds-prediction-leaders"
-				aria-hidden={pending}
-				data-moved={moved}
-			>
-				{moved ? (
-					<>
-						<div>
-							<span>First seen · update {baseline.step}</span>
-							<b>{baseline.leader}</b>
-							<span>{percent(baseline.probability)} chance</span>
-						</div>
-						<span className="ds-prediction-arrow" aria-hidden="true" />
-					</>
-				) : null}
-				<div data-current data-hit={leader?.text === expected}>
-					<span>
-						{moved ? "Now" : "Top prediction"} · update{" "}
-						{probe.step.toLocaleString("en-US")}
-					</span>
-					<b key={`${predictionKey}:${leader?.text}`}>{leader?.text ?? "?"}</b>
-					<span>{percent(leader?.probability ?? 0)} chance</span>
-				</div>
-			</div>
-			<div
-				className="ds-prediction-columns"
-				aria-hidden="true"
-				data-moved={moved}
-			>
-				<span>Token</span>
-				<span>Before</span>
-				<span>Now</span>
-			</div>
-			<ol
-				className="ds-prediction-ranks"
-				aria-label="Token probabilities, first seen and now"
-				aria-hidden={pending}
-				data-moved={moved}
-			>
-				{candidates.map((candidate) => {
-					const tokenId = model.vocabulary.indexOf(candidate.text);
-					const before =
-						baseline?.distribution[tokenId] ?? candidate.probability;
-					return (
-						<motion.li
-							key={`${predictionKey}:${candidate.text}`}
-							layout={reducedMotion ? false : "position"}
-							transition={{ duration: 0.3 }}
-							data-hit={candidate.text === expected}
-						>
-							<code>{candidate.text}</code>
-							<span className="ds-prediction-before">{percent(before)}</span>
-							<span className="ds-prediction-now">
-								<i
-									aria-hidden="true"
-									style={{ transform: `scaleX(${candidate.probability})` }}
-								/>
-								<span>{percent(candidate.probability)}</span>
-							</span>
-						</motion.li>
-					);
-				})}
-			</ol>
-			<details className="ds-vocabulary">
-				<summary>All {model.vocabSize} tokens</summary>
-				<p className="ds-strip-readout" aria-hidden="true">
-					<b>{model.vocabulary[readId] ?? "?"}</b>
-					<span>{fine(readProbability)}</span>
-					<span>
-						rank {rank} of {model.vocabSize}
-					</span>
-					{readId === expectedId ? (
-						<span>
-							{actual ? "the actual next token" : "the correct answer"}
-						</span>
-					) : null}
-					{scrub.index === null ? (
-						<span className="ds-strip-how">slide across to read any bar</span>
-					) : null}
-				</p>
-				<div
-					className="ds-strip"
-					role="slider"
-					tabIndex={0}
-					aria-label={`Probability of each of the ${model.vocabSize} tokens`}
-					aria-valuemin={1}
-					aria-valuemax={model.vocabSize}
-					aria-valuenow={readId + 1}
-					aria-valuetext={`${model.vocabulary[readId] ?? "?"}, ${fine(readProbability)}, rank ${rank}`}
-					{...scrub.handlers}
-				>
-					{focus.distribution.map((probability, id) => (
-						<span
-							key={model.vocabulary[id] ?? id}
-							data-on={scrub.index === id}
-							data-hit={
-								actual ? actual.id === id : model.vocabulary[id] === line.truth
-							}
-						>
-							<i
-								style={{
-									height: `${Math.max(1.5, (probability / Math.max(peak, 0.35)) * 100)}%`,
-								}}
-							/>
-						</span>
-					))}
-				</div>
-				<p className="ds-strip-scale" aria-hidden="true">
-					<span style={{ flexGrow: firstNumber }}>{REGIONS[0].label}</span>
-					<span style={{ flexGrow: model.vocabSize - firstNumber }}>
-						{REGIONS[1].label}
-					</span>
-				</p>
-			</details>
-		</section>
 	);
 }
 
@@ -594,11 +475,11 @@ export function Inside({ probe, model, layer, onLayer }: InsideProps) {
 				<article>
 					<h4 className="ds-eyebrow">Attention</h4>
 					<p>
-						Dots over the line. <i className="ds-key" data-via="window" />{" "}
-						nearby, through the sliding window.{" "}
-						<i className="ds-key" data-via="memory" /> further back, through
-						compressed memory. {percent(kept)} is not attributed to earlier
-						tokens in this view.
+						Lines drawn back from the box.{" "}
+						<i className="ds-key" data-via="window" /> nearby, through the
+						sliding window. <i className="ds-key" data-via="memory" /> further
+						back, through compressed memory. {percent(kept)} is not attributed
+						to earlier tokens in this view.
 					</p>
 				</article>
 				<article>

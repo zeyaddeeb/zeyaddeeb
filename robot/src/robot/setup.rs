@@ -1,8 +1,6 @@
 use super::builder::spawn_robot;
 use super::components::*;
 use super::constants::*;
-#[cfg(feature = "native")]
-use super::episode::held_ball_position;
 use super::reset::get_initial_poses;
 #[allow(unused_imports)]
 use super::resources::*;
@@ -105,6 +103,37 @@ pub fn setup(
             LinearDamping(0.0),
         ))
         .id();
+
+    let grip_offset = poses.hand.rotation.inverse() * (ball_start - poses.hand.position);
+    let right_grip = commands
+        .spawn((
+            FixedJoint::new(robot_entities.right_hand, ball)
+                .with_local_anchor1(grip_offset)
+                .with_local_basis2(poses.hand.rotation)
+                .with_point_compliance(0.000001)
+                .with_angle_compliance(0.00001),
+            JointCollisionDisabled,
+        ))
+        .id();
+    let left_grip = commands
+        .spawn((
+            DistanceJoint::new(robot_entities.left_hand, ball)
+                .with_limits(HAND_RADIUS + BALL_RADIUS, HAND_RADIUS + BALL_RADIUS)
+                .with_compliance(0.000001),
+            JointCollisionDisabled,
+        ))
+        .id();
+    commands.insert_resource(BallGrip {
+        joints: [right_grip, left_grip],
+    });
+    for (anchor, clearance) in BODY_KEEP_OUT {
+        commands.spawn(
+            DistanceJoint::new(robot_entities.torso, ball)
+                .with_local_anchor1(anchor)
+                .with_limits(clearance + BALL_RADIUS, f32::MAX)
+                .with_compliance(0.000001),
+        );
+    }
 
     commands.insert_resource(robot_entities);
 
@@ -225,52 +254,4 @@ pub fn setup(
         let ws_url = wasm_ws_url();
         commands.insert_resource(WsBridge::new(&ws_url));
     }
-}
-
-#[cfg(feature = "native")]
-pub fn respawn_ball(
-    mut commands: Commands,
-    mut training: ResMut<TrainingState>,
-    robot: Option<Res<RobotEntities>>,
-    hand_query: Query<&Transform, With<RobotHand>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    if training.ball_entity.is_some() {
-        return;
-    }
-
-    let Some(_robot) = robot else { return };
-    let Ok(hand_tf) = hand_query.single() else {
-        return;
-    };
-    let ball_start = held_ball_position(hand_tf.translation);
-
-    let ball_mat = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.9, 0.5, 0.2),
-        ..default()
-    });
-
-    let ball = commands
-        .spawn((
-            Basketball,
-            Mesh3d(meshes.add(Sphere::new(BALL_RADIUS))),
-            MeshMaterial3d(ball_mat),
-            Transform::from_translation(ball_start),
-            RigidBody::Dynamic,
-            SweptCcd {
-                linear_threshold: 0.0,
-                angular_threshold: 0.0,
-                ..default()
-            },
-            Collider::sphere(BALL_RADIUS),
-            ColliderDensity(80.0),
-            CollisionMargin(0.02),
-            CollisionLayers::new(GameLayer::Ball, [GameLayer::Ground]),
-            Restitution::new(0.7),
-            Friction::new(0.6),
-        ))
-        .id();
-
-    training.ball_entity = Some(ball);
 }

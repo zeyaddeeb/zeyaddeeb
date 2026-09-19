@@ -151,7 +151,7 @@ export const experiments: Experiment[] = [
 	{
 		id: "deepseek",
 		number: 12,
-		title: "A very fancy calculator",
+		title: "An Educated Guessing Machine",
 		line: "Train a small model inspired by DeepSeek V4.1 on Rust code, questions, and scored answers. Inspect live predictions and training results.",
 		stack: ["Rust", "Candle", "Axum", "SSE", "SVG"],
 		href: "/experiments/deepseek",

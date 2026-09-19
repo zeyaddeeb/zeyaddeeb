@@ -80,6 +80,11 @@ pub struct RobotEntities {
     pub left_foot: Entity,
 }
 
+#[derive(Resource)]
+pub struct BallGrip {
+    pub joints: [Entity; 2],
+}
+
 #[cfg(feature = "native")]
 #[derive(Resource)]
 pub struct SharedTrainer {

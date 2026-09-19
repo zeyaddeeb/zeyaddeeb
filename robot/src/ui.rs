@@ -18,6 +18,18 @@ pub struct BestRewardText;
 #[derive(Component)]
 pub struct SuccessRateText;
 
+type StatsTextQuery<'w, 's> = Query<
+    'w,
+    's,
+    (
+        &'static mut Text,
+        Option<&'static EpisodeText>,
+        Option<&'static RewardText>,
+        Option<&'static BestRewardText>,
+        Option<&'static SuccessRateText>,
+    ),
+>;
+
 pub fn setup_ui(mut commands: Commands) {
     commands
         .spawn(Node {
@@ -85,16 +97,7 @@ pub fn setup_ui(mut commands: Commands) {
 }
 
 #[cfg(feature = "native")]
-pub fn update_stats_ui(
-    training: Res<TrainingState>,
-    mut text_query: Query<(
-        &mut Text,
-        Option<&EpisodeText>,
-        Option<&RewardText>,
-        Option<&BestRewardText>,
-        Option<&SuccessRateText>,
-    )>,
-) {
+pub fn update_stats_ui(training: Res<TrainingState>, mut text_query: StatsTextQuery) {
     if training.phase != TrainingPhase::Training {
         return;
     }
@@ -121,16 +124,7 @@ pub fn update_stats_ui(
 }
 
 #[cfg(feature = "wasm")]
-pub fn update_stats_ui(
-    sim: Res<crate::robot::SimulationState>,
-    mut text_query: Query<(
-        &mut Text,
-        Option<&EpisodeText>,
-        Option<&RewardText>,
-        Option<&BestRewardText>,
-        Option<&SuccessRateText>,
-    )>,
-) {
+pub fn update_stats_ui(sim: Res<crate::robot::SimulationState>, mut text_query: StatsTextQuery) {
     for (mut text, episode, reward, best, success) in text_query.iter_mut() {
         if episode.is_some() {
             if let Some(stats) = &sim.server_stats {

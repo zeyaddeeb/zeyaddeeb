@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use super::components::*;
 use super::constants::*;
 use super::episode::held_ball_position;
+use super::resources::BallGrip;
 
 #[derive(Debug, Clone, Copy)]
 pub struct BodyPartPose {
@@ -214,12 +215,26 @@ type LowerBodyQuery = Query<
     )>,
 >;
 
+pub fn release_ball(commands: &mut Commands, grip: &BallGrip) {
+    for joint in grip.joints {
+        commands.entity(joint).insert(JointDisabled);
+    }
+}
+
 pub fn reset_robot_positions(
+    mut commands: Commands,
+    grip: Option<Res<BallGrip>>,
     mut queries: ParamSet<(UpperBodyQuery, LowerBodyQuery)>,
     #[cfg(feature = "native")] mut training: Option<ResMut<super::resources::TrainingState>>,
     #[cfg(feature = "wasm")] mut simulation: Option<ResMut<super::resources::SimulationState>>,
 ) {
     let poses = get_randomized_initial_poses();
+
+    if let Some(grip) = grip {
+        for joint in grip.joints {
+            commands.entity(joint).remove::<JointDisabled>();
+        }
+    }
 
     #[cfg(feature = "native")]
     if let Some(ref mut t) = training {

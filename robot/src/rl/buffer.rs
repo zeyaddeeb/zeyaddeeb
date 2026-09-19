@@ -74,8 +74,7 @@ impl ReplayBuffer {
         let file = File::create(path)?;
         let mut writer = BufWriter::new(file);
         let data: Vec<&Transition> = self.buffer.iter().collect();
-        rmp_serde::encode::write(&mut writer, &data)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+        rmp_serde::encode::write(&mut writer, &data).map_err(std::io::Error::other)?;
         writer.flush()?;
         writer.get_ref().sync_all()
     }
@@ -83,8 +82,8 @@ impl ReplayBuffer {
     pub fn load<P: AsRef<Path>>(&mut self, path: P) -> std::io::Result<()> {
         let file = File::open(path)?;
         let mut reader = BufReader::new(file);
-        let data: Vec<Transition> = rmp_serde::decode::from_read(&mut reader)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+        let data: Vec<Transition> =
+            rmp_serde::decode::from_read(&mut reader).map_err(std::io::Error::other)?;
 
         self.buffer.clear();
         for t in data {

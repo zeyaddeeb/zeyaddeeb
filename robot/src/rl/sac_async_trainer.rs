@@ -33,6 +33,12 @@ pub struct SacAsyncTrainer {
     pub agent: Arc<Mutex<SACAgent>>,
 }
 
+impl Default for SacAsyncTrainer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SacAsyncTrainer {
     pub fn new() -> Self {
         Self::start(None)
@@ -258,7 +264,7 @@ fn training_worker(
                     pending_updates -= 1;
                     let steps = train_steps.fetch_add(1, Ordering::Relaxed) + 1;
 
-                    if steps % 1000 == 0 {
+                    if steps.is_multiple_of(1000) {
                         println!(
                             "[SAC] Train step {} | Buffer: {} | Alpha: {:.4}",
                             steps,

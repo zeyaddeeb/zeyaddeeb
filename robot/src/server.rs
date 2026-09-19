@@ -49,6 +49,7 @@ where
     parse_setting(name, &value, min, max)
 }
 
+#[allow(clippy::result_large_err)]
 fn can_train(request: &Request, credential: Option<&str>) -> Result<bool, ErrorResponse> {
     let Some(header) = request.headers().get("authorization") else {
         return Ok(false);
@@ -110,6 +111,7 @@ async fn main() -> anyhow::Result<()> {
     }
 }
 
+#[allow(clippy::result_large_err)]
 async fn handle_connection(
     mut stream: TcpStream,
     trainer: Arc<SacAsyncTrainer>,

@@ -1,13 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { type ActionId, BEATS, type Flags, guide, spotlight } from "./guide";
+import { Bet, Choices, Score, Writer } from "./board";
 import { Cards, Reading, Rollouts, Yours } from "./lenses";
-import { ExamplePicker, Expected, Inside, Line } from "./line";
+import { ExamplePicker, Inside, Line } from "./line";
+import {
+	type ActionId,
+	CHAPTERS,
+	type Flags,
+	NO_FLAGS,
+	shot,
+	slotOf,
+	spotlight,
+	step,
+} from "./script";
 import { isBusy, useLab } from "./use-lab";
 import "./lab.css";
 
-const NO_FLAGS: Flags = { asked: false, looked: false, own: false };
 const STEPS = { pretrain: 400, sft: 600, rl: 60, distill: 400 } as const;
 
 const count = (value: number) => value.toLocaleString("en-US");
@@ -26,7 +35,10 @@ function typing(target: EventTarget | null) {
 }
 
 function clickable(target: EventTarget | null) {
-	return target instanceof HTMLElement && target.closest("button, a") !== null;
+	return (
+		target instanceof HTMLElement &&
+		target.closest("button, a, summary") !== null
+	);
 }
 
 export function DeepSeekLab() {
@@ -34,25 +46,24 @@ export function DeepSeekLab() {
 	const session = state.session;
 	const probe = state.probe;
 	const flagsKey = session
-		? `deepseek-lab-flags:${session.id}:${session.generation}`
+		? `deepseek-lab-story:${session.id}:${session.generation}`
 		: null;
 	const [flags, setFlags] = useState<Flags>(NO_FLAGS);
 	const [selected, setSelected] = useState<number | null>(null);
 	const [inside, setInside] = useState(false);
 	const [layer, setLayer] = useState<number | null>(null);
 	const [confirming, setConfirming] = useState(false);
-	const [expanded, setExpanded] = useState(false);
-	const [explored, setExplored] = useState(false);
 
 	useEffect(() => {
 		if (!flagsKey) return;
 		const stored = window.sessionStorage.getItem(flagsKey);
-		setFlags(stored ? { ...NO_FLAGS, ...JSON.parse(stored) } : NO_FLAGS);
+		const saved = stored ? JSON.parse(stored) : {};
+		setFlags({ ...NO_FLAGS, ...saved, at: { ...NO_FLAGS.at, ...saved.at } });
 	}, [flagsKey]);
 	const raise = useCallback(
-		(change: Partial<Flags>) => {
+		(change: (current: Flags) => Flags) => {
 			setFlags((current) => {
-				const next = { ...current, ...change };
+				const next = change(current);
 				if (flagsKey)
 					window.sessionStorage.setItem(flagsKey, JSON.stringify(next));
 				return next;
@@ -62,24 +73,29 @@ export function DeepSeekLab() {
 	);
 
 	const story = useMemo(
-		() => guide(state, { flags, inside }),
-		[state, flags, inside],
+		() => shot(state, { flags, selected }),
+		[state, flags, selected],
 	);
-	const codeOnly = story.beat === "random" || story.beat === "reads";
+	const scene = story.scene;
+	const codeOnly = scene.line !== "asked";
 	const busy = isBusy(state.operation);
+	const rays = scene.rays || inside;
 
-	const lineKey = probe
-		? `${probe.line.code}|${probe.line.question}|${codeOnly}`
-		: "";
+	const lineKey = probe ? `${probe.line.code}|${probe.line.question}` : "";
+	const slot = scene.slot;
 	useEffect(() => {
 		if (!probe) return;
-		const tokens = probe.line.tokens;
-		const lastNumber = tokens.reduce(
-			(found, t, i) => (t.role === "code" && /^\d+$/.test(t.text) ? i : found),
-			-1,
-		);
-		setSelected(codeOnly ? Math.max(1, lastNumber) : tokens.length);
-	}, [lineKey]);
+		if (slot) setSelected(slotOf(probe, slot));
+		else setSelected((current) => current ?? slotOf(probe, "number"));
+	}, [lineKey, slot, story.id]);
+
+	const looking = story.id === "looks";
+	const focusKey = probe
+		? `${lineKey}|${probe.focus.position}|${probe.revision}`
+		: "";
+	useEffect(() => {
+		if (looking) setLayer(spotlight(probe)?.layer ?? null);
+	}, [looking, focusKey]);
 
 	const focus = probe?.focus.position;
 	const live = state.connection === "live";
@@ -92,29 +108,38 @@ export function DeepSeekLab() {
 		return () => window.clearInterval(timer);
 	}, [live, selected, focus, send]);
 
+	const show = (code: string, question: string) =>
+		void send({ type: "show", code, question });
+
+	const move = (by: 1 | -1) => raise((current) => step(current, story, by));
+
 	const act = (id: ActionId) => {
 		setConfirming(false);
-		setExpanded(false);
 		switch (id) {
+			case "next":
+				return move(1);
+			case "back":
+				return move(-1);
 			case "pretrain":
 			case "sft":
 			case "rl":
 			case "distill":
-				if (id === "distill") raise({ own: true });
+				if (id === "distill") raise((current) => ({ ...current, own: true }));
 				return send({ type: "start", phase: id, steps: STEPS[id] });
-			case "reveal":
-				return raise({ asked: true });
+			case "ask":
+				return raise((current) => ({ ...current, asked: true, view: null }));
 			case "own":
 				setInside(false);
-				return raise({ own: true });
-			case "look":
-				raise({ looked: true });
-				setInside(true);
-				setLayer(spotlight(probe)?.layer ?? null);
-				if (probe) setSelected(probe.line.tokens.length);
-				return;
-			case "unlook":
-				return setInside(false);
+				return raise((current) => ({ ...current, own: true, view: null }));
+			case "another": {
+				if (!probe?.examples.length) return;
+				const at = probe.examples.findIndex(
+					(e) =>
+						e.code === probe.line.code && e.question === probe.line.question,
+				);
+				const next = probe.examples[(at + 1) % probe.examples.length];
+				return show(next.code, next.question);
+			}
 			case "pause":
 			case "resume":
 				return send({ type: id });
@@ -128,14 +153,19 @@ export function DeepSeekLab() {
 		}
 	};
 
-	const show = (code: string, question: string) =>
-		void send({ type: "show", code, question });
+	const pick = (text: string) =>
+		raise((current) => ({
+			...current,
+			pick: text,
+			at: { ...current.at, guess: 1 },
+		}));
 
-	const beatIndex = BEATS.findIndex((b) => b.id === story.beat);
+	const chapterIndex = CHAPTERS.findIndex((c) => c.id === story.chapter);
 	const running =
 		state.operation?.state === "running" &&
 		state.operation.phase !== "generate";
 	const paused = state.operation?.state === "paused";
+	const free = scene.line !== "covered" && scene.line !== "none";
 
 	const slots = useMemo(() => {
 		if (!probe) return [];
@@ -158,7 +188,7 @@ export function DeepSeekLab() {
 					break;
 				case "ArrowLeft":
 				case "ArrowRight": {
-					if (selected === null || slots.length === 0) return;
+					if (!free || selected === null || slots.length === 0) return;
 					const at = slots.indexOf(selected);
 					const step = event.key === "ArrowRight" ? 1 : -1;
 					const next =
@@ -168,10 +198,6 @@ export function DeepSeekLab() {
 					setSelected(next);
 					break;
 				}
-				case "Escape":
-					if (!inside) return;
-					setInside(false);
-					break;
 				default:
 					return;
 			}
@@ -179,25 +205,9 @@ export function DeepSeekLab() {
 		};
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
-	}, [running, paused, selected, slots, inside, send]);
-
-	const steps = session?.phaseSteps;
-	const tally: Partial<Record<(typeof BEATS)[number]["id"], string>> = steps
-		? {
-				reads:
-					steps.pretrain > 0 ? `${count(steps.pretrain)} updates` : undefined,
-				answers:
-					steps.sft > 0 && probe
-						? `${Math.round(probe.accuracy * 100)}% correct`
-						: undefined,
-				practices: steps.rl > 0 ? `${count(steps.rl)} rounds` : undefined,
-				yours: steps.distill > 0 ? "student trained" : undefined,
-			}
-		: {};
+	}, [running, paused, selected, slots, free, send]);
 
 	const operation = state.operation;
-	const writes =
-		story.beat === "reads" && !inside ? (state.dreams.at(-1) ?? null) : null;
 	const eta =
 		operation && running && state.step
 			? remaining(
@@ -205,31 +215,28 @@ export function DeepSeekLab() {
 						1000,
 				)
 			: null;
+	const bench = story.chapter !== "guess" && !!probe && !!session;
+	const trained = !!session && session.step + session.phaseSteps.distill > 0;
 
 	return (
 		<div
 			className="ds"
-			data-beat={story.beat}
+			data-chapter={story.chapter}
+			data-shot={story.id}
 			data-running={running}
-			data-inside={inside}
 		>
 			<header className="ds-rail">
-				<ol aria-label="Training stages">
-					{BEATS.map((beat, i) => (
+				<ol aria-label="Chapters">
+					{CHAPTERS.map((chapter, i) => (
 						<li
-							key={beat.id}
-							aria-current={i === beatIndex ? "step" : undefined}
+							key={chapter.id}
+							aria-current={i === chapterIndex ? "step" : undefined}
 							data-state={
-								i < beatIndex ? "done" : i === beatIndex ? "now" : "later"
+								i < chapterIndex ? "done" : i === chapterIndex ? "now" : "later"
 							}
 						>
-							<i aria-hidden="true" />
-							<span>
-								{beat.label}
-								{i <= beatIndex && tally[beat.id] ? (
-									<small>{tally[beat.id]}</small>
-								) : null}
-							</span>
+							<b>{chapter.numeral}</b>
+							<span>{chapter.label}</span>
 						</li>
 					))}
 				</ol>
@@ -253,78 +260,45 @@ export function DeepSeekLab() {
 				</p>
 			</header>
 
-			<div className="ds-body">
-				<div className="ds-stage">
+			<div className="ds-screen">
+				<div className="ds-board" data-figure={scene.figure}>
 					{probe && session && selected !== null ? (
 						<>
-							<ExamplePicker
-								key={`picker:${session.id}:${session.generation}`}
-								probe={probe}
-								onShow={show}
-								disabled={
-									state.connection !== "live" ||
-									(busy &&
-										(state.operation?.phase === "generate" ||
-											state.operation?.phase === "distill"))
-								}
-								error={state.error}
-							/>
-							<Line
-								probe={probe}
-								codeOnly={codeOnly}
-								answerOnly={state.operation?.phase === "sft" && busy}
-								selected={selected}
-								onSelect={(slot) => {
-									setExplored(true);
-									setSelected(slot);
-								}}
-								inside={inside}
-								layer={layer}
-								hint={!explored && !inside}
-							/>
-							<Expected
-								key={`expected:${session.id}:${session.generation}`}
-								probe={probe}
-								model={session.model}
-								selected={selected}
-							/>
-							<div className="ds-lens">
-								<div className="ds-lens-head">
-									<h3 className="ds-eyebrow">
-										{inside
-											? "Selected token"
-											: {
-													random: "Training results",
-													reads: "Training results",
-													answers: "Held-out questions",
-													practices: "Feedback results",
-													yours:
-														state.operation?.phase === "distill" && busy
-															? "Student training"
-															: "Test a prompt",
-												}[story.beat]}
-									</h3>
-									<button
-										type="button"
-										className="ds-inside-toggle"
-										aria-expanded={inside}
-										onClick={() => setInside((open) => !open)}
-									>
-										{inside ? "Back to results" : "Inspect model"}
-									</button>
-								</div>
-								{inside ? (
-									<Inside
+							{scene.line !== "none" ? (
+								<Line
+									probe={probe}
+									codeOnly={codeOnly}
+									answerOnly={story.id === "tuning"}
+									selected={selected}
+									onSelect={setSelected}
+									covered={scene.line === "covered"}
+									bars={scene.bars}
+									rays={rays}
+									layer={layer}
+								/>
+							) : null}
+							<div className="ds-figure" key={scene.figure}>
+								{scene.choices.length ? (
+									<Choices
+										prompt={scene.prompt}
+										options={scene.choices}
+										onPick={pick}
+									/>
+								) : scene.figure === "bet" ? (
+									<Bet
+										key={`bet:${session.id}:${session.generation}`}
 										probe={probe}
 										model={session.model}
-										layer={layer}
-										onLayer={setLayer}
+										selected={selected}
+										marked={scene.truth}
 									/>
-								) : story.beat === "answers" ? (
-									<Cards state={state} onShow={show} />
-								) : story.beat === "practices" ? (
+								) : scene.figure === "writer" ? (
+									<Writer dreams={state.dreams} />
+								) : scene.figure === "score" ? (
+									<Score probe={probe} />
+								) : scene.figure === "attempts" ? (
 									<Rollouts state={state} />
-								) : story.beat === "yours" ? (
+								) : scene.figure === "ask" ? (
 									<Yours
 										state={state}
 										busy={busy}
@@ -332,9 +306,7 @@ export function DeepSeekLab() {
 											void send({ type: "ask", code, question })
 										}
 									/>
-								) : (
-									<Reading state={state} />
-								)}
+								) : null}
 							</div>
 						</>
 					) : (
@@ -342,51 +314,42 @@ export function DeepSeekLab() {
 					)}
 				</div>
 
-				<div className="ds-side">
-					<aside
-						className="ds-guide"
-						aria-live="polite"
-						data-expanded={expanded}
-						data-pinned={!!(story.primary || story.waiting)}
-					>
-						<p className="ds-eyebrow ds-guide-count">
-							{String(beatIndex + 1).padStart(2, "0")} /{" "}
-							{String(BEATS.length).padStart(2, "0")} · {BEATS[beatIndex].label}
-						</p>
-						<h2>
-							{story.title.replace(/\.$/, "")}
-							{story.title.endsWith(".") ? (
-								<span className="ds-stop">.</span>
-							) : null}
-						</h2>
-						<div className="ds-guide-body">
-							{story.body.map((paragraph) => (
-								<p key={paragraph}>{paragraph}</p>
+				<aside
+					className="ds-caption-band"
+					aria-live="polite"
+					data-pinned={
+						!!(story.primary || story.waiting || scene.choices.length)
+					}
+				>
+					<p className="ds-eyebrow ds-chapter">
+						<b>{CHAPTERS[chapterIndex].numeral}</b>
+						{CHAPTERS[chapterIndex].label}
+					</p>
+					<div className="ds-say" key={story.id}>
+						{story.say
+							.filter((sentence) => sentence.length)
+							.map((sentence, i) => (
+								<p key={i}>
+									{sentence.map((phrase, at) =>
+										typeof phrase === "string" ? (
+											phrase
+										) : (
+											<span key={at} data-tone={phrase.tone}>
+												{phrase.text}
+											</span>
+										),
+									)}
+								</p>
 							))}
-							{story.kept ? <p className="ds-kept">{story.kept}</p> : null}
-							{writes ? (
-								<p className="ds-writes" data-compiles={writes.compiles}>
-									<span>It writes · update {count(writes.step)}</span>
-									<code>{writes.tokens.map((t) => t.text).join(" ")}</code>
-								</p>
-							) : null}
-							{state.error && story.beat !== "yours" ? (
-								<p className="ds-form-error" role="alert">
-									{state.error}
-								</p>
-							) : null}
-							{story.hint ? <p className="ds-hint">{story.hint}</p> : null}
-						</div>
-						{story.body.length > 1 || story.hint ? (
-							<button
-								type="button"
-								className="ds-quiet ds-more"
-								aria-expanded={expanded}
-								onClick={() => setExpanded((open) => !open)}
-							>
-								{expanded ? "Less detail" : "More detail"}
-							</button>
+						{story.note ? <p className="ds-note">{story.note}</p> : null}
+						{story.kept ? <p className="ds-kept">{story.kept}</p> : null}
+						{state.error && story.chapter !== "yours" ? (
+							<p className="ds-form-error" role="alert">
+								{state.error}
+							</p>
 						) : null}
+					</div>
+					<div className="ds-controls">
 						<div className="ds-actions">
 							{story.primary ? (
 								<button
@@ -440,78 +403,119 @@ export function DeepSeekLab() {
 								</p>
 							</div>
 						) : null}
-					</aside>
-					<div className="ds-footer">
-						<details className="ds-activity">
-							<summary>Run activity</summary>
-							<p>
-								{state.operation
-									? `${state.operation.phase} · ${state.operation.state} · ${state.operation.stage}`
-									: "No active run."}
-							</p>
-							<ol>
-								{state.journal
-									.slice(-8)
-									.reverse()
-									.map((entry, i) => (
-										<li key={`${entry.operationId}-${entry.state}-${i}`}>
-											<b>{entry.state}</b>
-											<span>{entry.stage}</span>
-										</li>
-									))}
-							</ol>
-						</details>
-						{session && session.step + session.phaseSteps.distill > 0 ? (
-							confirming ? (
-								<p className="ds-confirm">
-									Reset weights and discard all training?{" "}
-									<button
-										type="button"
-										className="ds-quiet"
-										onClick={() => {
-											setConfirming(false);
-											setInside(false);
-											void send({ type: "reset" });
-										}}
-									>
-										Reset model
-									</button>
-									<button
-										type="button"
-										className="ds-quiet"
-										onClick={() => setConfirming(false)}
-									>
-										Keep model
-									</button>
-								</p>
-							) : (
-								<button
-									type="button"
-									className="ds-quiet"
-									onClick={() => setConfirming(true)}
-								>
-									Reset model
-								</button>
-							)
-						) : null}
-						<p className="ds-keys" aria-hidden="true">
-							<span>
-								<kbd>←</kbd>
-								<kbd>→</kbd> along the line
-							</span>
-							{running || paused ? (
-								<span>
-									<kbd>space</kbd> {paused ? "resume" : "pause"}
-								</span>
-							) : null}
-							{inside ? (
-								<span>
-									<kbd>esc</kbd> back to the run
-								</span>
-							) : null}
-						</p>
 					</div>
-				</div>
+				</aside>
+			</div>
+
+			{bench ? (
+				<section className="ds-bench" aria-label="Workbench">
+					<h3 className="ds-eyebrow">Workbench</h3>
+					<details>
+						<summary>Change the line</summary>
+						<ExamplePicker
+							key={`picker:${session.id}:${session.generation}`}
+							probe={probe}
+							onShow={show}
+							disabled={
+								state.connection !== "live" ||
+								(busy &&
+									(state.operation?.phase === "generate" ||
+										state.operation?.phase === "distill"))
+							}
+							error={state.error}
+						/>
+					</details>
+					<details
+						open={inside}
+						onToggle={(event) => setInside(event.currentTarget.open)}
+					>
+						<summary>Inside the model</summary>
+						<Inside
+							probe={probe}
+							model={session.model}
+							layer={layer}
+							onLayer={setLayer}
+						/>
+					</details>
+					<details>
+						<summary>Training record</summary>
+						<Reading state={state} />
+					</details>
+					{session.phaseSteps.sft > 0 ? (
+						<details>
+							<summary>Held-out questions</summary>
+							<Cards state={state} onShow={show} />
+						</details>
+					) : null}
+					<details className="ds-activity">
+						<summary>Run activity</summary>
+						<p>
+							{state.operation
+								? `${state.operation.phase} · ${state.operation.state} · ${state.operation.stage}`
+								: "No active run."}
+						</p>
+						<ol>
+							{state.journal
+								.slice(-8)
+								.reverse()
+								.map((entry, i) => (
+									<li key={`${entry.operationId}-${entry.state}-${i}`}>
+										<b>{entry.state}</b>
+										<span>{entry.stage}</span>
+									</li>
+								))}
+						</ol>
+					</details>
+				</section>
+			) : null}
+
+			<div className="ds-footer">
+				{trained ? (
+					confirming ? (
+						<p className="ds-confirm">
+							Reset weights and discard all training?{" "}
+							<button
+								type="button"
+								className="ds-quiet"
+								onClick={() => {
+									setConfirming(false);
+									setInside(false);
+									void send({ type: "reset" });
+								}}
+							>
+								Reset model
+							</button>
+							<button
+								type="button"
+								className="ds-quiet"
+								onClick={() => setConfirming(false)}
+							>
+								Keep model
+							</button>
+						</p>
+					) : (
+						<button
+							type="button"
+							className="ds-quiet"
+							onClick={() => setConfirming(true)}
+						>
+							Start over with a new model
+						</button>
+					)
+				) : null}
+				<p className="ds-keys" aria-hidden="true">
+					{free ? (
+						<span>
+							<kbd>←</kbd>
+							<kbd>→</kbd> move the box
+						</span>
+					) : null}
+					{running || paused ? (
+						<span>
+							<kbd>space</kbd> {paused ? "resume" : "pause"}
+						</span>
+					) : null}
+				</p>
 			</div>
 		</div>
 	);
