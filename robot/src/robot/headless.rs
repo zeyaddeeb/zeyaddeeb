@@ -39,6 +39,7 @@ pub fn run_headless_with_substeps(
             AssetPlugin::default(),
             PhysicsPlugins::default(),
         ))
+        .add_plugins(super::BallGripPlugin)
         .init_asset::<Mesh>()
         .init_asset::<StandardMaterial>()
         .insert_resource(SharedTrainer {

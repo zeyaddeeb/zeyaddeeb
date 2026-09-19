@@ -215,7 +215,8 @@ type LowerBodyQuery = Query<
     )>,
 >;
 
-pub fn release_ball(commands: &mut Commands, grip: &BallGrip) {
+pub fn release_ball(commands: &mut Commands, grip: &mut BallGrip) {
+    grip.released = true;
     for joint in grip.joints {
         commands.entity(joint).insert(JointDisabled);
     }
@@ -223,16 +224,21 @@ pub fn release_ball(commands: &mut Commands, grip: &BallGrip) {
 
 pub fn reset_robot_positions(
     mut commands: Commands,
-    grip: Option<Res<BallGrip>>,
+    grip: Option<ResMut<BallGrip>>,
     mut queries: ParamSet<(UpperBodyQuery, LowerBodyQuery)>,
     #[cfg(feature = "native")] mut training: Option<ResMut<super::resources::TrainingState>>,
     #[cfg(feature = "wasm")] mut simulation: Option<ResMut<super::resources::SimulationState>>,
 ) {
     let poses = get_randomized_initial_poses();
 
-    if let Some(grip) = grip {
+    if let Some(mut grip) = grip {
+        grip.released = false;
+        grip.dropped = false;
         for joint in grip.joints {
-            commands.entity(joint).remove::<JointDisabled>();
+            commands
+                .entity(joint)
+                .remove::<JointDisabled>()
+                .insert(JointForces::new());
         }
     }
 

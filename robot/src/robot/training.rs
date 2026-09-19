@@ -16,7 +16,7 @@ pub fn training_loop(
     #[cfg(feature = "native")] robot: Option<Res<RobotEntities>>,
     #[cfg(feature = "native")] mut zenoh: Option<ResMut<ZenohBridge>>,
     #[cfg(feature = "native")] mut commands: Commands,
-    #[cfg(feature = "native")] grip: Option<Res<BallGrip>>,
+    #[cfg(feature = "native")] mut grip: Option<ResMut<BallGrip>>,
     mut queries: ParamSet<(JointReadQuery, TorqueWriteQuery, BallQuery)>,
 ) {
     #[cfg(not(feature = "native"))]
@@ -40,6 +40,8 @@ pub fn training_loop(
             training.cooldown -= 1;
             return;
         }
+
+        training.ball_released |= grip.as_deref().is_some_and(|grip| grip.released);
 
         let state = {
             let q = queries.p0();
@@ -91,7 +93,10 @@ pub fn training_loop(
             );
 
             let mut reward = comps.stand + comps.throw;
-            if training.ball_released && training.steps_since_release == 0 {
+            if training.ball_released
+                && training.steps_since_release == 0
+                && grip.as_deref().is_none_or(|grip| !grip.dropped)
+            {
                 reward += release_reward(ball_pos, ball_v);
                 let miss = shot_miss_distance(ball_pos, ball_v);
                 training.shot_miss_ema = Some(
@@ -178,7 +183,7 @@ pub fn training_loop(
             training.steps_since_release += 1;
         } else if should_release(training.curriculum_stage, training.step, action[13]) {
             training.ball_released = true;
-            if let Some(grip) = grip.as_deref() {
+            if let Some(grip) = grip.as_deref_mut() {
                 release_ball(&mut commands, grip);
             }
         }

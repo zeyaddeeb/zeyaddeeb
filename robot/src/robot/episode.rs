@@ -58,8 +58,9 @@ impl EpisodeEndReason {
         } else if ball_released
             && (ball_pos.y <= BALL_RADIUS + 0.03
                 || is_out_of_bounds(ball_pos)
-                || previous_ball_pos
-                    .is_some_and(|p| p.y > ball_pos.y && ball_pos.y < HOOP_POS.y - BALL_RADIUS))
+                || previous_ball_pos.is_some_and(|p| {
+                    p.y >= HOOP_POS.y - BALL_RADIUS && ball_pos.y < HOOP_POS.y - BALL_RADIUS
+                }))
         {
             Some(Self::ShotMissed)
         } else if is_out_of_bounds(torso_pos) {
@@ -185,5 +186,33 @@ mod tests {
             MIN_HOLD_STEPS,
             1.0
         ));
+    }
+
+    #[test]
+    fn a_dropped_ball_can_fall_before_the_episode_ends() {
+        assert_eq!(
+            EpisodeEndReason::check(
+                Vec3::new(0.5, 1.7, 0.0),
+                Some(Vec3::new(0.5, 1.8, 0.0)),
+                Vec3::Y * TORSO_Y,
+                Vec3::Y,
+                true,
+                10,
+                300,
+            ),
+            None
+        );
+        assert_eq!(
+            EpisodeEndReason::check(
+                Vec3::new(0.5, BALL_RADIUS, 0.0),
+                Some(Vec3::new(0.5, 0.2, 0.0)),
+                Vec3::Y * TORSO_Y,
+                Vec3::Y,
+                true,
+                30,
+                300,
+            ),
+            Some(EpisodeEndReason::ShotMissed)
+        );
     }
 }

@@ -83,6 +83,8 @@ pub struct RobotEntities {
 #[derive(Resource)]
 pub struct BallGrip {
     pub joints: [Entity; 2],
+    pub released: bool,
+    pub dropped: bool,
 }
 
 #[cfg(feature = "native")]

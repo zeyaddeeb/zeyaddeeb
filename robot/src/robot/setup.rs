@@ -74,66 +74,7 @@ pub fn setup(
 
     let poses = get_initial_poses();
     let torso_pos = poses.torso.position;
-    let ball_start = poses.ball_position();
-
-    let ball_mat = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.85, 0.45, 0.15),
-        perceptual_roughness: 0.6,
-        ..default()
-    });
-
-    let ball = commands
-        .spawn((
-            Basketball,
-            Mesh3d(meshes.add(Sphere::new(BALL_RADIUS))),
-            MeshMaterial3d(ball_mat),
-            Transform::from_translation(ball_start),
-            RigidBody::Dynamic,
-            SweptCcd {
-                linear_threshold: 0.0,
-                angular_threshold: 0.0,
-                ..default()
-            },
-            Collider::sphere(BALL_RADIUS),
-            ColliderDensity(20.0),
-            CollisionMargin(0.02),
-            CollisionLayers::new(GameLayer::Ball, [GameLayer::Ground]),
-            Restitution::new(0.82),
-            AngularDamping(0.3),
-            LinearDamping(0.0),
-        ))
-        .id();
-
-    let grip_offset = poses.hand.rotation.inverse() * (ball_start - poses.hand.position);
-    let right_grip = commands
-        .spawn((
-            FixedJoint::new(robot_entities.right_hand, ball)
-                .with_local_anchor1(grip_offset)
-                .with_local_basis2(poses.hand.rotation)
-                .with_point_compliance(0.000001)
-                .with_angle_compliance(0.00001),
-            JointCollisionDisabled,
-        ))
-        .id();
-    let left_grip = commands
-        .spawn((
-            DistanceJoint::new(robot_entities.left_hand, ball)
-                .with_limits(HAND_RADIUS + BALL_RADIUS, HAND_RADIUS + BALL_RADIUS)
-                .with_compliance(0.000001),
-            JointCollisionDisabled,
-        ))
-        .id();
-    commands.insert_resource(BallGrip {
-        joints: [right_grip, left_grip],
-    });
-    for (anchor, clearance) in BODY_KEEP_OUT {
-        commands.spawn(
-            DistanceJoint::new(robot_entities.torso, ball)
-                .with_local_anchor1(anchor)
-                .with_limits(clearance + BALL_RADIUS, f32::MAX)
-                .with_compliance(0.000001),
-        );
-    }
+    let ball = spawn_ball(&mut commands, &mut meshes, &mut materials, &robot_entities);
 
     commands.insert_resource(robot_entities);
 
@@ -254,4 +195,65 @@ pub fn setup(
         let ws_url = wasm_ws_url();
         commands.insert_resource(WsBridge::new(&ws_url));
     }
+}
+
+pub(super) fn spawn_ball(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+    robot_entities: &RobotEntities,
+) -> Entity {
+    let poses = get_initial_poses();
+    let ball_start = poses.ball_position();
+
+    let ball_mat = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.85, 0.45, 0.15),
+        perceptual_roughness: 0.6,
+        ..default()
+    });
+
+    let ball = commands
+        .spawn((
+            Basketball,
+            Mesh3d(meshes.add(Sphere::new(BALL_RADIUS))),
+            MeshMaterial3d(ball_mat),
+            Transform::from_translation(ball_start),
+            RigidBody::Dynamic,
+            SweptCcd {
+                linear_threshold: 0.0,
+                angular_threshold: 0.0,
+                ..default()
+            },
+            Collider::sphere(BALL_RADIUS),
+            ColliderDensity(20.0),
+            CollisionMargin(0.001),
+            CollisionLayers::new(GameLayer::Ball, [GameLayer::Ground, GameLayer::Robot]),
+            Restitution::new(0.82),
+            AngularDamping(0.3),
+            LinearDamping(0.0),
+        ))
+        .id();
+
+    // A compliant two-hand cradle can slip or break under load. The ball keeps
+    // its rotational freedom and collides with both hands even while held.
+    let joints = [
+        (robot_entities.right_hand, poses.hand),
+        (robot_entities.left_hand, poses.left_hand),
+    ]
+    .map(|(hand, pose)| {
+        commands
+            .spawn((
+                SphericalJoint::new(hand, ball)
+                    .with_local_anchor1(pose.rotation.inverse() * (ball_start - pose.position))
+                    .with_point_compliance(super::grip::GRIP_COMPLIANCE),
+                JointForces::new(),
+            ))
+            .id()
+    });
+    commands.insert_resource(BallGrip {
+        joints,
+        released: false,
+        dropped: false,
+    });
+    ball
 }

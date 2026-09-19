@@ -30,12 +30,13 @@ fn evaluate_step(
     mut score: ResMut<Evaluation>,
     training: Res<TrainingState>,
     mut commands: Commands,
-    grip: Res<BallGrip>,
+    mut grip: ResMut<BallGrip>,
     mut queries: ParamSet<(JointReadQuery, TorqueWriteQuery, BallQuery)>,
 ) {
     if score.done {
         return;
     }
+    score.ball_released |= grip.released;
     let Some(state) = extract_robot_state(&queries.p0()) else {
         return;
     };
@@ -63,7 +64,7 @@ fn evaluate_step(
             score.stage,
         );
         score.reward += reward.stand + reward.throw;
-        if score.ball_released && score.steps_since_release == 0 {
+        if score.ball_released && score.steps_since_release == 0 && !grip.dropped {
             score.reward += release_reward(ball, ball_velocity);
         }
         if end == Some(EpisodeEndReason::BasketMade) {
@@ -98,7 +99,7 @@ fn evaluate_step(
         score.steps_since_release += 1;
     } else if should_release(score.stage, score.step, action[13]) {
         score.ball_released = true;
-        release_ball(&mut commands, &grip);
+        release_ball(&mut commands, &mut grip);
     }
     score.prev_ball_pos = Some(ball);
     score.previous = Some(action);
@@ -113,6 +114,7 @@ fn app(trainer: Arc<SacAsyncTrainer>, substeps: u32) -> App {
         AssetPlugin::default(),
         PhysicsPlugins::default(),
     ))
+    .add_plugins(super::BallGripPlugin)
     .init_asset::<Mesh>()
     .init_asset::<StandardMaterial>()
     .insert_resource(SharedTrainer {
@@ -360,70 +362,4 @@ fn ballistic_shot_scores_through_the_actual_physics_stepper() {
         previous = current;
     }
     assert_eq!(end, Some(EpisodeEndReason::BasketMade));
-}
-
-#[test]
-fn held_ball_stays_in_both_hands_and_outside_the_body() {
-    use super::components::{Basketball, RobotHand, RobotLeftHand, RobotTorso};
-    use super::constants::*;
-    let _sandbox = checkpoint_sandbox();
-    let mut app = app(Arc::new(SacAsyncTrainer::new()), 12);
-    app.add_systems(
-        FixedUpdate,
-        |mut torques: TorqueWriteQuery, mut step: Local<usize>| {
-            *step += 1;
-            let action: Vec<f32> = (0..crate::rl::ACT_DIM)
-                .map(|joint| {
-                    if joint < 6 {
-                        ((*step / 20 + joint) % 3) as f32 - 1.0
-                    } else {
-                        0.0
-                    }
-                })
-                .collect();
-            apply_torques(&mut torques, &ComputedTorques::from_action(&action));
-        },
-    );
-    let reach = HAND_RADIUS + BALL_RADIUS;
-    let mut world_query = app.world_mut().query::<(
-        &Position,
-        &Rotation,
-        Has<Basketball>,
-        Has<RobotHand>,
-        Has<RobotLeftHand>,
-        Has<RobotTorso>,
-    )>();
-    for step in 0..200 {
-        app.update();
-        let mut ball = Vec3::ZERO;
-        let mut hands = [Vec3::ZERO; 2];
-        let mut torso = (Vec3::ZERO, Quat::IDENTITY);
-        for (pos, rot, is_ball, is_hand, is_left_hand, is_torso) in world_query.iter(app.world()) {
-            if is_ball {
-                ball = pos.0;
-            } else if is_hand {
-                hands[0] = pos.0;
-            } else if is_left_hand {
-                hands[1] = pos.0;
-            } else if is_torso {
-                torso = (pos.0, rot.0);
-            }
-        }
-
-        assert!(ball.is_finite(), "step {step}");
-        for hand in hands {
-            assert!(
-                (ball.distance(hand) - reach).abs() < 0.04,
-                "step {step}: hand is {} m from the ball",
-                ball.distance(hand)
-            );
-        }
-        let local = torso.1.inverse() * (ball - torso.0);
-        for (anchor, clearance) in BODY_KEEP_OUT {
-            assert!(
-                local.distance(anchor) > clearance + BALL_RADIUS - 0.03,
-                "step {step}: ball is inside the body"
-            );
-        }
-    }
 }

@@ -4,6 +4,7 @@ mod builder;
 mod components;
 mod constants;
 mod episode;
+mod grip;
 mod observation;
 mod reset;
 mod resources;
@@ -25,6 +26,7 @@ mod zenoh_bridge;
 mod wasm_bridge;
 
 pub use builder::spawn_robot;
+pub use grip::BallGripPlugin;
 pub use reset::{get_initial_poses, reset_robot_positions, BodyPartPose, RobotPoses};
 pub use setup::*;
 

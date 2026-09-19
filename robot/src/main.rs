@@ -19,6 +19,7 @@ fn main() {
     println!("=== Basketball Robot Training ===");
     App::new()
         .add_plugins((DefaultPlugins, PhysicsPlugins::default()))
+        .add_plugins(robot::BallGripPlugin)
         .insert_resource(SubstepCount(24))
         .insert_resource(Gravity(Vec3::new(0.0, -9.81, 0.0)))
         .add_systems(

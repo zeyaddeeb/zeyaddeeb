@@ -249,7 +249,7 @@ pub fn wasm_training_loop(
     mut bridge: ResMut<WsBridge>,
     mut physics_time: ResMut<Time<Physics>>,
     mut commands: Commands,
-    grip: Option<Res<BallGrip>>,
+    mut grip: Option<ResMut<BallGrip>>,
 ) {
     // Avian retains its previous delta on pause; zero it to avoid an extra step.
     physics_time.pause();
@@ -265,6 +265,7 @@ pub fn wasm_training_loop(
     if !bridge.is_connected() {
         return;
     }
+    sim.ball_released |= grip.as_deref().is_some_and(|grip| grip.released);
     if bridge.pending.is_some() {
         let response = bridge.mailbox.borrow_mut().take();
         if let Some(response) = response {
@@ -288,7 +289,7 @@ pub fn wasm_training_loop(
                 sim.steps_since_release += 1;
             } else if should_release(sim.curriculum_stage, sim.step, action[13]) {
                 sim.ball_released = true;
-                if let Some(grip) = grip.as_deref() {
+                if let Some(grip) = grip.as_deref_mut() {
                     release_ball(&mut commands, grip);
                 }
             }
@@ -347,7 +348,10 @@ pub fn wasm_training_loop(
         );
 
         reward = comps.stand + comps.throw;
-        if sim.ball_released && sim.steps_since_release == 0 {
+        if sim.ball_released
+            && sim.steps_since_release == 0
+            && grip.as_deref().is_none_or(|grip| !grip.dropped)
+        {
             reward += release_reward(ball_pos, ball_v);
         }
         if end_reason == Some(EpisodeEndReason::BasketMade) {

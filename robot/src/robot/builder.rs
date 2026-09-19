@@ -52,6 +52,9 @@ pub fn spawn_robot(
                 Mesh3d(meshes.add(Sphere::new(HEAD_RADIUS))),
                 MeshMaterial3d(gold_mat.clone()),
                 Transform::from_xyz(0.0, TORSO_HEIGHT / 2.0 + NECK_HEIGHT + HEAD_RADIUS, 0.0),
+                Collider::sphere(HEAD_RADIUS),
+                ColliderDensity(0.0),
+                CollisionLayers::new(GameLayer::Robot, [GameLayer::Ground, GameLayer::Ball]),
             ));
         })
         .id();

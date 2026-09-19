@@ -32,15 +32,6 @@ pub const HIP_OFFSET_Y: f32 = -TORSO_HEIGHT / 2.0 + 0.04;
 pub const HIP_OFFSET_Z: f32 = TORSO_SIZE_Z / 2.0 + 0.06;
 pub const HIP_OFFSET_LEFT: Vec3 = Vec3::new(0.0, HIP_OFFSET_Y, HIP_OFFSET_Z);
 pub const HIP_OFFSET_RIGHT: Vec3 = Vec3::new(0.0, HIP_OFFSET_Y, -HIP_OFFSET_Z);
-pub const BODY_KEEP_OUT: [(Vec3, f32); 4] = [
-    (
-        Vec3::new(0.0, TORSO_HEIGHT / 2.0 + NECK_HEIGHT + HEAD_RADIUS, 0.0),
-        HEAD_RADIUS,
-    ),
-    (Vec3::new(0.0, 0.3, 0.0), 0.18),
-    (Vec3::ZERO, 0.18),
-    (Vec3::new(0.0, -0.3, 0.0), 0.18),
-];
 pub const SHOULDER_MIN: f32 = -PI * 0.8;
 pub const SHOULDER_MAX: f32 = PI * 0.6;
 pub const LEFT_SHOULDER_MIN: f32 = -PI * 0.7;

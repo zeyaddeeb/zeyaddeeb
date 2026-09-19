@@ -55,7 +55,7 @@ pub const TRAINING_ITERS: usize = 50;
 
 pub const JOINT_COUNT: usize = 13;
 
-pub const ENVIRONMENT_VERSION: u32 = 3;
+pub const ENVIRONMENT_VERSION: u32 = 4;
 pub const OBS_DIM: usize = JOINT_COUNT * 2 + 24;
 
 pub const ACT_DIM: usize = JOINT_COUNT + 1;
