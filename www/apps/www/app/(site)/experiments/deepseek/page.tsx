@@ -5,7 +5,7 @@ import { ExperimentFrame } from "@/features/frame/experiment-frame";
 export const metadata = pageMetadata({
 	path: "/experiments/deepseek",
 	section: "Experiments",
-	title: "An Educated Guessing Machine",
+	title: "Educated Guessing Machines",
 	description:
 		"Train a small model inspired by DeepSeek V4.1 on Rust code, questions, and scored answers. Inspect live predictions and training results.",
 });
