@@ -1,49 +1,71 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { describe, it } from "vitest";
+
+const execFileAsync = promisify(execFile);
+
+async function withFreshClient(
+	source: string,
+	nodeEnv: NodeJS.ProcessEnv["NODE_ENV"] = "production",
+) {
+	await execFileAsync(
+		"bun",
+		[
+			"--eval",
+			`
+				import assert from "node:assert/strict";
+				delete process.env.DATABASE_URL;
+				const { db } = await import("./src/client.ts");
+				${source}
+			`,
+		],
+		{
+			cwd: new URL("../../../packages/db/", import.meta.url),
+			env: { ...process.env, NODE_ENV: nodeEnv },
+			timeout: 5000,
+		},
+	);
+}
 
 describe("database client initialization", () => {
-	beforeEach(() => {
-		vi.resetModules();
-		vi.stubEnv("NODE_ENV", "production");
-		vi.stubEnv("DATABASE_URL", undefined);
-	});
-
-	afterEach(() => {
-		vi.unstubAllEnvs();
-	});
-
 	it("allows build-time imports but rejects runtime use without credentials", async () => {
-		const { db } = await import("../../../packages/db/src/client");
-
-		expect(() => db.select()).toThrow("DATABASE_URL is required in production");
+		await withFreshClient(`
+			assert.throws(() => db.select(), /DATABASE_URL is required in production/);
+		`);
 	});
 
 	it("reads credentials on first use and reuses the initialized client", async () => {
-		const { db } = await import("../../../packages/db/src/client");
-		const { post } = await import("../../../packages/db/src/schema");
-		const connectionString = "postgresql://test:test@localhost:5432/test";
-		vi.stubEnv("DATABASE_URL", connectionString);
+		await withFreshClient(`
+			const { post } = await import("./src/schema/index.ts");
+			const connectionString = "postgresql://test:test@localhost:5432/test";
+			process.env.DATABASE_URL = connectionString;
 
-		const pool = db.$client;
-		try {
-			expect(pool.options.connectionString).toBe(connectionString);
-			expect(db.select().from(post).toSQL().sql).toContain('from "posts"');
-			vi.stubEnv("DATABASE_URL", undefined);
-			expect(db.$client).toBe(pool);
-		} finally {
-			await pool.end();
-		}
+			const pool = db.$client;
+			try {
+				assert.equal(pool.options.connectionString, connectionString);
+				assert.ok(db.select().from(post).toSQL().sql.includes('from "posts"'));
+				delete process.env.DATABASE_URL;
+				assert.equal(db.$client, pool);
+			} finally {
+				await pool.end();
+			}
+		`);
 	});
 
 	it("preserves the local development connection default", async () => {
-		vi.stubEnv("NODE_ENV", "development");
-		const { db } = await import("../../../packages/db/src/client");
-		const pool = db.$client;
-		try {
-			expect(pool.options.connectionString).toBe(
-				"postgresql://postgres:postgres@localhost:5432/zeyaddeeb",
-			);
-		} finally {
-			await pool.end();
-		}
+		await withFreshClient(
+			`
+				const pool = db.$client;
+				try {
+					assert.equal(
+						pool.options.connectionString,
+						"postgresql://postgres:postgres@localhost:5432/zeyaddeeb",
+					);
+				} finally {
+					await pool.end();
+				}
+			`,
+			"development",
+		);
 	});
 });

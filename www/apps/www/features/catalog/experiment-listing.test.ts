@@ -24,8 +24,8 @@ describe("experiment listing", () => {
 			listExperiments({ search: "offline" }).items.map((item) => item.id),
 		).toEqual(["crdt"]);
 		expect(
-			listExperiments({ search: "WebRTC" }).items.map((item) => item.id),
-		).toEqual(["speaker-diarization"]);
+			listExperiments({ search: "Candle" }).items.map((item) => item.id),
+		).toEqual(["deepseek"]);
 	});
 
 	it("combines search terms and type before pagination", () => {
@@ -34,11 +34,8 @@ describe("experiment listing", () => {
 			type: "mic",
 			page: "99",
 		});
-		expect(result.items.map((item) => item.id)).toEqual([
-			"audio-visualizer",
-			"speaker-diarization",
-		]);
-		expect(result).toMatchObject({ total: 2, page: 1, totalPages: 1 });
+		expect(result.items.map((item) => item.id)).toEqual(["audio-visualizer"]);
+		expect(result).toMatchObject({ total: 1, page: 1, totalPages: 1 });
 	});
 
 	it("handles empty results, malformed parameters and stale page numbers", () => {

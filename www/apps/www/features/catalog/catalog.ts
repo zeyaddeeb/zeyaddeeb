@@ -82,19 +82,8 @@ export const experiments: Experiment[] = [
 		span: { cols: 2, rows: 1 },
 	},
 	{
-		id: "speaker-diarization",
-		number: 6,
-		title: "Speaker Diarization",
-		line: "An audio pipeline that identifies speaker changes and plots them on a timeline.",
-		stack: ["Rust", "WebRTC", "ONNX", "Candle"],
-		href: "/experiments/speaker-diarization",
-		kind: "mic",
-		live: "diarization",
-		span: { cols: 2, rows: 1 },
-	},
-	{
 		id: "portfolio",
-		number: 7,
+		number: 6,
 		title: "Portfolio Atlas",
 		line: "Browse client projects on a draggable canvas.",
 		stack: ["Canvas", "UX"],
@@ -105,7 +94,7 @@ export const experiments: Experiment[] = [
 	},
 	{
 		id: "story",
-		number: 8,
+		number: 7,
 		title: "From Floppy to Cloud",
 		line: "My programming history, from a DOS prompt to Kubernetes and Rust, with each interface running.",
 		stack: ["TypeScript", "Rust", "WASM"],
@@ -116,7 +105,7 @@ export const experiments: Experiment[] = [
 	},
 	{
 		id: "robot",
-		number: 9,
+		number: 8,
 		title: "RL Basketball Agent",
 		line: "A basketball agent trained with reinforcement learning in Rust and Bevy.",
 		stack: ["Rust", "Bevy", "SAC", "WASM"],
@@ -128,7 +117,7 @@ export const experiments: Experiment[] = [
 	},
 	{
 		id: "moonspell",
-		number: 10,
+		number: 9,
 		title: "Moonspell",
 		line: "An interactive gallery pairing engineering concepts with paintings.",
 		stack: ["Next.js", "GSAP", "Canvas"],
@@ -140,7 +129,7 @@ export const experiments: Experiment[] = [
 	},
 	{
 		id: "wes-anderson",
-		number: 11,
+		number: 10,
 		title: "One Drawing, Eight Shots",
 		line: "Make a Wes Anderson scene: one flat drawing, a camera that may only slide, cut, or zoom, and a screenplay that runs it.",
 		stack: ["SVG viewBox", "SMIL", "Web Speech", "@property"],
@@ -150,7 +139,7 @@ export const experiments: Experiment[] = [
 	},
 	{
 		id: "deepseek",
-		number: 12,
+		number: 11,
 		title: "Educated Guessing Machines",
 		line: "Train a small model inspired by DeepSeek V4.1 on Rust code, questions, and scored answers. Inspect live predictions and training results.",
 		stack: ["Rust", "Candle", "Axum", "SSE", "SVG"],
