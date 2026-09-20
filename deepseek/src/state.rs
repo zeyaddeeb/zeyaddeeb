@@ -43,7 +43,7 @@ impl Limits {
         Self {
             workers: number("DEEPSEEK_WORKERS", 2).clamp(1, 8) as usize,
             sessions: number("DEEPSEEK_MAX_SESSIONS", 16).clamp(1, 64) as usize,
-            idle: Duration::from_secs(number("DEEPSEEK_IDLE_SECONDS", 60)),
+            idle: Duration::from_secs(number("DEEPSEEK_IDLE_SECONDS", 600)),
             budget: Duration::from_secs(number("DEEPSEEK_OPERATION_SECONDS", 300)),
         }
     }
@@ -931,7 +931,11 @@ impl AppState {
                 let working = s
                     .active()
                     .is_some_and(|op| op.state() != OperationState::Paused);
-                !working && lock(&s.idle_since).elapsed() > self.limits.idle
+                // Reading the walkthrough sends no commands. Only reclaim a model
+                // after its last event-stream reader has disconnected.
+                s.reader_count() == 0
+                    && !working
+                    && lock(&s.idle_since).elapsed() > self.limits.idle
             })
             .map(|s| s.id)
             .collect();

@@ -290,6 +290,38 @@ async fn answering_never_moves_the_weights_and_bad_input_never_runs() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn idle_cleanup_keeps_connected_readers() {
+    let state = AppState::new(Limits {
+        idle: Duration::ZERO,
+        ..limits(1)
+    });
+    let (session, _) = open(&state).await;
+    assert!(state.connected(&session));
+    assert!(state.connected(&session));
+
+    state.sweep().await;
+    assert!(
+        state.session(session.id).is_some(),
+        "reading is not abandonment"
+    );
+
+    state.disconnected(&session);
+    state.sweep().await;
+    assert!(
+        state.session(session.id).is_some(),
+        "another reader is still connected"
+    );
+
+    state.disconnected(&session);
+    state.sweep().await;
+    assert!(
+        state.session(session.id).is_none(),
+        "disconnected idle sessions still expire"
+    );
+    state.shutdown().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn losing_the_last_reader_pauses_and_closing_cleans_up() {
     let state = AppState::new(limits(1));
     let (session, mut events) = open(&state).await;

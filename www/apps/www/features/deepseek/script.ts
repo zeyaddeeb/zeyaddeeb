@@ -625,7 +625,9 @@ export function shot(state: LabState, view: View): Shot {
 				primary: weak
 					? { id: "sft", label: "Train on more answers" }
 					: { id: "next", label: "See how it finds the answer" },
-				secondary: weak ? [] : [{ id: "sft", label: "Train on more answers" }],
+				secondary: weak
+					? [{ id: "next", label: "Continue" }]
+					: [{ id: "sft", label: "Train on more answers" }],
 			};
 		} else if (at === 1) {
 			const spot = focused ? spotlight(probe) : null;

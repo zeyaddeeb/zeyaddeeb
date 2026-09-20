@@ -178,6 +178,41 @@ describe("the script", () => {
 		}
 	});
 
+	it("can reach practice and yours even when answered examples scored poorly", () => {
+		const state = lab({
+			steps: { pretrain: 400, sft: 600 },
+			operation: { phase: "sft", state: "completed" },
+			probe: probe({ accuracy: 0.1 }),
+		});
+		let given = at({}, { asked: true });
+		const graded = shot(state, { flags: given, selected: 11 });
+		expect(graded.primary?.id).toBe("sft");
+		expect(graded.secondary.map((action) => action.id)).toContain("next");
+		given = step(given, graded, 1);
+		const looks = shot(state, { flags: given, selected: 11 });
+		expect(looks.id).toBe("looks");
+		expect(looks.primary?.id).toBe("next");
+		given = step(given, looks, 1);
+		const practice = shot(state, { flags: given, selected: 11 });
+		expect(practice.chapter).toBe("practice");
+		expect(practice.primary?.id).toBe("rl");
+
+		const practiced = lab({
+			steps: { pretrain: 400, sft: 600, rl: 60 },
+			operation: { phase: "rl", state: "completed" },
+			probe: probe({ accuracy: 0.1 }),
+		});
+		expect(shot(practiced, { flags: given, selected: 11 }).primary?.id).toBe(
+			"own",
+		);
+		expect(
+			shot(practiced, {
+				flags: { ...given, own: true, view: null },
+				selected: 11,
+			}).chapter,
+		).toBe("yours");
+	});
+
 	it("opens on a covered token and a guess, with no button to press", () => {
 		const opening = shot(lab({}), { flags, selected: 3 });
 		expect(opening.id).toBe("cover");
