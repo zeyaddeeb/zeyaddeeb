@@ -15,7 +15,16 @@ const nextConfig = {
 					? " http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:*"
 					: ""),
 			"media-src 'self' blob: https:",
-			"frame-src https://www.youtube.com https://www.youtube-nocookie.com https://open.spotify.com https://embed.music.apple.com",
+			[
+				"frame-src",
+				"https://www.youtube.com",
+				"https://www.youtube-nocookie.com",
+				"https://open.spotify.com",
+				"https://embed.music.apple.com",
+				"https://www.pulsarlabs.io",
+				"https://www.pulvi.co",
+				"https://www.moonspell.fm",
+			].join(" "),
 			"worker-src 'self' blob:",
 			"object-src 'none'",
 			"base-uri 'self'",
