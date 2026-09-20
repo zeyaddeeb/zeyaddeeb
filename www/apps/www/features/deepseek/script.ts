@@ -812,7 +812,7 @@ export function shot(state: LabState, view: View): Shot {
 					note: null,
 					primary: null,
 					waiting: "Waiting to start",
-					secondary: [{ id: "cancel", label: "Cancel run" }],
+					secondary: [{ id: "cancel", label: "Cancel run" }, ...controls],
 				};
 				break;
 			case "running":
@@ -834,7 +834,7 @@ export function shot(state: LabState, view: View): Shot {
 					],
 					note: null,
 					primary: { id: "resume", label: "Resume" },
-					secondary: [{ id: "cancel", label: "Cancel run" }],
+					secondary: [{ id: "cancel", label: "Cancel run" }, ...controls],
 				};
 				break;
 			case "cancelRequested":
@@ -848,7 +848,7 @@ export function shot(state: LabState, view: View): Shot {
 					],
 					note: null,
 					primary: null,
-					secondary: [],
+					secondary: controls,
 					waiting: "Canceling…",
 				};
 				break;

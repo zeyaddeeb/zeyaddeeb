@@ -318,7 +318,12 @@ export function DeepSeekLab() {
 					className="ds-caption-band"
 					aria-live="polite"
 					data-pinned={
-						!!(story.primary || story.waiting || scene.choices.length)
+						!!(
+							story.primary ||
+							story.secondary.length ||
+							story.waiting ||
+							scene.choices.length
+						)
 					}
 				>
 					<p className="ds-eyebrow ds-chapter">

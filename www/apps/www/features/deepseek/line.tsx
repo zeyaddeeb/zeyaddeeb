@@ -191,6 +191,7 @@ export function Line({
 		[focus.layers, layer, tokens.length],
 	);
 	const answer = line.answer[0];
+	const markerIndex = tokens.findIndex((token) => token.role === "marker");
 	const correct = line.truth !== null && answer?.text === line.truth;
 	const frame = useRef<HTMLDivElement>(null);
 	const [drawn, setDrawn] = useState<Wire[]>([]);
@@ -303,6 +304,7 @@ export function Line({
 			>
 				{tokens.map((token, index) => {
 					if (token.role === "start") return null;
+					if (token.role === "marker") return null;
 					if (codeOnly && token.role !== "code") return null;
 					const given = token.role !== "code";
 					const first = given && tokens[index - 1]?.role === "code";
@@ -363,6 +365,9 @@ export function Line({
 				})}
 				{codeOnly ? null : (
 					<li data-role="answer">
+						<span className="ds-answer-marker" data-index={markerIndex}>
+							{tokens[markerIndex]?.text ?? "→"}
+						</span>
 						<button
 							type="button"
 							className="ds-answer"

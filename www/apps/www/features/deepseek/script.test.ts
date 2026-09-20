@@ -288,6 +288,41 @@ describe("the script", () => {
 		);
 	});
 
+	it.each(["generate", "distill"] as const)(
+		"keeps Back available on Yours throughout %s and returns without losing progress",
+		(phase) => {
+			for (const state of [
+				"queued",
+				"running",
+				"paused",
+				"cancelRequested",
+				"compensating",
+				"completed",
+				"canceled",
+				"failed",
+			] as const) {
+				const trained = lab({
+					steps: { pretrain: 400, sft: 600, rl: 60 },
+					operation: { phase, state },
+				});
+				const given = at({}, { asked: true, own: true });
+				const yours = shot(trained, { flags: given, selected: 11 });
+				expect(yours.chapter).toBe("yours");
+				expect(yours.secondary.map((action) => action.id)).toContain("back");
+
+				const back = step(given, yours, -1);
+				const practice = shot(trained, { flags: back, selected: 11 });
+				expect(practice.chapter).toBe("practice");
+				expect(back.own).toBe(true);
+				const forward = step(back, practice, 1);
+				expect(forward.view).toBeNull();
+				expect(shot(trained, { flags: forward, selected: 11 }).chapter).toBe(
+					"yours",
+				);
+			}
+		},
+	);
+
 	it("stays truthful when the guess is revisited with a trained model", () => {
 		const trained = lab({ steps: { pretrain: 400 } });
 		const again = (guess: number) =>
