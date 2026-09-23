@@ -16,9 +16,9 @@
   },
   "dependencies": {
     "@zeyaddeeb/db": "workspace:*",
-    "better-auth": "^1.6.22",
-    "zod": "^4.4.3",
-    "drizzle-orm": "^0.45.2"
+    "better-auth": "^1.7.5",
+    "zod": "^4.6.5",
+    "drizzle-orm": "^0.45.3"
   },
   "peerDependencies": {
     "react": "^19"

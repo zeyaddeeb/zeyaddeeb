@@ -58,6 +58,16 @@ const websites: WebsiteCard[] = [
 		accent: "#be0a9a",
 		external: true,
 	},
+	{
+		title: "Cosmic Elements",
+		domain: "cosmicelements.io",
+		previewTarget: "https://www.cosmicelements.io",
+		href: "https://www.cosmicelements.io",
+		tag: "Owned",
+		year: "2026",
+		accent: "#950e0e",
+		external: true,
+	},
 ];
 
 const INTRO_HEIGHT = 0;

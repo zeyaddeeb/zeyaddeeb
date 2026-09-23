@@ -44,7 +44,6 @@ export async function GET(request: Request) {
 				<div style={{ display: "flex", flexWrap: "wrap", width: 252, gap: 6 }}>
 					{Array.from({ length: 36 }, (_, index) => (
 						<div
-							// biome-ignore lint/suspicious/noArrayIndexKey: These are fixed coordinates in a static grid.
 							key={`cell-${index}`}
 							style={{
 								width: 36,

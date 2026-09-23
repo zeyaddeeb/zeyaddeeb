@@ -24,6 +24,7 @@ const nextConfig = {
 				"https://www.pulsarlabs.io",
 				"https://www.pulvi.co",
 				"https://www.moonspell.fm",
+				"https://www.cosmicelements.io",
 			].join(" "),
 			"worker-src 'self' blob:",
 			"object-src 'none'",
