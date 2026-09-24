@@ -28,7 +28,7 @@ const storageKey = "proofs-progress";
 
 function readProgress(): Record<string, Progress> {
 	try {
-		return JSON.parse(localStorage.getItem(storageKey) ?? "{}");
+		return JSON.parse(sessionStorage.getItem(storageKey) ?? "{}");
 	} catch {
 		return {};
 	}
@@ -36,7 +36,7 @@ function readProgress(): Record<string, Progress> {
 
 function writeProgress(all: Record<string, Progress>) {
 	try {
-		localStorage.setItem(storageKey, JSON.stringify(all));
+		sessionStorage.setItem(storageKey, JSON.stringify(all));
 	} catch {}
 }
 
@@ -75,11 +75,11 @@ export function ProofsLab() {
 		});
 	}, []);
 
-	const remember = useCallback((id: string, next: Progress) => {
+	const remember = useCallback((id: string, next: Progress, keep = true) => {
 		setProgress((all) => {
 			const merged = {
 				...all,
-				[id]: { ...next, solved: next.solved || !!all[id]?.solved },
+				[id]: { ...next, solved: next.solved || (keep && !!all[id]?.solved) },
 			};
 			writeProgress(merged);
 			return merged;
@@ -169,7 +169,7 @@ export function ProofsLab() {
 		setFailure(null);
 		setSolved(false);
 		setTried(0);
-		remember(level.id, { tactics: [], solved: false });
+		remember(level.id, { tactics: [], solved: false }, false);
 	};
 
 	const submit = (event: FormEvent) => {
