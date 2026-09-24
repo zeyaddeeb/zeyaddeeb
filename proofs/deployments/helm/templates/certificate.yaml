@@ -1,0 +1,24 @@
+{{- if and .Values.istio.enabled .Values.istio.certificate.enabled -}}
+{{- $fullName := include "microservice.fullname" . -}}
+{{- $istioName := printf "%s-%s" .Release.Namespace $fullName | trunc 63 | trimSuffix "-" -}}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ default (printf "%s-tls" $istioName) .Values.istio.certificate.name }}
+  {{- with .Values.istio.certificate.namespace }}
+  namespace: {{ . }}
+  {{- end }}
+  labels:
+    {{- include "microservice.labels" . | nindent 4 }}
+  {{- with .Values.istio.certificate.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  secretName: {{ .Values.istio.certificate.secretName }}
+  issuerRef:
+    name: {{ .Values.istio.certificate.issuerRef.name }}
+    kind: {{ default "ClusterIssuer" .Values.istio.certificate.issuerRef.kind }}
+  dnsNames:
+    {{- toYaml .Values.istio.certificate.dnsNames | nindent 4 }}
+{{- end }}

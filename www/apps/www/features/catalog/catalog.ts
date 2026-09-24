@@ -147,6 +147,16 @@ export const experiments: Experiment[] = [
 		kind: "network",
 		span: { cols: 4, rows: 2 },
 	},
+	{
+		id: "proofs",
+		number: 12,
+		title: "No Goals",
+		line: "Try writing a few proofs in Lean. Start with 2 + 2 = 4 and work up to induction.",
+		stack: ["Lean 4", "Rust", "Axum", "Lean REPL"],
+		href: "/experiments/proofs",
+		kind: "network",
+		span: { cols: 4, rows: 2 },
+	},
 ];
 
 export function getExperiment(id: string): Experiment {

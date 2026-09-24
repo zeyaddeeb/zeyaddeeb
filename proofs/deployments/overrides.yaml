@@ -1,0 +1,34 @@
+fullnameOverride: "proofs"
+
+image:
+  repository: ${image_repository}
+
+entrypoint: "./proofs"
+
+service:
+  type: ClusterIP
+  port: 3005
+
+env:
+  RUST_LOG: "error"
+  PROOFS_BIND: "0.0.0.0"
+  PROOFS_WORKERS: "2"
+  PROOFS_STEP_SECONDS: "5"
+  PROOFS_RECYCLE: "200"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 2Gi
+
+volumes:
+  - name: tmp
+    emptyDir:
+      sizeLimit: 64Mi
+
+volumeMounts:
+  - name: tmp
+    mountPath: /tmp

@@ -19,6 +19,7 @@ This repo is home to my website and experiments in reinforcement learning, real-
 | Project                                                                              |                                                                | Built with                     |
 | :----------------------------------------------------------------------------------- | :------------------------------------------------------------- | :----------------------------- |
 | [**RL Basketball Agent**](https://robot.zeyaddeeb.com)                               | A basketball agent trained with reinforcement learning.        | Rust · Bevy · SAC              |
+| [**No Goals**](https://www.zeyaddeeb.com/experiments/proofs)                        | Learn Lean proofs one move at a time, checked by real Lean.     | Lean 4 · Rust · Axum           |
 | [**CRDT Editor**](https://www.zeyaddeeb.com/experiments/crdt)                        | Collaborative text editing with offline synchronization.       | Rust · WebAssembly · WebSocket |
 | [**Circle Limit**](https://www.zeyaddeeb.com/experiments/circle-limit)               | Animated hyperbolic tilings inspired by M. C. Escher.          | Rust · WebAssembly · Canvas    |
 | [**Game of Life**](https://www.zeyaddeeb.com/experiments/game-of-life)               | Conway’s cellular automaton, with Rust and JavaScript engines. | Rust · TypeScript · Canvas     |
@@ -38,6 +39,7 @@ This repo is home to my website and experiments in reinforcement learning, real-
 | [`www/`](www)                             | Website, blog, and shared packages               |
 | [`www/packages/wasm/`](www/packages/wasm) | Rust engines compiled to WebAssembly             |
 | [`crdt/`](crdt)                           | Collaborative editing and live presence          |
+| [`proofs/`](proofs)                       | Lean 4 proof checking service                    |
 | [`robot/`](robot)                         | Basketball simulation and reinforcement learning |
 | [`voice/`](voice)                         | Speaker diarization service                      |
 | [`deployments/`](deployments)             | Terraform configuration                          |

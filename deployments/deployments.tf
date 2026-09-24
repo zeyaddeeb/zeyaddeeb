@@ -21,3 +21,8 @@ module "deepseek" {
   source    = "../deepseek/deployments"
   namespace = kubernetes_namespace_v1.zeyaddeeb_namespace.metadata[0].name
 }
+
+module "proofs" {
+  source    = "../proofs/deployments"
+  namespace = kubernetes_namespace_v1.zeyaddeeb_namespace.metadata[0].name
+}

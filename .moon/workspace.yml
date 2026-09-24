@@ -17,3 +17,4 @@ projects:
   robot: "robot"
   crdt: "crdt"
   deepseek: "deepseek"
+  proofs: "proofs"

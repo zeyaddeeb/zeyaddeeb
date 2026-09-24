@@ -3,12 +3,56 @@
 import { LifeArrow } from "@zeyaddeeb/ui";
 import Link from "next/link";
 import { type CSSProperties, type PointerEvent, useRef, useState } from "react";
-import { getExperiment, number } from "@/features/catalog/catalog";
+import {
+	type Experiment,
+	getExperiment,
+	number,
+} from "@/features/catalog/catalog";
 import { usePresence } from "@/features/live/presence";
 import { useShouldRun } from "@/features/live/use-running";
 import { useWasm } from "@/lib/hooks/use-wasm";
 
-const featured = getExperiment("wes-anderson");
+const lead = getExperiment("proofs");
+
+const doors = {
+	stripes: getExperiment("wes-anderson"),
+	quarter: getExperiment("crdt"),
+	arch: getExperiment("deepseek"),
+	triangles: getExperiment("portfolio"),
+};
+
+const featured = [
+	lead,
+	doors.stripes,
+	doors.quarter,
+	doors.arch,
+	doors.triangles,
+];
+
+function Door({
+	experiment,
+	className,
+	active,
+	onPreview,
+}: {
+	experiment: Experiment;
+	className: string;
+	active: boolean;
+	onPreview: (id: string | null) => void;
+}) {
+	return (
+		<Link
+			href={experiment.href}
+			className={`presence-board__door ${className}`}
+			aria-label={`Experiment ${number(experiment.number)}: ${experiment.title}`}
+			data-active={active || undefined}
+			onPointerEnter={() => onPreview(experiment.id)}
+			onPointerLeave={() => onPreview(null)}
+			onFocus={() => onPreview(experiment.id)}
+			onBlur={() => onPreview(null)}
+		/>
+	);
+}
 
 export function PresenceBoard() {
 	const { peers, peer, cursors, sendCursor, status } = usePresence();
@@ -16,6 +60,9 @@ export function PresenceBoard() {
 	const boardRef = useRef<HTMLDivElement>(null);
 	const shouldRun = useShouldRun(boardRef);
 	const [paused, setPaused] = useState(false);
+	const [preview, setPreview] = useState<string | null>(null);
+	const [pinned, setPinned] = useState(lead.id);
+	const shown = featured.find((e) => e.id === (preview ?? pinned)) ?? lead;
 	const connected = status === "online" && peers !== null;
 	const unsupported = status === "online" && peers === null;
 	const unavailable = status === "offline" || unsupported || !!error;
@@ -42,7 +89,7 @@ export function PresenceBoard() {
 	return (
 		<section className="presence-board" aria-labelledby="presence-title">
 			<div className="presence-board__top">
-				<h2 id="presence-title">Featured experiment</h2>
+				<h2 id="presence-title">Featured experiments</h2>
 				<button
 					type="button"
 					aria-pressed={paused}
@@ -66,15 +113,15 @@ export function PresenceBoard() {
 				}
 			>
 				<Link
-					href={featured.href}
+					href={shown.href}
 					className="presence-board__stage presence-board__feature"
 				>
 					<span className="presence-board__disc" aria-hidden="true" />
-					<span className="presence-board__feature-text">
+					<span key={shown.id} className="presence-board__feature-text">
 						<span className="presence-board__feature-eyebrow">
-							Experiment / {number(featured.number)}
+							Experiment / {number(shown.number)}
 						</span>
-						<strong>{featured.title}</strong>
+						<strong>{shown.title}</strong>
 						<span className="presence-board__feature-cta">
 							Explore experiment{" "}
 							<span
@@ -86,9 +133,24 @@ export function PresenceBoard() {
 						</span>
 					</span>
 				</Link>
-				<div className="presence-board__stripes" aria-hidden="true" />
-				<div className="presence-board__quarter" aria-hidden="true" />
-				<div className="presence-board__arch" aria-hidden="true" />
+				<Door
+					experiment={doors.stripes}
+					className="presence-board__stripes"
+					active={shown === doors.stripes}
+					onPreview={setPreview}
+				/>
+				<Door
+					experiment={doors.quarter}
+					className="presence-board__quarter"
+					active={shown === doors.quarter}
+					onPreview={setPreview}
+				/>
+				<Door
+					experiment={doors.arch}
+					className="presence-board__arch"
+					active={shown === doors.arch}
+					onPreview={setPreview}
+				/>
 				<div className="presence-board__presence">
 					<div className="presence-board__presence-text">
 						<span className="presence-board__presence-label">Here now</span>
@@ -120,7 +182,12 @@ export function PresenceBoard() {
 						</p>
 						<span className="presence-board__presence-status">{label}</span>
 					</div>
-					<span className="presence-board__triangles" aria-hidden="true" />
+					<Door
+						experiment={doors.triangles}
+						className="presence-board__triangles"
+						active={shown === doors.triangles}
+						onPreview={setPreview}
+					/>
 				</div>
 				{connected &&
 					cursors
@@ -136,6 +203,20 @@ export function PresenceBoard() {
 								}}
 							/>
 						))}
+			</div>
+			<div className="presence-board__index">
+				{featured.map((experiment) => (
+					<button
+						key={experiment.id}
+						type="button"
+						aria-pressed={pinned === experiment.id}
+						aria-label={`Show experiment ${number(experiment.number)}: ${experiment.title}`}
+						data-active={shown === experiment || undefined}
+						onClick={() => setPinned(experiment.id)}
+					>
+						{number(experiment.number)}
+					</button>
+				))}
 			</div>
 			<p className="presence-board__caption">
 				{connected ? (

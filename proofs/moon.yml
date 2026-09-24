@@ -1,0 +1,30 @@
+language: "rust"
+stack: "backend"
+
+tasks:
+  repl:
+    script: "test -x .repl/.lake/build/bin/repl || (git clone --depth 1 --branch v4.34.0 https://github.com/leanprover-community/repl .repl && cd .repl && lake build)"
+    options:
+      cache: false
+  dev:
+    script: "cargo run --release"
+    deps:
+      - "repl"
+  test:
+    script: "cargo test --all"
+    deps:
+      - "repl"
+  helm-lint:
+    script: "helm lint deployments/helm"
+    options:
+      cache: false
+  docker-build:
+    script: docker build --platform=linux/amd64 -t $project:v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version) .
+  docker-tag:
+    script: docker tag $project:v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version) $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/zeyaddeeb/$project:v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version) >/dev/null
+    deps:
+      - "docker-build"
+  docker-push:
+    script: docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/zeyaddeeb/$project:v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version)
+    deps:
+      - "docker-tag"

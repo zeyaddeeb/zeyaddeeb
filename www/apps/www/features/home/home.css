@@ -242,9 +242,56 @@
 		linear-gradient(45deg, var(--ink) 50%, var(--blue) 50%);
 }
 
+.presence-board__door {
+	display: block;
+	outline: 0 solid var(--ink);
+	outline-offset: -3px;
+	transition: outline-width var(--dur-2) var(--ease);
+}
+
+.presence-board__door[data-active],
+.presence-board__door:focus-visible {
+	outline-width: 3px;
+}
+
+.presence-board__feature-text {
+	animation: presence-swap 220ms ease-out;
+}
+
+.presence-board__index {
+	display: flex;
+	gap: 18px;
+	margin-top: 12px;
+	font: 400 12px / 1.5 var(--font-mono);
+}
+
+.presence-board__index button {
+	min-height: 32px;
+	padding: 4px 0;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	background: none;
+	font: inherit;
+	color: var(--dim);
+	cursor: pointer;
+	transition:
+		color var(--dur-2) var(--ease),
+		border-color var(--dur-2) var(--ease);
+}
+
+.presence-board__index button:first-child {
+	margin-right: 14px;
+}
+
+.presence-board__index button:hover,
+.presence-board__index button[data-active] {
+	color: var(--ink);
+	border-bottom-color: var(--red);
+}
+
 .presence-board__caption {
 	max-width: 52ch;
-	margin: 16px 0 0;
+	margin: 8px 0 0;
 	font-size: 15px;
 	line-height: 1.55;
 	color: var(--dim);
@@ -521,6 +568,12 @@
 	}
 }
 
+@keyframes presence-swap {
+	from {
+		opacity: 0;
+	}
+}
+
 @keyframes presence-arrive {
 	from {
 		opacity: 0.3;
@@ -543,7 +596,12 @@
 		transition: none;
 	}
 
-	.presence-board__visitor {
+	.presence-board__visitor,
+	.presence-board__door {
 		transition: none;
+	}
+
+	.presence-board__feature-text {
+		animation: none;
 	}
 }
