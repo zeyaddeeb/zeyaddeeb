@@ -26,13 +26,13 @@ function Notes() {
 	return (
 		<div className="pf-notes">
 			<p>
-				The board shows the goals and error messages returned by Lean 4.34.
-				The explanations above it help you read the results as you go.
+				The board shows the goals and error messages returned by Lean 4.34. The
+				explanations above it help you read the results as you go.
 			</p>
 			<h3>How a check works</h3>
 			<p>
-				A Rust service runs Lean through the Lean REPL. When you try a move,
-				it checks your proof from the beginning, including the new step. Your
+				A Rust service runs Lean through the Lean REPL. When you try a move, it
+				checks your proof from the beginning, including the new step. Your
 				progress is saved in this browser, so you can come back to it later.
 			</p>
 			<h3>What you can type</h3>

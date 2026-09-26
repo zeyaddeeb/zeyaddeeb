@@ -2,7 +2,7 @@
 
 import { LifeArrow } from "@zeyaddeeb/ui";
 import {
-	type FormEvent,
+	type SubmitEvent,
 	useCallback,
 	useEffect,
 	useRef,
@@ -172,7 +172,7 @@ export function ProofsLab() {
 		remember(level.id, { tactics: [], solved: false }, false);
 	};
 
-	const submit = (event: FormEvent) => {
+	const submit = (event: SubmitEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		play(draft);
 	};
@@ -196,7 +196,7 @@ export function ProofsLab() {
 				: timing
 					? `Lean ran ${timing.moves} ${timing.moves === 1 ? "move" : "moves"} in ${timing.ms < 1 ? "<1" : Math.round(timing.ms)} ms`
 					: "Lean 4 is ready";
-	const nextLevel = (where: "say" | "side") =>
+	const nextLevel = (where: "dock" | "side") =>
 		finished && index < levels.length - 1 ? (
 			<button
 				type="button"
@@ -238,7 +238,10 @@ export function ProofsLab() {
 					<header className="pf-say">
 						<p className="pf-eyebrow pf-say-head">
 							<span>
-								Level {number(index + 1)} / {level.title}
+								<span className="pf-say-level">
+									Level {number(index + 1)} /{" "}
+								</span>
+								{level.title}
 							</span>
 							<span className="pf-say-status" aria-hidden="true">
 								{status}
@@ -247,7 +250,6 @@ export function ProofsLab() {
 						<p className="pf-line" data-tone={line.tone} aria-live="polite">
 							{line.text}
 						</p>
-						{nextLevel("say")}
 					</header>
 
 					{down ? (
@@ -354,6 +356,7 @@ export function ProofsLab() {
 									{showHint ? "Hide hint" : "Stuck? Show a hint"}
 								</button>
 							) : null}
+							{nextLevel("dock")}
 						</div>
 						<form className="pf-write" onSubmit={submit}>
 							<label htmlFor="pf-draft" className="pf-eyebrow">

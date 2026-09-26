@@ -138,7 +138,7 @@
 
 .pf-say-status,
 .pf-key--board,
-.pf .pf-primary.pf-next--say {
+.pf .pf-primary.pf-next--dock {
 	display: none;
 }
 
@@ -371,8 +371,10 @@
 }
 
 .pf-proved {
-	display: grid;
-	gap: 6px;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 6px 0;
 	margin: 0;
 	font: 600 34px / 1 var(--font-display);
 	letter-spacing: -0.03em;
@@ -383,6 +385,7 @@
 }
 
 .pf-proved small {
+	flex-basis: 100%;
 	font: 400 12px / 1.4 var(--font-mono);
 	letter-spacing: 0;
 	color: var(--pf-dim);
@@ -616,11 +619,62 @@
 
 @media (max-width: 900px) {
 	.pf {
-		gap: 12px;
+		grid-template-rows: auto minmax(0, 1fr) repeat(6, auto);
+		gap: 10px;
+	}
+
+	.pf::before {
+		content: "";
+		grid-area: 1 / 1 / 6;
+		height: min(calc(100svh - 12px), 820px);
+		pointer-events: none;
+	}
+
+	.pf-screen,
+	.pf-board,
+	.pf-side,
+	.pf-moves {
+		display: contents;
 	}
 
 	.pf-rail {
-		padding-bottom: 6px;
+		grid-area: 1 / 1;
+		padding-bottom: 4px;
+	}
+
+	.pf-state,
+	.pf-offline {
+		grid-area: 2 / 1;
+	}
+
+	.pf-say {
+		grid-area: 3 / 1;
+		gap: 6px;
+		padding-top: 2px;
+	}
+
+	.pf-moves ul {
+		grid-area: 4 / 1;
+	}
+
+	.pf-tools {
+		grid-area: 5 / 1;
+	}
+
+	.pf-slot {
+		grid-area: 6 / 1;
+		height: auto;
+		min-height: 0;
+		margin-top: 14px;
+	}
+
+	.pf-write {
+		grid-area: 7 / 1;
+		margin-top: 14px;
+	}
+
+	.pf-proof {
+		grid-area: 8 / 1;
 	}
 
 	.pf-rail ol {
@@ -636,58 +690,18 @@
 	}
 
 	.pf-status,
+	.pf-say-level,
+	.pf-moves > .pf-eyebrow,
 	.pf .pf-primary.pf-next--side,
 	.pf-slot[data-kind="key"],
 	.pf-slot[data-kind="done"] {
 		display: none;
 	}
 
-	.pf-screen {
-		display: flex;
-		flex-direction: column;
-		min-height: 0;
-		gap: 12px;
-	}
-
-	.pf-board,
-	.pf-side {
-		display: contents;
-	}
-
-	.pf-state,
-	.pf-offline {
-		order: 1;
-	}
-
-	.pf-say {
-		order: 2;
-		gap: 8px;
-	}
-
-	.pf-moves {
-		order: 3;
-		gap: 8px;
-	}
-
-	.pf-slot {
-		order: 4;
-		height: auto;
-		min-height: 0;
-	}
-
-	.pf-proof {
-		order: 5;
-	}
-
 	.pf-say-status {
 		display: block;
 		text-transform: none;
 		letter-spacing: 0;
-	}
-
-	.pf .pf-primary.pf-next--say {
-		display: inline-flex;
-		justify-self: start;
 	}
 
 	.pf-line {
@@ -723,13 +737,14 @@
 	}
 
 	.pf-need {
-		align-content: start;
-		min-height: 150px;
+		display: flex;
+		flex-direction: column;
 		gap: 8px;
 		padding: 10px 12px 12px;
 	}
 
 	.pf-target {
+		margin-block: auto;
 		font-size: clamp(28px, 8.4vw, 40px);
 	}
 
@@ -769,9 +784,9 @@
 
 	.pf .pf-move {
 		align-content: start;
-		gap: 2px;
+		gap: 1px;
 		height: 100%;
-		padding: 8px 10px;
+		padding: 6px 10px 7px;
 	}
 
 	.pf .pf-move code {
@@ -787,8 +802,20 @@
 		translate: none;
 	}
 
+	.pf-tools {
+		align-items: center;
+		min-height: 40px;
+	}
+
 	.pf-tools .pf-text-button {
 		min-height: 40px;
+	}
+
+	.pf .pf-primary.pf-next--dock {
+		display: inline-flex;
+		margin-left: auto;
+		padding: 8px 14px;
+		font-size: 15px;
 	}
 }
 
