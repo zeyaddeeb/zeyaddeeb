@@ -1186,7 +1186,7 @@ export const MarkdownEditor = forwardRef<
 				class:
 					"prose prose-invert max-w-none min-h-[500px] p-4 focus:outline-none",
 			},
-			handlePaste(view, event) {
+			handlePaste(_view, event) {
 				const plainText = event.clipboardData?.getData("text/plain") || "";
 				if (!plainText || !isLikelyMarkdown(plainText)) {
 					return false;

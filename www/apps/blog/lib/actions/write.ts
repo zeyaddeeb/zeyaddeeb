@@ -10,6 +10,10 @@ import {
 	type Post,
 	post,
 } from "@zeyaddeeb/db";
+import {
+	COLLECTION_ITEM_TYPES,
+	GRID_SIZES,
+} from "@zeyaddeeb/db/collection-options";
 import { desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { z } from "zod";
@@ -243,19 +247,7 @@ export async function getAllPostsForAdmin(): Promise<
 }
 
 const collectionItemSchema = z.object({
-	type: z.enum([
-		"wikipedia",
-		"art",
-		"book",
-		"youtube",
-		"product",
-		"music",
-		"article",
-		"podcast",
-		"movie",
-		"github",
-		"other",
-	]),
+	type: z.enum(COLLECTION_ITEM_TYPES),
 	title: z.string().min(1, "Title is required"),
 	slug: z.string().min(1, "Slug is required"),
 	description: z.string().optional().nullable(),
@@ -263,7 +255,7 @@ const collectionItemSchema = z.object({
 	imageUrl: z.string().optional().nullable(),
 	thumbnailUrl: z.string().optional().nullable(),
 	accentColor: z.string().optional().nullable(),
-	gridSize: z.enum(["small", "medium", "large"]).default("medium"),
+	gridSize: z.enum(GRID_SIZES).default("medium"),
 	displayOrder: z.number().default(0),
 	metadata: z.record(z.string(), z.unknown()).optional().nullable(),
 	tags: z.array(z.string()).default([]),

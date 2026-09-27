@@ -1,8 +1,10 @@
 import { cookies } from "next/headers";
-import { sessionCookie, sessionIdSchema } from "../input";
-import { sessionCredential } from "../session-auth";
-
-const service = process.env.DEEPSEEK_BACKEND_URL ?? "http://127.0.0.1:3004";
+import { DEEPSEEK_SERVICE_URL } from "@/features/deepseek/server/config";
+import {
+	sessionCookie,
+	sessionIdSchema,
+} from "@/features/deepseek/server/input";
+import { sessionCredential } from "@/features/deepseek/server/session-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -16,14 +18,17 @@ export async function GET(request: Request) {
 	if (credential?.id !== session) return new Response(null, { status: 403 });
 	let upstream: Response;
 	try {
-		upstream = await fetch(`${service}/sessions/${session}/events`, {
-			cache: "no-store",
-			signal: request.signal,
-			headers: {
-				accept: "text/event-stream",
-				authorization: credential.authorization,
+		upstream = await fetch(
+			`${DEEPSEEK_SERVICE_URL}/sessions/${session}/events`,
+			{
+				cache: "no-store",
+				signal: request.signal,
+				headers: {
+					accept: "text/event-stream",
+					authorization: credential.authorization,
+				},
 			},
-		});
+		);
 	} catch {
 		return new Response(null, { status: 502 });
 	}

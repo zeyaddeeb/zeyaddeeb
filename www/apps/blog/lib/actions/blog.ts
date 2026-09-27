@@ -1,19 +1,14 @@
 "use server";
 
 import { db, type Post, post } from "@zeyaddeeb/db";
-import { and, count, desc, eq, ilike, or, type SQL, sql } from "drizzle-orm";
+import { and, count, desc, eq, ilike, or, type SQL } from "drizzle-orm";
 import { z } from "zod";
+import {
+	type PaginatedResult,
+	POSTS_PAGE_SIZE,
+	paginatedResult,
+} from "../pagination";
 import { pagination, resultLimit } from "./read-validation";
-
-export interface PaginatedResult<T> {
-	items: T[];
-	total: number;
-	page: number;
-	pageSize: number;
-	totalPages: number;
-	hasNextPage: boolean;
-	hasPreviousPage: boolean;
-}
 
 export interface GetPostsParams {
 	page?: number;
@@ -25,7 +20,10 @@ export async function getPosts(
 	params: GetPostsParams = {},
 ): Promise<PaginatedResult<Post>> {
 	const { page, pageSize, search } = z
-		.object({ ...pagination, pageSize: pagination.pageSize.default(10) })
+		.object({
+			...pagination,
+			pageSize: pagination.pageSize.default(POSTS_PAGE_SIZE),
+		})
 		.parse(params);
 
 	try {
@@ -60,17 +58,7 @@ export async function getPosts(
 			.limit(pageSize)
 			.offset(offset);
 
-		const totalPages = Math.ceil(totalCount / pageSize);
-
-		return {
-			items,
-			total: totalCount,
-			page,
-			pageSize,
-			totalPages,
-			hasNextPage: page < totalPages,
-			hasPreviousPage: page > 1,
-		};
+		return paginatedResult(items, totalCount, page, pageSize);
 	} catch (error) {
 		console.error("Failed to fetch posts:", error);
 		return {
@@ -110,23 +98,6 @@ export async function getRecentPosts(limit = 5): Promise<Post[]> {
 			.limit(resultLimit.parse(limit));
 	} catch (error) {
 		console.error("Failed to fetch recent posts:", error);
-		return [];
-	}
-}
-
-export async function getRelatedPosts(
-	currentPostId: string,
-	limit = 3,
-): Promise<Post[]> {
-	try {
-		return await db
-			.select()
-			.from(post)
-			.where(and(eq(post.published, true), sql`${post.id} != ${currentPostId}`))
-			.orderBy(desc(post.publishedAt), desc(post.createdAt))
-			.limit(resultLimit.parse(limit));
-	} catch (error) {
-		console.error("Failed to fetch related posts:", error);
 		return [];
 	}
 }

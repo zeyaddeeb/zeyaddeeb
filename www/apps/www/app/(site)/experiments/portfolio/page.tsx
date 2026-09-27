@@ -1,6 +1,6 @@
 import { pageMetadata } from "@zeyaddeeb/ui/seo";
 import { ExperimentFrame } from "@/features/frame/experiment-frame";
-import { WebsiteAtlas } from "./atlas";
+import { WebsiteAtlas } from "@/features/portfolio/atlas";
 
 export const metadata = pageMetadata({
 	path: "/experiments/portfolio",

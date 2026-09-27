@@ -1,5 +1,6 @@
 import { listingMetadata, pageNumber } from "@zeyaddeeb/ui/seo";
 import { getPosts } from "@/lib/actions";
+import { POSTS_PAGE_SIZE } from "@/lib/pagination";
 import { BlogContent } from "./blog-content";
 
 interface PageProps {
@@ -29,7 +30,7 @@ export default async function BlogPage({ searchParams }: PageProps) {
 
 	const result = await getPosts({
 		page,
-		pageSize: 10,
+		pageSize: POSTS_PAGE_SIZE,
 		search: search || undefined,
 	});
 

@@ -8,11 +8,8 @@ import {
 	useRef,
 	useState,
 } from "react";
-import {
-	checkProof,
-	loadLevels,
-} from "@/app/(site)/experiments/proofs/actions";
 import { number } from "@/features/catalog/catalog";
+import { checkProof, loadLevels } from "@/features/proofs/server/actions";
 import { Board } from "./board";
 import { type Level, levels } from "./levels";
 import type { LevelStart, Step } from "./protocol";

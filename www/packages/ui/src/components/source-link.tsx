@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
+import { SOURCE_REPOSITORY } from "../site";
 import { LifeArrow } from "./life-arrow";
-
-export const SOURCE_REPOSITORY = "https://github.com/zeyaddeeb/zeyaddeeb";
 
 export function SourceLink({
 	children = "Source code on GitHub",

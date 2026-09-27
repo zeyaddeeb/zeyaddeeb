@@ -168,56 +168,39 @@ function GitHubIcon({ className }: { className?: string }) {
 	);
 }
 
+const icons: Record<
+	CollectionItemType,
+	React.ComponentType<{ className?: string }>
+> = {
+	wikipedia: WikipediaIcon,
+	art: ArtIcon,
+	book: BookIcon,
+	youtube: YouTubeIcon,
+	product: ProductIcon,
+	music: MusicIcon,
+	article: ArticleIcon,
+	podcast: PodcastIcon,
+	movie: MovieIcon,
+	github: GitHubIcon,
+	other: OtherIcon,
+};
 export function getTypeIcon(type: CollectionItemType) {
-	const icons: Record<
-		CollectionItemType,
-		React.ComponentType<{ className?: string }>
-	> = {
-		wikipedia: WikipediaIcon,
-		art: ArtIcon,
-		book: BookIcon,
-		youtube: YouTubeIcon,
-		product: ProductIcon,
-		music: MusicIcon,
-		article: ArticleIcon,
-		podcast: PodcastIcon,
-		movie: MovieIcon,
-		github: GitHubIcon,
-		other: OtherIcon,
-	};
 	return icons[type] || OtherIcon;
 }
 
+const labels: Record<CollectionItemType, string> = {
+	wikipedia: "Wikipedia",
+	art: "Art",
+	book: "Book",
+	youtube: "YouTube",
+	product: "Product",
+	music: "Music",
+	article: "Article",
+	podcast: "Podcast",
+	movie: "Movie",
+	github: "GitHub",
+	other: "Other",
+};
 export function getTypeLabel(type: CollectionItemType): string {
-	const labels: Record<CollectionItemType, string> = {
-		wikipedia: "Wikipedia",
-		art: "Art",
-		book: "Book",
-		youtube: "YouTube",
-		product: "Product",
-		music: "Music",
-		article: "Article",
-		podcast: "Podcast",
-		movie: "Movie",
-		github: "GitHub",
-		other: "Other",
-	};
 	return labels[type] || "Other";
-}
-
-export function getTypeColor(type: CollectionItemType): string {
-	const colors: Record<CollectionItemType, string> = {
-		wikipedia: "#636466",
-		art: "#E4A853",
-		book: "#8B4513",
-		youtube: "#FF0000",
-		product: "#4A90D9",
-		music: "#1DB954",
-		article: "#6366F1",
-		podcast: "#9333EA",
-		movie: "#E50914",
-		github: "#333333",
-		other: "#737373",
-	};
-	return colors[type] || "#737373";
 }

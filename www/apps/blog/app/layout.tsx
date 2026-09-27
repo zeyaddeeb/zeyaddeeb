@@ -1,5 +1,6 @@
 import { JsonLd } from "@zeyaddeeb/ui/json-ld";
 import { pageMetadata, siteSchema } from "@zeyaddeeb/ui/seo";
+import { SITE_URL } from "@zeyaddeeb/ui/site";
 import "@zeyaddeeb/ui/styles.css";
 import "@zeyaddeeb/ui/site.css";
 import "./blog.css";
@@ -49,7 +50,7 @@ export const metadata: Metadata = {
 const baseUrl =
 	process.env.NODE_ENV !== "production"
 		? "http://localhost:3000"
-		: process.env.BASE_URL || "https://www.zeyaddeeb.com";
+		: process.env.BASE_URL || SITE_URL;
 const navItems = [
 	{ label: "Experiments", href: `${baseUrl}/experiments` },
 	{ label: "About", href: `${baseUrl}/about` },

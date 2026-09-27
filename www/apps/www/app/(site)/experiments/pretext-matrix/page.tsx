@@ -1,6 +1,6 @@
 import { pageMetadata } from "@zeyaddeeb/ui/seo";
 import { ExperimentFrame } from "@/features/frame/experiment-frame";
-import FallingCode from "./falling-code";
+import FallingCode from "@/features/rain/falling-code";
 
 export const metadata = pageMetadata({
 	path: "/experiments/pretext-matrix",

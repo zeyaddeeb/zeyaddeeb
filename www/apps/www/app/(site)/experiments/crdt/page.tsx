@@ -1,6 +1,6 @@
 import { pageMetadata } from "@zeyaddeeb/ui/seo";
+import { CrdtLab } from "@/features/crdt/lab";
 import { ExperimentFrame } from "@/features/frame/experiment-frame";
-import { CrdtLab } from "./lab";
 
 export const metadata = pageMetadata({
 	path: "/experiments/crdt",

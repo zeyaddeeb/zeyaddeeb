@@ -2,20 +2,20 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { CollectionFormFields } from "@/features/write/collection-form";
+import { CollectionPreview } from "@/features/write/collection-preview";
+import {
+	ErrorAlert,
+	FormActions,
+	PageHeader,
+	PreviewToggle,
+} from "@/features/write/form-layout";
+import type { User } from "@/features/write/types";
 import {
 	type CollectionItemInput,
 	createCollectionItem,
 } from "@/lib/actions/write";
-import {
-	CollectionFormFields,
-	CollectionPreview,
-	ErrorAlert,
-	FormActions,
-	generateSlug,
-	PageHeader,
-	PreviewToggle,
-	type User,
-} from "@/lib/write-helpers";
+import { generateSlug } from "@/lib/slug";
 
 interface CollectionWriteClientProps {
 	user: User;

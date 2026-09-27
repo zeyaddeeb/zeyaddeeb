@@ -1,9 +1,5 @@
 import type { Metadata } from "next";
-
-export const SITE_URL = "https://www.zeyaddeeb.com";
-export const SITE_NAME = "Zeyad Deeb";
-export const SITE_DESCRIPTION =
-	"Software engineer in Brooklyn building machine learning and distributed systems. Rust, TypeScript, and WebAssembly projects, experiments, and technical writing.";
+import { PROFILE_URLS, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "./site";
 
 export function siteUrl(path = "/") {
 	return new URL(path, SITE_URL).toString();
@@ -135,10 +131,7 @@ export const siteSchema = {
 			url: SITE_URL,
 			jobTitle: "Software Engineer",
 			description: SITE_DESCRIPTION,
-			sameAs: [
-				"https://github.com/zeyaddeeb",
-				"https://www.linkedin.com/in/zeyaddeeb",
-			],
+			sameAs: [PROFILE_URLS.github, PROFILE_URLS.linkedin],
 		},
 		{
 			"@type": "WebSite",
@@ -151,3 +144,5 @@ export const siteSchema = {
 		},
 	],
 };
+
+export { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "./site";

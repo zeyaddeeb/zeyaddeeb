@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
 import { Pagination } from "@/components/pagination";
-import type { PaginatedResult } from "@/lib/actions";
+import type { PaginatedResult } from "@/lib/pagination";
 
 interface BlogContentProps {
 	initialData: PaginatedResult<Post>;

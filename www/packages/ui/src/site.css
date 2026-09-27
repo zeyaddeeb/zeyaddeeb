@@ -23,10 +23,6 @@
 	max-width: 1320px;
 }
 
-.site-wordmark-dot {
-	color: var(--red);
-}
-
 .site-header {
 	position: relative;
 	border-bottom: 2px solid var(--ink);
@@ -53,8 +49,15 @@
 
 .site-footer > div > div:first-child > span {
 	border-radius: 0;
-	width: 24px;
-	height: 24px;
+	width: 22px;
+	height: 25.4px;
+	background: conic-gradient(
+		from -60deg,
+		var(--yellow) 0 120deg,
+		var(--blue) 0 240deg,
+		var(--red) 0
+	);
+	clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
 }
 
 @media (max-width: 640px) {

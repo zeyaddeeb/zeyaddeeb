@@ -26,7 +26,8 @@
       "default": "./dist/components/index.js"
     },
     "./postcss": "./postcss.config.js",
-    "./site.css": "./src/site.css"
+    "./site.css": "./src/site.css",
+    "./site": "./src/site.ts"
   },
   "scripts": {
     "build": "bun run build:styles && bun run build:components",

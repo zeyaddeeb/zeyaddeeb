@@ -6,19 +6,15 @@ import {
 	collectionItem,
 	db,
 } from "@zeyaddeeb/db";
+import { COLLECTION_ITEM_TYPES } from "@zeyaddeeb/db/collection-options";
 import { and, arrayOverlaps, asc, count, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
+import {
+	COLLECTION_PAGE_SIZE,
+	type PaginatedResult,
+	paginatedResult,
+} from "../pagination";
 import { pagination, resultLimit } from "./read-validation";
-
-export interface PaginatedResult<T> {
-	items: T[];
-	total: number;
-	page: number;
-	pageSize: number;
-	totalPages: number;
-	hasNextPage: boolean;
-	hasPreviousPage: boolean;
-}
 
 export interface GetCollectionItemsParams {
 	page?: number;
@@ -35,23 +31,8 @@ export async function getCollectionItems(
 	const { page, pageSize, type, tags, search, featured } = z
 		.object({
 			...pagination,
-			pageSize: pagination.pageSize.default(12),
-			type: z
-				.enum([
-					"wikipedia",
-					"art",
-					"book",
-					"youtube",
-					"product",
-					"music",
-					"article",
-					"podcast",
-					"movie",
-					"github",
-					"other",
-				])
-				.nullable()
-				.default(null),
+			pageSize: pagination.pageSize.default(COLLECTION_PAGE_SIZE),
+			type: z.enum(COLLECTION_ITEM_TYPES).nullable().default(null),
 			tags: z.array(z.string().min(1).max(64)).max(20).default([]),
 			search: z.string().max(256).default(""),
 			featured: z.boolean().optional(),
@@ -103,17 +84,7 @@ export async function getCollectionItems(
 			.limit(pageSize)
 			.offset(offset);
 
-		const totalPages = Math.ceil(totalCount / pageSize);
-
-		return {
-			items,
-			total: totalCount,
-			page,
-			pageSize,
-			totalPages,
-			hasNextPage: page < totalPages,
-			hasPreviousPage: page > 1,
-		};
+		return paginatedResult(items, totalCount, page, pageSize);
 	} catch (error) {
 		console.error("Failed to fetch collection items:", error);
 		return {
@@ -144,22 +115,6 @@ export async function getCollectionItemBySlug(
 	} catch (error) {
 		console.error("Failed to fetch collection item by slug:", error);
 		return null;
-	}
-}
-
-export async function getAllCollectionTags(): Promise<string[]> {
-	try {
-		const result = await db
-			.selectDistinct({
-				tag: sql<string>`unnest(${collectionItem.tags})`,
-			})
-			.from(collectionItem)
-			.where(eq(collectionItem.published, true));
-
-		return result.map((r) => r.tag).sort();
-	} catch (error) {
-		console.error("Failed to fetch collection tags:", error);
-		return [];
 	}
 }
 

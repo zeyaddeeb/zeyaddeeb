@@ -29,11 +29,7 @@
   },
   "linter": {
     "enabled": true,
-    "includes": [
-      "**",
-      "!packages/ui/src/styles.css",
-      "!apps/admin/app/globals.css"
-    ],
+    "includes": ["**", "!packages/ui/src/styles.css"],
     "rules": {
       "complexity": {
         "noForEach": "off",

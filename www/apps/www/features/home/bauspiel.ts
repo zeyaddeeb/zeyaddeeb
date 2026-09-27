@@ -1,29 +1,23 @@
-import { type Experiment, getExperiment } from "../catalog/catalog";
+import { type Color, type Form, type Kind, type Shape, shapes } from "./scenes";
 
-export const COLS = 4;
-export const ROWS = 5;
+export const COLS = 8;
+export const ROWS = 6;
 
-const BASE = 0x3400;
-const STRIDE = 128;
+export const LAND = { x: 4.8, y: 0.3, cell: 0.9 };
+export const PORT = { x: 0.36, y: 2.35, cell: 0.88 };
+
+const BASE = 0x4e00;
+const STRIDE = 256;
 const RESET = 15 * STRIDE;
-
-export type Kind =
-	| "disc"
-	| "stripes"
-	| "quarter"
-	| "arch"
-	| "triangles"
-	| "count"
-	| "experiments"
-	| "blog"
-	| "library";
+const RULE = 0.08;
 
 export interface Piece {
-	kind: Kind;
 	w: number;
 	h: number;
+	c: Color;
+	k: Kind;
 	turns: boolean;
-	experiment?: Experiment;
+	rule?: boolean;
 }
 
 export interface Place {
@@ -31,119 +25,65 @@ export interface Place {
 	rot: number;
 }
 
-export const pieces: Piece[] = [
-	{
-		kind: "disc",
-		w: 2,
-		h: 2,
-		turns: false,
-		experiment: getExperiment("proofs"),
-	},
-	{
-		kind: "stripes",
-		w: 1,
-		h: 2,
-		turns: true,
-		experiment: getExperiment("wes-anderson"),
-	},
-	{
-		kind: "quarter",
-		w: 1,
-		h: 1,
-		turns: true,
-		experiment: getExperiment("crdt"),
-	},
-	{
-		kind: "arch",
-		w: 2,
-		h: 1,
-		turns: true,
-		experiment: getExperiment("deepseek"),
-	},
-	{
-		kind: "triangles",
-		w: 1,
-		h: 1,
-		turns: true,
-		experiment: getExperiment("portfolio"),
-	},
-	{ kind: "count", w: 1, h: 1, turns: false },
-	{ kind: "experiments", w: 2, h: 1, turns: false },
-	{ kind: "blog", w: 2, h: 1, turns: false },
-	{ kind: "library", w: 2, h: 1, turns: false },
-];
+export interface Box {
+	col: number;
+	row: number;
+	w: number;
+	h: number;
+}
+
+export const pieces: Record<Shape, Piece> = {
+	block: { w: 2, h: 2, c: "yellow", k: "tri", turns: true },
+	sun: { w: 3, h: 3, c: "blue", k: "round", turns: false },
+	moon: { w: 1, h: 1, c: "yellow", k: "round", turns: false },
+	slab: { w: 2, h: 2, c: "red", k: "rect", turns: false },
+	core: { w: 1, h: 1, c: "ink", k: "rect", turns: false },
+	line: { w: 3, h: 1, c: "ink", k: "rect", turns: true, rule: true },
+	dot: { w: 1, h: 1, c: "red", k: "round", turns: false },
+};
 
 export const initial: Place[] = [
-	{ cell: 0, rot: 0 },
-	{ cell: 2, rot: 0 },
-	{ cell: 3, rot: 0 },
-	{ cell: 10, rot: 0 },
-	{ cell: 14, rot: 0 },
-	{ cell: 7, rot: 0 },
-	{ cell: 8, rot: 0 },
-	{ cell: 12, rot: 0 },
-	{ cell: 16, rot: 0 },
+	{ cell: 2 * COLS + 5, rot: 0 },
+	{ cell: 1, rot: 0 },
+	{ cell: 6, rot: 0 },
+	{ cell: 2 * COLS + 3, rot: 0 },
+	{ cell: 5 * COLS + 7, rot: 0 },
+	{ cell: 4 * COLS, rot: 0 },
+	{ cell: 5 * COLS + 4, rot: 0 },
 ];
 
 export const resetCode = String.fromCodePoint(BASE + RESET);
 
+function pieceAt(index: number) {
+	const shape = shapes[index];
+	return shape ? pieces[shape] : undefined;
+}
+
 export function size(piece: Piece, rot: number) {
-	return rot % 2 ? { w: piece.h, h: piece.w } : { w: piece.w, h: piece.h };
+	return rot % 2 && piece.rule
+		? { w: piece.h, h: piece.w }
+		: { w: piece.w, h: piece.h };
 }
 
-export function footprint(piece: Piece, place: Place) {
+export function fits(index: number, place: Place) {
+	const piece = pieceAt(index);
+	if (!piece) return false;
+	if (place.cell < 0 || place.cell >= COLS * ROWS) return false;
+	if (place.rot < 0 || place.rot > 3) return false;
+	if (!piece.turns && place.rot !== 0) return false;
 	const { w, h } = size(piece, place.rot);
-	const row = Math.floor(place.cell / COLS);
-	const col = place.cell % COLS;
-	if (row + h > ROWS || col + w > COLS) return null;
-	const cells: number[] = [];
-	for (let r = row; r < row + h; r++) {
-		for (let c = col; c < col + w; c++) cells.push(r * COLS + c);
-	}
-	return cells;
+	return (
+		(place.cell % COLS) + w <= COLS && Math.floor(place.cell / COLS) + h <= ROWS
+	);
 }
 
-export function occupied(layout: Place[], except?: number) {
-	const taken = new Set<number>();
-	layout.forEach((place, index) => {
-		if (index === except) return;
-		const piece = pieces[index];
-		if (!piece) return;
-		for (const cell of footprint(piece, place) ?? []) taken.add(cell);
-	});
-	return taken;
-}
-
-export function fits(layout: Place[], index: number, place: Place) {
-	const piece = pieces[index];
-	if (!piece || place.cell < 0 || place.cell >= COLS * ROWS) return false;
-	const cells = footprint(piece, place);
-	if (!cells) return false;
-	const taken = occupied(layout, index);
-	return cells.every((cell) => !taken.has(cell));
-}
-
-export function anchorFor(
-	layout: Place[],
-	index: number,
-	cell: number,
-	rot: number,
-) {
-	const piece = pieces[index];
+export function snap(index: number, col: number, row: number, rot: number) {
+	const piece = pieceAt(index);
 	if (!piece) return null;
 	const { w, h } = size(piece, rot);
-	const row = Math.floor(cell / COLS);
-	const col = cell % COLS;
-	for (let dr = 0; dr < h; dr++) {
-		for (let dc = 0; dc < w; dc++) {
-			const r = row - dr;
-			const c = col - dc;
-			if (r < 0 || c < 0) continue;
-			const place = { cell: r * COLS + c, rot };
-			if (fits(layout, index, place)) return place;
-		}
-	}
-	return null;
+	const c = Math.max(0, Math.min(COLS - w, Math.round(col)));
+	const r = Math.max(0, Math.min(ROWS - h, Math.round(row)));
+	return { cell: r * COLS + c, rot };
 }
 
 export function encode(index: number, place: Place) {
@@ -154,19 +94,23 @@ export function encode(index: number, place: Place) {
 
 export function fold(log: string) {
 	let layout = initial.map((place) => ({ ...place }));
+	let order = shapes.map((_, index) => index);
 	for (const char of log) {
 		const code = (char.codePointAt(0) ?? 0) - BASE;
 		if (code < 0 || code > RESET) continue;
 		if (code === RESET) {
 			layout = initial.map((place) => ({ ...place }));
+			order = shapes.map((_, index) => index);
 			continue;
 		}
 		const index = Math.floor(code / STRIDE);
-		const place = { cell: (code % STRIDE) >> 2, rot: code & 3 };
-		if (index >= pieces.length || !fits(layout, index, place)) continue;
+		const rest = code % STRIDE;
+		const place = { cell: rest >> 2, rot: rest & 3 };
+		if (index >= shapes.length || !fits(index, place)) continue;
 		layout[index] = place;
+		order = [...order.filter((item) => item !== index), index];
 	}
-	return layout;
+	return { layout, order };
 }
 
 export function isInitial(layout: Place[]) {
@@ -174,4 +118,62 @@ export function isInitial(layout: Place[]) {
 		(place, index) =>
 			place.cell === initial[index]?.cell && place.rot === initial[index]?.rot,
 	);
+}
+
+export function boxOf(index: number, col: number, row: number, rot: number) {
+	const piece = pieceAt(index);
+	const { w, h } = piece ? size(piece, rot) : { w: 1, h: 1 };
+	return { col, row, w, h };
+}
+
+export function toLand(box: Box) {
+	return {
+		x: LAND.x + box.col * LAND.cell,
+		y: LAND.y + box.row * LAND.cell,
+		w: box.w * LAND.cell,
+		h: box.h * LAND.cell,
+	};
+}
+
+export function toPort(box: Box) {
+	return {
+		x: PORT.x + (ROWS - box.row - box.h) * PORT.cell,
+		y: PORT.y + box.col * PORT.cell,
+		w: box.h * PORT.cell,
+		h: box.w * PORT.cell,
+	};
+}
+
+export function fromLand(x: number, y: number) {
+	return { col: (x - LAND.x) / LAND.cell, row: (y - LAND.y) / LAND.cell };
+}
+
+export function fromPort(x: number, y: number, h: number) {
+	return {
+		col: (y - PORT.y) / PORT.cell,
+		row: ROWS - h - (x - PORT.x) / PORT.cell,
+	};
+}
+
+function inset(box: Box, rot: number, piece: Piece): Box {
+	if (!piece.rule) return box;
+	const pad = (1 - RULE) / 2;
+	return rot % 2
+		? { ...box, col: box.col + pad, w: RULE }
+		: { ...box, row: box.row + pad, h: RULE };
+}
+
+export function forms(index: number, box: Box, rot: number, spin: number) {
+	const piece = pieceAt(index);
+	if (!piece) return null;
+	const visual = inset(box, rot, piece);
+	const turn = piece.k === "tri" ? spin * 90 : 0;
+	const land: Form = { ...toLand(visual), c: piece.c, k: piece.k, r: turn };
+	const port: Form = {
+		...toPort(visual),
+		c: piece.c,
+		k: piece.k,
+		r: piece.k === "tri" ? turn + 90 : 0,
+	};
+	return { land, port };
 }

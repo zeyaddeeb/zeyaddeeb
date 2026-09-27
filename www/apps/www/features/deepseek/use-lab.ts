@@ -1,10 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useReducer, useRef } from "react";
-import {
-	createSession,
-	sendCommand,
-} from "@/app/(site)/experiments/deepseek/actions";
+import { createSession, sendCommand } from "@/features/deepseek/server/actions";
 import {
 	type Command,
 	type CurvePoint,

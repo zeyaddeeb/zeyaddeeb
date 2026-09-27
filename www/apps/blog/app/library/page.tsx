@@ -1,6 +1,7 @@
 import type { CollectionItemType } from "@zeyaddeeb/db/schema";
 import { listingMetadata, pageNumber } from "@zeyaddeeb/ui/seo";
 import { getAllCollectionTypes, getCollectionItems } from "@/lib/actions";
+import { COLLECTION_PAGE_SIZE } from "@/lib/pagination";
 import { ThingsILikeContent } from "./library-content";
 
 interface PageProps {
@@ -33,7 +34,7 @@ export default async function ThingsILikePage({ searchParams }: PageProps) {
 	const [result, allTypes] = await Promise.all([
 		getCollectionItems({
 			page,
-			pageSize: 12,
+			pageSize: COLLECTION_PAGE_SIZE,
 			type,
 			search,
 		}),

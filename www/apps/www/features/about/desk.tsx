@@ -1,16 +1,17 @@
 "use client";
 
 import { LifeArrow, SourceLink } from "@zeyaddeeb/ui";
+import { PROFILE_URLS } from "@zeyaddeeb/ui/site";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import "./desk.css";
 
 const LINKS = [
 	{ label: "Story", href: "/story" },
-	{ label: "GitHub", href: "https://github.com/zeyaddeeb", external: true },
+	{ label: "GitHub", href: PROFILE_URLS.github, external: true },
 	{
 		label: "LinkedIn",
-		href: "https://linkedin.com/in/zeyaddeeb",
+		href: PROFILE_URLS.linkedin,
 		external: true,
 	},
 ];

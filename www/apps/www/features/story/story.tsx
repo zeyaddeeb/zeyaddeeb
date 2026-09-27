@@ -4,8 +4,7 @@ import { LifeArrow } from "@zeyaddeeb/ui";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { neighbors, number } from "@/features/catalog/catalog";
-import { useRunningRegistry } from "@/features/live/running-context";
-import { useReducedMotion } from "@/features/live/use-running";
+import { useReducedMotion } from "@/lib/hooks/use-animation-activity";
 import { chapterIndex, chapters, type ScreenId } from "./chapters";
 import { ClusterScreen } from "./screens/cluster";
 import { DosScreen } from "./screens/dos";
@@ -74,7 +73,6 @@ export function Story() {
 	const [active, setActive] = useState<ScreenId>("post");
 	const listRef = useRef<HTMLOListElement>(null);
 	const reduced = useReducedMotion();
-	const registry = useRunningRegistry();
 	const nav = neighbors("story");
 	const total = number(chapters.length);
 
@@ -94,12 +92,6 @@ export function Story() {
 		for (const row of rows) io.observe(row);
 		return () => io.disconnect();
 	}, []);
-
-	const mark = registry?.mark;
-	useEffect(() => {
-		mark?.("story", true);
-		return () => mark?.("story", false);
-	}, [mark]);
 
 	const jump = (id: ScreenId) => {
 		setActive(id);

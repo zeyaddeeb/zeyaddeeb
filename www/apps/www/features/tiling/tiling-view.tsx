@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useReducedMotion } from "@/features/live/use-running";
+import { useReducedMotion } from "@/lib/hooks/use-animation-activity";
 import { useCanvasWheel } from "@/lib/hooks/use-canvas-interaction";
 import { drawTiling, glide, useTiling, type Variant } from "./engine";
 

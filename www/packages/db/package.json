@@ -10,12 +10,10 @@
     "./client": {
       "default": "./src/client.ts"
     },
-    "./client.ws": {
-      "default": "./src/client.ws.ts"
-    },
     "./schema": {
       "default": "./src/schema/index.ts"
-    }
+    },
+    "./collection-options": "./src/collection-options.ts"
   },
   "scripts": {
     "db:generate": "drizzle-kit generate",

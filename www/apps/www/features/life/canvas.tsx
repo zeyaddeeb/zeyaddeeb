@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import type { LifeBackend, LifeStats } from "@/features/life/engine";
 import { type LifeHandle, LifeView } from "@/features/life/life-view";
-import { useReducedMotion } from "@/features/live/use-running";
+import { useReducedMotion } from "@/lib/hooks/use-animation-activity";
 import { useWasm } from "@/lib/hooks/use-wasm";
 import { PRESETS } from "./presets";
 

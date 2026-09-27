@@ -3,15 +3,15 @@
 import type { Post } from "@zeyaddeeb/db";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { deletePost, type PostInput, updatePost } from "@/lib/actions/write";
 import {
 	DeleteButton,
 	ErrorAlert,
 	FormActions,
 	PageHeader,
-	PostFormFields,
-	type User,
-} from "@/lib/write-helpers";
+} from "@/features/write/form-layout";
+import { PostFormFields } from "@/features/write/post-form";
+import type { User } from "@/features/write/types";
+import { deletePost, type PostInput, updatePost } from "@/lib/actions/write";
 
 interface PostEditClientProps {
 	user: User;

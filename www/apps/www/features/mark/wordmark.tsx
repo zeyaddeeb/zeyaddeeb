@@ -1,4 +1,4 @@
-import { LifeMark } from "./life-mark";
+import { LifeMark } from "@zeyaddeeb/ui";
 
 export function Wordmark() {
 	return (

@@ -1,6 +1,6 @@
 import { pageMetadata } from "@zeyaddeeb/ui/seo";
+import { AudioLab } from "@/features/audio/lab";
 import { ExperimentFrame } from "@/features/frame/experiment-frame";
-import { AudioLab } from "./lab";
 
 export const metadata = pageMetadata({
 	path: "/experiments/audio-visualizer",

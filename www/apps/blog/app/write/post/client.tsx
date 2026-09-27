@@ -2,15 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { createPost, type PostInput } from "@/lib/actions/write";
 import {
 	ErrorAlert,
 	FormActions,
-	generateSlug,
 	PageHeader,
-	PostFormFields,
-	type User,
-} from "@/lib/write-helpers";
+} from "@/features/write/form-layout";
+import { PostFormFields } from "@/features/write/post-form";
+import type { User } from "@/features/write/types";
+import { createPost, type PostInput } from "@/lib/actions/write";
+import { generateSlug } from "@/lib/slug";
 
 interface PostWriteClientProps {
 	user: User;

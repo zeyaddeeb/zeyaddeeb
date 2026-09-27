@@ -22,7 +22,6 @@ export interface Experiment {
 	kind: ExperimentKind;
 	live?: LiveSource;
 	external?: boolean;
-	span?: { cols: number; rows: number };
 }
 
 export const experiments: Experiment[] = [
@@ -35,7 +34,6 @@ export const experiments: Experiment[] = [
 		href: "/experiments/game-of-life",
 		kind: "wasm",
 		live: "life",
-		span: { cols: 4, rows: 2 },
 	},
 	{
 		id: "circle-limit",
@@ -46,7 +44,6 @@ export const experiments: Experiment[] = [
 		href: "/experiments/circle-limit",
 		kind: "wasm",
 		live: "tiling",
-		span: { cols: 2, rows: 2 },
 	},
 	{
 		id: "crdt",
@@ -57,7 +54,6 @@ export const experiments: Experiment[] = [
 		href: "/experiments/crdt",
 		kind: "network",
 		live: "crdt",
-		span: { cols: 3, rows: 1 },
 	},
 	{
 		id: "pretext-matrix",
@@ -68,7 +64,6 @@ export const experiments: Experiment[] = [
 		href: "/experiments/pretext-matrix",
 		kind: "dom",
 		live: "rain",
-		span: { cols: 3, rows: 1 },
 	},
 	{
 		id: "audio-visualizer",
@@ -79,7 +74,6 @@ export const experiments: Experiment[] = [
 		href: "/experiments/audio-visualizer",
 		kind: "mic",
 		live: "audio",
-		span: { cols: 2, rows: 1 },
 	},
 	{
 		id: "portfolio",
@@ -90,7 +84,6 @@ export const experiments: Experiment[] = [
 		href: "/experiments/portfolio",
 		kind: "dom",
 		live: "portfolio",
-		span: { cols: 2, rows: 1 },
 	},
 	{
 		id: "story",
@@ -101,7 +94,6 @@ export const experiments: Experiment[] = [
 		href: "/story",
 		kind: "dom",
 		live: "story",
-		span: { cols: 2, rows: 1 },
 	},
 	{
 		id: "robot",
@@ -113,7 +105,6 @@ export const experiments: Experiment[] = [
 		kind: "remote",
 		live: "robot",
 		external: true,
-		span: { cols: 2, rows: 1 },
 	},
 	{
 		id: "moonspell",
@@ -125,7 +116,6 @@ export const experiments: Experiment[] = [
 		kind: "remote",
 		live: "moonspell",
 		external: true,
-		span: { cols: 2, rows: 1 },
 	},
 	{
 		id: "wes-anderson",
@@ -135,7 +125,6 @@ export const experiments: Experiment[] = [
 		stack: ["SVG viewBox", "SMIL", "Web Speech", "@property"],
 		href: "/experiments/wes-anderson",
 		kind: "dom",
-		span: { cols: 4, rows: 2 },
 	},
 	{
 		id: "deepseek",
@@ -145,7 +134,6 @@ export const experiments: Experiment[] = [
 		stack: ["Rust", "Candle", "Axum", "SSE", "SVG"],
 		href: "/experiments/deepseek",
 		kind: "network",
-		span: { cols: 4, rows: 2 },
 	},
 	{
 		id: "proofs",
@@ -155,7 +143,6 @@ export const experiments: Experiment[] = [
 		stack: ["Lean 4", "Rust", "Axum", "Lean REPL"],
 		href: "/experiments/proofs",
 		kind: "network",
-		span: { cols: 4, rows: 2 },
 	},
 ];
 

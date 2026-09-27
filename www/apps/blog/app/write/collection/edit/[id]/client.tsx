@@ -1,24 +1,24 @@
 "use client";
 
 import type { CollectionItem } from "@zeyaddeeb/db";
+import type { GRID_SIZES } from "@zeyaddeeb/db/collection-options";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { CollectionFormFields } from "@/features/write/collection-form";
+import { CollectionPreview } from "@/features/write/collection-preview";
+import {
+	DeleteButton,
+	ErrorAlert,
+	FormActions,
+	PageHeader,
+	PreviewToggle,
+} from "@/features/write/form-layout";
+import type { User } from "@/features/write/types";
 import {
 	type CollectionItemInput,
 	deleteCollectionItem,
 	updateCollectionItem,
 } from "@/lib/actions/write";
-import {
-	CollectionFormFields,
-	CollectionPreview,
-	DeleteButton,
-	ErrorAlert,
-	FormActions,
-	type GRID_SIZES,
-	PageHeader,
-	PreviewToggle,
-	type User,
-} from "@/lib/write-helpers";
 
 interface CollectionEditClientProps {
 	user: User;

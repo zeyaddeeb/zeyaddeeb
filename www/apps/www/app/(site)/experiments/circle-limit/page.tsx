@@ -1,6 +1,6 @@
 import { pageMetadata } from "@zeyaddeeb/ui/seo";
 import { ExperimentFrame } from "@/features/frame/experiment-frame";
-import CircleLimitGallery from "./gallery";
+import CircleLimitGallery from "@/features/tiling/gallery";
 
 export const metadata = pageMetadata({
 	path: "/experiments/circle-limit",

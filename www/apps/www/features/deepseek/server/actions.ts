@@ -2,10 +2,9 @@
 
 import { cookies } from "next/headers";
 import type { Command, SessionView } from "@/features/deepseek/protocol";
+import { DEEPSEEK_SERVICE_URL } from "@/features/deepseek/server/config";
 import { commandSchema, sessionCookie, sessionIdSchema } from "./input";
 import { sessionCredential } from "./session-auth";
-
-const service = process.env.DEEPSEEK_BACKEND_URL ?? "http://127.0.0.1:3004";
 
 export type Created =
 	| { ok: true; session: SessionView }
@@ -16,16 +15,19 @@ export async function createSession(): Promise<Created> {
 		const jar = await cookies();
 		const existing = sessionCredential(jar.get(sessionCookie)?.value);
 		if (existing) {
-			const response = await fetch(`${service}/sessions/${existing.id}`, {
-				cache: "no-store",
-				signal: AbortSignal.timeout(5000),
-				headers: { authorization: existing.authorization },
-			});
+			const response = await fetch(
+				`${DEEPSEEK_SERVICE_URL}/sessions/${existing.id}`,
+				{
+					cache: "no-store",
+					signal: AbortSignal.timeout(5000),
+					headers: { authorization: existing.authorization },
+				},
+			);
 			if (response.ok) return { ok: true, session: await response.json() };
 			if (response.status !== 404 && response.status !== 403)
 				return { ok: false, reason: "down" };
 		}
-		const response = await fetch(`${service}/sessions`, {
+		const response = await fetch(`${DEEPSEEK_SERVICE_URL}/sessions`, {
 			method: "POST",
 			cache: "no-store",
 		});
@@ -60,15 +62,18 @@ export async function sendCommand(
 	);
 	if (credential?.id !== sessionId) return false;
 	try {
-		const response = await fetch(`${service}/sessions/${sessionId}/commands`, {
-			method: "POST",
-			cache: "no-store",
-			headers: {
-				"content-type": "application/json",
-				authorization: credential.authorization,
+		const response = await fetch(
+			`${DEEPSEEK_SERVICE_URL}/sessions/${sessionId}/commands`,
+			{
+				method: "POST",
+				cache: "no-store",
+				headers: {
+					"content-type": "application/json",
+					authorization: credential.authorization,
+				},
+				body: JSON.stringify(parsed.data),
 			},
-			body: JSON.stringify(parsed.data),
-		});
+		);
 		return response.ok;
 	} catch {
 		return false;

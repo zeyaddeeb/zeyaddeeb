@@ -1,5 +1,6 @@
 import { LifeArrow } from "@zeyaddeeb/ui";
 import { pageMetadata } from "@zeyaddeeb/ui/seo";
+import { PROFILE_URLS, SITE_EMAIL } from "@zeyaddeeb/ui/site";
 import { Fragment } from "react";
 import { education, experience, skills } from "@/features/resume/content";
 import "@/features/resume/resume.css";
@@ -34,7 +35,7 @@ export default function ResumePage() {
 						platform roadmaps and infrastructure budgets, and written production
 						services for model inference, feature retrieval, and caching.
 					</p>
-					<a href="mailto:me@zeyaddeeb.com">me@zeyaddeeb.com</a>
+					<a href={`mailto:${SITE_EMAIL}`}>{SITE_EMAIL}</a>
 				</div>
 			</header>
 
@@ -209,16 +210,16 @@ export default function ResumePage() {
 			>
 				<h2 id="contact-title">Contact</h2>
 				<div>
-					<a href="mailto:me@zeyaddeeb.com">me@zeyaddeeb.com</a>
+					<a href={`mailto:${SITE_EMAIL}`}>{SITE_EMAIL}</a>
 					<a
-						href="https://linkedin.com/in/zeyaddeeb"
+						href={PROFILE_URLS.linkedin}
 						target="_blank"
 						rel="noopener noreferrer"
 					>
 						LinkedIn <LifeArrow direction="up-right" />
 					</a>
 					<a
-						href="https://github.com/zeyaddeeb"
+						href={PROFILE_URLS.github}
 						target="_blank"
 						rel="noopener noreferrer"
 					>

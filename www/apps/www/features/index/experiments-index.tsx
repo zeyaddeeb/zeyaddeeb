@@ -5,9 +5,8 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { type Experiment, number } from "@/features/catalog/catalog";
-import { useRunningRegistry } from "@/features/live/running-context";
-import { useShouldRun } from "@/features/live/use-running";
 import { HOME_VARIANT } from "@/features/tiling/engine";
+import { useShouldRun } from "@/lib/hooks/use-animation-activity";
 import { useWasm } from "@/lib/hooks/use-wasm";
 import "./rows.css";
 
@@ -88,13 +87,6 @@ function Row({
 		if (active) setTouched(true);
 	}, [active]);
 	const running = active && live && shouldRun;
-	const registry = useRunningRegistry();
-	const mark = registry?.mark;
-	useEffect(() => {
-		if (!live) return;
-		mark?.(experiment.id, running);
-		return () => mark?.(experiment.id, false);
-	}, [mark, experiment.id, running, live]);
 	return (
 		<li
 			className="row"

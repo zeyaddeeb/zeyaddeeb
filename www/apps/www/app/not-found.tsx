@@ -3,7 +3,7 @@ import Link from "next/link";
 import { SITE_NAV } from "@/features/catalog/nav";
 import { PresenceMark } from "@/features/live/presence-mark";
 import { Wordmark } from "@/features/mark/wordmark";
-import "@/features/home/notice.css";
+import "@/components/not-found.css";
 
 export default function NotFound() {
 	return (

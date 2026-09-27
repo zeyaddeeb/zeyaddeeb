@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PROFILE_URLS, SITE_NAME } from "../site";
 import { SourceLink } from "./source-link";
 
 export type SocialLink = {
@@ -16,14 +17,14 @@ export interface FooterProps {
 }
 
 const defaultSocialLinks: SocialLink[] = [
-	{ label: "GitHub", href: "https://github.com/zeyaddeeb" },
-	{ label: "LinkedIn", href: "https://linkedin.com/in/zeyaddeeb" },
-	{ label: "Twitter", href: "https://twitter.com/zeyad_deeb" },
+	{ label: "GitHub", href: PROFILE_URLS.github },
+	{ label: "LinkedIn", href: PROFILE_URLS.linkedin },
+	{ label: "Twitter", href: PROFILE_URLS.twitter },
 ];
 
 export function Footer({
-	signature = "Zeyad Deeb",
-	copyright = `© ${new Date().getFullYear()} Zeyad Deeb`,
+	signature = SITE_NAME,
+	copyright = `© ${new Date().getFullYear()} ${SITE_NAME}`,
 	socialLinks = defaultSocialLinks,
 	navLinks,
 	note,

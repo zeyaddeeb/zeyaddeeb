@@ -8,21 +8,13 @@ import {
 	text,
 	timestamp,
 } from "drizzle-orm/pg-core";
+import { COLLECTION_ITEM_TYPES } from "../../collection-options";
 import { user } from "../auth/user";
 
-export const collectionItemTypeEnum = pgEnum("collection_item_type", [
-	"wikipedia",
-	"art",
-	"book",
-	"youtube",
-	"product",
-	"music",
-	"article",
-	"podcast",
-	"movie",
-	"github",
-	"other",
-]);
+export const collectionItemTypeEnum = pgEnum(
+	"collection_item_type",
+	COLLECTION_ITEM_TYPES,
+);
 
 export const collectionItem = pgTable("collection_items", {
 	id: text("id")

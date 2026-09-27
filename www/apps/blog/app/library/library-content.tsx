@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useTransition } from "react";
 import { CollectionGrid, FilterBar } from "@/components";
 import { Pagination } from "@/components/pagination";
-import type { PaginatedResult } from "@/lib/actions";
+import type { PaginatedResult } from "@/lib/pagination";
 
 interface ThingsILikeContentProps {
 	initialData: PaginatedResult<CollectionItem>;

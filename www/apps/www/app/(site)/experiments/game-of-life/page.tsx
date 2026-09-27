@@ -1,6 +1,6 @@
 import { pageMetadata } from "@zeyaddeeb/ui/seo";
 import { ExperimentFrame } from "@/features/frame/experiment-frame";
-import GameOfLifeLab from "./canvas";
+import GameOfLifeLab from "@/features/life/canvas";
 
 export const metadata = pageMetadata({
 	path: "/experiments/game-of-life",

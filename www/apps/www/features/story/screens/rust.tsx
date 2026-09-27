@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
 import type { LifeStats } from "@/features/life/engine";
 import { LifeView } from "@/features/life/life-view";
-import { useShouldRun } from "@/features/live/use-running";
+import { useShouldRun } from "@/lib/hooks/use-animation-activity";
 import { useWasm } from "@/lib/hooks/use-wasm";
 
 const COLS = 96;

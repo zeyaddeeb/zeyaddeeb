@@ -416,8 +416,7 @@
 	text-decoration: none;
 }
 
-.ds-dreams li > i,
-.ds-compiles-key {
+.ds-dreams li > i {
 	width: 10px;
 	height: 10px;
 	border-radius: 50%;
@@ -428,15 +427,9 @@
 	visibility: hidden;
 }
 
-.ds-dreams li[data-compiles="true"] > i,
-.ds-compiles-key {
+.ds-dreams li[data-compiles="true"] > i {
 	background: var(--ds-belief);
 	border-color: var(--ds-belief);
-}
-
-.ds-compiles-key {
-	display: inline-block;
-	vertical-align: -1px;
 }
 
 .ds-caption {
@@ -565,7 +558,6 @@
 }
 
 .ds-batch,
-.ds-moved,
 .ds-families ul,
 .ds-memory,
 .ds-tries ul,
@@ -624,22 +616,6 @@
 	background: color-mix(in srgb, var(--ds-belief) 18%, transparent);
 	box-shadow: inset 0 -1px 0 var(--ds-belief);
 	color: var(--ds-text);
-}
-
-.ds-moved li {
-	display: grid;
-	grid-template-columns: 96px minmax(0, 1fr);
-	align-items: center;
-	gap: 10px;
-	height: 18px;
-	font: 400 11px / 1 var(--font-mono);
-	color: var(--ds-dim);
-}
-
-.ds-moved i {
-	height: 6px;
-	background: var(--ds-change);
-	transition: width var(--dur-3) var(--ease-out);
 }
 
 .ds-cards-lens {
