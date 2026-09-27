@@ -320,7 +320,9 @@ def _choose_blocks(level: Level, edits: Edits, optimize: bool) -> _Choice:
     if sum(chosen.values()) >= level.build.blocks:
         return _Choice(chosen, ms)
     forced = _formulate(sc, "SCIP", level.build)
-    forced.solver.Add(sum(forced.blocks.values()) == level.build.blocks)
+    forced.solver.Add(
+        forced.solver.Sum(forced.blocks.values()) == level.build.blocks
+    )
     ms += _run(forced)
     return _Choice(
         chosen, ms, round(forced.objective() - mip.objective(), DIGITS)

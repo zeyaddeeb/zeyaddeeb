@@ -35,7 +35,7 @@ export interface Layout {
 	glyph: number;
 }
 
-interface Box {
+export interface Box {
 	x0: number;
 	y0: number;
 	x1: number;
@@ -55,7 +55,7 @@ const CHAR_WIDTH = 7.2;
 const DETAIL_WIDTH = 6.4;
 const DETAIL_SAMPLE = "000/000 MW · $000";
 
-const overlaps = (a: Box, b: Box) =>
+export const overlaps = (a: Box, b: Box) =>
 	a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 
 const distance = (a: Point, b: Point) => Math.hypot(b.x - a.x, b.y - a.y);
@@ -68,7 +68,7 @@ function toward(from: Point, to: Point, length: number): Point {
 	};
 }
 
-function spread(nodes: MapNode[], gap: number) {
+export function spread(nodes: MapNode[], gap: number) {
 	for (let pass = 0; pass < SPREAD_PASSES; pass++) {
 		for (let i = 0; i < nodes.length; i++) {
 			for (let j = i + 1; j < nodes.length; j++) {
@@ -180,6 +180,9 @@ function fitLabel(
 		[0, -20 - h, "middle"],
 		[18, -h / 2 + 2, "start"],
 		[-18, -h / 2 + 2, "end"],
+		[16, 14, "start"],
+		[-16, 14, "end"],
+		[0, 36, "middle"],
 	];
 	for (const [dx, dy, anchor] of options) {
 		const left =
@@ -211,13 +214,17 @@ export function labels(
 	width: number,
 	height: number,
 	inset: Inset,
+	obstacles: Box[] = [],
 ): Label[] {
-	const taken: Box[] = nodes.map((n) => ({
-		x0: n.x - 15,
-		y0: n.y - 15,
-		x1: n.x + 15,
-		y1: n.y + 15,
-	}));
+	const taken: Box[] = [
+		...nodes.map((n) => ({
+			x0: n.x - 15,
+			y0: n.y - 15,
+			x1: n.x + 15,
+			y1: n.y + 15,
+		})),
+		...obstacles,
+	];
 	const tries = compact ? [1] : [2, 1];
 	return nodes.flatMap((n) => {
 		for (const lines of tries) {
@@ -232,6 +239,7 @@ export interface Track {
 	d: string;
 	mid: Point;
 	length: number;
+	points: Point[];
 }
 
 export type Bend = "early" | "late" | "across" | "down" | "none";
@@ -274,6 +282,7 @@ export function octilinear(
 			d: `M${fmt(a)}L${fmt(b)}`,
 			mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
 			length: distance(a, b),
+			points: [a, b],
 		};
 	const r = Math.min(radius, first / 2, second / 2);
 	const mid =
@@ -284,6 +293,7 @@ export function octilinear(
 		d: `M${fmt(a)}L${fmt(toward(knee, a, r))}Q${fmt(knee)} ${fmt(toward(knee, b, r))}L${fmt(b)}`,
 		mid,
 		length: first + second,
+		points: [a, knee, b],
 	};
 }
 

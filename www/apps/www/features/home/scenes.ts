@@ -238,12 +238,13 @@ export const scenes: Scene[] = [
 			},
 			port: {
 				title: {
-					x: 0.7,
-					y: 4.65,
-					w: 4.6,
+					x: 0.3,
+					y: 3.4,
+					w: 5.4,
 					v: 0.5,
 					tone: "ink",
 					align: "center",
+					stop: "yellow",
 				},
 				line: {
 					x: 0.3,
@@ -278,9 +279,9 @@ export const scenes: Scene[] = [
 			land: {
 				title: {
 					x: 6.53,
-					y: 2.82,
+					y: 3.05,
 					w: 4.2,
-					v: 0.5,
+					v: 1,
 					r: -24,
 					tone: "ink",
 					align: "center",
@@ -290,9 +291,9 @@ export const scenes: Scene[] = [
 			port: {
 				title: {
 					x: 1.2,
-					y: 5.79,
+					y: 5.95,
 					w: 3.2,
-					v: 0.5,
+					v: 1,
 					r: -30,
 					tone: "ink",
 					align: "center",
@@ -303,7 +304,7 @@ export const scenes: Scene[] = [
 		{ blend: true },
 	),
 	scene(
-		"crdt",
+		"compute-crunch",
 		{
 			sun: { x: 6, y: 0.4, w: 4, h: 4, c: "red", k: "round" },
 			moon: { x: 8.4, y: 0.8, w: 4, h: 4, c: "blue", k: "round", p: "lines" },

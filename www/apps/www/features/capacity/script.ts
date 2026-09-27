@@ -13,6 +13,7 @@ export interface Narration {
 
 export interface Shot {
 	phase: Phase;
+	step: number;
 	copy: Copy;
 	world: World;
 	level: Level;
@@ -118,6 +119,8 @@ export function reveal(
 export function narrate(shot: Shot): Narration {
 	const { phase, copy, world, level, outcome, yours, solved, won } = shot;
 	const name = namer(world);
+	if (phase === "guide")
+		return { tone: "ask", text: copy.guide?.[shot.step]?.text ?? "" };
 	if (phase === "intro" && copy.intro)
 		return { tone: "ask", text: copy.intro.text };
 	if (phase === "guess" && solved) {
@@ -175,14 +178,28 @@ export function keyMove(
 	};
 }
 
+export interface Status {
+	long: string;
+	short: string;
+}
+
+export const plainStatus = (text: string): Status => ({
+	long: text,
+	short: text,
+});
+
 export function status(
 	solved: Solved | null,
 	pending: boolean,
 	down: boolean,
-): string {
-	if (down) return "Solver offline";
-	if (pending) return "Solving…";
-	if (!solved) return "OR-Tools is ready";
+): Status {
+	if (down) return plainStatus("Solver offline");
+	if (pending) return plainStatus("Solving…");
+	if (!solved) return plainStatus("OR-Tools is ready");
 	const { engine, variables, constraints } = solved.solver;
-	return `${engine} solved ${variables} variables, ${constraints} constraints in ${ms(solved.solver.ms)}`;
+	const time = ms(solved.solver.ms);
+	return {
+		long: `${engine} solved ${variables} variables, ${constraints} constraints in ${time}`,
+		short: `${engine.split(" ")[0]} · ${time}`,
+	};
 }

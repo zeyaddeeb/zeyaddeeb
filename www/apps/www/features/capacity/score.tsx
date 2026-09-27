@@ -5,6 +5,8 @@ export interface ScoreRow {
 	total: number | null;
 	note?: string;
 	tone: "line" | "ink";
+	floor?: number | null;
+	format?: (n: number) => string;
 }
 
 export interface Meter {
@@ -21,13 +23,15 @@ export function Score({
 	carbon,
 	verdict,
 	won,
+	scale,
 }: {
 	rows: ScoreRow[];
 	carbon: Meter | null;
 	verdict: string;
 	won: boolean;
+	scale?: number;
 }) {
-	const max = Math.max(...rows.map((r) => r.total ?? 0), 1);
+	const max = scale ?? Math.max(...rows.map((r) => r.total ?? 0), 1);
 	return (
 		<div className="cc-score">
 			<dl>
@@ -45,9 +49,15 @@ export function Score({
 									width: row.total === null ? "100%" : share(row.total, max),
 								}}
 							/>
+							{row.floor ? (
+								<i
+									className="cc-bar-floor"
+									style={{ left: share(row.floor, max) }}
+								/>
+							) : null}
 						</dd>
 						<dd className="cc-bar-value">
-							{row.total === null ? "?" : money(row.total)}
+							{row.total === null ? "?" : (row.format ?? money)(row.total)}
 							{row.note ? <small>{row.note}</small> : null}
 						</dd>
 					</div>

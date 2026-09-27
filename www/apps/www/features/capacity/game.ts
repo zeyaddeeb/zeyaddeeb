@@ -15,7 +15,7 @@ import {
 } from "./plan";
 import type { Level, Solved, World } from "./protocol";
 
-export type Phase = "intro" | "plan" | "solved" | "guess" | "play";
+export type Phase = "guide" | "intro" | "plan" | "solved" | "guess" | "play";
 export type View = "solver" | "yours";
 
 export interface Play {
@@ -31,6 +31,7 @@ export interface Edit {
 
 export interface Game {
 	phase: Phase;
+	step: number;
 	routes: Routes;
 	outcome: Outcome | null;
 	selected: string | null;
@@ -60,9 +61,12 @@ const neutralPlay = (level: Level): Play => ({
 const morningPlan = (level: Level, cut: boolean): Routes =>
 	level.outage ? fromStart(level, cut ? [level.outage] : []) : {};
 
-export function start(level: Level): Game {
+const afterGuide = (level: Level): Phase => (level.outage ? "intro" : "plan");
+
+export function start(level: Level, steps = 0): Game {
 	return {
-		phase: level.outage ? "intro" : "plan",
+		phase: steps > 0 ? "guide" : afterGuide(level),
+		step: 0,
 		routes: morningPlan(level, false),
 		outcome: null,
 		selected: null,
@@ -94,6 +98,12 @@ function playScene(game: Game, level: Level): Scene {
 		),
 		training: scale(base.training),
 	};
+}
+
+export function nextGuide(game: Game, level: Level, steps: number): Game {
+	return game.step + 1 < steps
+		? { ...game, step: game.step + 1 }
+		: { ...game, phase: afterGuide(level) };
 }
 
 export function cutPower(game: Game, level: Level): Game {

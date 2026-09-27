@@ -1,3 +1,21 @@
+@property --cb {
+	syntax: "<length>";
+	inherits: true;
+	initial-value: 0px;
+}
+
+@property --ox {
+	syntax: "<length>";
+	inherits: true;
+	initial-value: 0px;
+}
+
+@property --oy {
+	syntax: "<length>";
+	inherits: true;
+	initial-value: 0px;
+}
+
 .poster {
 	--none: transparent;
 	--chrome: 82px;
@@ -8,6 +26,10 @@
 	overflow: clip;
 	container: poster / size;
 	background: var(--paper);
+}
+
+.poster__stage {
+	display: contents;
 }
 
 .poster__world {
@@ -329,7 +351,7 @@
 }
 
 .poster__handle {
-	touch-action: none;
+	touch-action: pan-y;
 	padding: 0;
 	border: 0;
 	background: none;
@@ -339,6 +361,11 @@
 		translate var(--move),
 		width var(--move),
 		height var(--move);
+}
+
+.poster__handle[data-selected],
+.poster__handle[data-dragging] {
+	touch-action: none;
 }
 
 .poster__handle[data-dragging] {
@@ -665,10 +692,6 @@ a.poster__caption-title > span:first-child {
 	font-size: 12px;
 }
 
-.poster__caption-line[data-stack] {
-	font: 400 11px / 1.6 var(--font-mono);
-}
-
 .poster__caption-line {
 	margin: 6px 0 0;
 	font-size: 14px;
@@ -770,11 +793,11 @@ a.poster__caption-title > span:first-child {
 	}
 
 	.poster__label-title {
-		font-size: clamp(20px, calc(var(--u) * 0.38), 30px);
+		font-size: min(calc(var(--u) * 0.38), 30px);
 	}
 
 	.poster__label--line {
-		font-size: 14px;
+		display: none;
 	}
 
 	.poster__label-eyebrow {
@@ -806,7 +829,7 @@ a.poster__caption-title > span:first-child {
 	}
 }
 
-@container poster (max-aspect-ratio: 1 / 1) and (max-height: 700px) {
+@container poster (max-aspect-ratio: 1 / 1) and (max-height: 560px) {
 	.poster__caption-line {
 		display: none;
 	}
@@ -847,17 +870,61 @@ a.poster__caption-title > span:first-child {
 @media (max-width: 767px) {
 	.poster {
 		--gutter: 20px;
-		height: auto;
-		min-height: 640px;
-		aspect-ratio: 1 / 2;
+		display: grid;
+		grid-template-rows: auto minmax(0, 1fr) auto;
+		height: max(480px, calc(100svh - var(--chrome)));
 	}
 
-	.poster__head {
-		top: max(var(--gutter), calc(var(--wt) + var(--u) * 0.3));
-	}
+	@container poster (max-aspect-ratio: 1 / 1) {
+		.poster__stage {
+			position: relative;
+			display: block;
+			grid-row: 2;
+			overflow: clip;
+			container: stage / size;
+		}
 
-	.poster__dock {
-		bottom: max(var(--gutter), calc(var(--wt) + var(--u) * 0.15));
+		.poster__world {
+			--W: min(100cqw, 80cqh);
+			--cb: min(
+				calc((100cqw - 2 * var(--gutter)) / var(--cols)),
+				calc((100cqh - 16px) / var(--rows))
+			);
+			--ox: calc(var(--W) / 2 - var(--cols) / 2 * var(--cb));
+			--oy: calc(var(--W) / 6 * 6.1 - var(--rows) / 2 * var(--cb));
+			top: calc(50cqh - var(--W) / 6 * 6.1);
+			width: var(--W);
+			translate: -50% 0;
+		}
+
+		.poster__board,
+		.poster__handle,
+		.poster__ghost,
+		.poster__visitor,
+		.poster[data-mode="play"] .poster__shape {
+			--u: calc(var(--cb) / var(--bc));
+			translate: calc(var(--ox) + (var(--px) - var(--bx)) * var(--u))
+				calc(var(--oy) + (var(--py) - var(--by)) * var(--u));
+		}
+
+		.poster__head,
+		.poster__dock {
+			--w: min(100cqw, 60cqh);
+			position: relative;
+			inset: auto;
+			width: auto;
+		}
+
+		.poster__head {
+			grid-row: 1;
+			margin: var(--gutter) var(--gutter) 0;
+		}
+
+		.poster__dock {
+			grid-row: 3;
+			margin: 0 var(--gutter) var(--gutter);
+			padding-top: 14px;
+		}
 	}
 }
 

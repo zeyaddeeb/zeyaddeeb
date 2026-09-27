@@ -1,12 +1,6 @@
 "use client";
 
-import {
-	type CSSProperties,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { type CSSProperties, useMemo } from "react";
 import { mw as formatMw } from "./format";
 import type { Board } from "./game";
 import {
@@ -23,6 +17,7 @@ import {
 } from "./geometry";
 import { type NodeKind, reachable, siteOf, split, TRAINING } from "./plan";
 import type { Level, World } from "./protocol";
+import { useSize } from "./use-size";
 
 const SITE = 22;
 const CITY = 11;
@@ -46,23 +41,6 @@ export interface MapProps {
 	best?: string | null;
 	callout?: Callout | null;
 	onPick: (id: string, kind: NodeKind) => void;
-}
-
-function useSize() {
-	const ref = useRef<HTMLDivElement>(null);
-	const [size, setSize] = useState({ width: 800, height: 480 });
-	useEffect(() => {
-		const el = ref.current;
-		if (!el) return;
-		const observer = new ResizeObserver(([entry]) => {
-			const { width, height } = entry.contentRect;
-			if (width > 0 && height > 0)
-				setSize({ width: Math.round(width), height: Math.round(height) });
-		});
-		observer.observe(el);
-		return () => observer.disconnect();
-	}, []);
-	return { ref, ...size };
 }
 
 function tally(routes: Record<string, number>) {

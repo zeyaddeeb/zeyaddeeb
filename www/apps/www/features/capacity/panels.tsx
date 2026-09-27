@@ -33,7 +33,7 @@ export function Legend({ level }: { level: Level }) {
 						/>
 					</svg>
 				</dt>
-				<dd>Data center, fills yellow as it gets busy</dd>
+				<dd>Data center, fills as it gets busy</dd>
 			</div>
 			<div>
 				<dt>
@@ -42,7 +42,7 @@ export function Legend({ level }: { level: Level }) {
 						<path d="M0 0L0 -5A5 5 0 0 1 5 0Z" className="cc-legend-red" />
 					</svg>
 				</dt>
-				<dd>City, fills red as it’s served</dd>
+				<dd>City, fills as it’s served</dd>
 			</div>
 			{level.training ? (
 				<div>
@@ -56,7 +56,7 @@ export function Legend({ level }: { level: Level }) {
 			) : null}
 			<div>
 				<dt className="cc-legend-unit">1 MW</dt>
-				<dd>about 700 GPUs, $1,400 an hour in rent</dd>
+				<dd>≈ 700 GPUs, $1,400/h rent</dd>
 			</div>
 		</dl>
 	);

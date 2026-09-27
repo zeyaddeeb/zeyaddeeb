@@ -10,16 +10,11 @@ export interface Context {
 	name: (id: string) => string;
 }
 
-export interface Line {
-	color: string;
-	text: "paper" | "ink";
-}
-
 export interface Copy {
 	id: string;
 	title: string;
 	region: string;
-	line: Line;
+	guide?: { text: string; action: string }[];
 	intro?: { text: string; action: string };
 	ask: string;
 	aha: (c: Context) => string;
@@ -42,7 +37,16 @@ export const copies: Copy[] = [
 		id: "atlantic",
 		title: "Cheapest isn’t best",
 		region: "North Atlantic",
-		line: { color: "var(--red)", text: "paper" },
+		guide: [
+			{
+				text: "Squares are data centers, each with its price for power. Circles are cities, and each one needs AI compute, measured in megawatts.",
+				action: "Next",
+			},
+			{
+				text: "Chat has to answer fast. A city can only use a data center within the latency limit, top right. Tap a city and dotted tracks show what’s in reach.",
+				action: "Your turn",
+			},
+		],
 		ask: "Three cities need AI compute. Keflavík runs on geothermal power at half Virginia’s price. Serve everyone as cheaply as you can: tap a city, then a data center.",
 		aha: ({ world, level }) =>
 			`London can only reach Keflavík: Virginia is ${world.rtt.london.ashburn} ms away and chat has to answer within ${level.latency}. Iceland was New York’s second choice but London’s only one, so the solver gives it to London first.`,
@@ -54,7 +58,6 @@ export const copies: Copy[] = [
 		id: "asia",
 		title: "Nearest isn’t either",
 		region: "Southeast and East Asia",
-		line: { color: "var(--blue)", text: "paper" },
 		ask: "Singapore and Jakarta both sit next to Johor. India has room to spare. Serve all four cities.",
 		aha: ({ world }) =>
 			`The solver serves Singapore from India, ${world.rtt.singapore.navimumbai} ms away, with a data center next door. Jakarta can only reach Johor, so Johor is saved for Jakarta.`,
@@ -66,7 +69,12 @@ export const copies: Copy[] = [
 		id: "training",
 		title: "Training goes anywhere",
 		region: "North America",
-		line: { color: "var(--yellow)", text: "ink" },
+		guide: [
+			{
+				text: "Every plan has a price, and so does every limit on it. This chapter asks what one more megawatt, or one more tonne of CO₂, is really worth.",
+				action: "Your turn",
+			},
+		],
 		ask: "Chat has to answer within 45 ms. Training a model has no deadline, so it can run anywhere, even Iceland. The triangle is 100 MW of training. Place everything.",
 		aha: ({ solved, name }) => {
 			const far = solved.training
@@ -85,10 +93,6 @@ export const copies: Copy[] = [
 		id: "carbon",
 		title: "A price nobody set",
 		region: "Europe",
-		line: {
-			color: "color-mix(in oklch, var(--blue), var(--yellow))",
-			text: "ink",
-		},
 		ask: "This fleet may emit 30 tonnes of CO₂ an hour. Warsaw is cheap but burns coal. Serve all three cities under the cap. A route stops filling when the carbon budget runs out; use − and + to adjust it.",
 		aha: ({ solved, name }) => {
 			const berlin = solved.routes
@@ -104,10 +108,6 @@ export const copies: Copy[] = [
 		id: "outage",
 		title: "Virginia goes dark",
 		region: "US East",
-		line: {
-			color: "color-mix(in oklch, var(--red), var(--yellow))",
-			text: "ink",
-		},
 		intro: {
 			text: "9:00 a.m. Ashburn carries New York, Quebec carries Toronto and Chicago. Everyone is served.",
 			action: "Cut Ashburn’s power",
@@ -123,10 +123,6 @@ export const copies: Copy[] = [
 		id: "build",
 		title: "Where to build",
 		region: "The world",
-		line: {
-			color: "color-mix(in oklch, var(--red), var(--blue))",
-			text: "paper",
-		},
 		ask: "Demand has outgrown the fleet by 90 MW. You can build up to four 25 MW blocks, and each one costs $22,500 an hour, busy or not. Tap a data center to build; the solver routes whatever you build.",
 		aha: (context) => restraint(context),
 		matched: (context) => `That’s the optimum. ${restraint(context)}`,

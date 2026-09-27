@@ -27,8 +27,6 @@ import {
 	encode,
 	fold,
 	forms,
-	fromLand,
-	fromPort,
 	isInitial,
 	kit,
 	LAND,
@@ -68,7 +66,6 @@ const steps: Record<string, [number, number]> = {
 interface Drag {
 	index: number;
 	pointer: number;
-	portrait: boolean;
 	offX: number;
 	offY: number;
 	col: number;
@@ -158,6 +155,7 @@ export function Poster({ head }: { head: ReactNode }) {
 		usePresence();
 	const { wasm, error } = useWasm();
 	const worldRef = useRef<HTMLDivElement>(null);
+	const boardRef = useRef<HTMLDivElement>(null);
 	const shouldRun = useShouldRun(worldRef);
 	const reduced = useReducedMotion();
 	const [active, setActive] = useState(0);
@@ -211,27 +209,15 @@ export function Poster({ head }: { head: ReactNode }) {
 		stop();
 	};
 
-	const measure = () => {
-		const world = worldRef.current;
-		if (!world) return null;
-		const rect = world.getBoundingClientRect();
-		const portrait = rect.height > rect.width;
-		const unit = rect.width / (portrait ? 6 : 12);
-		return { rect, portrait, unit };
-	};
-
-	const toUnits = (clientX: number, clientY: number) => {
-		const m = measure();
-		if (!m) return null;
+	const toBoard = (clientX: number, clientY: number) => {
+		const board = boardRef.current;
+		if (!board) return null;
+		const rect = board.getBoundingClientRect();
 		return {
-			portrait: m.portrait,
-			x: (clientX - m.rect.left) / m.unit,
-			y: (clientY - m.rect.top) / m.unit,
+			col: ((clientX - rect.left) / rect.width) * COLS,
+			row: ((clientY - rect.top) / rect.height) * ROWS,
 		};
 	};
-
-	const toBoard = (x: number, y: number, portrait: boolean) =>
-		portrait ? fromPort(x, y) : fromLand(x, y);
 
 	const commit = (code: string) => {
 		if (shared) insert(text.length, code);
@@ -269,18 +255,15 @@ export function Poster({ head }: { head: ReactNode }) {
 		clientY: number,
 	) => {
 		const current = layout[index];
-		const at = toUnits(clientX, clientY);
+		const at = toBoard(clientX, clientY);
 		if (!current || !at) return;
 		const col = current.cell % COLS;
 		const row = Math.floor(current.cell / COLS);
-		const box = boxOf(index, col, row);
-		const corner = at.portrait ? toPort(box) : toLand(box);
 		updateDrag({
 			index,
 			pointer,
-			portrait: at.portrait,
-			offX: at.x - corner.x,
-			offY: at.y - corner.y,
+			offX: at.col - col,
+			offY: at.row - row,
 			col,
 			row,
 			startX: clientX,
@@ -293,8 +276,9 @@ export function Poster({ head }: { head: ReactNode }) {
 
 	const grab = (event: PointerEvent<HTMLButtonElement>, index: number) => {
 		if (event.button !== 0 || !event.isPrimary || dragRef.current) return;
-		event.stopPropagation();
 		pointerKind.current = event.pointerType;
+		if (event.pointerType !== "mouse" && selected !== index) return;
+		event.stopPropagation();
 		suppress.current = false;
 		swipeRef.current = null;
 		event.currentTarget.setPointerCapture(event.pointerId);
@@ -305,17 +289,14 @@ export function Poster({ head }: { head: ReactNode }) {
 		const drag = dragRef.current;
 		if (!drag || drag.pointer !== event.pointerId) return;
 		const current = layout[drag.index];
-		const at = toUnits(event.clientX, event.clientY);
+		const at = toBoard(event.clientX, event.clientY);
 		if (!current || !at) return;
 		const moved =
 			drag.moved ||
 			Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) >
 				DRAG_SLOP;
-		const { col, row } = toBoard(
-			at.x - drag.offX,
-			at.y - drag.offY,
-			drag.portrait,
-		);
+		const col = at.col - drag.offX;
+		const row = at.row - drag.offY;
 		updateDrag({
 			...drag,
 			col,
@@ -376,10 +357,10 @@ export function Poster({ head }: { head: ReactNode }) {
 	const tap = (event: PointerEvent<HTMLDivElement>) => {
 		if (selected === null) return;
 		const current = layout[selected];
-		const at = toUnits(event.clientX, event.clientY);
+		const at = toBoard(event.clientX, event.clientY);
 		if (!current || !at) return;
 		const box = boxOf(selected, 0, 0);
-		const { col, row } = toBoard(at.x, at.y, at.portrait);
+		const { col, row } = at;
 		place(
 			selected,
 			snap(
@@ -393,16 +374,15 @@ export function Poster({ head }: { head: ReactNode }) {
 
 	const point = (event: PointerEvent<HTMLDivElement>) => {
 		if (event.pointerType !== "mouse") return;
-		const m = measure();
-		if (!m) return;
 		const world = event.currentTarget;
-		const mx = ((event.clientX - m.rect.left) / m.rect.width) * 2 - 1;
-		const my = ((event.clientY - m.rect.top) / m.rect.height) * 2 - 1;
+		const rect = world.getBoundingClientRect();
+		const mx = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+		const my = ((event.clientY - rect.top) / rect.height) * 2 - 1;
 		world.style.setProperty("--mx", mx.toFixed(3));
 		world.style.setProperty("--my", my.toFixed(3));
-		const x = (event.clientX - m.rect.left) / m.unit;
-		const y = (event.clientY - m.rect.top) / m.unit;
-		const { col, row } = toBoard(x, y, m.portrait);
+		const at = toBoard(event.clientX, event.clientY);
+		if (!at) return;
+		const { col, row } = at;
 		sendCursor(clamp(col / COLS, 0, 1), clamp(row / ROWS, 0, 1));
 	};
 
@@ -470,7 +450,7 @@ export function Poster({ head }: { head: ReactNode }) {
 		message ||
 		(full
 			? "Out of moves until the room empties."
-			: "Shared live with everyone here. Drag a shape to move it, tap it twice to turn it.");
+			: "Shared live with everyone here. Tap a shape, then drag it. Tap again to turn it.");
 
 	return (
 		<section
@@ -481,196 +461,208 @@ export function Poster({ head }: { head: ReactNode }) {
 			data-caret={scene?.caret || undefined}
 			data-dragging={drag?.moved || undefined}
 		>
-			<div
-				className="poster__world"
-				ref={worldRef}
-				onPointerMove={point}
-				onPointerLeave={settle}
-				onPointerDown={swipeStart}
-				onPointerUp={swipeEnd}
-				onPointerCancel={() => {
-					swipeRef.current = null;
-				}}
-			>
+			<div className="poster__stage">
 				<div
-					className="poster__board"
-					aria-hidden="true"
-					onPointerUp={tap}
-					style={frame({ col: 0, row: 0, w: COLS, h: ROWS })}
+					className="poster__world"
+					ref={worldRef}
+					style={
+						{
+							"--bx": PORT.x,
+							"--by": PORT.y,
+							"--bc": PORT.cell,
+							"--cols": COLS,
+							"--rows": ROWS,
+						} as CSSProperties
+					}
+					onPointerMove={point}
+					onPointerLeave={settle}
+					onPointerDown={swipeStart}
+					onPointerUp={swipeEnd}
+					onPointerCancel={() => {
+						swipeRef.current = null;
+					}}
 				>
-					<Grid cols={COLS} rows={ROWS} className="poster__grid" />
-				</div>
-				{kit.map((piece, index) => {
-					const shape = shapes.find((item) => item === piece.id);
-					const staged = !playMode && scene && shape;
-					const set = staged
-						? { land: scene.land[shape], port: scene.port[shape] }
-						: pieceForms(index);
-					if (!set) return null;
-					const rank = playMode ? order.indexOf(index) : index;
-					const dragging = playMode && drag?.index === index && drag.moved;
-					return (
-						<span
-							key={piece.id}
-							className="poster__shape"
-							data-k={set.land.k ?? "rect"}
-							data-shape={piece.id}
-							data-away={(!playMode && !shape) || undefined}
-							data-dragging={dragging || undefined}
-							data-live={
-								shape === "dot" && playMode && connected ? true : undefined
-							}
-							aria-hidden="true"
-							style={vars(set.land, set.port, {
-								"--c": `var(--${set.land.c})`,
-								"--q": `var(--${set.land.q ?? "paper"})`,
-								"--d": shape ? depth[shape] : 0.4,
-								zIndex: dragging ? 30 : rank + 1,
-							})}
-						>
-							{set.land.p && (
-								<span
-									key={set.land.p}
-									className="poster__skin"
-									data-p={set.land.p}
-								/>
-							)}
-							{shape === "dot" && (
-								<span key={count} className="poster__count">
-									{count}
-								</span>
-							)}
-						</span>
-					);
-				})}
-				{scenes.map((item, si) => {
-					const current = !playMode && shown === si + 1;
-					const { land, port } = item.labels;
-					return (
-						<div
-							key={item.experiment.id}
-							className="poster__labels"
-							data-current={current || undefined}
-							aria-hidden={!current}
-						>
-							<div
-								className="poster__label"
-								style={spot(land.title, port.title)}
-							>
-								<span className="poster__label-eyebrow">
-									Experiment / {number(item.experiment.number)}
-								</span>
-								<Link
-									href={item.experiment.href}
-									className="poster__label-title"
-									tabIndex={current ? undefined : -1}
-								>
-									{item.experiment.title}
-									<span className="poster__label-stop">.</span>
-									<span className="poster__label-arrow" aria-hidden="true">
-										<LifeArrow
-											direction={
-												item.experiment.external ? "up-right" : "right"
-											}
-											active={current}
-										/>
-									</span>
-								</Link>
-							</div>
-							<p
-								className="poster__label poster__label--line"
-								style={spot(land.line, port.line)}
-							>
-								{item.experiment.line}
-							</p>
-						</div>
-					);
-				})}
-				{playMode && drag?.moved && drag.target && (
-					<span
-						className="poster__ghost"
+					<div
+						ref={boardRef}
+						className="poster__board"
 						aria-hidden="true"
-						style={frame(
-							boxOf(
-								drag.index,
-								drag.target.cell % COLS,
-								Math.floor(drag.target.cell / COLS),
-							),
-						)}
-					/>
-				)}
-				{playMode &&
-					kit.map((piece, index) => {
-						const current = layout[index];
-						if (!current) return null;
-						const dragging = drag?.index === index && drag.moved;
-						const col = dragging && drag ? drag.col : current.cell % COLS;
-						const row =
-							dragging && drag ? drag.row : Math.floor(current.cell / COLS);
-						const style = frame(boxOf(index, col, row));
+						onPointerUp={tap}
+						style={frame({ col: 0, row: 0, w: COLS, h: ROWS })}
+					>
+						<Grid cols={COLS} rows={ROWS} className="poster__grid" />
+					</div>
+					{kit.map((piece, index) => {
+						const shape = shapes.find((item) => item === piece.id);
+						const staged = !playMode && scene && shape;
+						const set = staged
+							? { land: scene.land[shape], port: scene.port[shape] }
+							: pieceForms(index);
+						if (!set) return null;
+						const rank = playMode ? order.indexOf(index) : index;
+						const dragging = playMode && drag?.index === index && drag.moved;
 						return (
-							<button
+							<span
 								key={piece.id}
-								type="button"
-								className="poster__handle"
-								data-selected={selected === index || undefined}
+								className="poster__shape"
+								data-k={set.land.k ?? "rect"}
+								data-shape={piece.id}
+								data-away={(!playMode && !shape) || undefined}
 								data-dragging={dragging || undefined}
-								aria-pressed={selected === index}
-								aria-label={`${piece.label}. Arrow keys move it${piece.turns ? ", R turns it" : ""}.`}
-								style={{
-									...style,
-									zIndex: dragging ? 40 : 20 + order.indexOf(index),
-								}}
-								onPointerEnter={(event) => {
-									if (event.pointerType === "mouse") setHovering(true);
-								}}
-								onPointerLeave={() => setHovering(false)}
-								onPointerDown={(event) => grab(event, index)}
-								onPointerMove={pull}
-								onPointerUp={drop}
-								onPointerCancel={cancelDrag}
-								onLostPointerCapture={cancelDrag}
-								onContextMenu={(event) => event.preventDefault()}
-								onClick={() => press(index)}
-								onKeyDown={(event) => nudge(event, index)}
-							/>
+								data-live={
+									shape === "dot" && playMode && connected ? true : undefined
+								}
+								aria-hidden="true"
+								style={vars(set.land, set.port, {
+									"--c": `var(--${set.land.c})`,
+									"--q": `var(--${set.land.q ?? "paper"})`,
+									"--d": shape ? depth[shape] : 0.4,
+									zIndex: dragging ? 30 : rank + 1,
+								})}
+							>
+								{set.land.p && (
+									<span
+										key={set.land.p}
+										className="poster__skin"
+										data-p={set.land.p}
+									/>
+								)}
+								{shape === "dot" && (
+									<span key={count} className="poster__count">
+										{count}
+									</span>
+								)}
+							</span>
 						);
 					})}
-				{connected &&
-					cursors
-						.filter((cursor) => cursor.peer !== peer)
-						.map((cursor) => {
-							const col = cursor.x * COLS;
-							const row = cursor.y * ROWS;
+					{scenes.map((item, si) => {
+						const current = !playMode && shown === si + 1;
+						const { land, port } = item.labels;
+						return (
+							<div
+								key={item.experiment.id}
+								className="poster__labels"
+								data-current={current || undefined}
+								aria-hidden={!current}
+							>
+								<div
+									className="poster__label"
+									style={spot(land.title, port.title)}
+								>
+									<span className="poster__label-eyebrow">
+										Experiment / {number(item.experiment.number)}
+									</span>
+									<Link
+										href={item.experiment.href}
+										className="poster__label-title"
+										tabIndex={current ? undefined : -1}
+									>
+										{item.experiment.title}
+										<span className="poster__label-stop">.</span>
+										<span className="poster__label-arrow" aria-hidden="true">
+											<LifeArrow
+												direction={
+													item.experiment.external ? "up-right" : "right"
+												}
+												active={current}
+											/>
+										</span>
+									</Link>
+								</div>
+								<p
+									className="poster__label poster__label--line"
+									style={spot(land.line, port.line)}
+								>
+									{item.experiment.line}
+								</p>
+							</div>
+						);
+					})}
+					{playMode && drag?.moved && drag.target && (
+						<span
+							className="poster__ghost"
+							aria-hidden="true"
+							style={frame(
+								boxOf(
+									drag.index,
+									drag.target.cell % COLS,
+									Math.floor(drag.target.cell / COLS),
+								),
+							)}
+						/>
+					)}
+					{playMode &&
+						kit.map((piece, index) => {
+							const current = layout[index];
+							if (!current) return null;
+							const dragging = drag?.index === index && drag.moved;
+							const col = dragging && drag ? drag.col : current.cell % COLS;
+							const row =
+								dragging && drag ? drag.row : Math.floor(current.cell / COLS);
+							const style = frame(boxOf(index, col, row));
 							return (
-								<span
-									key={cursor.peer}
-									className="poster__visitor"
-									aria-hidden="true"
-									style={
-										{
-											"--lx": LAND.x + col * LAND.cell,
-											"--ly": LAND.y + row * LAND.cell,
-											"--px": PORT.x + col * PORT.cell,
-											"--py": PORT.y + row * PORT.cell,
-										} as CSSProperties
-									}
+								<button
+									key={piece.id}
+									type="button"
+									className="poster__handle"
+									data-selected={selected === index || undefined}
+									data-dragging={dragging || undefined}
+									aria-pressed={selected === index}
+									aria-label={`${piece.label}. Arrow keys move it${piece.turns ? ", R turns it" : ""}.`}
+									style={{
+										...style,
+										zIndex: dragging ? 40 : 20 + order.indexOf(index),
+									}}
+									onPointerEnter={(event) => {
+										if (event.pointerType === "mouse") setHovering(true);
+									}}
+									onPointerLeave={() => setHovering(false)}
+									onPointerDown={(event) => grab(event, index)}
+									onPointerMove={pull}
+									onPointerUp={drop}
+									onPointerCancel={cancelDrag}
+									onLostPointerCapture={cancelDrag}
+									onContextMenu={(event) => event.preventDefault()}
+									onClick={() => press(index)}
+									onKeyDown={(event) => nudge(event, index)}
 								/>
 							);
 						})}
+					{connected &&
+						cursors
+							.filter((cursor) => cursor.peer !== peer)
+							.map((cursor) => {
+								const col = cursor.x * COLS;
+								const row = cursor.y * ROWS;
+								return (
+									<span
+										key={cursor.peer}
+										className="poster__visitor"
+										aria-hidden="true"
+										style={
+											{
+												"--lx": LAND.x + col * LAND.cell,
+												"--ly": LAND.y + row * LAND.cell,
+												"--px": PORT.x + col * PORT.cell,
+												"--py": PORT.y + row * PORT.cell,
+											} as CSSProperties
+										}
+									/>
+								);
+							})}
 
-				<div className="poster__note" aria-live="polite">
-					<span>{hint}</span>
-					<button
-						type="button"
-						disabled={isInitial(layout) || full}
-						onClick={() => {
-							commit(resetCode);
-							setSelected(null);
-						}}
-					>
-						Reset
-					</button>
+					<div className="poster__note" aria-live="polite">
+						<span>{hint}</span>
+						<button
+							type="button"
+							disabled={isInitial(layout) || full}
+							onClick={() => {
+								commit(resetCode);
+								setSelected(null);
+							}}
+						>
+							Reset
+						</button>
+					</div>
 				</div>
 			</div>
 			<div className="poster__head">{head}</div>
@@ -797,11 +789,8 @@ export function Poster({ head }: { head: ReactNode }) {
 										</span>
 									</p>
 								)}
-								<p
-									className="poster__caption-line"
-									data-stack={item ? true : undefined}
-								>
-									{item ? item.experiment.stack.join(" / ") : touchHint}
+								<p className="poster__caption-line">
+									{item ? item.experiment.line : touchHint}
 								</p>
 							</div>
 						);

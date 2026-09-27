@@ -3,6 +3,8 @@
 import { LifeArrow } from "@zeyaddeeb/ui";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { loadWorld } from "@/features/capacity/server/actions";
+import { ActCard } from "./act-card";
+import { type Act, type Next, nextLabel, type Place, stages } from "./acts";
 import { money, mw } from "./format";
 import {
 	askGuess,
@@ -12,6 +14,7 @@ import {
 	currentTotal,
 	cutPower,
 	type Game,
+	nextGuide,
 	nudge,
 	pickable,
 	pickNode,
@@ -25,72 +28,139 @@ import {
 	start,
 	yours,
 } from "./game";
-import { type Copy, copies } from "./levels";
-import { Bullet, Lines, lineStyle } from "./lines";
+import { GridRound } from "./grid-round";
+import { Heading } from "./heading";
+import type { Copy } from "./levels";
+import { Lines, lineStyle } from "./lines";
 import { type Callout, WorldMap } from "./map";
 import { Blocks, Controls, Legend, Selection, ViewToggle } from "./panels";
 import { matched, type NodeKind } from "./plan";
+import { PlanRound } from "./plan-round";
 import { useProgress } from "./progress";
-import type { Level, Solved, World } from "./protocol";
+import type { GridWorld, Level, PlansWorld, Solved, World } from "./protocol";
 import { Score, type ScoreRow } from "./score";
 import { keyMove, namer, narrate, status, verdict } from "./script";
 import { useSolutions } from "./use-solutions";
 import "./capacity.css";
 
 export function CapacityLab() {
-	const [world, setWorld] = useState<World | null>(null);
+	const [loaded, setLoaded] = useState<{
+		world: World;
+		grid: GridWorld;
+		plans: PlansWorld;
+	} | null>(null);
 	const [down, setDown] = useState(false);
 	const [index, setIndex] = useState(0);
+	const [seen, setSeen] = useState<Set<Act["id"]>>(() => new Set());
 	const { progress, win } = useProgress();
 
 	useEffect(() => {
-		loadWorld().then((loaded) => {
-			if (loaded.ok) setWorld(loaded.world);
+		loadWorld().then((result) => {
+			if (result.ok)
+				setLoaded({
+					world: result.world,
+					grid: result.grid,
+					plans: result.plans,
+				});
 			else setDown(true);
 		});
 	}, []);
 
-	const copy = copies[index];
-	const level = world?.levels.find((l) => l.id === copy.id);
+	const stage = stages[index];
+	const act = stage.chapter.act;
 	const lines = <Lines index={index} progress={progress} onOpen={setIndex} />;
+	const card = seen.has(act.id) ? null : (
+		<ActCard
+			act={act}
+			onBegin={() => setSeen((all) => new Set(all).add(act.id))}
+		/>
+	);
+	const label = nextLabel(index);
+	const next = label ? { label, run: () => setIndex(index + 1) } : null;
 
-	if (!world || !level)
-		return <Waiting copy={copy} down={down} lines={lines} />;
+	if (loaded && stage.kind === "plan") {
+		const level = loaded.plans.levels.find((l) => l.id === stage.copy.id);
+		if (level)
+			return (
+				<PlanRound
+					key={level.id}
+					plans={loaded.plans}
+					grid={loaded.grid}
+					level={level}
+					copy={stage.copy}
+					place={stage}
+					lines={lines}
+					card={card}
+					onWin={win}
+					next={next}
+				/>
+			);
+	}
+	if (loaded && stage.kind === "grid") {
+		const level = loaded.grid.levels.find((l) => l.id === stage.copy.id);
+		if (level)
+			return (
+				<GridRound
+					key={level.id}
+					grid={loaded.grid}
+					level={level}
+					copy={stage.copy}
+					place={stage}
+					lines={lines}
+					card={card}
+					onWin={win}
+					next={next}
+				/>
+			);
+	}
+	const level =
+		loaded && stage.kind === "route"
+			? loaded.world.levels.find((l) => l.id === stage.copy.id)
+			: undefined;
+	if (!loaded || !level || stage.kind !== "route")
+		return (
+			<Waiting
+				place={stage}
+				title={stage.copy.title}
+				down={down}
+				lines={lines}
+			/>
+		);
 	return (
 		<Round
 			key={level.id}
-			world={world}
+			world={loaded.world}
 			level={level}
-			copy={copy}
-			index={index}
+			copy={stage.copy}
+			place={stage}
 			lines={lines}
+			card={card}
 			onWin={win}
-			onNext={index < copies.length - 1 ? () => setIndex(index + 1) : null}
+			next={next}
 		/>
 	);
 }
 
 function Waiting({
-	copy,
+	place,
+	title,
 	down,
 	lines,
 }: {
-	copy: Copy;
+	place: Place;
+	title: string;
 	down: boolean;
 	lines: ReactNode;
 }) {
 	return (
-		<div className="cc" style={lineStyle(copy)} data-waiting>
+		<div className="cc" style={lineStyle(place.chapter.line)} data-waiting>
 			<div className="cc-stage">
 				<div className="cc-map" />
 				{lines}
 			</div>
 			<section className="cc-sheet">
 				<div className="cc-say">
-					<p className="cc-title">
-						<Bullet copy={copy} index={0} />
-						<span>{copy.title}</span>
-					</p>
+					<Heading place={place} title={title} />
 					<p className="cc-line">
 						{down
 							? "The optimizer is not reachable right now."
@@ -150,20 +220,23 @@ function Round({
 	world,
 	level,
 	copy,
-	index,
+	place,
 	lines,
+	card,
 	onWin,
-	onNext,
+	next,
 }: {
 	world: World;
 	level: Level;
 	copy: Copy;
-	index: number;
+	place: Place;
 	lines: ReactNode;
+	card: ReactNode;
 	onWin: (id: string) => void;
-	onNext: (() => void) | null;
+	next: Next | null;
 }) {
-	const [game, setGame] = useState<Game>(() => start(level));
+	const steps = copy.guide?.length ?? 0;
+	const [game, setGame] = useState<Game>(() => start(level, steps));
 	const { solutions, pending, failed } = useSolutions(level, game);
 	const name = useMemo(() => namer(world), [world]);
 	const { best, built, live } = solutions;
@@ -176,6 +249,7 @@ function Round({
 
 	const narration = narrate({
 		phase: game.phase,
+		step: game.step,
 		copy,
 		world,
 		level,
@@ -203,6 +277,12 @@ function Round({
 		);
 
 	const primary = ((): Action | null => {
+		const step = copy.guide?.[game.step];
+		if (game.phase === "guide" && step)
+			return {
+				label: step.action,
+				run: () => setGame((g) => nextGuide(g, level, steps)),
+			};
 		if (game.phase === "intro" && copy.intro)
 			return {
 				label: copy.intro.action,
@@ -220,7 +300,7 @@ function Round({
 		if (game.phase === "solved" && copy.guess && !game.pick)
 			return { label: "One more question", run: () => setGame(askGuess) };
 		if (game.phase === "guess" && !game.pick) return null;
-		return onNext ? { label: "Next level", run: onNext, arrow: true } : null;
+		return next ? { label: next.label, run: next.run, arrow: true } : null;
 	})();
 
 	const carbonSource =
@@ -317,7 +397,11 @@ function Round({
 	);
 
 	return (
-		<div className="cc" style={lineStyle(copy)} data-phase={game.phase}>
+		<div
+			className="cc"
+			style={lineStyle(place.chapter.line)}
+			data-phase={game.phase}
+		>
 			<div className="cc-stage">
 				<WorldMap
 					world={world}
@@ -345,13 +429,7 @@ function Round({
 
 			<section className="cc-sheet" aria-label={copy.title}>
 				<div className="cc-say">
-					<p className="cc-title">
-						<Bullet copy={copy} index={index} />
-						<span>{copy.title}</span>
-						<span className="cc-status" aria-live="polite">
-							{statusText}
-						</span>
-					</p>
+					<Heading place={place} title={copy.title} status={statusText} />
 					<p className="cc-line" data-tone={narration.tone} aria-live="polite">
 						{narration.text}
 					</p>
@@ -422,6 +500,7 @@ function Round({
 					) : null}
 				</div>
 			</section>
+			{card}
 		</div>
 	);
 }

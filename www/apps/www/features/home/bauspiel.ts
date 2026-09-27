@@ -3,7 +3,7 @@ import type { Color, Form, Kind, Shape } from "./scenes";
 export const COLS = 8;
 export const ROWS = 6;
 
-export const LAND = { x: 4.8, y: 0.3, cell: 0.9 };
+export const LAND = { x: 4.8, y: 0.45, cell: 0.85 };
 export const PORT = { x: 0.36, y: 3.89, cell: 0.66 };
 
 const BASE = 0x4e00;
