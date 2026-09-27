@@ -38,16 +38,6 @@
 }
 
 .poster__board {
-	--lx: 4.8;
-	--ly: 0.3;
-	--lw: 7.2;
-	--lh: 5.4;
-	--lr: 0deg;
-	--px: 0.36;
-	--py: 2.35;
-	--pw: 5.28;
-	--ph: 7.04;
-	--pr: 0deg;
 	opacity: 0;
 	pointer-events: none;
 	transition: opacity 480ms ease-out;
@@ -80,10 +70,6 @@
 
 .poster[data-dragging] .poster__grid-lines {
 	opacity: 1;
-}
-
-.poster__grid--port {
-	display: none;
 }
 
 .poster[data-mode="play"] .poster__board {
@@ -121,7 +107,16 @@
 }
 
 .poster__shape[data-k="tri"] {
-	clip-path: polygon(50% 0, 50% 0, 100% 100%, 0 100%);
+	clip-path: polygon(0 0, 0 0, 100% 100%, 0 100%);
+}
+
+.poster__shape[data-k="quarter"] {
+	border-radius: 100% 0 0 0;
+}
+
+.poster__shape[data-k="semi"] {
+	border-radius: 50%;
+	clip-path: polygon(0 50%, 100% 50%, 100% 100%, 0 100%);
 }
 
 .poster[data-blend] .poster__shape:not([data-shape="dot"]) {
@@ -658,14 +653,6 @@ a.poster__caption-title > span:first-child {
 		rotate: var(--pr);
 	}
 
-	.poster__grid--land {
-		display: none;
-	}
-
-	.poster__grid--port {
-		display: block;
-	}
-
 	.poster__visitor {
 		translate: calc(var(--px) * var(--u)) calc(var(--py) * var(--u));
 	}
@@ -755,6 +742,17 @@ a.poster__caption-title > span:first-child {
 @media (max-width: 767px) {
 	.poster {
 		--gutter: 20px;
+		height: auto;
+		min-height: 640px;
+		aspect-ratio: 1 / 2;
+	}
+
+	.poster__head {
+		top: max(var(--gutter), calc(var(--wt) + var(--u) * 0.3));
+	}
+
+	.poster__dock {
+		bottom: max(var(--gutter), calc(var(--wt) + var(--u) * 0.15));
 	}
 }
 

@@ -14,7 +14,7 @@ export type Shape = (typeof shapes)[number];
 
 export type Color = "ink" | "paper" | "red" | "blue" | "yellow";
 
-export type Kind = "rect" | "round" | "tri" | "arch";
+export type Kind = "rect" | "round" | "tri" | "arch" | "quarter" | "semi";
 
 export interface Form {
 	x: number;

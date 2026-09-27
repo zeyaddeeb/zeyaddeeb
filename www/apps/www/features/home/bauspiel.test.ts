@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+	boxOf,
 	COLS,
 	encode,
 	fits,
 	fold,
+	forms,
 	fromLand,
 	fromPort,
 	initial,
 	isInitial,
+	LAND,
+	PORT,
 	ROWS,
 	resetCode,
 	snap,
@@ -34,7 +38,7 @@ describe("bauspiel", () => {
 
 	it("skips moves that leave the board or turn a fixed piece", () => {
 		const off = encode(1, { cell: COLS - 1, rot: 0 });
-		const spun = encode(2, { cell: 0, rot: 1 });
+		const spun = encode(1, { cell: 0, rot: 1 });
 		expect(isInitial(fold(off + spun).layout)).toBe(true);
 	});
 
@@ -57,8 +61,47 @@ describe("bauspiel", () => {
 		const landBack = fromLand(land.x, land.y);
 		expect(landBack.col).toBeCloseTo(2);
 		expect(landBack.row).toBeCloseTo(1);
-		const back = fromPort(port.x, port.y, box.h);
+		const back = fromPort(port.x, port.y);
 		expect(back.col).toBeCloseTo(2);
 		expect(back.row).toBeCloseTo(1);
+	});
+
+	it("preserves every piece's position, proportions, and rotation across screens", () => {
+		shapes.forEach((_, index) => {
+			for (let rot = 0; rot < 4; rot++) {
+				for (let cell = 0; cell < COLS * ROWS; cell++) {
+					if (!fits(index, { cell, rot })) continue;
+					const box = boxOf(index, cell % COLS, Math.floor(cell / COLS), rot);
+					const result = forms(index, box, rot, rot);
+					if (!result) throw new Error("Missing piece forms");
+					const { land, port } = result;
+					expect((port.x - PORT.x) / PORT.cell).toBeCloseTo(
+						(land.x - LAND.x) / LAND.cell,
+					);
+					expect((port.y - PORT.y) / PORT.cell).toBeCloseTo(
+						(land.y - LAND.y) / LAND.cell,
+					);
+					expect(port.w / PORT.cell).toBeCloseTo(land.w / LAND.cell);
+					expect(port.h / PORT.cell).toBeCloseTo(land.h / LAND.cell);
+					expect(port.r).toBe(land.r);
+					const corner = toPort(box);
+					const back = fromPort(corner.x, corner.y);
+					expect(snap(index, back.col, back.row, rot)).toEqual({ cell, rot });
+				}
+			}
+		});
+	});
+
+	it("keeps a mobile drag rightward and downward on the shared board", () => {
+		const index = shapes.indexOf("block");
+		const start = toPort({ col: 1, row: 1, w: 2, h: 2 });
+		const target = fromPort(start.x + PORT.cell * 2, start.y + PORT.cell);
+		const move = snap(index, target.col, target.row, 1);
+		if (!move) throw new Error("Missing move");
+		const { layout } = fold(encode(index, move));
+		expect(layout[index]).toEqual({ cell: 2 * COLS + 3, rot: 1 });
+		const land = toLand(boxOf(index, 3, 2, 1));
+		expect((land.x - LAND.x) / LAND.cell).toBeCloseTo(3);
+		expect((land.y - LAND.y) / LAND.cell).toBeCloseTo(2);
 	});
 });

@@ -4,14 +4,15 @@ export const COLS = 8;
 export const ROWS = 6;
 
 export const LAND = { x: 4.8, y: 0.3, cell: 0.9 };
-export const PORT = { x: 0.36, y: 2.35, cell: 0.88 };
+export const PORT = { x: 0.36, y: 3.89, cell: 0.66 };
 
 const BASE = 0x4e00;
 const STRIDE = 256;
 const RESET = 15 * STRIDE;
-const RULE = 0.08;
+const RULE = 0.14;
 
 export interface Piece {
+	name: string;
 	w: number;
 	h: number;
 	c: Color;
@@ -33,13 +34,28 @@ export interface Box {
 }
 
 export const pieces: Record<Shape, Piece> = {
-	block: { w: 2, h: 2, c: "yellow", k: "tri", turns: true },
-	sun: { w: 3, h: 3, c: "blue", k: "round", turns: false },
-	moon: { w: 1, h: 1, c: "yellow", k: "round", turns: false },
-	slab: { w: 2, h: 2, c: "red", k: "rect", turns: false },
-	core: { w: 1, h: 1, c: "ink", k: "rect", turns: false },
-	line: { w: 3, h: 1, c: "ink", k: "rect", turns: true, rule: true },
-	dot: { w: 1, h: 1, c: "red", k: "round", turns: false },
+	block: { name: "triangle", w: 2, h: 2, c: "yellow", k: "tri", turns: true },
+	sun: { name: "circle", w: 3, h: 3, c: "blue", k: "round", turns: false },
+	moon: {
+		name: "quarter circle",
+		w: 1,
+		h: 1,
+		c: "yellow",
+		k: "quarter",
+		turns: true,
+	},
+	slab: { name: "square", w: 2, h: 2, c: "red", k: "rect", turns: false },
+	core: { name: "semicircle", w: 1, h: 1, c: "ink", k: "semi", turns: true },
+	line: {
+		name: "bar",
+		w: 3,
+		h: 1,
+		c: "ink",
+		k: "rect",
+		turns: true,
+		rule: true,
+	},
+	dot: { name: "circle", w: 1, h: 1, c: "red", k: "round", turns: false },
 };
 
 export const initial: Place[] = [
@@ -137,10 +153,10 @@ export function toLand(box: Box) {
 
 export function toPort(box: Box) {
 	return {
-		x: PORT.x + (ROWS - box.row - box.h) * PORT.cell,
-		y: PORT.y + box.col * PORT.cell,
-		w: box.h * PORT.cell,
-		h: box.w * PORT.cell,
+		x: PORT.x + box.col * PORT.cell,
+		y: PORT.y + box.row * PORT.cell,
+		w: box.w * PORT.cell,
+		h: box.h * PORT.cell,
 	};
 }
 
@@ -148,10 +164,10 @@ export function fromLand(x: number, y: number) {
 	return { col: (x - LAND.x) / LAND.cell, row: (y - LAND.y) / LAND.cell };
 }
 
-export function fromPort(x: number, y: number, h: number) {
+export function fromPort(x: number, y: number) {
 	return {
-		col: (y - PORT.y) / PORT.cell,
-		row: ROWS - h - (x - PORT.x) / PORT.cell,
+		col: (x - PORT.x) / PORT.cell,
+		row: (y - PORT.y) / PORT.cell,
 	};
 }
 
@@ -167,13 +183,13 @@ export function forms(index: number, box: Box, rot: number, spin: number) {
 	const piece = pieceAt(index);
 	if (!piece) return null;
 	const visual = inset(box, rot, piece);
-	const turn = piece.k === "tri" ? spin * 90 : 0;
+	const turn = piece.turns && !piece.rule ? spin * 90 : 0;
 	const land: Form = { ...toLand(visual), c: piece.c, k: piece.k, r: turn };
 	const port: Form = {
 		...toPort(visual),
 		c: piece.c,
 		k: piece.k,
-		r: piece.k === "tri" ? turn + 90 : 0,
+		r: turn,
 	};
 	return { land, port };
 }

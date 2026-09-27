@@ -229,8 +229,8 @@ export function Poster({ head }: { head: ReactNode }) {
 		};
 	};
 
-	const toBoard = (x: number, y: number, portrait: boolean, h: number) =>
-		portrait ? fromPort(x, y, h) : fromLand(x, y);
+	const toBoard = (x: number, y: number, portrait: boolean) =>
+		portrait ? fromPort(x, y) : fromLand(x, y);
 
 	const commit = (code: string) => {
 		if (shared) insert(text.length, code);
@@ -311,12 +311,10 @@ export function Poster({ head }: { head: ReactNode }) {
 			drag.moved ||
 			Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) >
 				DRAG_SLOP;
-		const box = boxOf(drag.index, 0, 0, current.rot);
 		const { col, row } = toBoard(
 			at.x - drag.offX,
 			at.y - drag.offY,
 			drag.portrait,
-			box.h,
 		);
 		updateDrag({
 			...drag,
@@ -382,14 +380,13 @@ export function Poster({ head }: { head: ReactNode }) {
 		const at = toUnits(event.clientX, event.clientY);
 		if (!current || !at) return;
 		const box = boxOf(selected, 0, 0, current.rot);
-		const { col, row } = toBoard(at.x, at.y, at.portrait, 1);
+		const { col, row } = toBoard(at.x, at.y, at.portrait);
 		place(
 			selected,
 			snap(
 				selected,
 				Math.floor(col) - Math.floor((box.w - 1) / 2),
-				(at.portrait ? Math.ceil(row) : Math.floor(row)) -
-					Math.floor((box.h - 1) / 2),
+				Math.floor(row) - Math.floor((box.h - 1) / 2),
 				current.rot,
 			),
 		);
@@ -406,7 +403,7 @@ export function Poster({ head }: { head: ReactNode }) {
 		world.style.setProperty("--my", my.toFixed(3));
 		const x = (event.clientX - m.rect.left) / m.unit;
 		const y = (event.clientY - m.rect.top) / m.unit;
-		const { col, row } = toBoard(x, y, m.portrait, 0);
+		const { col, row } = toBoard(x, y, m.portrait);
 		sendCursor(
 			Math.max(0, Math.min(1, col / COLS)),
 			Math.max(0, Math.min(1, row / ROWS)),
@@ -504,17 +501,13 @@ export function Poster({ head }: { head: ReactNode }) {
 					swipeRef.current = null;
 				}}
 			>
-				<div className="poster__board" aria-hidden="true" onPointerUp={tap}>
-					<Grid
-						cols={COLS}
-						rows={ROWS}
-						className="poster__grid poster__grid--land"
-					/>
-					<Grid
-						cols={ROWS}
-						rows={COLS}
-						className="poster__grid poster__grid--port"
-					/>
+				<div
+					className="poster__board"
+					aria-hidden="true"
+					onPointerUp={tap}
+					style={frame({ col: 0, row: 0, w: COLS, h: ROWS })}
+				>
+					<Grid cols={COLS} rows={ROWS} className="poster__grid" />
 				</div>
 				{shapes.map((shape, index) => {
 					const set = playMode
@@ -622,7 +615,7 @@ export function Poster({ head }: { head: ReactNode }) {
 								data-selected={selected === index || undefined}
 								data-dragging={dragging || undefined}
 								aria-pressed={selected === index}
-								aria-label={`${shape === "dot" ? "Here now" : `${pieces[shape].c} ${pieces[shape].k === "tri" ? "triangle" : pieces[shape].k === "round" ? "circle" : pieces[shape].rule ? "bar" : "square"}`}. Arrow keys move it${pieces[shape].turns ? ", R turns it" : ""}.`}
+								aria-label={`${shape === "dot" ? "Here now" : `${pieces[shape].c} ${pieces[shape].name}`}. Arrow keys move it${pieces[shape].turns ? ", R turns it" : ""}.`}
 								style={{
 									...style,
 									zIndex: dragging ? 40 : 20 + order.indexOf(index),
@@ -657,8 +650,8 @@ export function Poster({ head }: { head: ReactNode }) {
 										{
 											"--lx": LAND.x + col * LAND.cell,
 											"--ly": LAND.y + row * LAND.cell,
-											"--px": PORT.x + (ROWS - row) * PORT.cell,
-											"--py": PORT.y + col * PORT.cell,
+											"--px": PORT.x + col * PORT.cell,
+											"--py": PORT.y + row * PORT.cell,
 										} as CSSProperties
 									}
 								/>
