@@ -28,3 +28,18 @@ export function paginatedResult<T>(
 		hasPreviousPage: page > 1,
 	};
 }
+
+export function emptyPage<T>(
+	page: number,
+	pageSize: number,
+): PaginatedResult<T> {
+	return {
+		items: [],
+		total: 0,
+		page,
+		pageSize,
+		totalPages: 0,
+		hasNextPage: false,
+		hasPreviousPage: false,
+	};
+}

@@ -98,3 +98,65 @@ async fn written_out_solutions_compile_as_files() {
         assert!(errors.is_empty(), "{}:\n{source}\n{errors:?}", level.id);
     }
 }
+
+fn literals(text: &str) -> Vec<String> {
+    let mut found = Vec::new();
+    let mut chars = text.chars();
+    while let Some(c) = chars.next() {
+        match c {
+            ']' => return found,
+            '"' | '\'' => {
+                let mut literal = String::new();
+                while let Some(next) = chars.next() {
+                    match next {
+                        '\\' => match chars.next() {
+                            Some('n') => literal.push('\n'),
+                            Some('t') => literal.push('\t'),
+                            Some(other) => literal.push(other),
+                            None => break,
+                        },
+                        end if end == c => break,
+                        other => literal.push(other),
+                    }
+                }
+                found.push(literal);
+            }
+            _ => {}
+        }
+    }
+    panic!("unterminated array in levels.ts");
+}
+
+fn client_levels() -> Vec<(String, Vec<String>)> {
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../www/apps/www/features/proofs/levels.ts");
+    let text = std::fs::read_to_string(&path)
+        .unwrap_or_else(|error| panic!("{}: {error}", path.display()));
+    let mut ids = Vec::new();
+    let mut solutions = Vec::new();
+    for (offset, line) in text.split_inclusive('\n').scan(0, |at, line| {
+        let start = *at;
+        *at += line.len();
+        Some((start, line))
+    }) {
+        let trimmed = line.trim_start();
+        if let Some(rest) = trimmed.strip_prefix("id: \"") {
+            ids.push(rest.split('"').next().unwrap_or_default().to_string());
+        } else if trimmed.starts_with("solution: [") {
+            let open = offset + line.find('[').unwrap() + 1;
+            solutions.push(literals(&text[open..]));
+        }
+    }
+    assert_eq!(ids.len(), solutions.len(), "every level needs a solution");
+    ids.into_iter().zip(solutions).collect()
+}
+
+#[test]
+fn client_levels_match_server_levels() {
+    let client = client_levels();
+    let server: Vec<(String, Vec<String>)> = LEVELS
+        .iter()
+        .map(|level| (level.id.to_string(), owned(level.solution.unwrap_or(&[]))))
+        .collect();
+    assert_eq!(client, server);
+}

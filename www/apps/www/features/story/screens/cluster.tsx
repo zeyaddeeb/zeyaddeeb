@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { clamp } from "@/lib/math";
 
 type Status =
 	| "Pending"
@@ -140,7 +141,7 @@ export function ClusterScreen() {
 	const scale = (d: number) =>
 		setCluster((c) => ({
 			...c,
-			desired: Math.max(1, Math.min(9, c.desired + d)),
+			desired: clamp(c.desired + d, 1, 9),
 		}));
 
 	const ready = cluster.pods.filter((p) => p.status === "Running").length;
@@ -205,7 +206,6 @@ export function ClusterScreen() {
 			</div>
 			<ul className="k8s__events" aria-label="Events">
 				{cluster.events.map((e, i) => (
-					// biome-ignore lint/suspicious/noArrayIndexKey: a short rolling log
 					<li key={i}>{e}</li>
 				))}
 			</ul>

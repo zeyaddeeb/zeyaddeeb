@@ -2,27 +2,18 @@ use crate::curriculum::Rng;
 use anyhow::Result;
 use candle_core::{DType, Device, Tensor, Var, D};
 use candle_nn::ops::{log_softmax, softmax};
+use serde::Serialize;
 
 const EPS: f64 = 1e-6;
 const MASKED: f32 = -1e9;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub enum Mode {
+    #[serde(rename = "SWA")]
     Swa,
     Full,
     Reindex,
     Reuse,
-}
-
-impl Mode {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Swa => "SWA",
-            Self::Full => "Full",
-            Self::Reindex => "Reindex",
-            Self::Reuse => "Reuse",
-        }
-    }
 }
 
 #[derive(Clone, Debug)]

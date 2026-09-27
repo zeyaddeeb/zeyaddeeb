@@ -8,6 +8,7 @@ import {
 	useRef,
 } from "react";
 import { CanvasTouchToggle } from "@/components/canvas-touch-toggle";
+import { fitCanvas } from "@/lib/canvas";
 import { useCanvasInteraction } from "@/lib/hooks/use-canvas-interaction";
 import { useWasm } from "@/lib/hooks/use-wasm";
 import {
@@ -107,7 +108,6 @@ export const LifeView = forwardRef<LifeHandle, LifeViewProps>(function LifeView(
 		dirtyRef.current = false;
 	}, []);
 
-	// Build the engine once WASM settles (or fall back to JS when it fails).
 	useEffect(() => {
 		if (loading) return;
 		engineRef.current?.free();
@@ -122,7 +122,6 @@ export const LifeView = forwardRef<LifeHandle, LifeViewProps>(function LifeView(
 		};
 	}, [loading, wasm, cols, rows, seedProbability, onReady]);
 
-	// Size canvas to its container.
 	useEffect(() => {
 		const wrap = wrapRef.current;
 		const canvas = canvasRef.current;
@@ -133,11 +132,9 @@ export const LifeView = forwardRef<LifeHandle, LifeViewProps>(function LifeView(
 			if (!w || !h) return;
 			const cell = Math.max(1, Math.min(w / cols, h / rows));
 			cellSizeRef.current = cell;
-			const dpr = Math.min(window.devicePixelRatio || 1, 2);
 			const cw = Math.round(cols * cell);
 			const ch = Math.round(rows * cell);
-			canvas.width = Math.round(cw * dpr);
-			canvas.height = Math.round(ch * dpr);
+			const dpr = fitCanvas(canvas, cw, ch);
 			canvas.style.width = `${cw}px`;
 			canvas.style.height = `${ch}px`;
 			canvas.getContext("2d")?.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -150,7 +147,6 @@ export const LifeView = forwardRef<LifeHandle, LifeViewProps>(function LifeView(
 		return () => ro.disconnect();
 	}, [cols, rows, paint]);
 
-	// Main loop.
 	useEffect(() => {
 		let raf = 0;
 		let lastTick = 0;

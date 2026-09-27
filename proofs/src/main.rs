@@ -6,11 +6,12 @@ use axum::{
     Json, Router,
 };
 use proofs::{
+    goals::Goal,
     guard,
     levels::{self, LEVELS},
     repl::{Pool, PoolError, Step},
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
 
 const MAX_STEPS: usize = 24;
@@ -19,6 +20,23 @@ const MAX_STEPS: usize = 24;
 struct Check {
     level: String,
     steps: Vec<String>,
+}
+
+#[derive(Serialize)]
+struct LevelStart {
+    goals: Vec<Goal>,
+    id: &'static str,
+    statement: &'static str,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Checked {
+    goals: Vec<Goal>,
+    lean_ms: f64,
+    level: &'static str,
+    solved: bool,
+    steps: Vec<Step>,
 }
 
 fn env<T: std::str::FromStr>(name: &str, fallback: T) -> T {
@@ -74,12 +92,10 @@ async fn main() -> anyhow::Result<()> {
 async fn list(State(pool): State<Arc<Pool>>) -> impl IntoResponse {
     let levels: Vec<_> = LEVELS
         .iter()
-        .map(|level| {
-            serde_json::json!({
-                "id": level.id,
-                "statement": level.statement,
-                "goals": pool.start_goals(level),
-            })
+        .map(|level| LevelStart {
+            goals: pool.start_goals(level),
+            id: level.id,
+            statement: level.statement,
         })
         .collect();
     Json(levels)
@@ -115,13 +131,13 @@ async fn check(State(pool): State<Arc<Pool>>, Json(request): Json<Check>) -> imp
                     });
                 }
             }
-            Json(serde_json::json!({
-                "level": level.id,
-                "goals": pool.start_goals(level),
-                "steps": run.steps,
-                "solved": run.solved,
-                "leanMs": run.micros as f64 / 1000.0,
-            }))
+            Json(Checked {
+                goals: pool.start_goals(level),
+                lean_ms: run.micros as f64 / 1000.0,
+                level: level.id,
+                solved: run.solved,
+                steps: run.steps,
+            })
             .into_response()
         }
         Err(PoolError::Busy) => (
@@ -134,5 +150,78 @@ async fn check(State(pool): State<Arc<Pool>>, Json(request): Json<Check>) -> imp
             tracing::error!(%error, "could not start Lean");
             (StatusCode::SERVICE_UNAVAILABLE, "Lean is not available").into_response()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proofs::goals::Hypothesis;
+
+    fn goal() -> Goal {
+        Goal {
+            case: Some("succ".into()),
+            hyps: vec![Hypothesis {
+                names: vec!["p".into(), "q".into()],
+                kind: "Prop".into(),
+            }],
+            target: "p → q → p".into(),
+        }
+    }
+
+    #[test]
+    fn level_start_matches_previous_json() {
+        let level = &LEVELS[0];
+        let typed = LevelStart {
+            goals: vec![goal()],
+            id: level.id,
+            statement: level.statement,
+        };
+        let loose = serde_json::json!({
+            "id": level.id,
+            "statement": level.statement,
+            "goals": vec![goal()],
+        });
+        assert_eq!(
+            serde_json::to_string(&typed).unwrap(),
+            serde_json::to_string(&loose).unwrap()
+        );
+    }
+
+    #[test]
+    fn checked_matches_previous_json() {
+        let steps = vec![
+            Step {
+                tactic: "intro hp".into(),
+                ok: true,
+                goals: vec![goal()],
+                error: None,
+            },
+            Step {
+                tactic: "exact hq".into(),
+                ok: false,
+                goals: Vec::new(),
+                error: Some("type mismatch".into()),
+            },
+        ];
+        let micros = 1234u64;
+        let typed = Checked {
+            goals: vec![goal()],
+            lean_ms: micros as f64 / 1000.0,
+            level: "intro",
+            solved: false,
+            steps: steps.clone(),
+        };
+        let loose = serde_json::json!({
+            "level": "intro",
+            "goals": vec![goal()],
+            "steps": steps,
+            "solved": false,
+            "leanMs": micros as f64 / 1000.0,
+        });
+        assert_eq!(
+            serde_json::to_string(&typed).unwrap(),
+            serde_json::to_string(&loose).unwrap()
+        );
     }
 }

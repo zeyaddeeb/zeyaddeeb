@@ -1,12 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-
-const ALLOWED_ADMIN_ID = process.env.ADMIN_ID;
-const BASE_PATH = "/blog";
+import { getFullPath } from "@/lib/redirect-utils";
+import { isAdmin } from "@/lib/session";
 
 function buildRedirectUrl(path: string, request: NextRequest): URL {
 	const url = new URL(request.url);
-	url.pathname = path.startsWith(BASE_PATH) ? path : `${BASE_PATH}${path}`;
+	url.pathname = getFullPath(path);
 	return url;
 }
 
@@ -23,12 +22,12 @@ export async function proxy(request: NextRequest) {
 		headers: request.headers,
 	});
 
-	if (!ALLOWED_ADMIN_ID) {
+	if (!process.env.ADMIN_ID) {
 		return NextResponse.redirect(buildRedirectUrl("/write/login", request));
 	}
 
 	if (isLoginRoute) {
-		if (session?.user?.id === ALLOWED_ADMIN_ID) {
+		if (isAdmin(session?.user)) {
 			return NextResponse.redirect(
 				buildRedirectUrl("/write/dashboard", request),
 			);
@@ -37,7 +36,7 @@ export async function proxy(request: NextRequest) {
 	}
 
 	if (isWriteRoute) {
-		if (!session?.user || session.user.id !== ALLOWED_ADMIN_ID) {
+		if (!isAdmin(session?.user)) {
 			return NextResponse.redirect(buildRedirectUrl("/write/login", request));
 		}
 	}

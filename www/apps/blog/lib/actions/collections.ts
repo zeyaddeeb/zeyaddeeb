@@ -1,16 +1,23 @@
 "use server";
 
 import {
+	and,
+	arrayOverlaps,
+	asc,
 	type CollectionItem,
 	type CollectionItemType,
 	collectionItem,
+	count,
 	db,
+	desc,
+	eq,
+	sql,
 } from "@zeyaddeeb/db";
 import { COLLECTION_ITEM_TYPES } from "@zeyaddeeb/db/collection-options";
-import { and, arrayOverlaps, asc, count, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
 	COLLECTION_PAGE_SIZE,
+	emptyPage,
 	type PaginatedResult,
 	paginatedResult,
 } from "../pagination";
@@ -25,19 +32,22 @@ export interface GetCollectionItemsParams {
 	featured?: boolean;
 }
 
+const collectionQuery = z.object({
+	...pagination,
+	pageSize: pagination.pageSize.default(COLLECTION_PAGE_SIZE),
+	type: z.enum(COLLECTION_ITEM_TYPES).nullable().default(null),
+	tags: z.array(z.string().min(1).max(64)).max(20).default([]),
+	search: z.string().max(256).default(""),
+	featured: z.boolean().optional(),
+});
+
 export async function getCollectionItems(
 	params: GetCollectionItemsParams = {},
 ): Promise<PaginatedResult<CollectionItem>> {
-	const { page, pageSize, type, tags, search, featured } = z
-		.object({
-			...pagination,
-			pageSize: pagination.pageSize.default(COLLECTION_PAGE_SIZE),
-			type: z.enum(COLLECTION_ITEM_TYPES).nullable().default(null),
-			tags: z.array(z.string().min(1).max(64)).max(20).default([]),
-			search: z.string().max(256).default(""),
-			featured: z.boolean().optional(),
-		})
-		.parse(params);
+	const parsed = collectionQuery.safeParse(params);
+	const { page, pageSize, type, tags, search, featured } = parsed.success
+		? parsed.data
+		: collectionQuery.parse({});
 
 	try {
 		const offset = (page - 1) * pageSize;
@@ -87,15 +97,7 @@ export async function getCollectionItems(
 		return paginatedResult(items, totalCount, page, pageSize);
 	} catch (error) {
 		console.error("Failed to fetch collection items:", error);
-		return {
-			items: [],
-			total: 0,
-			page,
-			pageSize,
-			totalPages: 0,
-			hasNextPage: false,
-			hasPreviousPage: false,
-		};
+		return emptyPage(page, pageSize);
 	}
 }
 
@@ -132,7 +134,7 @@ export async function getAllCollectionTypes(): Promise<CollectionItemType[]> {
 	}
 }
 
-export async function getFeaturedCollectionItems(
+export async function getTopCollectionItems(
 	limit = 6,
 ): Promise<CollectionItem[]> {
 	try {
@@ -146,7 +148,7 @@ export async function getFeaturedCollectionItems(
 			)
 			.limit(resultLimit.parse(limit));
 	} catch (error) {
-		console.error("Failed to fetch featured collection items:", error);
+		console.error("Failed to fetch top collection items:", error);
 		return [];
 	}
 }

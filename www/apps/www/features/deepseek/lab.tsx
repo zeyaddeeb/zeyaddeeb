@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bet, Choices, Score, Writer } from "./board";
+import { count } from "./format";
 import { Cards, Reading, Rollouts, Yours } from "./lenses";
 import { ExamplePicker, Inside, Line } from "./line";
+import type { TrainPhase } from "./protocol";
 import {
 	type ActionId,
 	CHAPTERS,
@@ -17,9 +19,12 @@ import {
 import { isBusy, useLab } from "./use-lab";
 import "./lab.css";
 
-const STEPS = { pretrain: 400, sft: 600, rl: 60, distill: 400 } as const;
-
-const count = (value: number) => value.toLocaleString("en-US");
+const STEPS: Record<TrainPhase, number> = {
+	pretrain: 400,
+	sft: 600,
+	rl: 60,
+	distill: 400,
+};
 
 function remaining(seconds: number) {
 	if (seconds < 5) return "almost done";

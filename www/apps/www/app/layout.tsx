@@ -1,39 +1,13 @@
+import { fontVariables } from "@zeyaddeeb/ui/fonts";
 import { JsonLd } from "@zeyaddeeb/ui/json-ld";
-import {
-	pageMetadata,
-	SITE_DESCRIPTION,
-	SITE_NAME,
-	siteSchema,
-} from "@zeyaddeeb/ui/seo";
+import { pageMetadata, siteSchema } from "@zeyaddeeb/ui/seo";
+import { SITE_DESCRIPTION, SITE_NAME } from "@zeyaddeeb/ui/site";
 import "@zeyaddeeb/ui/styles.css";
 import "@zeyaddeeb/ui/site.css";
 
 import type { Metadata } from "next";
-import { Geist_Mono, Jost, Newsreader } from "next/font/google";
 import { RootLayoutClient } from "@/components/root-layout";
 import { WASMContextProvider } from "@/lib/providers/wasm-provider";
-
-const jost = Jost({
-	subsets: ["latin"],
-	variable: "--font-jost",
-	weight: ["400", "500", "600"],
-	display: "swap",
-});
-
-const geistMono = Geist_Mono({
-	subsets: ["latin"],
-	variable: "--font-geist-mono",
-	weight: ["400", "500"],
-	display: "swap",
-});
-
-const newsreader = Newsreader({
-	subsets: ["latin"],
-	variable: "--font-newsreader",
-	weight: ["300", "400", "500"],
-	style: ["normal", "italic"],
-	display: "swap",
-});
 
 export const metadata: Metadata = {
 	...pageMetadata({
@@ -55,10 +29,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html
-			lang="en"
-			className={`${jost.variable} ${geistMono.variable} ${newsreader.variable}`}
-		>
+		<html lang="en" className={fontVariables}>
 			<body className="personal-site bg-background text-foreground">
 				<JsonLd data={siteSchema} />
 				<WASMContextProvider>

@@ -1,24 +1,11 @@
 "use client";
 
+import { crdtWsBase } from "@zeyaddeeb/ui/crdt";
 import { useEffect } from "react";
 
 export function SitePresence() {
 	useEffect(() => {
-		const explicit = process.env.NEXT_PUBLIC_CRDT_URL?.trim();
-		const { hostname, protocol } = window.location;
-		const local =
-			hostname === "localhost" ||
-			hostname === "127.0.0.1" ||
-			hostname.endsWith(".local");
-		const base = (
-			explicit ||
-			(local
-				? "ws://localhost:3002"
-				: `${protocol === "https:" ? "wss:" : "ws:"}//crdt.${hostname.replace(/^www\./, "")}`)
-		)
-			.replace(/^http:/, "ws:")
-			.replace(/^https:/, "wss:")
-			.replace(/\/+$/, "");
+		const base = crdtWsBase();
 		let stopped = false;
 		let socket: WebSocket | null = null;
 		let timer: ReturnType<typeof setTimeout> | undefined;

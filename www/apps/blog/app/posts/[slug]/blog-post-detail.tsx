@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { formatLongDate } from "@/lib/format-date";
 
 interface BlogPostDetailProps {
 	post: Post;
@@ -30,13 +31,7 @@ export function BlogPostDetail({ post }: BlogPostDetailProps) {
 
 						<div className="mb-6 flex items-center gap-3 text-sm text-dim">
 							{post.publishedAt && (
-								<time>
-									{new Date(post.publishedAt).toLocaleDateString("en-US", {
-										year: "numeric",
-										month: "long",
-										day: "numeric",
-									})}
-								</time>
+								<time>{formatLongDate(post.publishedAt)}</time>
 							)}
 						</div>
 

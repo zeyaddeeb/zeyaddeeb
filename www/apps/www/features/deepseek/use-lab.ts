@@ -4,14 +4,7 @@ import { useCallback, useEffect, useReducer, useRef } from "react";
 import { createSession, sendCommand } from "@/features/deepseek/server/actions";
 import {
 	type Command,
-	type CurvePoint,
-	type DistillView,
-	type DreamView,
-	type EvaluationPoint,
-	type JournalEntry,
 	type OperationView,
-	type ProbeView,
-	type RolloutView,
 	type ServerEvent,
 	type SessionView,
 	type StepView,
@@ -21,21 +14,24 @@ import {
 
 export type Connection = "connecting" | "live" | "full" | "down";
 
-export interface LabState {
+export interface LabState
+	extends Pick<
+		SessionView,
+		| "operation"
+		| "probe"
+		| "curve"
+		| "evaluations"
+		| "dreams"
+		| "rollout"
+		| "distill"
+		| "journal"
+	> {
 	connection: Connection;
 	session: SessionView | null;
-	operation: OperationView | null;
-	probe: ProbeView | null;
-	curve: CurvePoint[];
-	evaluations: EvaluationPoint[];
-	dreams: DreamView[];
 	step: StepView | null;
-	rollout: RolloutView | null;
 	rewards: number[];
-	distill: DistillView | null;
 	divergences: number[];
 	spoken: TokenEvent[];
-	journal: JournalEntry[];
 	error: string | null;
 	replaced: boolean;
 }
@@ -228,8 +224,6 @@ export function useLab() {
 				if (source?.readyState !== EventSource.CLOSED || closed) return;
 				source.close();
 				window.sessionStorage.removeItem(STORAGE);
-				// A stream that dies right after a fresh session is a server problem; a
-				// later close means the session expired, so start a new model.
 				if (fresh && Date.now() - openedAt < 5000)
 					dispatch({ kind: "connection", connection: "down" });
 				else void create(true);

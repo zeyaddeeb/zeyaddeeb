@@ -61,7 +61,7 @@ export const setups: Record<SetupName, Setup> = {
 		seconds: 3,
 		lesson: {
 			title: "Turn the head, not the body.",
-			note: "From one centred composition to the next in a third of a second. It is a cut you can feel in your neck.",
+			note: "From one centered composition to the next in a third of a second. It is a cut you can feel in your neck.",
 			lens: "40 mm · whip pan, 300 ms",
 		},
 	},
@@ -89,7 +89,7 @@ export const setups: Record<SetupName, Setup> = {
 		seconds: 4,
 		lesson: {
 			title: "Punch in on the understatement.",
-			note: "Centre the face. Hold. Then snap the zoom on the line nobody reacts to. Three steps, never a glide.",
+			note: "Center the face. Hold. Then snap the zoom on the line nobody reacts to. Three steps, never a glide.",
 			lens: "50 → 85 mm · snap zoom",
 		},
 	},
@@ -103,8 +103,8 @@ export const setups: Record<SetupName, Setup> = {
 		seconds: 3,
 		lesson: {
 			title: "Announce the chapter.",
-			note: "A flat field of colour and a Futura headline, held long enough to read twice. The story pauses to admit it is a story.",
-			lens: "Title card · centred type",
+			note: "A flat field of color and a Futura headline, held long enough to read twice. The story pauses to admit it is a story.",
+			lens: "Title card · centered type",
 		},
 	},
 	TABLEAU: {
@@ -307,6 +307,8 @@ export function schedule(shots: Shot[]): Cue[] {
 		return cue;
 	});
 }
+
+export const sec = (s: number) => `${Math.max(0, s).toFixed(2)}s`;
 
 export function durationOf(cues: Cue[]) {
 	return cues.at(-1)?.end ?? 0;

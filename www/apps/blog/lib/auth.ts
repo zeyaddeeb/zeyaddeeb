@@ -1,4 +1,4 @@
-import { initAuth } from "@zeyaddeeb/auth/index";
+import { initAuth } from "@zeyaddeeb/auth";
 import { SITE_URL } from "@zeyaddeeb/ui/site";
 import { nextCookies } from "better-auth/next-js";
 

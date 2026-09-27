@@ -5,9 +5,7 @@
   "scripts": {
     "build": "bun run build:browser && bun run build:node",
     "build:browser": "wasm-pack build --target web --out-dir ./build/browser",
-    "build:node": "wasm-pack build --target nodejs --out-dir ./build/node",
-    "lint": "eslint",
-    "types": "tsc --noEmit"
+    "build:node": "wasm-pack build --target nodejs --out-dir ./build/node"
   },
   "dependencies": {
     "wasm-pack": "0.15.0"

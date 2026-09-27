@@ -1,12 +1,14 @@
 "use client";
 
 import type { Post } from "@zeyaddeeb/db/schema";
+import { Pagination } from "@zeyaddeeb/ui/pagination";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useState, useTransition } from "react";
-import { Pagination } from "@/components/pagination";
+import { useState } from "react";
+import { ListHeading } from "@/components/list-heading";
+import { formatShortDate } from "@/lib/format-date";
+import { useQueryNav } from "@/lib/hooks/use-query-nav";
 import type { PaginatedResult } from "@/lib/pagination";
 
 interface BlogContentProps {
@@ -20,57 +22,20 @@ export function BlogContent({
 	currentPage,
 	currentSearch,
 }: BlogContentProps) {
-	const router = useRouter();
-	const searchParams = useSearchParams();
-	const [isPending, startTransition] = useTransition();
+	const { isPending, setParams } = useQueryNav("/posts");
 	const [searchValue, setSearchValue] = useState(currentSearch);
-
-	const updateParams = useCallback(
-		(updates: { search?: string }) => {
-			const params = new URLSearchParams(searchParams.toString());
-
-			if (updates.search !== undefined) {
-				if (updates.search) {
-					params.set("search", updates.search);
-				} else {
-					params.delete("search");
-				}
-				params.delete("page");
-			}
-
-			startTransition(() => {
-				router.push(`/posts?${params.toString()}`);
-			});
-		},
-		[router, searchParams],
-	);
 
 	const handleSearch = (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
-		updateParams({ search: searchValue });
+		setParams({ search: searchValue });
 	};
 
 	return (
 		<div className="min-h-screen bg-paper">
-			<section className="blog-list-heading border-b border-rule">
-				<div className="relative mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-12">
-					<motion.div
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-					>
-						<h1
-							className="text-2xl font-bold tracking-tight text-ink md:text-3xl"
-							style={{ fontFamily: "var(--font-display)" }}
-						>
-							Blog
-						</h1>
-						<p className="mt-1 text-sm text-dim md:text-base">
-							Notes on software and things I’m learning.
-						</p>
-					</motion.div>
-				</div>
-			</section>
+			<ListHeading
+				title="Blog"
+				description="Notes on software and things I’m learning."
+			/>
 
 			<section>
 				<div className="mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-12">
@@ -136,14 +101,7 @@ export function BlogContent({
 													<div className="mb-3 flex items-center gap-3">
 														{post.publishedAt && (
 															<time className="text-xs font-medium uppercase tracking-wider text-dim">
-																{new Date(post.publishedAt).toLocaleDateString(
-																	"en-US",
-																	{
-																		year: "numeric",
-																		month: "short",
-																		day: "numeric",
-																	},
-																)}
+																{formatShortDate(post.publishedAt)}
 															</time>
 														)}
 													</div>

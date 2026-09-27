@@ -1,14 +1,11 @@
-import { pageMetadata } from "@zeyaddeeb/ui/seo";
+import { experimentMetadata } from "@/features/catalog/catalog";
 import { ExperimentFrame } from "@/features/frame/experiment-frame";
 import FallingCode from "@/features/rain/falling-code";
 
-export const metadata = pageMetadata({
-	path: "/experiments/pretext-matrix",
-	section: "Experiments",
-	title: "Falling Code",
-	description:
-		"Matrix-style falling text using Pretext for layout and CSS for animation.",
-});
+export const metadata = experimentMetadata(
+	"pretext-matrix",
+	"Matrix-style falling text using Pretext for layout and CSS for animation.",
+);
 
 export default function PretextMatrixPage() {
 	return (

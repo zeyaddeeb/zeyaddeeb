@@ -1,10 +1,10 @@
 "use client";
 
-import type { CollectionItemType } from "@zeyaddeeb/db";
-import { GRID_SIZES, type GridSize } from "@zeyaddeeb/db/collection-options";
+import { GRID_SIZES } from "@zeyaddeeb/db/collection-options";
+import { useState } from "react";
+import { getTypeLabel, ITEM_TYPES } from "@/components/collection-type-icon";
 import type { CollectionItemInput } from "@/lib/actions/write";
-import { ITEM_TYPES } from "@/lib/collection-options";
-import { getTypeLabel } from "@/lib/collection-utils";
+import { generateSlug } from "@/lib/slug";
 import {
 	CheckboxInput,
 	ColorPicker,
@@ -17,24 +17,32 @@ import {
 interface CollectionFormFieldsProps {
 	formData: CollectionItemInput;
 	setFormData: React.Dispatch<React.SetStateAction<CollectionItemInput>>;
-	tagsInput: string;
-	onTagsChange: (value: string) => void;
-	onTitleChange?: (title: string) => void;
+	initialTags: string[];
+	autoSlug?: boolean;
 }
 
 export function CollectionFormFields({
 	formData,
 	setFormData,
-	tagsInput,
-	onTagsChange,
-	onTitleChange,
+	initialTags,
+	autoSlug,
 }: CollectionFormFieldsProps) {
-	const handleTitleChange = (title: string) => {
-		if (onTitleChange) {
-			onTitleChange(title);
-		} else {
-			setFormData((prev) => ({ ...prev, title }));
-		}
+	const [tagsInput, setTagsInput] = useState(initialTags.join(", "));
+
+	const handleTitleChange = (title: string) =>
+		setFormData((prev) => ({
+			...prev,
+			title,
+			slug: autoSlug && !prev.slug ? generateSlug(title) : prev.slug,
+		}));
+
+	const handleTagsChange = (value: string) => {
+		setTagsInput(value);
+		const tags = value
+			.split(",")
+			.map((tag) => tag.trim())
+			.filter(Boolean);
+		setFormData((prev) => ({ ...prev, tags }));
 	};
 
 	return (
@@ -43,12 +51,7 @@ export function CollectionFormFields({
 				<SelectInput
 					label="Type"
 					value={formData.type}
-					onChange={(type) =>
-						setFormData((prev) => ({
-							...prev,
-							type: type as CollectionItemType,
-						}))
-					}
+					onChange={(type) => setFormData((prev) => ({ ...prev, type }))}
 					options={ITEM_TYPES}
 					getOptionLabel={getTypeLabel}
 				/>
@@ -57,7 +60,7 @@ export function CollectionFormFields({
 					label="Grid Size"
 					value={formData.gridSize}
 					onChange={(gridSize) =>
-						setFormData((prev) => ({ ...prev, gridSize: gridSize as GridSize }))
+						setFormData((prev) => ({ ...prev, gridSize }))
 					}
 					options={GRID_SIZES}
 				/>
@@ -125,7 +128,7 @@ export function CollectionFormFields({
 			<TextInput
 				label="Tags (comma-separated)"
 				value={tagsInput}
-				onChange={onTagsChange}
+				onChange={handleTagsChange}
 				placeholder="design, inspiration, tech"
 			/>
 

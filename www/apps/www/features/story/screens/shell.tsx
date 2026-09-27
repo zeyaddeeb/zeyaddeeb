@@ -82,7 +82,6 @@ export function Shell({
 		>
 			<div className="shell__log" ref={logRef} role="log" aria-label={label}>
 				{lines.map((line, i) => (
-					// biome-ignore lint/suspicious/noArrayIndexKey: an append-only log
 					<div key={i} className="shell__line">
 						{line || " "}
 					</div>

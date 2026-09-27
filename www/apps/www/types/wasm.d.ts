@@ -1,8 +1,6 @@
 declare module "@zeyaddeeb/wasm" {
-	export default function init(): Promise<void>;
+	export default function init(): Promise<unknown>;
 
-	export function add(x: number, y: number): number;
-	export function hello(name: string): string;
 	export function lerp_array(
 		current: Float32Array,
 		target: Float32Array,
@@ -16,6 +14,7 @@ declare module "@zeyaddeeb/wasm" {
 
 	export class AudioProcessor {
 		constructor(fftSize: number);
+		free(): void;
 		process(samples: Float32Array): Float32Array;
 		get_frequency_bins(samples: Float32Array, numBins: number): Float32Array;
 		normalize_for_visualization(
@@ -26,6 +25,7 @@ declare module "@zeyaddeeb/wasm" {
 	}
 
 	export class HyperbolicTiling {
+		private constructor();
 		// biome-ignore lint/suspicious/noMisleadingInstantiator: mirrors the wasm-bindgen generated constructor
 		static new(
 			p: number,
@@ -47,5 +47,37 @@ declare module "@zeyaddeeb/wasm" {
 			bRe: number,
 			bIm: number,
 		): Float64Array;
+	}
+
+	export class LifeUniverse {
+		private constructor();
+		// biome-ignore lint/suspicious/noMisleadingInstantiator: mirrors the wasm-bindgen generated constructor
+		static new(width: number, height: number): LifeUniverse;
+		free(): void;
+		width(): number;
+		height(): number;
+		cells_ptr(): number;
+		ages_ptr(): number;
+		get_cells(): Uint8Array;
+		get_ages(): Uint8Array;
+		tick(): void;
+		toggle_cell(row: number, col: number): void;
+		set_cell(row: number, col: number, state: number): void;
+		clear(): void;
+		seed_random(probability: number, seed: number): void;
+	}
+
+	export class RgaDocument {
+		constructor(siteId: number);
+		free(): void;
+		insert(position: number, value: string): string;
+		delete(position: number): string | undefined;
+		apply_remote(opJson: string): void;
+		apply_batch(opsJson: string): void;
+		export_ops(): string;
+		inspect(): string;
+		is_empty(): boolean;
+		len(): number;
+		text(): string;
 	}
 }

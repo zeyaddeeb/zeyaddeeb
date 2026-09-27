@@ -1,14 +1,11 @@
-import { pageMetadata } from "@zeyaddeeb/ui/seo";
+import { experimentMetadata } from "@/features/catalog/catalog";
 import { ExperimentFrame } from "@/features/frame/experiment-frame";
 import { ProofsLab } from "@/features/proofs/lab";
 
-export const metadata = pageMetadata({
-	path: "/experiments/proofs",
-	section: "Experiments",
-	title: "No Goals",
-	description:
-		"Try writing a few proofs in Lean. Start with 2 + 2 = 4 and work up to induction.",
-});
+export const metadata = experimentMetadata(
+	"proofs",
+	"Try writing a few proofs in Lean. Start with 2 + 2 = 4 and work up to induction.",
+);
 
 export default function ProofsPage() {
 	return (

@@ -4,6 +4,5 @@ export {
 	getAllCollectionTypes,
 	getCollectionItemBySlug,
 	getCollectionItems,
-	getFeaturedCollectionItems,
+	getTopCollectionItems,
 } from "./collections";
-export * from "./write";

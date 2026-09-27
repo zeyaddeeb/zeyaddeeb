@@ -1,14 +1,11 @@
-import { pageMetadata } from "@zeyaddeeb/ui/seo";
+import { experimentMetadata } from "@/features/catalog/catalog";
 import { CrdtLab } from "@/features/crdt/lab";
 import { ExperimentFrame } from "@/features/frame/experiment-frame";
 
-export const metadata = pageMetadata({
-	path: "/experiments/crdt",
-	section: "Experiments",
-	title: "CRDT Editor",
-	description:
-		"Collaborative text editing with no coordination: an RGA CRDT in Rust/WASM, synced over WebSockets and persisted in SurrealDB. Works offline.",
-});
+export const metadata = experimentMetadata(
+	"crdt",
+	"Collaborative text editing with no coordination: an RGA CRDT in Rust/WASM, synced over WebSockets and persisted in SurrealDB. Works offline.",
+);
 
 export default function CrdtEditorPage() {
 	return (

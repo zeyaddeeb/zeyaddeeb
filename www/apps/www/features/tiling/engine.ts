@@ -12,7 +12,7 @@ export interface Theme {
 	motif: (layer: number, parity: number) => string;
 }
 
-export const THEMES = {
+const THEMES = {
 	heavenHell: {
 		disk: "#0e0c0a",
 		rim: "#c9a227",
@@ -182,7 +182,7 @@ export const HOME_VARIANT: Variant = {
 	blurb: "",
 };
 
-export interface Mobius {
+interface Mobius {
 	ar: number;
 	ai: number;
 	br: number;
@@ -220,7 +220,7 @@ export interface TileColors {
 	motif: string[];
 }
 
-export function buildColors(meta: Uint32Array, theme: Theme): TileColors {
+function buildColors(meta: Uint32Array, theme: Theme): TileColors {
 	const n = meta.length / 2;
 	const background = new Array<string>(n);
 	const motif = new Array<string>(n);
@@ -233,7 +233,7 @@ export function buildColors(meta: Uint32Array, theme: Theme): TileColors {
 
 const GLIDE_AMPLITUDE = 0.13;
 
-export interface Layout {
+interface Layout {
 	stride: number;
 	boundary: number;
 	bladePts: number;
@@ -241,7 +241,7 @@ export interface Layout {
 	count: number;
 }
 
-export interface Clock {
+interface Clock {
 	theta: number;
 	phase: number;
 }
@@ -343,7 +343,7 @@ export function drawTiling(
 	ctx.restore();
 }
 
-export interface TilingHandles {
+interface TilingHandles {
 	tiling: HyperbolicTiling | null;
 	layout: Layout;
 	colors: TileColors;

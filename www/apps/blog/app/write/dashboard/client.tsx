@@ -1,36 +1,16 @@
 "use client";
 
-import type { CollectionItemType } from "@zeyaddeeb/db";
 import Link from "next/link";
 import { useState } from "react";
-import { signOutAction } from "@/lib/actions/auth";
-import { getTypeLabel } from "@/lib/collection-utils";
-import { getFullPath } from "@/lib/redirect-utils";
+import { getTypeLabel } from "@/components/collection-type-icon";
+import { PageHeader, type WriterUser } from "@/features/write/form-layout";
+import type { AdminCollectionRow, AdminPostRow } from "@/lib/actions/write";
+import { formatLocaleDate } from "@/lib/format-date";
 
 interface DashboardClientProps {
-	user: {
-		id: string;
-		name: string;
-		email: string;
-	};
-	posts: Array<{
-		id: string;
-		title: string;
-		slug: string;
-		published: boolean;
-		createdAt: Date;
-		updatedAt: Date;
-	}>;
-	collections: Array<{
-		id: string;
-		type: CollectionItemType;
-		title: string;
-		slug: string;
-		published: boolean;
-		featured: boolean;
-		createdAt: Date;
-		updatedAt: Date;
-	}>;
+	user: WriterUser;
+	posts: AdminPostRow[];
+	collections: AdminCollectionRow[];
 }
 
 type Tab = "posts" | "collections";
@@ -42,29 +22,10 @@ export function DashboardClient({
 }: DashboardClientProps) {
 	const [activeTab, setActiveTab] = useState<Tab>("posts");
 
-	const handleSignOut = async () => {
-		await signOutAction();
-		window.location.href = getFullPath("/write/login");
-	};
-
 	return (
 		<main className="min-h-screen bg-neutral-950 text-white px-6 py-12">
 			<div className="max-w-5xl mx-auto">
-				<div className="flex justify-between items-center mb-8">
-					<h1 className="text-3xl font-bold">Dashboard</h1>
-					<div className="flex items-center gap-4">
-						<span className="text-neutral-400 text-sm">
-							Signed in as {user.name}
-						</span>
-						<button
-							type="button"
-							onClick={handleSignOut}
-							className="text-sm text-neutral-400 hover:text-white transition-colors"
-						>
-							Sign out
-						</button>
-					</div>
-				</div>
+				<PageHeader title="Dashboard" user={user} />
 
 				<div className="flex gap-4 mb-8">
 					<Link
@@ -158,7 +119,7 @@ export function DashboardClient({
 													</span>
 												</td>
 												<td className="px-4 py-3 text-sm text-neutral-400">
-													{new Date(post.updatedAt).toLocaleDateString()}
+													{formatLocaleDate(post.updatedAt)}
 												</td>
 												<td className="px-4 py-3 text-right">
 													<div className="flex justify-end gap-2">
@@ -246,7 +207,7 @@ export function DashboardClient({
 													</div>
 												</td>
 												<td className="px-4 py-3 text-sm text-neutral-400">
-													{new Date(item.updatedAt).toLocaleDateString()}
+													{formatLocaleDate(item.updatedAt)}
 												</td>
 												<td className="px-4 py-3 text-right">
 													<div className="flex justify-end gap-2">

@@ -16,24 +16,21 @@
     "@chenglou/pretext": "^0.0.9",
     "@zeyaddeeb/ui": "workspace:*",
     "@zeyaddeeb/wasm": "workspace:*",
-    "framer-motion": "^13.4.4",
-    "next": "16.3.6",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "zod": "^4.6.5"
+    "framer-motion": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.3.3",
-    "@types/minimatch": "^6.0.0",
-    "@types/node": "26.6.3",
+    "@tailwindcss/postcss": "catalog:",
+    "@types/node": "catalog:",
     "@types/react": "catalog:",
-    "@types/react-dom": "19.3.0",
+    "@types/react-dom": "catalog:",
     "@zeyaddeeb/config": "workspace:*",
-    "autoprefixer": "^10.6.1",
-    "eslint": "10.11.0",
-    "postcss": "^8.5.28",
-    "tailwindcss": "^4.3.3",
+    "postcss": "catalog:",
+    "tailwindcss": "catalog:",
     "typescript": "catalog:",
-    "vitest": "^5.0.2"
+    "vitest": "catalog:"
   }
 }

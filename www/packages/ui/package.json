@@ -10,47 +10,40 @@
     "dist"
   ],
   "exports": {
-    "./seo": "./src/seo.ts",
-    "./pagination": "./src/components/pagination.tsx",
+    ".": "./src/index.ts",
+    "./crdt": "./src/crdt.ts",
+    "./fonts": "./src/fonts.ts",
     "./json-ld": "./src/components/json-ld.tsx",
+    "./pagination": "./src/components/pagination.tsx",
+    "./postcss": "./postcss.config.js",
+    "./seo": "./src/seo.ts",
+    "./site": "./src/site.ts",
+    "./site.css": "./src/site.css",
     "./styles.css": {
       "types": "./src/styles.css.d.ts",
       "default": "./dist/index.css"
-    },
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./components": {
-      "types": "./dist/components/index.d.ts",
-      "default": "./dist/components/index.js"
-    },
-    "./postcss": "./postcss.config.js",
-    "./site.css": "./src/site.css",
-    "./site": "./src/site.ts"
+    }
   },
   "scripts": {
-    "build": "bun run build:styles && bun run build:components",
-    "build:styles": "tailwindcss -i ./src/styles.css -o ./dist/index.css",
-    "build:components": "tsc",
+    "build": "tailwindcss -i ./src/styles.css -o ./dist/index.css",
+    "dev": "tailwindcss -i ./src/styles.css -o ./dist/index.css --watch",
     "check-types": "tsc --noEmit",
-    "dev:styles": "tailwindcss -i ./src/styles.css -o ./dist/index.css --watch",
-    "dev:components": "tsc --watch",
-    "lint": "eslint src --max-warnings 0"
+    "lint": "biome lint src",
+    "test": "vitest run"
   },
   "peerDependencies": {
-    "react": "^19"
-  },
-  "dependencies": {
-    "next": "16.3.6"
+    "next": "catalog:",
+    "react": "catalog:"
   },
   "devDependencies": {
-    "@tailwindcss/cli": "^4.3.3",
+    "@tailwindcss/cli": "catalog:",
     "@types/react": "catalog:",
     "@zeyaddeeb/config": "workspace:*",
-    "eslint": "^10.11.0",
-    "postcss": "^8.5.28",
-    "tailwindcss": "^4.3.3",
-    "typescript": "catalog:"
+    "postcss": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "vitest": "catalog:"
   }
 }

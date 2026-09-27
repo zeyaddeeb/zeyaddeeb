@@ -1,19 +1,14 @@
-import { Footer, Header } from "@zeyaddeeb/ui";
-import { SITE_NAV } from "@/features/catalog/nav";
-import { PresenceMark } from "@/features/live/presence-mark";
-import { Wordmark } from "@/features/mark/wordmark";
+import { Footer } from "@zeyaddeeb/ui";
+import { SiteHeader } from "@/components/site-header";
 
 export default function ResumeLayout({
 	children,
-}: Readonly<{ children: React.ReactNode }>) {
+}: Readonly<{
+	children: React.ReactNode;
+}>) {
 	return (
 		<>
-			<Header
-				navItems={SITE_NAV}
-				wordmark={<Wordmark />}
-				status={<PresenceMark />}
-				className="site-header"
-			/>
+			<SiteHeader />
 			{children}
 			<Footer className="site-footer" />
 		</>

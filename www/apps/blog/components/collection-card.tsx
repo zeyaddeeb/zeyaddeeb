@@ -3,7 +3,7 @@ import type { CollectionItem } from "@zeyaddeeb/db/schema";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { getTypeLabel } from "@/lib/collection-utils";
+import { getTypeLabel } from "@/components/collection-type-icon";
 
 export function CollectionCard({
 	item,

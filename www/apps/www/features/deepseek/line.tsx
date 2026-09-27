@@ -9,14 +9,8 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { percent } from "./format";
 import type { LayerTrace, ModelInfo, ProbeView } from "./protocol";
-
-const percent = (value: number) =>
-	value >= 0.995
-		? "100%"
-		: value < 0.01
-			? "<1%"
-			: `${Math.round(value * 100)}%`;
 
 function looks(layer: LayerTrace, length: number) {
 	const near = Array.from({ length }, (_, i) => layer.tokens[i] ?? 0);
@@ -29,11 +23,7 @@ function looks(layer: LayerTrace, length: number) {
 	return { near, far };
 }
 
-export function attention(
-	layers: LayerTrace[],
-	layer: number | null,
-	length: number,
-) {
+function attention(layers: LayerTrace[], layer: number | null, length: number) {
 	const chosen =
 		layer === null ? layers : layers.filter((l) => l.layer === layer);
 	const near = new Array<number>(length).fill(0);

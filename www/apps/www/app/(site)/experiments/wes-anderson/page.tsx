@@ -1,14 +1,11 @@
-import { pageMetadata } from "@zeyaddeeb/ui/seo";
+import { experimentMetadata } from "@/features/catalog/catalog";
 import { ExperimentFrame } from "@/features/frame/experiment-frame";
 import { Film } from "@/features/planimetric/film";
 
-export const metadata = pageMetadata({
-	path: "/experiments/wes-anderson",
-	section: "Experiments",
-	title: "One Drawing, Eight Shots",
-	description:
-		"How a Wes Anderson scene is made: one flat drawing, a camera that may only slide, cut, or zoom, and a screenplay that runs it. Built on SVG viewBox animation, SMIL, and the Web Speech API.",
-});
+export const metadata = experimentMetadata(
+	"wes-anderson",
+	"How a Wes Anderson scene is made: one flat drawing, a camera that may only slide, cut, or zoom, and a screenplay that runs it. Built on SVG viewBox animation, SMIL, and the Web Speech API.",
+);
 
 const notes = [
 	[
@@ -29,7 +26,7 @@ const notes = [
 	],
 	[
 		"The grade",
-		"Fifteen colours registered with @property. Switching a palette transitions every fill in the drawing, the board and the sheet in one move.",
+		"Fifteen colors registered with @property. Switching a palette transitions every fill in the drawing, the board and the sheet in one move.",
 	],
 	[
 		"The script",

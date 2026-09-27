@@ -29,28 +29,19 @@ impl AudioProcessor {
 
     #[wasm_bindgen]
     pub fn process(&mut self, samples: &[f32]) -> Vec<f32> {
-        let len = samples.len().min(self.fft_size);
-
-        for i in 0..self.fft_size {
-            if i < len {
-                self.buffer[i] = Complex::new(samples[i] * self.window[i], 0.0);
-            } else {
-                self.buffer[i] = Complex::new(0.0, 0.0);
-            }
+        self.buffer.fill(Complex::new(0.0, 0.0));
+        for ((slot, &sample), &weight) in self.buffer.iter_mut().zip(samples).zip(&self.window) {
+            *slot = Complex::new(sample * weight, 0.0);
         }
 
         let fft = self.planner.plan_fft_forward(self.fft_size);
         fft.process(&mut self.buffer);
 
-        let half_size = self.fft_size / 2;
-        let mut magnitudes = vec![0.0f32; half_size];
-
-        for i in 0..half_size {
-            let magnitude = self.buffer[i].norm();
-            magnitudes[i] = 20.0 * (magnitude / self.fft_size as f32).max(1e-10).log10();
-        }
-
-        magnitudes
+        let scale = self.fft_size as f32;
+        self.buffer[..self.fft_size / 2]
+            .iter()
+            .map(|bin| 20.0 * (bin.norm() / scale).max(1e-10).log10())
+            .collect()
     }
 
     #[wasm_bindgen]
@@ -58,17 +49,14 @@ impl AudioProcessor {
         let magnitudes = self.process(samples);
         let bin_size = magnitudes.len() / num_bins;
 
-        let mut bins = vec![0.0f32; num_bins];
-
-        for i in 0..num_bins {
-            let start = i * bin_size;
-            let end = ((i + 1) * bin_size).min(magnitudes.len());
-
-            let sum: f32 = magnitudes[start..end].iter().sum();
-            bins[i] = sum / (end - start) as f32;
-        }
-
-        bins
+        (0..num_bins)
+            .map(|i| {
+                let start = i * bin_size;
+                let end = ((i + 1) * bin_size).min(magnitudes.len());
+                let sum: f32 = magnitudes[start..end].iter().sum();
+                sum / (end - start) as f32
+            })
+            .collect()
     }
 
     #[wasm_bindgen]

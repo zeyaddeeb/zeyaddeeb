@@ -2,9 +2,8 @@
 
 import { cookies } from "next/headers";
 import type { Command, SessionView } from "@/features/deepseek/protocol";
-import { DEEPSEEK_SERVICE_URL } from "@/features/deepseek/server/config";
 import { commandSchema, sessionCookie, sessionIdSchema } from "./input";
-import { sessionCredential } from "./session-auth";
+import { DEEPSEEK_SERVICE_URL, sessionCredential } from "./service";
 
 export type Created =
 	| { ok: true; session: SessionView }

@@ -1,19 +1,12 @@
-import { Footer, Header, LifeArrow } from "@zeyaddeeb/ui";
+import { Footer, LifeArrow } from "@zeyaddeeb/ui";
 import Link from "next/link";
-import { SITE_NAV } from "@/features/catalog/nav";
-import { PresenceMark } from "@/features/live/presence-mark";
-import { Wordmark } from "@/features/mark/wordmark";
+import { SiteHeader } from "@/components/site-header";
 import "@/components/not-found.css";
 
 export default function NotFound() {
 	return (
 		<>
-			<Header
-				navItems={SITE_NAV}
-				wordmark={<Wordmark />}
-				className="site-header"
-				status={<PresenceMark />}
-			/>
+			<SiteHeader />
 			<main>
 				<section className="notice" aria-labelledby="nf-title">
 					<div className="container notice__grid">

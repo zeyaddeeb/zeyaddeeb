@@ -1,17 +1,6 @@
+import type { LifeUniverse } from "@zeyaddeeb/wasm";
+
 export type LifeBackend = "wasm" | "js";
-
-interface LifeUniverse {
-	tick(): void;
-	get_cells(): Uint8Array;
-	get_ages(): Uint8Array;
-	set_cell(row: number, col: number, alive: number): void;
-	seed_random(probability: number, seed: number): void;
-	free(): void;
-}
-
-interface LifeWasm {
-	LifeUniverse: { new: (w: number, h: number) => LifeUniverse };
-}
 
 export interface LifeStats {
 	generation: number;
@@ -33,15 +22,18 @@ export class LifeEngine {
 	private universe: LifeUniverse | null = null;
 	private times: number[] = [];
 
-	constructor(cols: number, rows: number, wasm?: unknown) {
+	constructor(
+		cols: number,
+		rows: number,
+		wasm?: typeof import("@zeyaddeeb/wasm"),
+	) {
 		this.cols = cols;
 		this.rows = rows;
 		const size = cols * rows;
 		this.cells = new Uint8Array(size);
 		this.ages = new Uint8Array(size);
 		this.trails = new Uint8Array(size);
-		const mod = wasm as LifeWasm | undefined;
-		if (mod?.LifeUniverse) this.universe = mod.LifeUniverse.new(cols, rows);
+		if (wasm?.LifeUniverse) this.universe = wasm.LifeUniverse.new(cols, rows);
 	}
 
 	get hasWasm() {
@@ -185,7 +177,7 @@ export interface LifePalette {
 	trail: (fade: number) => string;
 }
 
-export const PAPER_PALETTE: LifePalette = {
+const PAPER_PALETTE: LifePalette = {
 	bg: "#161615",
 	grid: "rgba(243, 239, 229, 0.05)",
 	alive: (age) => {

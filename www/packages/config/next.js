@@ -1,57 +1,45 @@
-import js from "@eslint/js";
-import pluginNext from "@next/eslint-plugin-next";
-import { globalIgnores } from "eslint/config";
-import eslintConfigPrettier from "eslint-config-prettier";
-import pluginReact from "eslint-plugin-react";
-import pluginReactHooks from "eslint-plugin-react-hooks";
-import globals from "globals";
-import tseslint from "typescript-eslint";
-import { config as baseConfig } from "./base.js";
-
-/**
- * A custom ESLint configuration for libraries that use Next.js.
- *
- * @type {import("eslint").Linter.Config}
- * */
-export const nextJsConfig = [
-	...baseConfig,
-	js.configs.recommended,
-	eslintConfigPrettier,
-	...tseslint.configs.recommended,
-	globalIgnores([
-		// Default ignores of eslint-config-next:
-		".next/**",
-		"out/**",
-		"build/**",
-		"next-env.d.ts",
-	]),
-	{
-		...pluginReact.configs.flat.recommended,
-		languageOptions: {
-			...pluginReact.configs.flat.recommended.languageOptions,
-			globals: {
-				...globals.serviceworker,
-			},
-		},
-	},
-	{
-		plugins: {
-			"@next/next": pluginNext,
-		},
-		rules: {
-			...pluginNext.configs.recommended.rules,
-			...pluginNext.configs["core-web-vitals"].rules,
-		},
-	},
-	{
-		plugins: {
-			"react-hooks": pluginReactHooks,
-		},
-		settings: { react: { version: "detect" } },
-		rules: {
-			...pluginReactHooks.configs.recommended.rules,
-			// React scope no longer necessary with new JSX transform.
-			"react/react-in-jsx-scope": "off",
-		},
-	},
+const EMBED_SOURCES = [
+	"https://www.youtube.com",
+	"https://www.youtube-nocookie.com",
+	"https://open.spotify.com",
+	"https://embed.music.apple.com",
 ];
+
+export function securityHeaders({ frameSrc = [] } = {}) {
+	const development = process.env.NODE_ENV === "development";
+	const csp = [
+		"default-src 'self'",
+		`script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${development ? " 'unsafe-eval'" : ""}`,
+		"style-src 'self' 'unsafe-inline'",
+		"img-src 'self' https: data: blob:",
+		"font-src 'self' data:",
+		`connect-src 'self' https: wss:${development ? " http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:*" : ""}`,
+		"media-src 'self' blob: https:",
+		["frame-src", ...EMBED_SOURCES, ...frameSrc].join(" "),
+		"worker-src 'self' blob:",
+		"object-src 'none'",
+		"base-uri 'self'",
+		"form-action 'self'",
+		"frame-ancestors 'none'",
+	].join("; ");
+
+	return [
+		{
+			source: "/:path*",
+			headers: [
+				{ key: "Content-Security-Policy", value: csp },
+				{ key: "X-Frame-Options", value: "DENY" },
+				{ key: "X-Content-Type-Options", value: "nosniff" },
+				{ key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+				{
+					key: "Strict-Transport-Security",
+					value: "max-age=31536000; includeSubDomains",
+				},
+			],
+		},
+	];
+}
+
+export const remoteImages = {
+	remotePatterns: [{ protocol: "https", hostname: "**" }],
+};

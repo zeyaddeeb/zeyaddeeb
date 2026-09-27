@@ -40,7 +40,7 @@ async fn until<T>(
 
 fn lifecycle(state: &'static str) -> impl FnMut(&ServerEvent) -> Option<(u64, u32)> {
     move |event| match event {
-        ServerEvent::Lifecycle { operation } if operation.state == state => {
+        ServerEvent::Lifecycle { operation } if operation.state.as_str() == state => {
             Some((operation.retained_step, operation.steps_done))
         }
         _ => None,
@@ -76,7 +76,7 @@ fn states(state: &AppState, session: &Session) -> Vec<String> {
         .snapshot(session)
         .journal
         .into_iter()
-        .map(|entry| entry.state)
+        .map(|entry| entry.state.as_str().to_string())
         .collect()
 }
 

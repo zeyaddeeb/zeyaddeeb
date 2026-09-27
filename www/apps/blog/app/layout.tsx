@@ -5,32 +5,12 @@ import "@zeyaddeeb/ui/styles.css";
 import "@zeyaddeeb/ui/site.css";
 import "./blog.css";
 
-import { Footer, Header, LifeMark } from "@zeyaddeeb/ui";
+import { Footer, Header, Wordmark } from "@zeyaddeeb/ui";
+import { fontVariables } from "@zeyaddeeb/ui/fonts";
 import type { Metadata } from "next";
-import { Geist_Mono, Jost, Newsreader } from "next/font/google";
 import { BlogMotion } from "../components/blog-motion";
+import { ScrollToTop } from "../components/scroll-to-top";
 import { SitePresence } from "../components/site-presence";
-import { ScrollToTop } from "../lib/hooks/scroll-to-top";
-
-const jost = Jost({
-	subsets: ["latin"],
-	variable: "--font-jost",
-	weight: ["400", "500", "600"],
-	display: "swap",
-});
-const mono = Geist_Mono({
-	subsets: ["latin"],
-	variable: "--font-geist-mono",
-	weight: ["400", "500"],
-	display: "swap",
-});
-const newsreader = Newsreader({
-	subsets: ["latin"],
-	variable: "--font-newsreader",
-	weight: ["300", "400", "500"],
-	style: ["normal", "italic"],
-	display: "swap",
-});
 
 export const metadata: Metadata = {
 	...pageMetadata({
@@ -64,21 +44,13 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html
-			lang="en"
-			className={`${jost.variable} ${mono.variable} ${newsreader.variable}`}
-		>
+		<html lang="en" className={fontVariables}>
 			<body className="personal-site blog-site">
 				<JsonLd data={siteSchema} />
 				<ScrollToTop />
 				<SitePresence />
 				<Header
-					wordmark={
-						<>
-							<LifeMark size={28} />
-							<span>Zeyad Deeb</span>
-						</>
-					}
+					wordmark={<Wordmark />}
 					logoHref={baseUrl}
 					navItems={navItems}
 					className="site-header"

@@ -122,7 +122,6 @@ export function PythonScreen() {
 				aria-label="Python session"
 			>
 				{lines.map((line, i) => (
-					// biome-ignore lint/suspicious/noArrayIndexKey: an append-only log
 					<div key={i} className="shell__line">
 						{line || " "}
 					</div>

@@ -1,3 +1,5 @@
+import { pageMetadata } from "@zeyaddeeb/ui/seo";
+
 export type ExperimentKind = "wasm" | "network" | "mic" | "remote" | "dom";
 
 export type LiveSource =
@@ -6,7 +8,6 @@ export type LiveSource =
 	| "rain"
 	| "crdt"
 	| "audio"
-	| "diarization"
 	| "portfolio"
 	| "robot"
 	| "moonspell"
@@ -150,6 +151,16 @@ export function getExperiment(id: string): Experiment {
 	const found = experiments.find((e) => e.id === id);
 	if (!found) throw new Error(`Unknown experiment: ${id}`);
 	return found;
+}
+
+export function experimentMetadata(id: string, description: string) {
+	const { href, title } = getExperiment(id);
+	return pageMetadata({
+		path: href,
+		section: "Experiments",
+		title,
+		description,
+	});
 }
 
 export const number = (n: number) => String(n).padStart(2, "0");

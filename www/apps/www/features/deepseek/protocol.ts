@@ -1,4 +1,8 @@
-export type Phase = "pretrain" | "sft" | "rl" | "distill" | "generate";
+export const TRAIN_PHASES = ["pretrain", "sft", "rl", "distill"] as const;
+
+export type TrainPhase = (typeof TRAIN_PHASES)[number];
+
+export type Phase = TrainPhase | "generate";
 
 export type OperationState =
 	| "queued"
@@ -266,7 +270,7 @@ export interface SessionView {
 	model: ModelInfo;
 	step: number;
 	revision: number;
-	phaseSteps: { pretrain: number; sft: number; rl: number; distill: number };
+	phaseSteps: Record<TrainPhase, number>;
 	operation: OperationView | null;
 	probe: ProbeView | null;
 	curve: CurvePoint[];
@@ -297,7 +301,7 @@ export type ServerEvent = Envelope &
 	);
 
 export type Command =
-	| { type: "start"; phase: Exclude<Phase, "generate">; steps?: number }
+	| { type: "start"; phase: TrainPhase; steps?: number }
 	| { type: "pause" }
 	| { type: "resume" }
 	| { type: "cancel"; operationId?: string }

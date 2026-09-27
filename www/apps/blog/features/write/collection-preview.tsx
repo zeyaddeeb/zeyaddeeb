@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { getTypeIcon, getTypeLabel } from "@/components/collection-type-icon";
 import type { CollectionItemInput } from "@/lib/actions/write";
-import { getTypeIcon, getTypeLabel } from "@/lib/collection-utils";
 
 interface CollectionPreviewProps {
 	formData: CollectionItemInput;

@@ -20,6 +20,11 @@ use state::AppState;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            std::env::var("RUST_LOG").unwrap_or_else(|_| "crdt=info,tower_http=info".into()),
+        )
+        .init();
     let db = db::connect().await?;
 
     let state = AppState::new(db);
@@ -49,7 +54,17 @@ async fn main() -> anyhow::Result<()> {
     info!("crdt server listening on {addr}");
 
     let listener = tokio::net::TcpListener::bind(&addr).await?;
-    axum::serve(listener, app).await?;
+    axum::serve(listener, app)
+        .with_graceful_shutdown(async {
+            let mut terminate =
+                tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+                    .expect("SIGTERM handler");
+            tokio::select! {
+                _ = tokio::signal::ctrl_c() => {}
+                _ = terminate.recv() => {}
+            }
+        })
+        .await?;
 
     Ok(())
 }

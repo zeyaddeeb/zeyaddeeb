@@ -1,8 +1,8 @@
-import type { CollectionItemType } from "@zeyaddeeb/db/schema";
+import { COLLECTION_ITEM_TYPES } from "@zeyaddeeb/db/collection-options";
 import { listingMetadata, pageNumber } from "@zeyaddeeb/ui/seo";
 import { getAllCollectionTypes, getCollectionItems } from "@/lib/actions";
 import { COLLECTION_PAGE_SIZE } from "@/lib/pagination";
-import { ThingsILikeContent } from "./library-content";
+import { LibraryContent } from "./library-content";
 
 interface PageProps {
 	searchParams: Promise<{
@@ -25,10 +25,10 @@ export async function generateMetadata({ searchParams }: PageProps) {
 	});
 }
 
-export default async function ThingsILikePage({ searchParams }: PageProps) {
+export default async function LibraryPage({ searchParams }: PageProps) {
 	const params = await searchParams;
 	const page = pageNumber(params.page);
-	const type = (params.type as CollectionItemType) || null;
+	const type = COLLECTION_ITEM_TYPES.find((t) => t === params.type) ?? null;
 	const search = params.q || "";
 
 	const [result, allTypes] = await Promise.all([
@@ -42,7 +42,7 @@ export default async function ThingsILikePage({ searchParams }: PageProps) {
 	]);
 
 	return (
-		<ThingsILikeContent
+		<LibraryContent
 			initialData={result}
 			allTypes={allTypes}
 			currentPage={page}

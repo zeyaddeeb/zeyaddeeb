@@ -1,90 +1,45 @@
 "use client";
 
 import type { CollectionItem, CollectionItemType } from "@zeyaddeeb/db/schema";
+import { Pagination } from "@zeyaddeeb/ui/pagination";
 import { motion } from "framer-motion";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useTransition } from "react";
-import { CollectionGrid, FilterBar } from "@/components";
-import { Pagination } from "@/components/pagination";
+import { CollectionGrid } from "@/components/collection-grid";
+import { FilterBar } from "@/components/filter-bar";
+import { ListHeading } from "@/components/list-heading";
+import { useQueryNav } from "@/lib/hooks/use-query-nav";
 import type { PaginatedResult } from "@/lib/pagination";
 
-interface ThingsILikeContentProps {
+interface LibraryContentProps {
 	initialData: PaginatedResult<CollectionItem>;
 	allTypes: CollectionItemType[];
 	currentPage: number;
-	currentType: string | null;
+	currentType: CollectionItemType | null;
 	currentSearch: string;
 }
 
-export function ThingsILikeContent({
+export function LibraryContent({
 	initialData,
 	allTypes,
 	currentPage,
 	currentType,
 	currentSearch,
-}: ThingsILikeContentProps) {
-	const router = useRouter();
-	const searchParams = useSearchParams();
-	const [isPending, startTransition] = useTransition();
-
-	const updateFilters = useCallback(
-		(updates: { type?: string | null; search?: string }) => {
-			const params = new URLSearchParams(searchParams.toString());
-
-			if (updates.type !== undefined) {
-				if (updates.type) {
-					params.set("type", updates.type);
-				} else {
-					params.delete("type");
-				}
-				params.delete("page");
-			}
-
-			if (updates.search !== undefined) {
-				if (updates.search.trim()) {
-					params.set("q", updates.search.trim());
-				} else {
-					params.delete("q");
-				}
-				params.delete("page");
-			}
-
-			startTransition(() => {
-				router.push(`/library?${params.toString()}`);
-			});
-		},
-		[router, searchParams],
-	);
+}: LibraryContentProps) {
+	const { isPending, setParams } = useQueryNav("/library");
 
 	const handleTypeChange = (type: CollectionItemType | null) => {
-		updateFilters({ type });
+		setParams({ type });
 	};
 
 	const handleSearchChange = (search: string) => {
-		updateFilters({ search });
+		setParams({ q: search.trim() });
 	};
 
 	return (
 		<div className="min-h-screen bg-paper">
-			<section className="blog-list-heading border-b border-rule">
-				<div className="mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-12">
-					<motion.div
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-					>
-						<h1
-							className="text-2xl font-bold tracking-tight text-ink md:text-3xl"
-							style={{ fontFamily: "var(--font-display)" }}
-						>
-							Library
-						</h1>
-						<p className="mt-1 text-sm text-dim md:text-base">
-							Books, art, videos, and links I’ve saved.
-						</p>
-					</motion.div>
-				</div>
-			</section>
+			<ListHeading
+				title="Library"
+				description="Books, art, videos, and links I’ve saved."
+			/>
 
 			<section>
 				<div className="mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-12">
@@ -95,7 +50,7 @@ export function ThingsILikeContent({
 					>
 						<FilterBar
 							types={allTypes}
-							selectedType={currentType as CollectionItemType | null}
+							selectedType={currentType}
 							onTypeChange={handleTypeChange}
 							searchValue={currentSearch}
 							onSearchChange={handleSearchChange}

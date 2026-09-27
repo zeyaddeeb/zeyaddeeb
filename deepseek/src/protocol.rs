@@ -1,4 +1,4 @@
-use crate::curriculum::Family;
+use crate::{curriculum::Family, model::Mode, saga::OperationState};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -223,12 +223,35 @@ pub struct ModelInfo {
     pub vocabulary: Vec<String>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Stack {
+    Encoder,
+    Decoder,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TokenRole {
+    Start,
+    Code,
+    Question,
+    Marker,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SpecimenSource {
+    HeldOut,
+    Visitor,
+}
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LayerInfo {
     pub layer: usize,
-    pub stack: String,
-    pub mode: String,
+    pub stack: Stack,
+    pub mode: Mode,
     pub engram: bool,
 }
 
@@ -238,7 +261,7 @@ pub struct OperationView {
     pub operation_id: Uuid,
     pub command_id: Uuid,
     pub phase: Phase,
-    pub state: String,
+    pub state: OperationState,
     pub stage: String,
     pub progress: f32,
     pub steps_done: u32,
@@ -253,7 +276,7 @@ pub struct OperationView {
 pub struct JournalEntry {
     pub operation_id: Uuid,
     pub at_ms: u64,
-    pub state: String,
+    pub state: OperationState,
     pub stage: String,
 }
 
@@ -344,7 +367,7 @@ pub struct FamilyScore {
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LineView {
-    pub source: String,
+    pub source: SpecimenSource,
     pub code: String,
     pub question: String,
     pub truth: Option<String>,
@@ -358,7 +381,7 @@ pub struct LineView {
 pub struct LineToken {
     pub text: String,
     pub id: u32,
-    pub role: String,
+    pub role: TokenRole,
     pub probability: f32,
     pub rank: usize,
 }
@@ -400,8 +423,8 @@ pub struct FocusView {
 #[serde(rename_all = "camelCase")]
 pub struct LayerTrace {
     pub layer: usize,
-    pub stack: String,
-    pub mode: String,
+    pub stack: Stack,
+    pub mode: Mode,
     pub tokens: Vec<f32>,
     pub blocks: Vec<BlockTrace>,
     pub experts: Vec<ExpertTrace>,
@@ -505,4 +528,70 @@ pub struct DistillView {
     pub agreement: f32,
     pub teacher_parameters: usize,
     pub student_parameters: usize,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde::Serialize;
+
+    fn wire<T: Serialize>(value: T) -> String {
+        serde_json::to_value(value)
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_string()
+    }
+
+    #[test]
+    fn operation_state_matches_client_union() {
+        let expected = [
+            (OperationState::Queued, "queued"),
+            (OperationState::Running, "running"),
+            (OperationState::Paused, "paused"),
+            (OperationState::CancelRequested, "cancelRequested"),
+            (OperationState::Compensating, "compensating"),
+            (OperationState::Completed, "completed"),
+            (OperationState::Canceled, "canceled"),
+            (OperationState::Failed, "failed"),
+        ];
+        for (state, name) in expected {
+            assert_eq!(wire(state), name);
+            assert_eq!(state.as_str(), name);
+        }
+    }
+
+    #[test]
+    fn layer_enums_match_client_unions() {
+        assert_eq!(wire(Stack::Encoder), "encoder");
+        assert_eq!(wire(Stack::Decoder), "decoder");
+        assert_eq!(wire(Mode::Swa), "SWA");
+        assert_eq!(wire(Mode::Full), "Full");
+        assert_eq!(wire(Mode::Reindex), "Reindex");
+        assert_eq!(wire(Mode::Reuse), "Reuse");
+    }
+
+    #[test]
+    fn line_enums_match_client_unions() {
+        assert_eq!(wire(TokenRole::Start), "start");
+        assert_eq!(wire(TokenRole::Code), "code");
+        assert_eq!(wire(TokenRole::Question), "question");
+        assert_eq!(wire(TokenRole::Marker), "marker");
+        assert_eq!(wire(SpecimenSource::HeldOut), "heldOut");
+        assert_eq!(wire(SpecimenSource::Visitor), "visitor");
+    }
+
+    #[test]
+    fn layer_info_shape_is_unchanged() {
+        let info = LayerInfo {
+            layer: 2,
+            stack: Stack::Decoder,
+            mode: Mode::Swa,
+            engram: true,
+        };
+        assert_eq!(
+            serde_json::to_string(&info).unwrap(),
+            r#"{"layer":2,"stack":"decoder","mode":"SWA","engram":true}"#
+        );
+    }
 }

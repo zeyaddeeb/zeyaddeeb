@@ -8,6 +8,9 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useReducedMotion } from "@/lib/hooks/use-animation-activity";
+import { useMediaQuery } from "@/lib/hooks/use-media-query";
+import { clamp } from "@/lib/math";
 import { renderMusic } from "./music";
 import {
 	arrival,
@@ -69,8 +72,8 @@ export function Film() {
 	const [guides, setGuides] = useState(false);
 	const [ratio, setRatio] = useState<number | null>(null);
 	const [palette, setPalette] = useState(0);
-	const [reduced, setReduced] = useState(false);
-	const [narrow, setNarrow] = useState(false);
+	const reduced = useReducedMotion();
+	const narrow = useMediaQuery("(max-width: 720px)");
 	const [lessonOpen, setLessonOpen] = useState(false);
 	const [drawingView, setDrawingView] = useState<"shot" | "overview">(
 		"overview",
@@ -106,22 +109,11 @@ export function Film() {
 
 	useEffect(() => {
 		setCanSpeak("speechSynthesis" in window);
-		const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-		const width = window.matchMedia("(max-width: 720px)");
-		const update = () => {
-			setReduced(motion.matches);
-			setNarrow(width.matches);
-		};
-		update();
-		motion.addEventListener("change", update);
-		width.addEventListener("change", update);
 		const visibility = () => {
 			if (document.hidden) setPlaying(false);
 		};
 		document.addEventListener("visibilitychange", visibility);
 		return () => {
-			motion.removeEventListener("change", update);
-			width.removeEventListener("change", update);
 			document.removeEventListener("visibilitychange", visibility);
 			window.speechSynthesis?.cancel();
 			void audio.current?.close();
@@ -234,7 +226,7 @@ export function Film() {
 	}, [cue.index, reduced]);
 
 	function seek(seconds: number) {
-		const next = Math.max(0, Math.min(total, seconds));
+		const next = clamp(seconds, 0, total);
 		setPlaying(false);
 		stopAt.current = null;
 		film.current?.setCurrentTime(next);
@@ -340,7 +332,7 @@ export function Film() {
 						</svg>
 						{guides && (
 							<div className="film-guides" aria-hidden="true">
-								<span>CENTRE</span>
+								<span>CENTER</span>
 							</div>
 						)}
 						{subtitle && (

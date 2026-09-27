@@ -1,6 +1,5 @@
 "use client";
 
-import { definer as terraformDefiner } from "@taga3s/highlightjs-terraform";
 import "highlight.js/styles/github-dark.css";
 import parse from "html-react-parser";
 import "katex/dist/katex.min.css";
@@ -14,7 +13,8 @@ import rehypeStringify from "rehype-stringify";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import { unified } from "unified";
-import "./markdown-editor.css";
+import { highlightLanguages } from "@/lib/highlight-languages";
+import "./markdown-content.css";
 
 interface MarkdownRendererProps {
 	content: string;
@@ -55,18 +55,16 @@ const safeHtmlSchema: Options = {
 	},
 };
 
+const highlightOptions = {
+	ignoreMissing: true,
+	languages: highlightLanguages,
+};
+
 function sanitizeAndHighlightHtml(html: string): string {
 	const processor = unified()
 		.use(rehypeParse, { fragment: true })
 		.use(rehypeSanitize, safeHtmlSchema)
-		.use(rehypeHighlight, {
-			ignoreMissing: true,
-			languages: {
-				terraform: terraformDefiner,
-				hcl: terraformDefiner,
-				tf: terraformDefiner,
-			},
-		})
+		.use(rehypeHighlight, highlightOptions)
 		.use(rehypeStringify);
 	return String(processor.processSync(html));
 }
@@ -96,17 +94,7 @@ export function MarkdownRenderer({
 					rehypeRaw,
 					[rehypeSanitize, safeHtmlSchema],
 					rehypeKatex,
-					[
-						rehypeHighlight,
-						{
-							ignoreMissing: true,
-							languages: {
-								terraform: terraformDefiner,
-								hcl: terraformDefiner,
-								tf: terraformDefiner,
-							},
-						},
-					],
+					[rehypeHighlight, highlightOptions],
 				]}
 				components={{
 					h1: ({ children, node }) => {
@@ -337,7 +325,6 @@ export function MarkdownRenderer({
 									: "";
 
 						const imgElement = (
-							// biome-ignore lint: dynamic markdown content requires native img element
 							<img
 								src={src}
 								alt={alt || ""}

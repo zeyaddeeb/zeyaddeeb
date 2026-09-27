@@ -20,10 +20,10 @@ use tokio::{
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Step {
-    pub tactic: String,
-    pub ok: bool,
-    pub goals: Vec<Goal>,
     pub error: Option<String>,
+    pub goals: Vec<Goal>,
+    pub ok: bool,
+    pub tactic: String,
 }
 
 #[derive(Debug, Clone, Serialize)]

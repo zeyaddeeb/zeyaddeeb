@@ -1,7 +1,7 @@
 import { pageNumber } from "@zeyaddeeb/ui/seo";
 import { type ExperimentKind, experiments } from "./catalog";
 
-export const EXPERIMENT_PAGE_SIZE = 6;
+const EXPERIMENT_PAGE_SIZE = 6;
 export const experimentFilters: { value: ExperimentKind; label: string }[] = [
 	{ value: "wasm", label: "WebAssembly" },
 	{ value: "network", label: "Realtime" },

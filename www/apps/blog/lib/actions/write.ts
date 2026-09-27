@@ -2,11 +2,10 @@
 
 import {
 	type CollectionItem,
-	type CollectionItemType,
 	collectionItem,
 	db,
-	type NewCollectionItem,
-	type NewPost,
+	desc,
+	eq,
 	type Post,
 	post,
 } from "@zeyaddeeb/db";
@@ -14,48 +13,15 @@ import {
 	COLLECTION_ITEM_TYPES,
 	GRID_SIZES,
 } from "@zeyaddeeb/db/collection-options";
-import { desc, eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
-
-const ALLOWED_ADMIN_ID = process.env.ADMIN_ID;
-
-export type WriteResult<T> =
-	| { success: true; data: T }
-	| { success: false; error: string };
-
-async function getAuthenticatedAdminUser(): Promise<
-	WriteResult<{ id: string }>
-> {
-	const session = await auth.api.getSession({
-		headers: await headers(),
-	});
-
-	if (!ALLOWED_ADMIN_ID) {
-		return { success: false, error: "Server misconfigured" };
-	}
-
-	if (!session?.user) {
-		return { success: false, error: "Unauthorized: Please sign in" };
-	}
-
-	if (session.user.id !== ALLOWED_ADMIN_ID) {
-		return {
-			success: false,
-			error: "Forbidden: Only the admin can write",
-		};
-	}
-
-	return { success: true, data: { id: session.user.id } };
-}
-
-export async function getSession() {
-	const session = await auth.api.getSession({
-		headers: await headers(),
-	});
-	return session;
-}
+import { getSession, isAdmin } from "@/lib/session";
+import {
+	fail,
+	firstIssue,
+	isUniqueViolation,
+	ok,
+	type WriteResult,
+} from "./result";
 
 const postSchema = z.object({
 	title: z.string().min(1, "Title is required"),
@@ -66,185 +32,6 @@ const postSchema = z.object({
 	published: z.boolean().default(false),
 	publishedAt: z.date().optional().nullable(),
 });
-
-export type PostInput = z.infer<typeof postSchema>;
-
-export async function createPost(
-	input: PostInput,
-): Promise<WriteResult<{ id: string; slug: string }>> {
-	const authResult = await getAuthenticatedAdminUser();
-	if (!authResult.success) {
-		return authResult;
-	}
-
-	const validation = postSchema.safeParse(input);
-	if (!validation.success) {
-		return {
-			success: false,
-			error: validation.error.issues[0]?.message || "Invalid input",
-		};
-	}
-
-	try {
-		const newPost: NewPost = {
-			...validation.data,
-			authorId: authResult.data.id,
-			publishedAt: validation.data.published
-				? (validation.data.publishedAt ?? new Date())
-				: null,
-		};
-
-		const [created] = await db
-			.insert(post)
-			.values(newPost)
-			.returning({ id: post.id, slug: post.slug });
-
-		if (!created) {
-			return { success: false, error: "Failed to create post" };
-		}
-
-		return { success: true, data: created };
-	} catch (error) {
-		console.error("Failed to create post:", error);
-		if (error instanceof Error && error.message.includes("unique constraint")) {
-			return { success: false, error: "A post with this slug already exists" };
-		}
-		return { success: false, error: "Failed to create post" };
-	}
-}
-
-export async function updatePost(
-	id: string,
-	input: Partial<PostInput>,
-): Promise<WriteResult<{ id: string; slug: string }>> {
-	const authResult = await getAuthenticatedAdminUser();
-	if (!authResult.success) {
-		return authResult;
-	}
-
-	const validation = postSchema.partial().safeParse(input);
-	if (!validation.success) {
-		return {
-			success: false,
-			error: validation.error.issues[0]?.message || "Invalid input",
-		};
-	}
-
-	try {
-		const updateData = {
-			...validation.data,
-			updatedAt: new Date(),
-		};
-
-		if (validation.data.published && !validation.data.publishedAt) {
-			const [existingPost] = await db
-				.select({ publishedAt: post.publishedAt })
-				.from(post)
-				.where(eq(post.id, id));
-			if (!existingPost?.publishedAt) {
-				Object.assign(updateData, { publishedAt: new Date() });
-			}
-		}
-
-		const [updated] = await db
-			.update(post)
-			.set(updateData)
-			.where(eq(post.id, id))
-			.returning({ id: post.id, slug: post.slug });
-
-		if (!updated) {
-			return { success: false, error: "Post not found" };
-		}
-
-		return { success: true, data: updated };
-	} catch (error) {
-		console.error("Failed to update post:", error);
-		if (error instanceof Error && error.message.includes("unique constraint")) {
-			return { success: false, error: "A post with this slug already exists" };
-		}
-		return { success: false, error: "Failed to update post" };
-	}
-}
-
-export async function deletePost(id: string): Promise<WriteResult<void>> {
-	const authResult = await getAuthenticatedAdminUser();
-	if (!authResult.success) {
-		return authResult;
-	}
-
-	try {
-		const [deleted] = await db
-			.delete(post)
-			.where(eq(post.id, id))
-			.returning({ id: post.id });
-
-		if (!deleted) {
-			return { success: false, error: "Post not found" };
-		}
-
-		return { success: true, data: undefined };
-	} catch (error) {
-		console.error("Failed to delete post:", error);
-		return { success: false, error: "Failed to delete post" };
-	}
-}
-
-export async function getPostForEdit(id: string): Promise<WriteResult<Post>> {
-	const authResult = await getAuthenticatedAdminUser();
-	if (!authResult.success) {
-		return authResult;
-	}
-
-	try {
-		const [item] = await db.select().from(post).where(eq(post.id, id)).limit(1);
-
-		if (!item) {
-			return { success: false, error: "Post not found" };
-		}
-
-		return { success: true, data: item };
-	} catch (error) {
-		console.error("Failed to fetch post:", error);
-		return { success: false, error: "Failed to fetch post" };
-	}
-}
-
-export async function getAllPostsForAdmin(): Promise<
-	WriteResult<
-		Array<{
-			id: string;
-			title: string;
-			slug: string;
-			published: boolean;
-			createdAt: Date;
-			updatedAt: Date;
-		}>
-	>
-> {
-	const authResult = await getAuthenticatedAdminUser();
-	if (!authResult.success) {
-		return authResult;
-	}
-
-	try {
-		const posts = await db
-			.select({
-				id: post.id,
-				title: post.title,
-				slug: post.slug,
-				published: post.published,
-				createdAt: post.createdAt,
-				updatedAt: post.updatedAt,
-			})
-			.from(post)
-			.orderBy(desc(post.updatedAt));
-
-		return { success: true, data: posts };
-	} catch (error) {
-		console.error("Failed to fetch posts:", error);
-		return { success: false, error: "Failed to fetch posts" };
-	}
-}
 
 const collectionItemSchema = z.object({
 	type: z.enum(COLLECTION_ITEM_TYPES),
@@ -263,184 +50,223 @@ const collectionItemSchema = z.object({
 	published: z.boolean().default(false),
 });
 
+export type PostInput = z.infer<typeof postSchema>;
 export type CollectionItemInput = z.infer<typeof collectionItemSchema>;
+export type Written = { id: string; slug: string };
+
+const adminPostColumns = {
+	id: post.id,
+	title: post.title,
+	slug: post.slug,
+	published: post.published,
+	createdAt: post.createdAt,
+	updatedAt: post.updatedAt,
+};
+
+const adminCollectionColumns = {
+	id: collectionItem.id,
+	type: collectionItem.type,
+	title: collectionItem.title,
+	slug: collectionItem.slug,
+	published: collectionItem.published,
+	featured: collectionItem.featured,
+	createdAt: collectionItem.createdAt,
+	updatedAt: collectionItem.updatedAt,
+};
+
+export type AdminPostRow = Pick<Post, keyof typeof adminPostColumns>;
+export type AdminCollectionRow = Pick<
+	CollectionItem,
+	keyof typeof adminCollectionColumns
+>;
+
+async function asAdmin<T>(
+	failure: string,
+	run: (adminId: string) => Promise<WriteResult<T>>,
+	duplicate?: string,
+): Promise<WriteResult<T>> {
+	if (!process.env.ADMIN_ID) return fail("Server misconfigured");
+	const session = await getSession();
+	if (!session?.user) return fail("Unauthorized: Please sign in");
+	if (!isAdmin(session.user))
+		return fail("Forbidden: Only the admin can write");
+
+	try {
+		return await run(session.user.id);
+	} catch (error) {
+		console.error(`${failure}:`, error);
+		if (duplicate && isUniqueViolation(error)) return fail(duplicate);
+		return fail(failure);
+	}
+}
+
+const DUPLICATE_POST = "A post with this slug already exists";
+const DUPLICATE_ITEM = "A collection item with this slug already exists";
+
+export async function createPost(
+	input: PostInput,
+): Promise<WriteResult<Written>> {
+	return asAdmin(
+		"Failed to create post",
+		async (authorId) => {
+			const parsed = postSchema.safeParse(input);
+			if (!parsed.success) return fail(firstIssue(parsed.error));
+
+			const [created] = await db
+				.insert(post)
+				.values({
+					...parsed.data,
+					authorId,
+					publishedAt: parsed.data.published
+						? (parsed.data.publishedAt ?? new Date())
+						: null,
+				})
+				.returning({ id: post.id, slug: post.slug });
+
+			return created ? ok(created) : fail("Failed to create post");
+		},
+		DUPLICATE_POST,
+	);
+}
+
+export async function updatePost(
+	id: string,
+	input: Partial<PostInput>,
+): Promise<WriteResult<Written>> {
+	return asAdmin(
+		"Failed to update post",
+		async () => {
+			const parsed = postSchema.partial().safeParse(input);
+			if (!parsed.success) return fail(firstIssue(parsed.error));
+
+			const changes = { ...parsed.data, updatedAt: new Date() };
+
+			if (parsed.data.published && !parsed.data.publishedAt) {
+				const [existing] = await db
+					.select({ publishedAt: post.publishedAt })
+					.from(post)
+					.where(eq(post.id, id));
+				if (!existing?.publishedAt) changes.publishedAt = new Date();
+			}
+
+			const [updated] = await db
+				.update(post)
+				.set(changes)
+				.where(eq(post.id, id))
+				.returning({ id: post.id, slug: post.slug });
+
+			return updated ? ok(updated) : fail("Post not found");
+		},
+		DUPLICATE_POST,
+	);
+}
+
+export async function deletePost(id: string): Promise<WriteResult<void>> {
+	return asAdmin("Failed to delete post", async () => {
+		const [deleted] = await db
+			.delete(post)
+			.where(eq(post.id, id))
+			.returning({ id: post.id });
+		return deleted ? ok(undefined) : fail("Post not found");
+	});
+}
+
+export async function getPostForEdit(id: string): Promise<WriteResult<Post>> {
+	return asAdmin("Failed to fetch post", async () => {
+		const [item] = await db.select().from(post).where(eq(post.id, id)).limit(1);
+		return item ? ok(item) : fail("Post not found");
+	});
+}
+
+export async function getAllPostsForAdmin(): Promise<
+	WriteResult<AdminPostRow[]>
+> {
+	return asAdmin("Failed to fetch posts", async () =>
+		ok(
+			await db
+				.select(adminPostColumns)
+				.from(post)
+				.orderBy(desc(post.updatedAt)),
+		),
+	);
+}
 
 export async function createCollectionItem(
 	input: CollectionItemInput,
-): Promise<WriteResult<{ id: string; slug: string }>> {
-	const authResult = await getAuthenticatedAdminUser();
-	if (!authResult.success) {
-		return authResult;
-	}
+): Promise<WriteResult<Written>> {
+	return asAdmin(
+		"Failed to create collection item",
+		async (authorId) => {
+			const parsed = collectionItemSchema.safeParse(input);
+			if (!parsed.success) return fail(firstIssue(parsed.error));
 
-	const validation = collectionItemSchema.safeParse(input);
-	if (!validation.success) {
-		return {
-			success: false,
-			error: validation.error.issues[0]?.message || "Invalid input",
-		};
-	}
+			const [created] = await db
+				.insert(collectionItem)
+				.values({ ...parsed.data, authorId })
+				.returning({ id: collectionItem.id, slug: collectionItem.slug });
 
-	try {
-		const newItem: NewCollectionItem = {
-			...validation.data,
-			authorId: authResult.data.id,
-		};
-
-		const [created] = await db
-			.insert(collectionItem)
-			.values(newItem)
-			.returning({ id: collectionItem.id, slug: collectionItem.slug });
-
-		if (!created) {
-			return { success: false, error: "Failed to create collection item" };
-		}
-
-		return { success: true, data: created };
-	} catch (error) {
-		console.error("Failed to create collection item:", error);
-		if (error instanceof Error && error.message.includes("unique constraint")) {
-			return {
-				success: false,
-				error: "A collection item with this slug already exists",
-			};
-		}
-		return { success: false, error: "Failed to create collection item" };
-	}
+			return created ? ok(created) : fail("Failed to create collection item");
+		},
+		DUPLICATE_ITEM,
+	);
 }
 
 export async function updateCollectionItem(
 	id: string,
 	input: Partial<CollectionItemInput>,
-): Promise<WriteResult<{ id: string; slug: string }>> {
-	const authResult = await getAuthenticatedAdminUser();
-	if (!authResult.success) {
-		return authResult;
-	}
+): Promise<WriteResult<Written>> {
+	return asAdmin(
+		"Failed to update collection item",
+		async () => {
+			const parsed = collectionItemSchema.partial().safeParse(input);
+			if (!parsed.success) return fail(firstIssue(parsed.error));
 
-	const validation = collectionItemSchema.partial().safeParse(input);
-	if (!validation.success) {
-		return {
-			success: false,
-			error: validation.error.issues[0]?.message || "Invalid input",
-		};
-	}
+			const [updated] = await db
+				.update(collectionItem)
+				.set({ ...parsed.data, updatedAt: new Date() })
+				.where(eq(collectionItem.id, id))
+				.returning({ id: collectionItem.id, slug: collectionItem.slug });
 
-	try {
-		const [updated] = await db
-			.update(collectionItem)
-			.set({
-				...validation.data,
-				updatedAt: new Date(),
-			})
-			.where(eq(collectionItem.id, id))
-			.returning({ id: collectionItem.id, slug: collectionItem.slug });
-
-		if (!updated) {
-			return { success: false, error: "Collection item not found" };
-		}
-
-		return { success: true, data: updated };
-	} catch (error) {
-		console.error("Failed to update collection item:", error);
-		if (error instanceof Error && error.message.includes("unique constraint")) {
-			return {
-				success: false,
-				error: "A collection item with this slug already exists",
-			};
-		}
-		return { success: false, error: "Failed to update collection item" };
-	}
+			return updated ? ok(updated) : fail("Collection item not found");
+		},
+		DUPLICATE_ITEM,
+	);
 }
 
 export async function deleteCollectionItem(
 	id: string,
 ): Promise<WriteResult<void>> {
-	const authResult = await getAuthenticatedAdminUser();
-	if (!authResult.success) {
-		return authResult;
-	}
-
-	try {
+	return asAdmin("Failed to delete collection item", async () => {
 		const [deleted] = await db
 			.delete(collectionItem)
 			.where(eq(collectionItem.id, id))
 			.returning({ id: collectionItem.id });
-
-		if (!deleted) {
-			return { success: false, error: "Collection item not found" };
-		}
-
-		return { success: true, data: undefined };
-	} catch (error) {
-		console.error("Failed to delete collection item:", error);
-		return { success: false, error: "Failed to delete collection item" };
-	}
+		return deleted ? ok(undefined) : fail("Collection item not found");
+	});
 }
 
 export async function getCollectionItemForEdit(
 	id: string,
 ): Promise<WriteResult<CollectionItem>> {
-	const authResult = await getAuthenticatedAdminUser();
-	if (!authResult.success) {
-		return authResult;
-	}
-
-	try {
+	return asAdmin("Failed to fetch collection item", async () => {
 		const [item] = await db
 			.select()
 			.from(collectionItem)
 			.where(eq(collectionItem.id, id))
 			.limit(1);
-
-		if (!item) {
-			return { success: false, error: "Collection item not found" };
-		}
-
-		return { success: true, data: item };
-	} catch (error) {
-		console.error("Failed to fetch collection item:", error);
-		return { success: false, error: "Failed to fetch collection item" };
-	}
+		return item ? ok(item) : fail("Collection item not found");
+	});
 }
 
 export async function getAllCollectionItemsForAdmin(): Promise<
-	WriteResult<
-		Array<{
-			id: string;
-			type: CollectionItemType;
-			title: string;
-			slug: string;
-			published: boolean;
-			featured: boolean;
-			createdAt: Date;
-			updatedAt: Date;
-		}>
-	>
+	WriteResult<AdminCollectionRow[]>
 > {
-	const authResult = await getAuthenticatedAdminUser();
-	if (!authResult.success) {
-		return authResult;
-	}
-
-	try {
-		const items = await db
-			.select({
-				id: collectionItem.id,
-				type: collectionItem.type,
-				title: collectionItem.title,
-				slug: collectionItem.slug,
-				published: collectionItem.published,
-				featured: collectionItem.featured,
-				createdAt: collectionItem.createdAt,
-				updatedAt: collectionItem.updatedAt,
-			})
-			.from(collectionItem)
-			.orderBy(desc(collectionItem.updatedAt));
-
-		return { success: true, data: items };
-	} catch (error) {
-		console.error("Failed to fetch collection items:", error);
-		return { success: false, error: "Failed to fetch collection items" };
-	}
+	return asAdmin("Failed to fetch collection items", async () =>
+		ok(
+			await db
+				.select(adminCollectionColumns)
+				.from(collectionItem)
+				.orderBy(desc(collectionItem.updatedAt)),
+		),
+	);
 }

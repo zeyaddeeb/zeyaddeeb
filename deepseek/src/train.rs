@@ -42,7 +42,7 @@ impl Control for Unattended {
 }
 
 pub struct Specimen {
-    pub source: String,
+    pub source: SpecimenSource,
     pub code: String,
     pub question: String,
     pub truth: Option<String>,
@@ -144,7 +144,7 @@ impl Brain {
         let baseline = model.groups()?;
         let mut brain = Self {
             specimen: Specimen {
-                source: "heldOut".into(),
+                source: SpecimenSource::HeldOut,
                 code: String::new(),
                 question: String::new(),
                 truth: None,
@@ -173,7 +173,7 @@ impl Brain {
             seen: HashMap::new(),
             numerical_failures: 0,
         };
-        brain.set_specimen("heldOut", &first.code, &first.question)?;
+        brain.set_specimen(SpecimenSource::HeldOut, &first.code, &first.question)?;
         Ok(brain)
     }
 
@@ -203,8 +203,8 @@ impl Brain {
                 .enumerate()
                 .map(|(layer, mode)| LayerInfo {
                     layer,
-                    stack: stack(cfg, layer).into(),
-                    mode: mode.as_str().into(),
+                    stack: stack(cfg, layer),
+                    mode: *mode,
                     engram: cfg.engram_layers.contains(&layer),
                 })
                 .collect(),
@@ -214,7 +214,12 @@ impl Brain {
         }
     }
 
-    pub fn set_specimen(&mut self, source: &str, code: &str, question: &str) -> Result<()> {
+    pub fn set_specimen(
+        &mut self,
+        source: SpecimenSource,
+        code: &str,
+        question: &str,
+    ) -> Result<()> {
         check_snippet(code, question)?;
         let mut ids = vec![BOS];
         ids.extend(self.vocab.encode(code)?);
@@ -243,7 +248,7 @@ impl Brain {
         );
         self.focus = ids.len() - 1;
         self.specimen = Specimen {
-            source: source.into(),
+            source,
             code: code.into(),
             question: question.into(),
             truth,
@@ -842,12 +847,11 @@ impl Brain {
                     text: self.word(id),
                     id,
                     role: match t {
-                        0 => "start",
-                        t if t < code_end => "code",
-                        t if t + 1 == specimen.ids.len() => "marker",
-                        _ => "question",
-                    }
-                    .into(),
+                        0 => TokenRole::Start,
+                        t if t < code_end => TokenRole::Code,
+                        t if t + 1 == specimen.ids.len() => TokenRole::Marker,
+                        _ => TokenRole::Question,
+                    },
                     probability,
                     rank,
                 }
@@ -890,7 +894,7 @@ impl Brain {
             evaluated: self.evaluation.len(),
             families,
             line: LineView {
-                source: specimen.source.clone(),
+                source: specimen.source,
                 code: specimen.code.clone(),
                 question: specimen.question.clone(),
                 truth: specimen.truth.clone(),
@@ -923,8 +927,8 @@ impl Brain {
             .enumerate()
             .map(|(layer, record)| LayerTrace {
                 layer,
-                stack: stack(cfg, layer).into(),
-                mode: cfg.schedule[layer].as_str().into(),
+                stack: stack(cfg, layer),
+                mode: cfg.schedule[layer],
                 tokens: record.tokens.clone(),
                 blocks: record
                     .blocks
@@ -1082,11 +1086,11 @@ impl Brain {
     }
 }
 
-fn stack(cfg: &Config, layer: usize) -> &'static str {
+fn stack(cfg: &Config, layer: usize) -> Stack {
     if layer < cfg.encoder_layers {
-        "encoder"
+        Stack::Encoder
     } else {
-        "decoder"
+        Stack::Decoder
     }
 }
 

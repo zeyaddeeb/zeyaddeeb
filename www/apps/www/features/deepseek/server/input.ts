@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRAIN_PHASES } from "../protocol";
 
 export const sessionIdSchema = z.uuid();
 export const sessionCookie = "deepseek-session";
@@ -17,7 +18,7 @@ export const commandSchema = z.discriminatedUnion("type", [
 	z.strictObject({
 		...common,
 		type: z.literal("start"),
-		phase: z.enum(["pretrain", "sft", "rl", "distill"]),
+		phase: z.enum(TRAIN_PHASES),
 		steps: z.number().int().min(1).max(2000).optional(),
 	}),
 	...["pause", "resume", "reset"].map((type) =>

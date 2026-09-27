@@ -8,6 +8,7 @@ import {
 	useCanvasInteraction,
 	useCanvasWheel,
 } from "@/lib/hooks/use-canvas-interaction";
+import { clamp } from "@/lib/math";
 
 type WebsiteCard = {
 	title: string;
@@ -86,9 +87,7 @@ export function WebsiteAtlas() {
 	const { touchActive, setTouchActive, canInteract, touchAction } =
 		useCanvasInteraction();
 	useCanvasWheel(interactionRef, (delta) => {
-		setZoomLevel((level) =>
-			Math.min(1.9, Math.max(0.55, level - delta * 0.0015)),
-		);
+		setZoomLevel((level) => clamp(level - delta * 0.0015, 0.55, 1.9));
 	});
 
 	const columns = viewport.width < 700 || websites.length <= 2 ? 1 : 2;
@@ -125,15 +124,13 @@ export function WebsiteAtlas() {
 		};
 	}, [cardLayouts]);
 
-	const fitZoom = Math.min(
-		1,
-		Math.max(
-			0.15,
-			Math.min(
-				(viewport.width - 80) / boardSize.width,
-				(viewport.height - 96) / boardSize.height,
-			),
+	const fitZoom = clamp(
+		Math.min(
+			(viewport.width - 80) / boardSize.width,
+			(viewport.height - 96) / boardSize.height,
 		),
+		0.15,
+		1,
 	);
 	const zoom = fitZoom * zoomLevel;
 
@@ -150,10 +147,6 @@ export function WebsiteAtlas() {
 		observer.observe(viewport);
 		return () => observer.disconnect();
 	}, []);
-
-	function clamp(value: number, min: number, max: number) {
-		return Math.min(max, Math.max(min, value));
-	}
 
 	function updateZoom(nextZoomLevel: number) {
 		setZoomLevel(clamp(nextZoomLevel, 0.55, 1.9));

@@ -115,7 +115,7 @@ impl ModelRuntime {
             .try_extract_tensor::<f32>()
             .context("ONNX output was not f32")?;
 
-        Ok(output.iter().copied().collect())
+        Ok(output.to_vec())
     }
 
     fn assign_speaker(&self, embedding: &[f32], energy: f32) -> u8 {

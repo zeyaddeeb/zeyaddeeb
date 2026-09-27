@@ -20,24 +20,22 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "bun run src/seed.ts"
+    "db:seed": "bun run src/seed.ts",
+    "check-types": "tsc --noEmit",
+    "lint": "biome lint src",
+    "test": "vitest run"
   },
   "dependencies": {
-    "better-auth": "^1.7.6",
-    "drizzle-orm": "^0.45.3",
-    "drizzle-zod": "^0.8.3",
-    "pg": "^8.23.0",
-    "zod": "^4.6.5"
-  },
-  "peerDependencies": {
-    "react": "^19"
+    "better-auth": "catalog:",
+    "drizzle-orm": "catalog:",
+    "pg": "^8.23.0"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "@types/pg": "^8.23.1",
-    "@types/react": "catalog:",
     "@zeyaddeeb/config": "workspace:*",
     "drizzle-kit": "^0.31.11",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

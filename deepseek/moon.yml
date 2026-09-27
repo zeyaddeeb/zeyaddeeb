@@ -3,7 +3,7 @@ stack: "backend"
 
 tasks:
   dev:
-    script: "cargo run --bin api"
+    script: "cargo run --bin deepseek-lab"
   test:
     script: "cargo test --all"
   helm-lint:

@@ -1,0 +1,273 @@
+.markdown-editor-wrapper {
+	border: 1px solid rgb(38 38 38);
+	border-radius: 0.5rem;
+	overflow: hidden;
+	background: rgb(23 23 23);
+}
+
+.markdown-editor-wrapper .ProseMirror {
+	outline: none;
+}
+
+.markdown-editor-wrapper .ProseMirror > * + * {
+	margin-top: 0.75em;
+}
+
+.markdown-editor-wrapper .ProseMirror p.is-editor-empty:first-child::before {
+	color: rgb(115 115 115);
+	content: attr(data-placeholder);
+	float: left;
+	height: 0;
+	pointer-events: none;
+}
+
+.markdown-editor-wrapper .ProseMirror h1 {
+	font-size: 2rem;
+	font-weight: 700;
+	color: white;
+	margin-top: 1.5rem;
+	margin-bottom: 0.5rem;
+}
+
+.markdown-editor-wrapper .ProseMirror h2 {
+	font-size: 1.5rem;
+	font-weight: 600;
+	color: white;
+	margin-top: 1.25rem;
+	margin-bottom: 0.5rem;
+}
+
+.markdown-editor-wrapper .ProseMirror h3 {
+	font-size: 1.25rem;
+	font-weight: 600;
+	color: white;
+	margin-top: 1rem;
+	margin-bottom: 0.5rem;
+}
+
+.markdown-editor-wrapper .ProseMirror p {
+	color: rgb(212 212 212);
+	line-height: 1.7;
+}
+
+.markdown-editor-wrapper .ProseMirror a {
+	color: rgb(96 165 250);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.markdown-editor-wrapper .ProseMirror a:hover {
+	color: rgb(147 197 253);
+}
+
+.markdown-editor-wrapper .ProseMirror code {
+	background: rgb(38 38 38);
+	color: rgb(251 191 36);
+	padding: 0.125rem 0.375rem;
+	border-radius: 0.25rem;
+	font-family: ui-monospace, monospace;
+	font-size: 0.875em;
+}
+
+.markdown-editor-wrapper .ProseMirror pre {
+	background: rgb(10 10 10);
+	border: 1px solid rgb(38 38 38);
+	border-radius: 0.5rem;
+	padding: 1rem;
+	overflow-x: auto;
+	tab-size: 2;
+}
+
+.markdown-editor-wrapper .ProseMirror pre code {
+	background: transparent;
+	color: rgb(212 212 212);
+	padding: 0;
+	font-size: 0.875rem;
+	white-space: pre;
+}
+
+.markdown-editor-wrapper .ProseMirror blockquote {
+	border-left: 4px solid rgb(64 64 64);
+	padding-left: 1rem;
+	color: rgb(163 163 163);
+	font-style: italic;
+}
+
+.markdown-editor-wrapper .ProseMirror ul {
+	list-style-type: disc;
+	padding-left: 1.5rem;
+}
+
+.markdown-editor-wrapper .ProseMirror ol {
+	list-style-type: decimal;
+	padding-left: 1.5rem;
+}
+
+.markdown-editor-wrapper .ProseMirror li {
+	color: rgb(212 212 212);
+	margin-top: 0.25rem;
+}
+
+.markdown-editor-wrapper .ProseMirror hr {
+	border: none;
+	border-top: 1px solid rgb(64 64 64);
+	margin: 1.5rem 0;
+}
+
+.markdown-editor-wrapper .ProseMirror img {
+	max-width: 100%;
+	height: auto;
+	border-radius: 0.5rem;
+	border: 1px solid rgb(38 38 38);
+}
+
+.markdown-editor-wrapper .ProseMirror img.ProseMirror-selectednode {
+	outline: 2px solid rgb(96 165 250);
+	outline-offset: 2px;
+}
+
+.markdown-editor-wrapper .ProseMirror ::selection {
+	background: rgba(96, 165, 250, 0.3);
+}
+
+.resizable-image-wrapper {
+	display: inline-block;
+}
+
+.resizable-image-container {
+	position: relative;
+	display: inline-block;
+	line-height: 0;
+}
+
+.resizable-image-container.selected {
+	outline: 2px solid rgb(96 165 250);
+	outline-offset: 2px;
+}
+
+.resizable-image-container.resizing {
+	user-select: none;
+}
+
+.markdown-editor-wrapper .resizable-image-container img {
+	display: block;
+	max-width: 100%;
+	height: auto;
+}
+
+.resize-handle {
+	position: absolute;
+	background: rgb(96 165 250);
+	border: 2px solid white;
+	border-radius: 50%;
+	width: 12px;
+	height: 12px;
+	z-index: 10;
+	padding: 0;
+	outline: none;
+}
+
+.resize-handle:hover {
+	background: rgb(59 130 246);
+	transform: scale(1.2);
+}
+
+.resize-handle:focus {
+	outline: none;
+}
+
+.resize-handle-nw {
+	top: -6px;
+	left: -6px;
+	cursor: nw-resize;
+}
+
+.resize-handle-ne {
+	top: -6px;
+	right: -6px;
+	cursor: ne-resize;
+}
+
+.resize-handle-sw {
+	bottom: -6px;
+	left: -6px;
+	cursor: sw-resize;
+}
+
+.resize-handle-se {
+	bottom: -6px;
+	right: -6px;
+	cursor: se-resize;
+}
+
+.resize-handle-n {
+	top: -6px;
+	left: 50%;
+	transform: translateX(-50%);
+	cursor: n-resize;
+}
+
+.resize-handle-s {
+	bottom: -6px;
+	left: 50%;
+	transform: translateX(-50%);
+	cursor: s-resize;
+}
+
+.resize-handle-e {
+	top: 50%;
+	right: -6px;
+	transform: translateY(-50%);
+	cursor: e-resize;
+}
+
+.resize-handle-w {
+	top: 50%;
+	left: -6px;
+	transform: translateY(-50%);
+	cursor: w-resize;
+}
+
+.image-align-toolbar {
+	position: absolute;
+	top: -40px;
+	left: 50%;
+	transform: translateX(-50%);
+	display: flex;
+	gap: 4px;
+	padding: 4px;
+	background: rgb(38 38 38);
+	border: 1px solid rgb(64 64 64);
+	border-radius: 6px;
+	z-index: 20;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.image-align-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	background: transparent;
+	border: none;
+	border-radius: 4px;
+	color: rgb(163 163 163);
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.image-align-btn:hover {
+	background: rgb(64 64 64);
+	color: white;
+}
+
+.image-align-btn.active {
+	background: rgb(96 165 250);
+	color: white;
+}
+
+.image-align-btn:focus {
+	outline: none;
+}

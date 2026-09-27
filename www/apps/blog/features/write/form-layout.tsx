@@ -3,11 +3,13 @@
 import type { ReactNode } from "react";
 import { signOutAction } from "@/lib/actions/auth";
 import { getFullPath } from "@/lib/redirect-utils";
-import type { User } from "./types";
+import type { SessionUser } from "@/lib/session";
+
+export type WriterUser = Pick<SessionUser, "name">;
 
 interface PageHeaderProps {
 	title: string;
-	user: User;
+	user: WriterUser;
 	actions?: ReactNode;
 }
 

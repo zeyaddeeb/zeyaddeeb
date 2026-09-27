@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import { BLOG_URL } from "../urls";
+import { BLOG_URL } from "../site";
 
 export type NavItem = {
 	label: string;

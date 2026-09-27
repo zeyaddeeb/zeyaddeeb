@@ -3,7 +3,7 @@
 import type { CollectionItemType } from "@zeyaddeeb/db/schema";
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { getTypeIcon, getTypeLabel } from "@/lib/collection-utils";
+import { getTypeIcon, getTypeLabel } from "@/components/collection-type-icon";
 
 function SearchIcon({ className }: { className?: string }) {
 	return (

@@ -1,16 +1,10 @@
 "use client";
 
 import { type SubmitEvent, useEffect, useId, useRef, useState } from "react";
+import { percent } from "./format";
 import type { Phase } from "./protocol";
 import { useScrub } from "./scrub";
 import type { LabState } from "./use-lab";
-
-const percent = (value: number) =>
-	value >= 0.995
-		? "100%"
-		: value > 0 && value < 0.01
-			? "<1%"
-			: `${Math.round(value * 100)}%`;
 
 interface ChartProps {
 	values: number[];
@@ -22,7 +16,7 @@ interface ChartProps {
 	readout: (index: number) => string;
 }
 
-export function Chart({
+function Chart({
 	values,
 	marks = [],
 	ceiling,

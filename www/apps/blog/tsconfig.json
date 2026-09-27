@@ -13,8 +13,7 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "next-env.d.ts",
-    "next.config.ts"
+    "next-env.d.ts"
   ],
   "exclude": ["node_modules", ".next"]
 }

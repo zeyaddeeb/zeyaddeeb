@@ -19,6 +19,7 @@ import {
 	useShouldRun,
 } from "@/lib/hooks/use-animation-activity";
 import { useWasm } from "@/lib/hooks/use-wasm";
+import { clamp } from "@/lib/math";
 import {
 	type Box,
 	boxOf,
@@ -404,10 +405,7 @@ export function Poster({ head }: { head: ReactNode }) {
 		const x = (event.clientX - m.rect.left) / m.unit;
 		const y = (event.clientY - m.rect.top) / m.unit;
 		const { col, row } = toBoard(x, y, m.portrait);
-		sendCursor(
-			Math.max(0, Math.min(1, col / COLS)),
-			Math.max(0, Math.min(1, row / ROWS)),
-		);
+		sendCursor(clamp(col / COLS, 0, 1), clamp(row / ROWS, 0, 1));
 	};
 
 	const settle = (event: PointerEvent<HTMLDivElement>) => {

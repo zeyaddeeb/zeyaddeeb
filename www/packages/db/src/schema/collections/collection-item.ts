@@ -8,7 +8,7 @@ import {
 	text,
 	timestamp,
 } from "drizzle-orm/pg-core";
-import { COLLECTION_ITEM_TYPES } from "../../collection-options";
+import { COLLECTION_ITEM_TYPES, GRID_SIZES } from "../../collection-options";
 import { user } from "../auth/user";
 
 export const collectionItemTypeEnum = pgEnum(
@@ -28,7 +28,7 @@ export const collectionItem = pgTable("collection_items", {
 	imageUrl: text("image_url"),
 	thumbnailUrl: text("thumbnail_url"),
 	accentColor: text("accent_color"),
-	gridSize: text("grid_size").default("medium"),
+	gridSize: text("grid_size", { enum: GRID_SIZES }).default("medium"),
 	displayOrder: integer("display_order").default(0),
 	metadata: jsonb("metadata").$type<CollectionItemMetadata>(),
 	tags: text("tags").array(),

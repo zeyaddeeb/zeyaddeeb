@@ -4,6 +4,7 @@ use crate::{
     train::Control,
 };
 use anyhow::Result;
+use serde::Serialize;
 use std::{
     sync::{Arc, Mutex},
     time::{Duration, Instant},
@@ -11,7 +12,8 @@ use std::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub enum OperationState {
     Queued,
     Running,
@@ -140,7 +142,7 @@ impl Operation {
             operation_id: self.id,
             command_id: self.command_id,
             phase: self.phase,
-            state: inner.state.as_str().into(),
+            state: inner.state,
             stage: inner.stage.clone(),
             progress: inner.steps_done as f32 / self.steps_total.max(1) as f32,
             steps_done: inner.steps_done,
@@ -322,7 +324,7 @@ mod tests {
             &CancellationToken::new(),
             budget,
             (0, 0),
-            Box::new(move |view| sink.lock().unwrap().push(view.state)),
+            Box::new(move |view| sink.lock().unwrap().push(view.state.as_str().to_string())),
         );
         (operation, journal)
     }

@@ -1,6 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type { PostInput } from "@/lib/actions/write";
+import { generateSlug } from "@/lib/slug";
 import { CheckboxInput, FormField, TextInput } from "./form-inputs";
 
 const MarkdownEditor = dynamic(
@@ -15,32 +17,22 @@ const MarkdownEditor = dynamic(
 );
 
 interface PostFormFieldsProps {
-	formData: {
-		title: string;
-		slug: string;
-		content: string;
-		excerpt?: string;
-		coverImage?: string;
-		published: boolean;
-	};
-	setFormData: React.Dispatch<
-		React.SetStateAction<PostFormFieldsProps["formData"]>
-	>;
-	onTitleChange?: (title: string) => void;
+	formData: PostInput;
+	setFormData: React.Dispatch<React.SetStateAction<PostInput>>;
+	autoSlug?: boolean;
 }
 
 export function PostFormFields({
 	formData,
 	setFormData,
-	onTitleChange,
+	autoSlug,
 }: PostFormFieldsProps) {
-	const handleTitleChange = (title: string) => {
-		if (onTitleChange) {
-			onTitleChange(title);
-		} else {
-			setFormData((prev: typeof formData) => ({ ...prev, title }));
-		}
-	};
+	const handleTitleChange = (title: string) =>
+		setFormData((prev) => ({
+			...prev,
+			title,
+			slug: autoSlug && !prev.slug ? generateSlug(title) : prev.slug,
+		}));
 
 	return (
 		<>
@@ -55,9 +47,7 @@ export function PostFormFields({
 			<TextInput
 				label="Slug"
 				value={formData.slug}
-				onChange={(slug) =>
-					setFormData((prev: typeof formData) => ({ ...prev, slug }))
-				}
+				onChange={(slug) => setFormData((prev) => ({ ...prev, slug }))}
 				placeholder="post-slug"
 				required
 			/>
@@ -65,9 +55,7 @@ export function PostFormFields({
 			<TextInput
 				label="Excerpt"
 				value={formData.excerpt || ""}
-				onChange={(excerpt) =>
-					setFormData((prev: typeof formData) => ({ ...prev, excerpt }))
-				}
+				onChange={(excerpt) => setFormData((prev) => ({ ...prev, excerpt }))}
 				placeholder="Brief description of the post"
 			/>
 
@@ -75,7 +63,7 @@ export function PostFormFields({
 				label="Cover Image URL"
 				value={formData.coverImage || ""}
 				onChange={(coverImage) =>
-					setFormData((prev: typeof formData) => ({ ...prev, coverImage }))
+					setFormData((prev) => ({ ...prev, coverImage }))
 				}
 				placeholder="https://example.com/image.jpg"
 				type="url"
@@ -84,9 +72,7 @@ export function PostFormFields({
 			<FormField label="Content" htmlFor="content" required>
 				<MarkdownEditor
 					value={formData.content}
-					onChange={(content) =>
-						setFormData((prev: typeof formData) => ({ ...prev, content }))
-					}
+					onChange={(content) => setFormData((prev) => ({ ...prev, content }))}
 					placeholder="Write your post content here..."
 				/>
 			</FormField>
@@ -95,7 +81,7 @@ export function PostFormFields({
 				label="Publish immediately"
 				checked={formData.published}
 				onChange={(published) =>
-					setFormData((prev: typeof formData) => ({ ...prev, published }))
+					setFormData((prev) => ({ ...prev, published }))
 				}
 			/>
 		</>

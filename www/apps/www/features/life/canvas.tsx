@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { ControlButton } from "@/components/control-button";
 import type { LifeBackend, LifeStats } from "@/features/life/engine";
 import { type LifeHandle, LifeView } from "@/features/life/life-view";
 import { useReducedMotion } from "@/lib/hooks/use-animation-activity";
@@ -15,10 +16,6 @@ const SIZES = {
 } as const;
 
 type SizeKey = keyof typeof SIZES;
-
-const btn =
-	"border border-rule px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-paper-2 transition-colors hover:border-rule-strong hover:text-paper disabled:opacity-40 disabled:hover:border-rule";
-const btnOn = "border-amber text-amber hover:border-amber hover:text-amber";
 
 export default function GameOfLifeLab() {
 	const { loading, error } = useWasm();
@@ -104,35 +101,24 @@ export default function GameOfLifeLab() {
 				<section className="grid gap-3">
 					<h2 className="eyebrow">Simulation</h2>
 					<div className="flex flex-wrap gap-2">
-						<button
-							type="button"
-							className={`${btn} ${running ? btnOn : ""}`}
+						<ControlButton
+							pressed={running}
 							onClick={() => setRunning(!running)}
 						>
 							{running ? "Pause" : "Play"}
-						</button>
-						<button
-							type="button"
-							className={btn}
+						</ControlButton>
+						<ControlButton
 							disabled={running}
 							onClick={() => ref.current?.step()}
 						>
 							Step
-						</button>
-						<button
-							type="button"
-							className={btn}
-							onClick={() => ref.current?.randomize()}
-						>
+						</ControlButton>
+						<ControlButton onClick={() => ref.current?.randomize()}>
 							Randomize
-						</button>
-						<button
-							type="button"
-							className={btn}
-							onClick={() => ref.current?.clear()}
-						>
+						</ControlButton>
+						<ControlButton onClick={() => ref.current?.clear()}>
 							Clear
-						</button>
+						</ControlButton>
 					</div>
 					<label className="grid gap-1 font-mono text-[11px] uppercase tracking-[0.12em] text-dim">
 						<span className="flex justify-between">
@@ -154,21 +140,19 @@ export default function GameOfLifeLab() {
 				<section className="grid gap-3">
 					<h2 className="eyebrow">Engine</h2>
 					<div className="flex gap-2">
-						<button
-							type="button"
-							className={`${btn} ${backend === "wasm" ? btnOn : ""}`}
+						<ControlButton
+							pressed={backend === "wasm"}
 							disabled={hasWasm === false}
 							onClick={() => setBackend("wasm")}
 						>
 							Rust / WASM
-						</button>
-						<button
-							type="button"
-							className={`${btn} ${backend === "js" ? btnOn : ""}`}
+						</ControlButton>
+						<ControlButton
+							pressed={backend === "js"}
 							onClick={() => setBackend("js")}
 						>
 							JavaScript
-						</button>
+						</ControlButton>
 					</div>
 					<p className="font-mono text-[11px] leading-relaxed text-dim">
 						Same rules, same buffers. Watch the tick time change.
@@ -178,20 +162,18 @@ export default function GameOfLifeLab() {
 				<section className="grid gap-3">
 					<h2 className="eyebrow">Brush</h2>
 					<div className="flex gap-2">
-						<button
-							type="button"
-							className={`${btn} ${drawMode === "draw" ? btnOn : ""}`}
+						<ControlButton
+							pressed={drawMode === "draw"}
 							onClick={() => setDrawMode("draw")}
 						>
 							Draw
-						</button>
-						<button
-							type="button"
-							className={`${btn} ${drawMode === "erase" ? btnOn : ""}`}
+						</ControlButton>
+						<ControlButton
+							pressed={drawMode === "erase"}
 							onClick={() => setDrawMode("erase")}
 						>
 							Erase
-						</button>
+						</ControlButton>
 					</div>
 				</section>
 
@@ -199,14 +181,13 @@ export default function GameOfLifeLab() {
 					<h2 className="eyebrow">Grid</h2>
 					<div className="flex flex-wrap gap-2">
 						{(Object.keys(SIZES) as SizeKey[]).map((k) => (
-							<button
+							<ControlButton
 								key={k}
-								type="button"
-								className={`${btn} ${size === k ? btnOn : ""}`}
+								pressed={size === k}
 								onClick={() => setSize(k)}
 							>
 								{SIZES[k].cols}×{SIZES[k].rows}
-							</button>
+							</ControlButton>
 						))}
 					</div>
 					<div className="flex flex-wrap gap-4 font-mono text-[11px] uppercase tracking-[0.12em] text-dim">

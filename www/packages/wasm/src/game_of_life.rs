@@ -59,8 +59,16 @@ impl LifeUniverse {
         // Wrapping neighbors for an infinite toroidal grid
         let row_minus_1 = if row == 0 { self.height - 1 } else { row - 1 };
         let row_plus_1 = if row == self.height - 1 { 0 } else { row + 1 };
-        let col_minus_1 = if column == 0 { self.width - 1 } else { column - 1 };
-        let col_plus_1 = if column == self.width - 1 { 0 } else { column + 1 };
+        let col_minus_1 = if column == 0 {
+            self.width - 1
+        } else {
+            column - 1
+        };
+        let col_plus_1 = if column == self.width - 1 {
+            0
+        } else {
+            column + 1
+        };
 
         let rows = [row_minus_1, row, row_plus_1];
         let cols = [col_minus_1, column, col_plus_1];

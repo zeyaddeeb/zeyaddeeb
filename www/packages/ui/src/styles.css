@@ -2,7 +2,6 @@
 
 @source "./**/*.{ts,tsx,js,jsx,mdx}";
 @source "../../../apps/**/**/*.{ts,tsx,js,jsx,mdx}";
-@source "../../packages/**/*.{ts,tsx,js,jsx,mdx}";
 
 @theme inline {
 	--breakpoint-3xl: 1600px;

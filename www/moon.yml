@@ -7,7 +7,7 @@ project:
 
 tasks:
   test:
-    command: 'echo "No tests to run"'
+    command: "bunx turbo test"
   docker-build:
     script: docker build --platform=linux/amd64 -t $project:v$(cat package.json | jq -r .version) .
   docker-tag:

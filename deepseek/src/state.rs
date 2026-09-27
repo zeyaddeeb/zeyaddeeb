@@ -119,14 +119,10 @@ impl Session {
         self.generation.load(Ordering::SeqCst)
     }
 
-    fn has_pending(&self) -> bool {
-        lock(&self.pending_specimen).is_some() || lock(&self.pending_focus).is_some()
-    }
-
     fn apply_pending(&self, brain: &mut Brain) -> bool {
         let mut changed = false;
         if let Some((code, question)) = lock(&self.pending_specimen).take() {
-            if let Err(error) = brain.set_specimen("heldOut", &code, &question) {
+            if let Err(error) = brain.set_specimen(SpecimenSource::HeldOut, &code, &question) {
                 self.error(None, "unsupported", error.to_string());
             }
             changed = true;
@@ -143,19 +139,13 @@ impl Session {
         let Ok(_permit) = self.maintenance.try_acquire() else {
             return;
         };
-        {
-            let Some(mut brain) = try_lock(&self.brain) else {
-                return;
-            };
-            if self.apply_pending(&mut brain) {
-                match brain.probe() {
-                    Ok(probe) => self.publish(ServerEvent::Probe(Box::new(probe))),
-                    Err(error) => self.error(None, "probe", error.to_string()),
-                }
-            }
-            drop(brain);
-            if !self.has_pending() {
-                return;
+        let Some(mut brain) = try_lock(&self.brain) else {
+            return;
+        };
+        if self.apply_pending(&mut brain) {
+            match brain.probe() {
+                Ok(probe) => self.publish(ServerEvent::Probe(Box::new(probe))),
+                Err(error) => self.error(None, "probe", error.to_string()),
             }
         }
     }
@@ -169,13 +159,13 @@ impl Session {
         match &event {
             ServerEvent::Lifecycle { operation } => {
                 let last = board.journal.back();
-                if last.map(|e| (e.operation_id, e.state.as_str()))
-                    != Some((operation.operation_id, operation.state.as_str()))
+                if last.map(|e| (e.operation_id, e.state))
+                    != Some((operation.operation_id, operation.state))
                 {
                     board.journal.push_back(JournalEntry {
                         operation_id: operation.operation_id,
                         at_ms: self.created.elapsed().as_millis() as u64,
-                        state: operation.state.clone(),
+                        state: operation.state,
                         stage: operation.stage.clone(),
                     });
                     while board.journal.len() > JOURNAL_ENTRIES {
@@ -492,7 +482,9 @@ impl AppState {
                     );
                 }
                 let prepared = match try_lock(&session.brain) {
-                    Some(mut brain) => brain.set_specimen("visitor", &code, &question),
+                    Some(mut brain) => {
+                        brain.set_specimen(SpecimenSource::Visitor, &code, &question)
+                    }
                     None => {
                         return session.error(
                             Some(command_id),

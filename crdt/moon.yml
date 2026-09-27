@@ -3,7 +3,9 @@ stack: "backend"
 
 tasks:
   dev:
-    script: "cargo run --bin api"
+    script: "cargo run --bin crdt"
+    env:
+      CRDT_BIND_ADDR: "127.0.0.1:3002"
   test:
     script: "cargo test --all"
   helm-lint:

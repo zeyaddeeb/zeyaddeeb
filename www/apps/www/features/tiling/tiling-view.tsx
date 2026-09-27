@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { fitCanvas } from "@/lib/canvas";
 import { useReducedMotion } from "@/lib/hooks/use-animation-activity";
 import { useCanvasWheel } from "@/lib/hooks/use-canvas-interaction";
+import { clamp } from "@/lib/math";
 import { drawTiling, glide, useTiling, type Variant } from "./engine";
 
 interface TilingViewProps {
@@ -43,10 +45,7 @@ export function TilingView({
 		canvasRef,
 		(delta) => {
 			const zoom = zoomRef.current;
-			zoom.target = Math.min(
-				6,
-				Math.max(1, zoom.target * Math.exp(-delta * 0.0015)),
-			);
+			zoom.target = clamp(zoom.target * Math.exp(-delta * 0.0015), 1, 6);
 			dirtyRef.current = true;
 		},
 		zoomable,
@@ -60,10 +59,7 @@ export function TilingView({
 		const resize = () => {
 			const size = Math.min(wrap.clientWidth, wrap.clientHeight);
 			if (size <= 0) return;
-			const dpr = Math.min(window.devicePixelRatio || 1, 2);
-			dprRef.current = dpr;
-			canvas.width = Math.floor(size * dpr);
-			canvas.height = Math.floor(size * dpr);
+			dprRef.current = fitCanvas(canvas, size, size);
 			canvas.style.width = `${size}px`;
 			canvas.style.height = `${size}px`;
 			dirtyRef.current = true;

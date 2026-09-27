@@ -1,3 +1,4 @@
+import { count } from "./format";
 import type { ProbeView } from "./protocol";
 import type { LabState } from "./use-lab";
 
@@ -109,7 +110,6 @@ const percent = (value: number) =>
 		: value < 0.01
 			? "under 1%"
 			: `${Math.round(value * 100)}%`;
-const count = (value: number) => value.toLocaleString("en-US");
 const list = (items: string[]) =>
 	items.length < 2
 		? items.join("")
@@ -190,7 +190,7 @@ export function spotlight(probe: ProbeView | null): Spotlight | null {
 	return best;
 }
 
-export function liveStageOf(state: LabState, flags: Flags): Chapter {
+function liveStageOf(state: LabState, flags: Flags): Chapter {
 	const steps = state.session?.phaseSteps;
 	const phase = state.operation?.phase;
 	if (!steps) return "guess";

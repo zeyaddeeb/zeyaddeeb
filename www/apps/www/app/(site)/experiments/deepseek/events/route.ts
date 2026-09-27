@@ -1,10 +1,12 @@
 import { cookies } from "next/headers";
-import { DEEPSEEK_SERVICE_URL } from "@/features/deepseek/server/config";
 import {
 	sessionCookie,
 	sessionIdSchema,
 } from "@/features/deepseek/server/input";
-import { sessionCredential } from "@/features/deepseek/server/session-auth";
+import {
+	DEEPSEEK_SERVICE_URL,
+	sessionCredential,
+} from "@/features/deepseek/server/service";
 
 export const dynamic = "force-dynamic";
 

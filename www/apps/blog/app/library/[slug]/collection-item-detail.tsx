@@ -4,7 +4,8 @@ import type { CollectionItem } from "@zeyaddeeb/db/schema";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { getTypeIcon, getTypeLabel } from "@/lib/collection-utils";
+import { getTypeIcon, getTypeLabel } from "@/components/collection-type-icon";
+import { formatLongDate } from "@/lib/format-date";
 
 interface CollectionItemDetailProps {
 	item: CollectionItem;
@@ -163,14 +164,7 @@ export function CollectionItemDetail({ item }: CollectionItemDetailProps) {
 
 			<footer className="border-t border-rule px-4 py-8 md:px-6">
 				<div className="mx-auto max-w-4xl text-center text-sm text-dim">
-					<p>
-						Added on{" "}
-						{item.createdAt.toLocaleDateString("en-US", {
-							year: "numeric",
-							month: "long",
-							day: "numeric",
-						})}
-					</p>
+					<p>Added on {formatLongDate(item.createdAt)}</p>
 				</div>
 			</footer>
 		</div>

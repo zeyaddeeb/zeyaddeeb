@@ -1,6 +1,6 @@
 {
   "name": "zeyaddeeb",
-  "version": "0.1.64",
+  "version": "0.1.65",
   "private": true,
   "scripts": {
     "build": "turbo build",
@@ -11,7 +11,9 @@
     "db:seed": "turbo run db:seed --filter=@zeyaddeeb/db",
     "lint": "biome lint",
     "format": "biome format --write",
-    "clean": "turbo clean"
+    "clean": "turbo clean",
+    "check-types": "turbo check-types",
+    "test": "turbo test"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
@@ -27,9 +29,21 @@
     "packages/*"
   ],
   "catalog": {
-    "@tanstack/react-query": "^5.104.0",
+    "better-auth": "^1.7.6",
+    "drizzle-orm": "^0.45.3",
+    "framer-motion": "^13.4.4",
+    "next": "16.3.6",
+    "postcss": "^8.5.28",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "tailwindcss": "^4.3.3",
+    "@tailwindcss/cli": "^4.3.3",
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "26.6.3",
     "@types/react": "^19.3.0",
-    "typescript": "^7.0.2"
+    "@types/react-dom": "19.3.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2",
+    "zod": "^4.6.5"
   }
 }

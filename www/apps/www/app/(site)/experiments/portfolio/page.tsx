@@ -1,14 +1,11 @@
-import { pageMetadata } from "@zeyaddeeb/ui/seo";
+import { experimentMetadata } from "@/features/catalog/catalog";
 import { ExperimentFrame } from "@/features/frame/experiment-frame";
 import { WebsiteAtlas } from "@/features/portfolio/atlas";
 
-export const metadata = pageMetadata({
-	path: "/experiments/portfolio",
-	section: "Experiments",
-	title: "Portfolio Atlas",
-	description:
-		"Explore selected websites and client projects by Zeyad Deeb on a draggable canvas, including Pulsar Labs, Pulvi, and Moonspell.",
-});
+export const metadata = experimentMetadata(
+	"portfolio",
+	"Explore selected websites and client projects by Zeyad Deeb on a draggable canvas, including Pulsar Labs, Pulvi, and Moonspell.",
+);
 
 export default function PortfolioPage() {
 	return (

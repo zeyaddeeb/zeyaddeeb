@@ -10,11 +10,14 @@ import {
 	type Variant,
 } from "@/features/tiling/engine";
 import { TilingView } from "@/features/tiling/tiling-view";
+import { fitCanvas } from "@/lib/canvas";
+import { useReducedMotion } from "@/lib/hooks/use-animation-activity";
 import {
 	useCanvasInteraction,
 	useCanvasWheel,
 } from "@/lib/hooks/use-canvas-interaction";
 import { useWasm } from "@/lib/hooks/use-wasm";
+import { clamp } from "@/lib/math";
 
 function StagedPlate({
 	variant,
@@ -30,12 +33,15 @@ function StagedPlate({
 	const driftRef = useRef({ angle: 0, velocity: 0 });
 	const zoomRef = useRef({ cur: 1, target: 1 });
 	const dragRef = useRef<{ x: number; y: number } | null>(null);
+	const reducedRef = useRef(false);
+	reducedRef.current = useReducedMotion();
 	const { touchActive, setTouchActive, canInteract, touchAction } =
 		useCanvasInteraction();
 	useCanvasWheel(canvasRef, (delta) => {
-		zoomRef.current.target = Math.min(
+		zoomRef.current.target = clamp(
+			zoomRef.current.target * Math.exp(-delta * 0.0012),
+			0.82,
 			2.7,
-			Math.max(0.82, zoomRef.current.target * Math.exp(-delta * 0.0012)),
 		);
 	});
 
@@ -50,10 +56,7 @@ function StagedPlate({
 			const w = wrapper.clientWidth;
 			const h = wrapper.clientHeight;
 			if (w === 0 || h === 0) return;
-			const dpr = Math.min(window.devicePixelRatio || 1, 2);
-			pixelRatio = dpr;
-			canvas.width = Math.floor(w * dpr);
-			canvas.height = Math.floor(h * dpr);
+			pixelRatio = fitCanvas(canvas, w, h);
 			canvas.style.width = `${w}px`;
 			canvas.style.height = `${h}px`;
 		};
@@ -83,9 +86,10 @@ function StagedPlate({
 				const [p1, p2] = [...pointers.values()];
 				const d = Math.hypot(p1.x - p2.x, p1.y - p2.y);
 				if (pinchDist > 0 && d > 0) {
-					zoomRef.current.target = Math.min(
+					zoomRef.current.target = clamp(
+						zoomRef.current.target * (d / pinchDist),
+						0.82,
 						2.7,
-						Math.max(0.82, zoomRef.current.target * (d / pinchDist)),
 					);
 				}
 				pinchDist = d;
@@ -140,12 +144,14 @@ function StagedPlate({
 
 			const clock = clockRef.current;
 			const drift = driftRef.current;
-			if (!dragRef.current) {
-				drift.angle += (0.055 + drift.velocity) * dt;
-				drift.velocity *= Math.exp(-2.4 * dt);
+			if (!reducedRef.current) {
+				if (!dragRef.current) {
+					drift.angle += (0.055 + drift.velocity) * dt;
+					drift.velocity *= Math.exp(-2.4 * dt);
+				}
+				clock.theta += dt * 0.13;
+				clock.phase += dt * 0.19;
 			}
-			clock.theta += dt * 0.13;
-			clock.phase += dt * 0.19;
 			const view = glide(clock);
 			const verts = tiling.transform_vertices(
 				view.ar,

@@ -1,14 +1,11 @@
-import { pageMetadata } from "@zeyaddeeb/ui/seo";
+import { experimentMetadata } from "@/features/catalog/catalog";
 import { ExperimentFrame } from "@/features/frame/experiment-frame";
 import GameOfLifeLab from "@/features/life/canvas";
 
-export const metadata = pageMetadata({
-	path: "/experiments/game-of-life",
-	section: "Experiments",
-	title: "Game of Life",
-	description:
-		"Conway's Game of Life computed in Rust compiled to WebAssembly, with a live JavaScript benchmark and a canvas you can draw on.",
-});
+export const metadata = experimentMetadata(
+	"game-of-life",
+	"Conway's Game of Life computed in Rust compiled to WebAssembly, with a live JavaScript benchmark and a canvas you can draw on.",
+);
 
 export default function GameOfLifePage() {
 	return (
@@ -20,16 +17,16 @@ export default function GameOfLifePage() {
 					<div>
 						<h3 className="eyebrow mb-3">The rules</h3>
 						<ul className="grid gap-2 font-serif text-base text-paper-2">
-							<li>A live cell with fewer than two neighbours dies.</li>
-							<li>A live cell with two or three neighbours survives.</li>
-							<li>A live cell with more than three neighbours dies.</li>
-							<li>A dead cell with exactly three neighbours is born.</li>
+							<li>A live cell with fewer than two neighbors dies.</li>
+							<li>A live cell with two or three neighbors survives.</li>
+							<li>A live cell with more than three neighbors dies.</li>
+							<li>A dead cell with exactly three neighbors is born.</li>
 						</ul>
 					</div>
 					<div>
 						<h3 className="eyebrow mb-3">Why WASM</h3>
 						<p className="font-serif text-base text-paper-2">
-							Every generation touches every cell and its eight neighbours. Rust
+							Every generation touches every cell and its eight neighbors. Rust
 							does that on a contiguous buffer with no allocation; JavaScript
 							can read the result straight out of linear memory, and the canvas
 							uses that buffer to draw the cells.

@@ -1,16 +1,11 @@
 "use client";
 
-import { useReducedMotion } from "framer-motion";
 import { type CSSProperties, useEffect, useState } from "react";
+import { useReducedMotion } from "@/lib/hooks/use-animation-activity";
+import { clamp } from "@/lib/math";
+import { percent } from "./format";
 import type { DreamView, ModelInfo, ProbeView } from "./protocol";
 import { useScrub } from "./scrub";
-
-const percent = (value: number) =>
-	value >= 0.995
-		? "100%"
-		: value < 0.01
-			? "<1%"
-			: `${Math.round(value * 100)}%`;
 
 const fine = (value: number) =>
 	value >= 0.1
@@ -66,7 +61,7 @@ export function Bet({ probe, model, selected, marked }: BetProps) {
 	const flag = (id: number) => {
 		const p = focus.distribution[id] ?? 0;
 		return {
-			left: `${Math.min(95, Math.max(5, ((id + 0.5) / Math.max(size, 1)) * 100))}%`,
+			left: `${clamp(((id + 0.5) / Math.max(size, 1)) * 100, 5, 95)}%`,
 			bottom: `${p * 100}%`,
 		} as CSSProperties;
 	};

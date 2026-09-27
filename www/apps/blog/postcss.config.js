@@ -1,5 +1,3 @@
-export default {
-	plugins: {
-		"@tailwindcss/postcss": {},
-	},
-};
+import { postcssConfig } from "@zeyaddeeb/ui/postcss";
+
+export default postcssConfig;

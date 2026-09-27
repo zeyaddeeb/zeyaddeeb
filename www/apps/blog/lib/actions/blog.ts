@@ -1,9 +1,20 @@
 "use server";
 
-import { db, type Post, post } from "@zeyaddeeb/db";
-import { and, count, desc, eq, ilike, or, type SQL } from "drizzle-orm";
+import {
+	and,
+	count,
+	db,
+	desc,
+	eq,
+	ilike,
+	or,
+	type Post,
+	post,
+	type SQL,
+} from "@zeyaddeeb/db";
 import { z } from "zod";
 import {
+	emptyPage,
 	type PaginatedResult,
 	POSTS_PAGE_SIZE,
 	paginatedResult,
@@ -16,15 +27,18 @@ export interface GetPostsParams {
 	search?: string;
 }
 
+const postsQuery = z.object({
+	...pagination,
+	pageSize: pagination.pageSize.default(POSTS_PAGE_SIZE),
+});
+
 export async function getPosts(
 	params: GetPostsParams = {},
 ): Promise<PaginatedResult<Post>> {
-	const { page, pageSize, search } = z
-		.object({
-			...pagination,
-			pageSize: pagination.pageSize.default(POSTS_PAGE_SIZE),
-		})
-		.parse(params);
+	const parsed = postsQuery.safeParse(params);
+	const { page, pageSize, search } = parsed.success
+		? parsed.data
+		: postsQuery.parse({});
 
 	try {
 		const offset = (page - 1) * pageSize;
@@ -61,15 +75,7 @@ export async function getPosts(
 		return paginatedResult(items, totalCount, page, pageSize);
 	} catch (error) {
 		console.error("Failed to fetch posts:", error);
-		return {
-			items: [],
-			total: 0,
-			page,
-			pageSize,
-			totalPages: 0,
-			hasNextPage: false,
-			hasPreviousPage: false,
-		};
+		return emptyPage(page, pageSize);
 	}
 }
 

@@ -1,11 +1,11 @@
 "use client";
 
 import { type KeyboardEvent, type PointerEvent, useState } from "react";
+import { clamp } from "@/lib/math";
 
 export function useScrub(count: number, layout: "cells" | "points") {
 	const [raw, setRaw] = useState<number | null>(null);
 	const index = raw !== null && raw < count ? raw : null;
-	const clamp = (value: number) => Math.min(count - 1, Math.max(0, value));
 	const at = (event: PointerEvent<HTMLElement>) => {
 		const box = event.currentTarget.getBoundingClientRect();
 		const ratio = (event.clientX - box.left) / Math.max(box.width, 1);
@@ -13,6 +13,8 @@ export function useScrub(count: number, layout: "cells" | "points") {
 			layout === "cells"
 				? Math.floor(ratio * count)
 				: Math.round(ratio * (count - 1)),
+			0,
+			count - 1,
 		);
 	};
 	const read = (event: PointerEvent<HTMLElement>) => {
@@ -41,7 +43,7 @@ export function useScrub(count: number, layout: "cells" | "points") {
 				} else return;
 				event.preventDefault();
 				event.stopPropagation();
-				setRaw(clamp(next));
+				setRaw(clamp(next, 0, count - 1));
 			},
 		},
 	};

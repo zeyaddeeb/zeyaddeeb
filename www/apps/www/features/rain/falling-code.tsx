@@ -1,10 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { ControlButton } from "@/components/control-button";
 import { RainView } from "@/features/rain/rain-view";
-
-const btn =
-	"border border-rule px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-paper-2 transition-colors hover:border-rule-strong hover:text-paper";
 
 export default function FallingCode() {
 	const [density, setDensity] = useState(72);
@@ -32,13 +30,9 @@ export default function FallingCode() {
 							onChange={(e) => setDensity(Number(e.target.value))}
 						/>
 					</label>
-					<button
-						type="button"
-						className={btn}
-						onClick={() => setPaused((p) => !p)}
-					>
+					<ControlButton onClick={() => setPaused((p) => !p)}>
 						{paused ? "Resume" : "Pause"}
-					</button>
+					</ControlButton>
 				</div>
 			</div>
 			<RainView

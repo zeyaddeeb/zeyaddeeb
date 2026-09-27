@@ -3,7 +3,7 @@
 import { createContext, type ReactNode, useContext } from "react";
 import { useCrdt } from "@/lib/hooks/use-crdt";
 
-export const HOME_DOC = "home";
+const HOME_DOC = "home";
 
 type Presence = ReturnType<typeof useCrdt>;
 

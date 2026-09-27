@@ -1,13 +1,14 @@
 import { LifeArrow } from "@zeyaddeeb/ui";
 import Image from "next/image";
 import Link from "next/link";
-import { CollectionGrid } from "@/components";
-import { getFeaturedCollectionItems, getRecentPosts } from "@/lib/actions";
+import { CollectionGrid } from "@/components/collection-grid";
+import { getRecentPosts, getTopCollectionItems } from "@/lib/actions";
+import { formatShortDate } from "@/lib/format-date";
 
 export const dynamic = "force-dynamic";
 export default async function HomePage() {
 	const [featuredResult, postsResult] = await Promise.allSettled([
-		getFeaturedCollectionItems(4),
+		getTopCollectionItems(4),
 		getRecentPosts(3),
 	]);
 	const featuredItems =
@@ -48,11 +49,7 @@ export default async function HomePage() {
 								<div>
 									{post.publishedAt && (
 										<time dateTime={new Date(post.publishedAt).toISOString()}>
-											{new Date(post.publishedAt).toLocaleDateString("en-US", {
-												year: "numeric",
-												month: "short",
-												day: "numeric",
-											})}
+											{formatShortDate(post.publishedAt)}
 										</time>
 									)}
 									<h3>{post.title}</h3>

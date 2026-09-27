@@ -1,3 +1,5 @@
+declare const process: { env: { NODE_ENV?: string } };
+
 export const SITE_URL = "https://www.zeyaddeeb.com";
 export const SITE_NAME = "Zeyad Deeb";
 export const SITE_DESCRIPTION =
@@ -10,3 +12,8 @@ export const PROFILE_URLS = {
 	twitter: "https://twitter.com/zeyad_deeb",
 } as const;
 export const SOURCE_REPOSITORY = `${PROFILE_URLS.github}/zeyaddeeb`;
+
+export const BLOG_URL =
+	process.env.NODE_ENV === "development"
+		? "http://localhost:3001/blog"
+		: "/blog";

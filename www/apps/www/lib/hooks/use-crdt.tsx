@@ -1,5 +1,7 @@
 "use client";
 
+import { crdtWsBase } from "@zeyaddeeb/ui/crdt";
+import type { RgaDocument } from "@zeyaddeeb/wasm";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useWasm } from "./use-wasm";
 
@@ -26,53 +28,30 @@ export interface RemoteCursor {
 
 const CURSOR_TTL = 6_000;
 
-interface RgaDoc {
-	insert(pos: number, value: string): string;
-	delete(pos: number): string | undefined;
-	apply_remote(op_json: string): void;
-	apply_batch(ops_json: string): void;
-	text(): string;
-	len(): number;
-	inspect(): string;
-	free(): void;
+interface CharId {
+	site: number;
+	clock: number;
 }
+
+type CrdtOp =
+	| { type: "insert"; id: CharId; parent: CharId | null; value: string }
+	| { type: "delete"; id: CharId };
+
+type ServerMsg =
+	| { type: "init"; ops: CrdtOp[]; peer: number; peers: number }
+	| { type: "op"; op: CrdtOp }
+	| { type: "presence"; peers: number }
+	| { type: "cursor"; peer: number; x: number; y: number }
+	| { type: "leave"; peer: number }
+	| { type: "error"; message: string };
 
 const BACKOFF = [1_000, 2_000, 4_000, 8_000, 15_000];
 const MAX_LOG = 8;
 
-function toWsBase(raw: string) {
-	const trimmed = raw.trim().replace(/\/+$/, "");
-	if (trimmed.startsWith("http://"))
-		return `ws://${trimmed.slice("http://".length)}`;
-	if (trimmed.startsWith("https://")) {
-		return `wss://${trimmed.slice("https://".length)}`;
-	}
-	return trimmed;
-}
-
-function resolveWsBase(explicitBase?: string) {
-	if (explicitBase) return toWsBase(explicitBase);
-	if (typeof window === "undefined") return "ws://localhost:3002";
-
-	const envBase = process.env.NEXT_PUBLIC_CRDT_URL;
-	if (envBase?.trim()) return toWsBase(envBase);
-
-	const { protocol, hostname } = window.location;
-	const isLocal =
-		hostname === "localhost" ||
-		hostname === "127.0.0.1" ||
-		hostname.endsWith(".local");
-	if (isLocal) return "ws://localhost:3002";
-
-	const wsProtocol = protocol === "https:" ? "wss:" : "ws:";
-	const rootHost = hostname.replace(/^www\./, "");
-	return `${wsProtocol}//crdt.${rootHost}`;
-}
-
 export function useCrdt(docId: string, wsBase?: string) {
 	const { wasm, loading } = useWasm();
 
-	const docRef = useRef<RgaDoc | null>(null);
+	const docRef = useRef<RgaDocument | null>(null);
 	const wsRef = useRef<WebSocket | null>(null);
 	const pendingRef = useRef<string[]>([]);
 	const retryRef = useRef(0);
@@ -127,13 +106,10 @@ export function useCrdt(docId: string, wsBase?: string) {
 		if (loading || !wasm) return;
 
 		siteIdRef.current = Math.floor(Math.random() * 0xffffffff);
-		type WasmModule = { RgaDocument: new (siteId: number) => RgaDoc };
-		docRef.current = new (wasm as unknown as WasmModule).RgaDocument(
-			siteIdRef.current,
-		);
+		docRef.current = new wasm.RgaDocument(siteIdRef.current);
 		syncState();
 
-		const baseUrl = resolveWsBase(wsBase);
+		const baseUrl = crdtWsBase(wsBase);
 
 		function scheduleReconnect() {
 			if (!mountedRef.current) return;
@@ -164,33 +140,25 @@ export function useCrdt(docId: string, wsBase?: string) {
 				const doc = docRef.current;
 				if (!doc || !mountedRef.current || wsRef.current !== ws) return;
 				try {
-					const msg = JSON.parse(e.data as string) as {
-						type: string;
-						ops?: unknown[];
-						op?: { type: string; value?: string };
-						peer?: number;
-						peers?: number;
-						x?: number;
-						y?: number;
-					};
+					const msg = JSON.parse(e.data as string) as ServerMsg;
 
 					if (msg.type === "init") {
-						doc.apply_batch(JSON.stringify(msg.ops ?? []));
+						doc.apply_batch(JSON.stringify(msg.ops));
 						setStatus("online");
 						retryRef.current = 0;
 						flushPending(ws);
 						syncState();
-						setReplayedOps(msg.ops?.length ?? 0);
+						setReplayedOps(msg.ops.length);
 						if (typeof msg.peer === "number") setPeer(msg.peer);
 						if (typeof msg.peers === "number") setPeers(msg.peers);
-						pushLog("remote", `init — ${msg.ops?.length ?? 0} ops`);
-					} else if (msg.type === "op" && msg.op) {
+						pushLog("remote", `init — ${msg.ops.length} ops`);
+					} else if (msg.type === "op") {
 						doc.apply_remote(JSON.stringify(msg.op));
 						syncState();
 						const o = msg.op;
 						pushLog(
 							"remote",
-							o.type === "insert" ? `insert '${o.value ?? ""}'` : "delete",
+							o.type === "insert" ? `insert '${o.value}'` : "delete",
 						);
 					} else if (msg.type === "presence") {
 						if (typeof msg.peers === "number") setPeers(msg.peers);

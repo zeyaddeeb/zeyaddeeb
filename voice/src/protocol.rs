@@ -21,7 +21,11 @@ pub struct SessionStatus {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum ClientMessage {
     Offer {
         sdp: String,
@@ -64,4 +68,26 @@ pub struct SpeakerSegment {
     pub start_ms: u64,
     pub end_ms: u64,
     pub confidence: f32,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn audio_frame_fields_are_camel_case() {
+        let message: ClientMessage = serde_json::from_str(
+            r#"{"type":"audioFrame","sampleRate":16000,"channels":1,"samples":[0.5]}"#,
+        )
+        .unwrap();
+        let ClientMessage::AudioFrame {
+            sample_rate,
+            channels,
+            samples,
+        } = message
+        else {
+            panic!("expected an audio frame");
+        };
+        assert_eq!((sample_rate, channels, samples), (16000, 1, vec![0.5]));
+    }
 }
