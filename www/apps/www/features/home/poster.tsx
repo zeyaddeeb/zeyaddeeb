@@ -30,10 +30,10 @@ import {
 	fromLand,
 	fromPort,
 	isInitial,
+	kit,
 	LAND,
 	type Place,
 	PORT,
-	pieces,
 	ROWS,
 	resetCode,
 	snap,
@@ -253,9 +253,8 @@ export function Poster({ head }: { head: ReactNode }) {
 	};
 
 	const turn = (index: number) => {
-		const shape = shapes[index];
 		const current = layout[index];
-		if (!shape || !pieces[shape].turns || !current) return;
+		if (!kit[index]?.turns || !current) return;
 		const rot = (current.rot + 1) % 4;
 		place(
 			index,
@@ -274,7 +273,7 @@ export function Poster({ head }: { head: ReactNode }) {
 		if (!current || !at) return;
 		const col = current.cell % COLS;
 		const row = Math.floor(current.cell / COLS);
-		const box = boxOf(index, col, row, current.rot);
+		const box = boxOf(index, col, row);
 		const corner = at.portrait ? toPort(box) : toLand(box);
 		updateDrag({
 			index,
@@ -350,8 +349,7 @@ export function Poster({ head }: { head: ReactNode }) {
 			return;
 		}
 		stop();
-		const shape = shapes[index];
-		if (selected === index && shape && pieces[shape].turns) turn(index);
+		if (selected === index && kit[index]?.turns) turn(index);
 		else setSelected(index);
 	};
 
@@ -380,7 +378,7 @@ export function Poster({ head }: { head: ReactNode }) {
 		const current = layout[selected];
 		const at = toUnits(event.clientX, event.clientY);
 		if (!current || !at) return;
-		const box = boxOf(selected, 0, 0, current.rot);
+		const box = boxOf(selected, 0, 0);
 		const { col, row } = toBoard(at.x, at.y, at.portrait);
 		place(
 			selected,
@@ -443,12 +441,7 @@ export function Poster({ head }: { head: ReactNode }) {
 		const dragging = drag?.index === index && drag.moved;
 		const col = dragging && drag ? drag.col : current.cell % COLS;
 		const row = dragging && drag ? drag.row : Math.floor(current.cell / COLS);
-		return forms(
-			index,
-			boxOf(index, col, row, current.rot),
-			current.rot,
-			spins.current[index] ?? 0,
-		);
+		return forms(index, boxOf(index, col, row), spins.current[index] ?? 0);
 	};
 
 	const titleOf = (i: number) =>
@@ -507,19 +500,22 @@ export function Poster({ head }: { head: ReactNode }) {
 				>
 					<Grid cols={COLS} rows={ROWS} className="poster__grid" />
 				</div>
-				{shapes.map((shape, index) => {
-					const set = playMode
-						? pieceForms(index)
-						: scene && { land: scene.land[shape], port: scene.port[shape] };
+				{kit.map((piece, index) => {
+					const shape = shapes.find((item) => item === piece.id);
+					const staged = !playMode && scene && shape;
+					const set = staged
+						? { land: scene.land[shape], port: scene.port[shape] }
+						: pieceForms(index);
 					if (!set) return null;
 					const rank = playMode ? order.indexOf(index) : index;
 					const dragging = playMode && drag?.index === index && drag.moved;
 					return (
 						<span
-							key={shape}
+							key={piece.id}
 							className="poster__shape"
 							data-k={set.land.k ?? "rect"}
-							data-shape={shape}
+							data-shape={piece.id}
+							data-away={(!playMode && !shape) || undefined}
 							data-dragging={dragging || undefined}
 							data-live={
 								shape === "dot" && playMode && connected ? true : undefined
@@ -527,10 +523,18 @@ export function Poster({ head }: { head: ReactNode }) {
 							aria-hidden="true"
 							style={vars(set.land, set.port, {
 								"--c": `var(--${set.land.c})`,
-								"--d": depth[shape],
+								"--q": `var(--${set.land.q ?? "paper"})`,
+								"--d": shape ? depth[shape] : 0.4,
 								zIndex: dragging ? 30 : rank + 1,
 							})}
 						>
+							{set.land.p && (
+								<span
+									key={set.land.p}
+									className="poster__skin"
+									data-p={set.land.p}
+								/>
+							)}
 							{shape === "dot" && (
 								<span key={count} className="poster__count">
 									{count}
@@ -591,29 +595,28 @@ export function Poster({ head }: { head: ReactNode }) {
 								drag.index,
 								drag.target.cell % COLS,
 								Math.floor(drag.target.cell / COLS),
-								drag.target.rot,
 							),
 						)}
 					/>
 				)}
 				{playMode &&
-					shapes.map((shape, index) => {
+					kit.map((piece, index) => {
 						const current = layout[index];
 						if (!current) return null;
 						const dragging = drag?.index === index && drag.moved;
 						const col = dragging && drag ? drag.col : current.cell % COLS;
 						const row =
 							dragging && drag ? drag.row : Math.floor(current.cell / COLS);
-						const style = frame(boxOf(index, col, row, current.rot));
+						const style = frame(boxOf(index, col, row));
 						return (
 							<button
-								key={shape}
+								key={piece.id}
 								type="button"
 								className="poster__handle"
 								data-selected={selected === index || undefined}
 								data-dragging={dragging || undefined}
 								aria-pressed={selected === index}
-								aria-label={`${shape === "dot" ? "Here now" : `${pieces[shape].c} ${pieces[shape].name}`}. Arrow keys move it${pieces[shape].turns ? ", R turns it" : ""}.`}
+								aria-label={`${piece.label}. Arrow keys move it${piece.turns ? ", R turns it" : ""}.`}
 								style={{
 									...style,
 									zIndex: dragging ? 40 : 20 + order.indexOf(index),

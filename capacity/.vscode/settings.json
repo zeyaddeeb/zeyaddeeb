@@ -1,0 +1,9 @@
+{
+  "flake8.enabled": false,
+  "ruff.enable": true,
+  "ruff.lint.enable": true,
+  "ruff.configurationPreference": "filesystemFirst",
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff"
+  }
+}

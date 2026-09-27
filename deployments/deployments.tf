@@ -1,12 +1,3 @@
-module "wwww" {
-  source    = "../www/deployments"
-  namespace = kubernetes_namespace_v1.zeyaddeeb_namespace.metadata[0].name
-
-  depends_on = [
-    kubernetes_manifest.zeyaddeeb_external_secret
-  ]
-}
-
 module "robot" {
   source    = "../robot/deployments"
   namespace = kubernetes_namespace_v1.zeyaddeeb_namespace.metadata[0].name
@@ -26,3 +17,22 @@ module "proofs" {
   source    = "../proofs/deployments"
   namespace = kubernetes_namespace_v1.zeyaddeeb_namespace.metadata[0].name
 }
+
+module "capacity" {
+  source    = "../capacity/deployments"
+  namespace = kubernetes_namespace_v1.zeyaddeeb_namespace.metadata[0].name
+}
+
+module "wwww" {
+  source    = "../www/deployments"
+  namespace = kubernetes_namespace_v1.zeyaddeeb_namespace.metadata[0].name
+
+  depends_on = [
+    kubernetes_manifest.zeyaddeeb_external_secret,
+    module.crdt,
+    module.deepseek,
+    module.proofs,
+    module.capacity,
+  ]
+}
+

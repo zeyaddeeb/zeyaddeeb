@@ -10,6 +10,7 @@ import {
 	fromPort,
 	initial,
 	isInitial,
+	kit,
 	LAND,
 	PORT,
 	ROWS,
@@ -18,11 +19,10 @@ import {
 	toLand,
 	toPort,
 } from "./bauspiel";
-import { shapes } from "./scenes";
 
 describe("bauspiel", () => {
 	it("starts from a valid layout", () => {
-		expect(initial).toHaveLength(shapes.length);
+		expect(initial).toHaveLength(kit.length);
 		initial.forEach((place, index) => {
 			expect(fits(index, place)).toBe(true);
 		});
@@ -47,11 +47,15 @@ describe("bauspiel", () => {
 		expect(isInitial(fold(log).layout)).toBe(true);
 	});
 
-	it("turns the rule on its side", () => {
-		const line = shapes.indexOf("line");
-		expect(fits(line, { cell: 0, rot: 1 })).toBe(true);
-		expect(fits(line, { cell: (ROWS - 1) * COLS, rot: 1 })).toBe(false);
-		expect(snap(line, 0, ROWS, 1)).toEqual({ cell: (ROWS - 3) * COLS, rot: 1 });
+	it("turns every piece in place on the grid", () => {
+		kit.forEach((piece, index) => {
+			for (let cell = 0; cell < COLS * ROWS; cell++) {
+				const upright = fits(index, { cell, rot: 0 });
+				for (let rot = 1; rot < 4; rot++) {
+					expect(fits(index, { cell, rot })).toBe(upright && piece.turns);
+				}
+			}
+		});
 	});
 
 	it("maps the board the same way in both orientations", () => {
@@ -67,12 +71,12 @@ describe("bauspiel", () => {
 	});
 
 	it("preserves every piece's position, proportions, and rotation across screens", () => {
-		shapes.forEach((_, index) => {
+		kit.forEach((_, index) => {
 			for (let rot = 0; rot < 4; rot++) {
 				for (let cell = 0; cell < COLS * ROWS; cell++) {
 					if (!fits(index, { cell, rot })) continue;
-					const box = boxOf(index, cell % COLS, Math.floor(cell / COLS), rot);
-					const result = forms(index, box, rot, rot);
+					const box = boxOf(index, cell % COLS, Math.floor(cell / COLS));
+					const result = forms(index, box, rot);
 					if (!result) throw new Error("Missing piece forms");
 					const { land, port } = result;
 					expect((port.x - PORT.x) / PORT.cell).toBeCloseTo(
@@ -93,14 +97,14 @@ describe("bauspiel", () => {
 	});
 
 	it("keeps a mobile drag rightward and downward on the shared board", () => {
-		const index = shapes.indexOf("block");
+		const index = kit.findIndex((piece) => piece.id === "block");
 		const start = toPort({ col: 1, row: 1, w: 2, h: 2 });
 		const target = fromPort(start.x + PORT.cell * 2, start.y + PORT.cell);
 		const move = snap(index, target.col, target.row, 1);
 		if (!move) throw new Error("Missing move");
 		const { layout } = fold(encode(index, move));
 		expect(layout[index]).toEqual({ cell: 2 * COLS + 3, rot: 1 });
-		const land = toLand(boxOf(index, 3, 2, 1));
+		const land = toLand(boxOf(index, 3, 2));
 		expect((land.x - LAND.x) / LAND.cell).toBeCloseTo(3);
 		expect((land.y - LAND.y) / LAND.cell).toBeCloseTo(2);
 	});

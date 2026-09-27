@@ -27,6 +27,15 @@ export interface Experiment {
 
 export const experiments: Experiment[] = [
 	{
+		id: "compute-crunch",
+		number: 13,
+		title: "Compute Crunch",
+		line: "Route the world’s AI demand by hand, then watch a linear program beat you and put a price on every constraint.",
+		stack: ["Python", "OR-Tools", "FastAPI", "Linear programming"],
+		href: "/experiments/compute-crunch",
+		kind: "network",
+	},
+	{
 		id: "game-of-life",
 		number: 1,
 		title: "Game of Life",

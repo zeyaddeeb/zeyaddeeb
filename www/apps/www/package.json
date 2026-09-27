@@ -10,7 +10,8 @@
     "lint": "biome lint .",
     "check-types": "tsc --noEmit",
     "test": "vitest run",
-    "clean": "git clean -xdf .next .turbo .cache node_modules"
+    "clean": "git clean -xdf .next .turbo .cache node_modules",
+    "generate:land": "node scripts/capacity-land.mjs && biome format --write features/capacity/land-data.ts"
   },
   "dependencies": {
     "@chenglou/pretext": "^0.0.9",

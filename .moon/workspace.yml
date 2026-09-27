@@ -18,3 +18,4 @@ projects:
   crdt: "crdt"
   deepseek: "deepseek"
   proofs: "proofs"
+  capacity: "capacity"

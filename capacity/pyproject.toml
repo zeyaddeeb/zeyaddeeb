@@ -1,0 +1,39 @@
+[project]
+name = "capacity"
+version = "0.1.0"
+description = "Linear programming service for the Compute Crunch experiment."
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.141,<1",
+    "ortools>=9.15,<10",
+    "pydantic>=2.13,<3",
+    "uvicorn[standard]>=0.54,<1",
+]
+
+[dependency-groups]
+dev = ["httpx>=0.28,<1", "pytest>=9.1,<10", "ruff>=0.16,<1"]
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 79
+target-version = "py314"
+
+[tool.black]
+line-length = 79
+target-version = ["py314"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PL"]
+ignore = ["PLR2004", "PLR0913"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]
+addopts = "-q"
+filterwarnings = [
+    "ignore:builtin type .* has no __module__ attribute:DeprecationWarning",
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+]

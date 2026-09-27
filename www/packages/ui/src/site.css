@@ -25,6 +25,7 @@
 
 .site-header {
 	position: relative;
+	z-index: 55;
 	border-bottom: 2px solid var(--ink);
 }
 

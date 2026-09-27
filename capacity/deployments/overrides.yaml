@@ -1,0 +1,28 @@
+fullnameOverride: "capacity"
+
+image:
+  repository: ${image_repository}
+
+service:
+  type: ClusterIP
+  port: 3006
+
+env:
+  UVICORN_LOG_LEVEL: "warning"
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 192Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
+
+volumes:
+  - name: tmp
+    emptyDir:
+      sizeLimit: 16Mi
+
+volumeMounts:
+  - name: tmp
+    mountPath: /tmp
