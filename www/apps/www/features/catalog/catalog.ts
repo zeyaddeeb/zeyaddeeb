@@ -27,6 +27,15 @@ export interface Experiment {
 
 export const experiments: Experiment[] = [
 	{
+		id: "play-that-thing",
+		number: 14,
+		title: "Play That Thing",
+		line: "Play around with a jazz band in your browser. Edit the parts, try a little swing, and listen to early Louis Armstrong recordings.",
+		stack: ["TypeScript", "Web Audio", "Karplus–Strong", "Mini-notation"],
+		href: "/experiments/play-that-thing",
+		kind: "dom",
+	},
+	{
 		id: "compute-crunch",
 		number: 13,
 		title: "Compute Crunch",
