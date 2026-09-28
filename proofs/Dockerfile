@@ -51,6 +51,7 @@ FROM debian:bookworm-slim AS base
 
 WORKDIR /app
 
+COPY --from=lean /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /app/target/release/proofs proofs
 COPY --from=lean /repl/lean-toolchain repl/lean-toolchain
 COPY --from=lean /repl/.lake/build/bin/repl repl/.lake/build/bin/repl
