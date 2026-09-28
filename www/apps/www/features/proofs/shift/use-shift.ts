@@ -30,6 +30,10 @@ type Action =
 	| { kind: "event"; envelope: Envelope }
 	| { kind: "connection"; connection: Connection };
 
+const RETRY_FIRST_MS = 1_000;
+const RETRY_MAX_MS = 30_000;
+const GIVE_UP_AFTER = 8;
+
 const start: Shift = {
 	live: null,
 	about: null,
@@ -82,10 +86,26 @@ export function useShift() {
 		let closed = false;
 		let source: EventSource | null = null;
 		let round = 0;
+		let failures = 0;
+		let retry: ReturnType<typeof setTimeout> | undefined;
 
 		const disconnect = () => {
+			clearTimeout(retry);
 			source?.close();
 			source = null;
+		};
+
+		const later = () => {
+			disconnect();
+			failures += 1;
+			dispatch({
+				kind: "connection",
+				connection: failures > GIVE_UP_AFTER ? "off" : "reconnecting",
+			});
+			retry = setTimeout(
+				connect,
+				Math.min(RETRY_FIRST_MS * 2 ** (failures - 1), RETRY_MAX_MS),
+			);
 		};
 
 		const connect = () => {
@@ -98,11 +118,7 @@ export function useShift() {
 				dispatch({ kind: "connection", connection: "live" });
 			opened.onerror = () => {
 				if (closed || source !== opened) return;
-				dispatch({
-					kind: "connection",
-					connection:
-						opened.readyState === EventSource.CLOSED ? "off" : "reconnecting",
-				});
+				later();
 			};
 			opened.onmessage = (message) => {
 				const envelope = JSON.parse(message.data) as Envelope;
@@ -117,27 +133,29 @@ export function useShift() {
 			loadShift().then((loaded) => {
 				if (closed || current !== round) return;
 				if (loaded.ok) {
+					failures = 0;
 					dispatch({ kind: "loaded", overview: loaded.value });
 					if (loaded.value.about.mode === "off") {
 						disconnect();
 						dispatch({ kind: "connection", connection: "closed" });
 					}
-				} else {
+				} else if (loaded.missing) {
 					disconnect();
-					dispatch({
-						kind: "connection",
-						connection: loaded.missing ? "closed" : "off",
-					});
+					dispatch({ kind: "connection", connection: "closed" });
+				} else {
+					later();
 				}
 			});
 		};
 
 		const visibility = () => {
 			if (document.hidden) {
-				if (!source) return;
+				if (!source && retry === undefined) return;
 				disconnect();
+				retry = undefined;
 				dispatch({ kind: "connection", connection: "paused" });
 			} else if (!source) {
+				failures = 0;
 				connect();
 			}
 		};

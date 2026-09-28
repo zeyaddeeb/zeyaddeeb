@@ -2,7 +2,7 @@ use super::memory::{AgentState, Episode, Link, Node, Verdict};
 use serde::Serialize;
 use serde_json::Value;
 use std::sync::{Arc, Mutex};
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, watch};
 
 const BACKLOG: usize = 800;
 const DELTA_CHARS: usize = 16_000;
@@ -125,6 +125,7 @@ struct Inner {
 pub struct Hub {
     sender: broadcast::Sender<Envelope>,
     inner: Mutex<Inner>,
+    closing: watch::Sender<bool>,
 }
 
 impl Hub {
@@ -137,7 +138,21 @@ impl Hub {
                 backlog: Vec::new(),
                 stats: None,
             }),
+            closing: watch::channel(false).0,
         })
+    }
+
+    pub fn close(&self) {
+        self.closing.send_replace(true);
+    }
+
+    pub fn closing(&self) -> bool {
+        *self.closing.borrow()
+    }
+
+    pub async fn closed(&self) {
+        let mut closing = self.closing.subscribe();
+        let _ = closing.wait_for(|closing| *closing).await;
     }
 
     pub fn emit(&self, event: Event) {
@@ -165,7 +180,9 @@ impl Hub {
 
     pub fn backlog(&self) -> Vec<Envelope> {
         let inner = self.inner.lock().expect("hub lock");
-        inner.stats.iter().chain(&inner.backlog).cloned().collect()
+        let mut kept: Vec<Envelope> = inner.stats.iter().chain(&inner.backlog).cloned().collect();
+        kept.sort_by_key(|envelope| envelope.seq);
+        kept
     }
 }
 
@@ -218,6 +235,38 @@ impl Inner {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn replays_in_order_so_a_late_viewer_sees_the_wake() {
+        let hub = Hub::new();
+        hub.emit(Event::Wake {
+            episode: 1,
+            front: "line".into(),
+            arms: Vec::new(),
+        });
+        hub.emit(Event::Stats {
+            state: AgentState::default(),
+        });
+        hub.emit(delta(0, Channel::Think, "go"));
+        let seqs: Vec<u64> = hub.backlog().iter().map(|e| e.seq).collect();
+        assert_eq!(seqs, vec![1, 2, 3]);
+    }
+
+    #[tokio::test]
+    async fn closing_wakes_whoever_waits_for_it() {
+        let hub = Hub::new();
+        assert!(!hub.closing());
+        let waiter = {
+            let hub = hub.clone();
+            tokio::spawn(async move { hub.closed().await })
+        };
+        hub.close();
+        assert!(hub.closing());
+        tokio::time::timeout(std::time::Duration::from_secs(1), waiter)
+            .await
+            .unwrap()
+            .unwrap();
+    }
 
     fn delta(turn: u32, channel: Channel, text: &str) -> Event {
         Event::Delta {

@@ -2,15 +2,15 @@ use axum::{
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
-    routing::post,
+    routing::{get, post},
     Json, Router,
 };
 use proofs::{
     agent::{
         config::Config,
         governor::Limits,
-        live::{Channel, Event, Hub},
-        memory::{Store, Trust},
+        live::{Channel, Envelope, Event, Hub, Phase},
+        memory::{AgentState, Call, Store, Trust, Turn},
         Agent,
     },
     lean::workbench,
@@ -32,6 +32,11 @@ enum Part {
 struct Script {
     turns: VecDeque<Vec<Part>>,
     fail_first: bool,
+    drop_first: bool,
+    models_down: u32,
+    hang_after: Option<usize>,
+    viewer: Option<Box<dyn Send>>,
+    leave_after: usize,
     requests: Vec<Value>,
     violations: Vec<String>,
 }
@@ -72,16 +77,47 @@ fn check_ids(request: &Value) -> Option<String> {
     None
 }
 
-async fn completions(State(script): State<Shared>, Json(request): Json<Value>) -> Response {
+async fn models(State(script): State<Shared>) -> Response {
     let mut script = script.lock().unwrap();
+    if script.models_down > 0 {
+        script.models_down -= 1;
+        return (StatusCode::SERVICE_UNAVAILABLE, "loading").into_response();
+    }
+    Json(json!({"object": "list", "data": [{"id": "mock", "object": "model"}]})).into_response()
+}
+
+async fn completions(State(shared): State<Shared>, Json(request): Json<Value>) -> Response {
+    let hang = {
+        let mut script = shared.lock().unwrap();
+        script
+            .hang_after
+            .is_some_and(|after| script.requests.len() >= after)
+            && {
+                script.requests.push(request.clone());
+                true
+            }
+    };
+    if hang {
+        tokio::time::sleep(Duration::from_secs(3600)).await;
+    }
+    let mut script = shared.lock().unwrap();
     if let Some(violation) = check_ids(&request) {
         script.violations.push(violation.clone());
         return (StatusCode::BAD_REQUEST, violation).into_response();
     }
     script.requests.push(request);
+    if script.requests.len() == script.leave_after {
+        script.viewer.take();
+    }
     if script.fail_first {
         script.fail_first = false;
         return (StatusCode::INTERNAL_SERVER_ERROR, "warming up").into_response();
+    }
+    if script.drop_first {
+        script.drop_first = false;
+        let mut body = chunk(json!({"role": "assistant"}), None);
+        body.push_str(&chunk(json!({"reasoning_content": "half a thou"}), None));
+        return ([("content-type", "text/event-stream")], body).into_response();
     }
     let parts = script.turns.pop_front().unwrap_or_else(|| {
         vec![Part::Call(
@@ -118,6 +154,7 @@ async fn completions(State(script): State<Shared>, Json(request): Json<Value>) -
 async fn serve(script: Shared) -> String {
     let app = Router::new()
         .route("/v1/chat/completions", post(completions))
+        .route("/v1/models", get(models))
         .with_state(script);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap();
@@ -356,10 +393,12 @@ async fn switched_off_it_still_opens_its_notebook() {
 
 #[tokio::test]
 async fn a_dead_gateway_is_given_up_on_gracefully() {
-    let dead = Router::new().route(
-        "/v1/chat/completions",
-        post(|| async { (StatusCode::SERVICE_UNAVAILABLE, "down") }),
-    );
+    let dead = Router::new()
+        .route(
+            "/v1/chat/completions",
+            post(|| async { (StatusCode::SERVICE_UNAVAILABLE, "down") }),
+        )
+        .route("/v1/models", get(|| async { "{\"data\": []}" }));
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap();
     tokio::spawn(async move { axum::serve(listener, dead).await.unwrap() });
@@ -387,4 +426,270 @@ async fn a_dead_gateway_is_given_up_on_gracefully() {
     assert_eq!(troubles, 3);
     assert!(store.episode(1).await.unwrap().is_none());
     assert_eq!(store.state().await.unwrap().unwrap().budget.failures, 3);
+}
+
+fn drain(events: &mut tokio::sync::broadcast::Receiver<Envelope>) -> Vec<Event> {
+    let mut seen = Vec::new();
+    while let Ok(envelope) = events.try_recv() {
+        seen.push(envelope.event);
+    }
+    seen
+}
+
+async fn until(what: &str, mut ready: impl FnMut() -> bool) {
+    for _ in 0..600 {
+        if ready() {
+            return;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    panic!("timed out waiting for {what}");
+}
+
+#[tokio::test]
+async fn a_gateway_restart_mid_turn_reconnects_without_trouble() {
+    let shared: Shared = Arc::new(Mutex::new(Script {
+        turns: script(false),
+        drop_first: true,
+        models_down: 2,
+        ..Default::default()
+    }));
+    let url = serve(shared.clone()).await;
+    let store = Store::connect("mem://", None).await.unwrap();
+    let hub = Hub::new();
+    let mut events = hub.subscribe();
+    let mut agent = Agent::new(config(url), store.clone(), hub.clone())
+        .await
+        .unwrap();
+
+    tokio::time::timeout(Duration::from_secs(120), agent.shift())
+        .await
+        .expect("the shift finishes")
+        .expect("the shift succeeds");
+
+    let seen = drain(&mut events);
+    assert!(
+        !seen.iter().any(|e| matches!(e, Event::Trouble { .. })),
+        "a restart is not trouble"
+    );
+    assert!(seen.iter().any(|e| matches!(e, Event::Retry { turn: 0 })));
+    assert!(seen.iter().any(|e| matches!(
+        e,
+        Event::Phase { phase: Phase::Rest, reason: Some(reason), .. } if reason.contains("reconnecting")
+    )));
+    let episode = store.episode(1).await.unwrap().expect("episode 1 stored");
+    assert_eq!(episode.summary, "29 zeros below 100, none missing.");
+    let turns = store.turns(1).await.unwrap();
+    assert!(!turns[0].thought.contains("half a thou"));
+    assert!(turns[0].thought.contains("Gram blocks"));
+    assert_eq!(store.state().await.unwrap().unwrap().budget.failures, 0);
+}
+
+#[tokio::test]
+async fn a_shutdown_mid_episode_keeps_the_record() {
+    let shared: Shared = Arc::new(Mutex::new(Script {
+        turns: script(false),
+        hang_after: Some(1),
+        ..Default::default()
+    }));
+    let url = serve(shared.clone()).await;
+    let store = Store::connect("mem://", None).await.unwrap();
+    let hub = Hub::new();
+    let agent = Agent::new(config(url), store.clone(), hub.clone())
+        .await
+        .unwrap();
+    let running = tokio::spawn(agent.run());
+    until("the second request", || {
+        shared.lock().unwrap().requests.len() >= 2
+    })
+    .await;
+
+    hub.close();
+    tokio::time::timeout(Duration::from_secs(10), running)
+        .await
+        .expect("the agent parks promptly")
+        .unwrap();
+
+    let episode = store.episode(1).await.unwrap().expect("episode 1 kept");
+    assert_eq!(episode.summary, "Cut off by a restart after 1 action.");
+    assert_eq!(episode.objective, "Locate every zero up to t = 100");
+    assert_eq!(episode.turns, 1);
+    let state = store.state().await.unwrap().unwrap();
+    assert_eq!(state.episodes, 1);
+    assert!(state.open_front.is_empty());
+}
+
+#[tokio::test]
+async fn an_episode_a_hard_kill_cut_off_is_closed_on_the_next_shift() {
+    let store = Store::connect("mem://", None).await.unwrap();
+    store
+        .save_state(&AgentState {
+            awake_since: 1,
+            open_front: "offline".into(),
+            open_since: 5,
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    store
+        .put_turn(&Turn {
+            episode: 1,
+            index: 0,
+            thought: "Aim near the closest pair.".into(),
+            said: String::new(),
+            calls: vec![Call {
+                id: "c".into(),
+                tool: "plan".into(),
+                args: json!({"objective": "Search near t = 7005", "prediction": "No zeros"}),
+                ok: true,
+                summary: "Planned. Go.".into(),
+                verdict: None,
+                data: Value::Null,
+            }],
+            tokens: 10,
+            at: 7,
+        })
+        .await
+        .unwrap();
+    let shared: Shared = Arc::new(Mutex::new(Script {
+        turns: script(false),
+        ..Default::default()
+    }));
+    let url = serve(shared.clone()).await;
+    let hub = Hub::new();
+    let mut agent = Agent::new(config(url), store.clone(), hub.clone())
+        .await
+        .unwrap();
+
+    tokio::time::timeout(Duration::from_secs(120), agent.shift())
+        .await
+        .expect("the shift finishes")
+        .expect("the shift succeeds");
+
+    let cut = store
+        .episode(1)
+        .await
+        .unwrap()
+        .expect("the cut episode is closed");
+    assert_eq!(cut.front, "offline");
+    assert_eq!(cut.summary, "Cut off by a restart after 1 action.");
+    assert_eq!(cut.objective, "Search near t = 7005");
+    assert_eq!((cut.tokens, cut.started, cut.ended), (10, 5, 7));
+    let next = store.episode(2).await.unwrap().expect("the new episode");
+    assert_eq!(next.summary, "29 zeros below 100, none missing.");
+    assert_eq!(store.turns(1).await.unwrap().len(), 1);
+    assert_eq!(store.state().await.unwrap().unwrap().episodes, 2);
+}
+
+#[tokio::test]
+async fn a_viewer_leaving_mid_episode_lets_it_finish_then_waits() {
+    let shared: Shared = Arc::new(Mutex::new(Script {
+        turns: script(false),
+        leave_after: 1,
+        ..Default::default()
+    }));
+    let url = serve(shared.clone()).await;
+    let store = Store::connect("mem://", None).await.unwrap();
+    let hub = Hub::new();
+    shared.lock().unwrap().viewer = Some(Box::new(hub.subscribe()));
+    let mut settings = config(url);
+    settings.mode = proofs::agent::config::Mode::Watched;
+    let agent = Agent::new(settings, store.clone(), hub.clone())
+        .await
+        .unwrap();
+    let running = tokio::spawn(agent.run());
+    let watched = store.clone();
+    let mut letter = String::new();
+    for _ in 0..600 {
+        letter = watched.state().await.unwrap().unwrap_or_default().letter;
+        if !letter.is_empty() {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    assert_eq!(letter, "Climb, and watch the closest pairs.");
+    tokio::time::sleep(Duration::from_millis(500)).await;
+    let asked = shared.lock().unwrap().requests.len();
+    hub.close();
+    tokio::time::timeout(Duration::from_secs(10), running)
+        .await
+        .expect("the waiting agent parks")
+        .unwrap();
+
+    let episode = store.episode(1).await.unwrap().expect("episode 1 finished");
+    assert_eq!(episode.summary, "29 zeros below 100, none missing.");
+    assert_eq!(episode.turns, 5, "every scripted action ran");
+    assert!(
+        store.episode(2).await.unwrap().is_none(),
+        "no viewer, no next episode"
+    );
+    assert_eq!(shared.lock().unwrap().requests.len(), asked);
+}
+
+#[tokio::test]
+async fn a_call_written_while_thinking_still_runs() {
+    let mut turns = script(false);
+    turns[0] = vec![Part::Think(
+        "Plan first.\n<tool_call>\n<function=plan>\n<parameter=objective>\nLocate every zero up to t = 100\n</parameter>\n<parameter=prediction>\nNone missing\n</parameter>\n<parameter=instrument>\nline\n</parameter>\n</function>\n</tool_call>\n",
+    )];
+    let shared: Shared = Arc::new(Mutex::new(Script {
+        turns,
+        ..Default::default()
+    }));
+    let url = serve(shared.clone()).await;
+    let store = Store::connect("mem://", None).await.unwrap();
+    let mut agent = Agent::new(config(url), store.clone(), Hub::new())
+        .await
+        .unwrap();
+
+    tokio::time::timeout(Duration::from_secs(120), agent.shift())
+        .await
+        .expect("the shift finishes")
+        .expect("the shift succeeds");
+
+    let episode = store.episode(1).await.unwrap().unwrap();
+    assert_eq!(episode.objective, "Locate every zero up to t = 100");
+    let first = &store.turns(1).await.unwrap()[0];
+    assert_eq!(first.thought.trim(), "Plan first.");
+    assert_eq!(first.calls[0].tool, "plan");
+    let requests = shared.lock().unwrap().requests.clone();
+    assert!(!requests
+        .iter()
+        .any(|r| r.to_string().contains("No tool call arrived")));
+}
+
+#[tokio::test]
+async fn a_thought_going_in_circles_is_stopped_and_named() {
+    let mut turns = script(false);
+    turns.push_front(
+        (0..6)
+            .map(|_| Part::Think("Let me try sigma_from=0.505 and sigma_to=0.6 again. "))
+            .collect(),
+    );
+    let shared: Shared = Arc::new(Mutex::new(Script {
+        turns,
+        ..Default::default()
+    }));
+    let url = serve(shared.clone()).await;
+    let store = Store::connect("mem://", None).await.unwrap();
+    let mut agent = Agent::new(config(url), store.clone(), Hub::new())
+        .await
+        .unwrap();
+
+    tokio::time::timeout(Duration::from_secs(120), agent.shift())
+        .await
+        .expect("the shift finishes")
+        .expect("the shift succeeds");
+
+    let requests = shared.lock().unwrap().requests.clone();
+    let nudge = requests[1]["messages"]
+        .as_array()
+        .unwrap()
+        .last()
+        .unwrap()
+        .to_string();
+    assert!(nudge.contains("You were repeating yourself"), "{nudge}");
+    let first = &store.turns(1).await.unwrap()[0];
+    assert_eq!(first.thought.matches("Let me try").count(), 3);
+    assert!(store.episode(1).await.unwrap().is_some());
 }

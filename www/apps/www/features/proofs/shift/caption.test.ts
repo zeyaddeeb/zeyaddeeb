@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { caption, sentences } from "./caption";
+import { caption, sentences, unmarked } from "./caption";
 import type { TurnView } from "./reduce";
 import { steps, thinking } from "./steps";
 
@@ -20,6 +20,38 @@ describe("captions", () => {
 		expect(
 			sentences("The margin is 0.0123 at e.g. ten digits. Then it shrinks."),
 		).toEqual(["The margin is 0.0123 at e.g. ten digits.", "Then it shrinks."]);
+	});
+
+	it("drop tool calls the model wrote while thinking", () => {
+		expect(
+			unmarked(
+				'Needs 0.505.\n<tool_call>\n<function=contour>\n<parameter=expect>\n{"op": "<"}\n</parameter>\n</function>\n</tool_call>\nThen wait.',
+			),
+		).toBe("Needs 0.505.\n \nThen wait.");
+		expect(unmarked("Retry.<function=contour><parameter=t_to>30")).toBe(
+			"Retry.",
+		);
+		expect(unmarked("<think>x < 1</think>")).toBe("x < 1");
+	});
+
+	it("fold JSON the model pastes into its thinking", () => {
+		const schema =
+			'I already tried 0.505 and got an error. {"expect": {"properties": {"op": {"enum": ["<", "}"]}}}, "sigma_from": {"description": "Left edge."}}';
+		expect(unmarked(schema)).toBe(
+			"I already tried 0.505 and got an error. {…}",
+		);
+		expect(caption(unmarked(schema))).toEqual({
+			before: null,
+			now: "I already tried 0.505 and got an error.",
+			whole: true,
+		});
+		expect(
+			caption(unmarked('Planned. {"name": "line"} The tool needs from.'))?.now,
+		).toBe("The tool needs from.");
+		expect(unmarked('Next {"field": "t", "op": "<')).toBe("Next {…}");
+		expect(unmarked("the set {x | x > 0} is open")).toBe(
+			"the set {x | x > 0} is open",
+		);
 	});
 
 	it("clip a runaway sentence from the front", () => {

@@ -266,6 +266,10 @@ pub struct AgentState {
     pub known: u64,
     pub letter: String,
     pub last_front: String,
+    #[surreal(default)]
+    pub open_front: String,
+    #[surreal(default)]
+    pub open_since: i64,
     pub arms: Vec<Arm>,
     pub records: Records,
     pub budget: Ledger,

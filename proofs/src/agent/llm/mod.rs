@@ -1,22 +1,62 @@
+mod echo;
 mod gateway;
 mod tags;
 mod written;
 
 use super::live::Channel;
 use anyhow::Result;
+use echo::Echo;
 use futures::StreamExt;
 use rig_core::{
-    client::CompletionClient,
-    completion::{CompletionModel, ToolDefinition},
+    client::{Client, CompletionClient, VerifyClient},
+    completion::{CompletionError, CompletionModel, ToolDefinition},
+    http_client,
     message::{AssistantContent, Message, ToolCall},
     streaming::StreamedAssistantContent,
 };
-use serde_json::json;
+use serde_json::{json, Value};
+use std::{fmt, time::Duration};
+
+const READY_LIMIT: Duration = Duration::from_secs(5);
 use tags::{Piece, Splitter};
 
 #[derive(Clone)]
 pub struct Llm {
+    client: Client<gateway::Gateway>,
     model: gateway::Model,
+}
+
+#[derive(Debug)]
+pub struct Dropped;
+
+impl fmt::Display for Dropped {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("the model server closed the stream before the reply ended")
+    }
+}
+
+impl std::error::Error for Dropped {}
+
+pub fn unreachable(error: &anyhow::Error) -> bool {
+    if error.is::<Dropped>() {
+        return true;
+    }
+    match error.downcast_ref::<CompletionError>() {
+        Some(CompletionError::HttpError(http)) => {
+            status(http).is_none_or(|code| code >= 500 || code == 408 || code == 429)
+        }
+        Some(CompletionError::ResponseError(_) | CompletionError::JsonError(_)) => true,
+        _ => false,
+    }
+}
+
+fn status(error: &http_client::Error) -> Option<u16> {
+    match error {
+        http_client::Error::InvalidStatusCode(status)
+        | http_client::Error::InvalidStatusCodeWithMessage(status, _)
+        | http_client::Error::InvalidStatusCodeWithDetails { status, .. } => Some(status.as_u16()),
+        _ => None,
+    }
 }
 
 pub struct Ask<'a> {
@@ -35,6 +75,7 @@ pub struct Reply {
     pub calls: Vec<ToolCall>,
     pub tokens: u64,
     pub read: u64,
+    pub looped: bool,
 }
 
 impl Reply {
@@ -62,7 +103,15 @@ impl Llm {
         let client = gateway::client(url, key)?;
         Ok(Llm {
             model: client.completion_model(model),
+            client,
         })
+    }
+
+    pub async fn ready(&self) -> bool {
+        matches!(
+            tokio::time::timeout(READY_LIMIT, self.client.verify()).await,
+            Ok(Ok(()))
+        )
     }
 
     pub async fn reply(&self, ask: Ask<'_>, mut sink: impl FnMut(Channel, &str)) -> Result<Reply> {
@@ -70,6 +119,7 @@ impl Llm {
             + serde_json::to_string(ask.history).map_or(0, |text| text.len())
             + serde_json::to_string(&ask.prompt).map_or(0, |text| text.len())
             + serde_json::to_string(&ask.tools).map_or(0, |text| text.len());
+        let names: Vec<String> = ask.tools.iter().map(|tool| tool.name.clone()).collect();
         let request = self
             .model
             .completion_request(ask.prompt)
@@ -82,12 +132,16 @@ impl Llm {
                 "enable_thinking": ask.thinking,
                 "top_p": 0.95,
                 "top_k": 20,
+                "presence_penalty": if ask.thinking { 1.5 } else { 0.0 },
                 "truncate_sequence": true,
             }))
             .build();
         let mut stream = self.model.stream(request).await?;
         let mut reply = Reply::default();
         let mut splitter = Splitter::default();
+        let mut musing = Splitter::thinking();
+        let mut echo = Echo::default();
+        let mut ended = false;
         let mut route = |piece: Piece, reply: &mut Reply| match piece {
             Piece::Think(text) => {
                 sink(Channel::Think, &text);
@@ -101,15 +155,26 @@ impl Llm {
         while let Some(item) = stream.next().await {
             match item? {
                 StreamedAssistantContent::ReasoningDelta { reasoning, .. } => {
-                    route(Piece::Think(reasoning), &mut reply);
+                    for piece in musing.push(&reasoning) {
+                        route(piece, &mut reply);
+                    }
+                    if echo.push(&reasoning) {
+                        reply.looped = true;
+                        break;
+                    }
                 }
                 StreamedAssistantContent::Text(text) => {
                     for piece in splitter.push(text.text()) {
                         route(piece, &mut reply);
                     }
+                    if echo.push(text.text()) {
+                        reply.looped = true;
+                        break;
+                    }
                 }
                 StreamedAssistantContent::ToolCall { tool_call, .. } => reply.calls.push(tool_call),
                 StreamedAssistantContent::Final(done) => {
+                    ended = true;
                     reply.tokens = done.usage.output_tokens;
                     reply.read = done
                         .usage
@@ -119,14 +184,16 @@ impl Llm {
                 _ => {}
             }
         }
-        for piece in splitter.finish() {
+        if !ended && !reply.looped {
+            return Err(Dropped.into());
+        }
+        for piece in musing.finish().into_iter().chain(splitter.finish()) {
             route(piece, &mut reply);
         }
         if reply.calls.is_empty() {
-            reply.calls = splitter
-                .calls()
-                .iter()
-                .filter_map(|block| written::parse(block))
+            let names: Vec<&str> = names.iter().map(String::as_str).collect();
+            reply.calls = written_calls(&mut reply, &names, [&musing, &splitter])
+                .into_iter()
                 .enumerate()
                 .filter_map(|(index, (name, args))| {
                     match AssistantContent::tool_call(format!("written-{index}"), name, args) {
@@ -162,6 +229,44 @@ impl Llm {
         let reply = self.reply(ask, |_, _| {}).await?;
         Ok((tactics(&reply.said), reply.processed()))
     }
+}
+
+fn written_calls(
+    reply: &mut Reply,
+    names: &[&str],
+    splitters: [&Splitter; 2],
+) -> Vec<(String, Value)> {
+    let spoken: Vec<(String, Value)> = splitters
+        .iter()
+        .flat_map(|splitter| splitter.spoken())
+        .filter_map(|block| written::parse(block))
+        .collect();
+    if !spoken.is_empty() {
+        return spoken;
+    }
+    let found = written::loose(&reply.said, names);
+    if !found.is_empty() {
+        for (span, _, _) in found.iter().rev() {
+            reply.said.replace_range(span.clone(), "");
+        }
+        return found
+            .into_iter()
+            .map(|(_, name, args)| (name, args))
+            .collect();
+    }
+    let mused = splitters
+        .iter()
+        .flat_map(|splitter| splitter.mused())
+        .rev()
+        .find_map(|block| written::parse(block));
+    mused
+        .or_else(|| {
+            written::loose(&reply.thought, names)
+                .pop()
+                .map(|(_, name, args)| (name, args))
+        })
+        .into_iter()
+        .collect()
 }
 
 pub fn tactics(text: &str) -> Vec<String> {

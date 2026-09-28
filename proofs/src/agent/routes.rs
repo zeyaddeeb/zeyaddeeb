@@ -154,14 +154,17 @@ async fn events(State(shared): State<Shared>) -> impl IntoResponse {
     let Ok(seat) = shared.seats.clone().try_acquire_owned() else {
         return StatusCode::SERVICE_UNAVAILABLE.into_response();
     };
-    let stream = BroadcastStream::new(shared.hub.subscribe()).filter_map(move |item| {
-        let _seat = &seat;
-        async move {
-            let envelope = item.ok()?;
-            let data = serde_json::to_string(&envelope).ok()?;
-            Some(Ok::<_, Infallible>(SseEvent::default().data(data)))
-        }
-    });
+    let hub = shared.hub.clone();
+    let stream = BroadcastStream::new(shared.hub.subscribe())
+        .filter_map(move |item| {
+            let _seat = &seat;
+            async move {
+                let envelope = item.ok()?;
+                let data = serde_json::to_string(&envelope).ok()?;
+                Some(Ok::<_, Infallible>(SseEvent::default().data(data)))
+            }
+        })
+        .take_until(async move { hub.closed().await });
     Sse::new(stream)
         .keep_alive(KeepAlive::new().interval(Duration::from_secs(20)))
         .into_response()

@@ -24,11 +24,15 @@ use memory::{AgentState, Store};
 use std::{sync::Arc, time::Duration};
 
 const LEASE_SECONDS: u64 = 1200;
+const DROPS: u32 = 3;
+const RECONNECT_FIRST: Duration = Duration::from_secs(2);
+const RECONNECT_MAX: Duration = Duration::from_secs(30);
 
 #[derive(Debug)]
 pub enum Stop {
     GaveUp,
     Displaced,
+    Shutdown,
     Failed(anyhow::Error),
 }
 
@@ -80,7 +84,10 @@ pub async fn archive(database: &str) -> anyhow::Result<(Store, About)> {
     Ok((store, about))
 }
 
-pub async fn start(config: Config, hub: Arc<Hub>) -> anyhow::Result<(Store, About)> {
+pub async fn start(
+    config: Config,
+    hub: Arc<Hub>,
+) -> anyhow::Result<(Store, About, tokio::task::JoinHandle<()>)> {
     let about = about(
         config.mode.name(),
         config.model.clone(),
@@ -89,8 +96,8 @@ pub async fn start(config: Config, hub: Arc<Hub>) -> anyhow::Result<(Store, Abou
     .await?;
     let store = Store::connect(&config.database, None).await?;
     let agent = Agent::new(config, store.clone(), hub).await?;
-    tokio::spawn(agent.run());
-    Ok((store, about))
+    let running = tokio::spawn(agent.run());
+    Ok((store, about, running))
 }
 
 impl Agent {
@@ -143,12 +150,50 @@ impl Agent {
             reason: Some(wait.reason().to_string()),
         });
         self.save().await?;
-        tokio::time::sleep(wait.duration()).await;
+        self.nap(wait.duration()).await;
         Ok(())
     }
 
-    async fn ask(&mut self, turn: u32, ask: Ask<'_>) -> Result<Reply, Stop> {
+    async fn nap(&self, duration: Duration) {
+        tokio::select! {
+            _ = tokio::time::sleep(duration) => {}
+            _ = self.hub.closed() => {}
+        }
+    }
+
+    fn stopping(&self) -> bool {
+        self.hub.closing()
+    }
+
+    async fn reconnect(&mut self) -> Result<(), Stop> {
+        self.emit(Event::Phase {
+            phase: Phase::Rest,
+            seconds: None,
+            reason: Some("the model server is restarting; reconnecting".into()),
+        });
+        let mut wait = RECONNECT_FIRST;
         loop {
+            if self.stopping() {
+                return Err(Stop::Shutdown);
+            }
+            if !self.store.claim(&self.config.holder, LEASE_SECONDS).await? {
+                return Err(Stop::Displaced);
+            }
+            if self.llm.ready().await {
+                tracing::info!("the model server is back");
+                return Ok(());
+            }
+            self.nap(wait).await;
+            wait = (wait * 2).min(RECONNECT_MAX);
+        }
+    }
+
+    async fn ask(&mut self, turn: u32, ask: Ask<'_>) -> Result<Reply, Stop> {
+        let mut drops = 0;
+        loop {
+            if self.stopping() {
+                return Err(Stop::Shutdown);
+            }
             if !self.store.claim(&self.config.holder, LEASE_SECONDS).await? {
                 return Err(Stop::Displaced);
             }
@@ -172,20 +217,43 @@ impl Agent {
                     text: text.to_string(),
                 })
             });
-            match tokio::time::timeout(self.config.turn_limit, streamed).await {
+            let limited = tokio::time::timeout(self.config.turn_limit, streamed);
+            let outcome = tokio::select! {
+                outcome = limited => Some(outcome),
+                _ = self.hub.closed() => None,
+            };
+            let Some(outcome) = outcome else {
+                self.emit(Event::Retry { turn });
+                return Err(Stop::Shutdown);
+            };
+            match outcome {
                 Ok(Ok(reply)) => {
                     self.governor.spend(reply.processed());
                     self.state.tokens += reply.tokens;
                     return Ok(reply);
                 }
+                Ok(Err(error)) if llm::unreachable(&error) && drops < DROPS => {
+                    drops += 1;
+                    tracing::warn!(%error, drops, "the model server dropped the turn");
+                    self.emit(Event::Retry { turn });
+                    self.reconnect().await?;
+                }
                 outcome => {
                     let message = match outcome {
-                        Ok(Err(error)) => format!("The model failed: {error}"),
-                        _ => "The model took too long to answer.".to_string(),
+                        Ok(Err(error)) if llm::unreachable(&error) => {
+                            tracing::warn!(%error, "the model server keeps dropping this turn");
+                            "The model server keeps dropping this turn; backing off."
+                        }
+                        Ok(Err(error)) => {
+                            tracing::warn!(%error, "the model refused the request");
+                            "The model could not answer this turn; backing off."
+                        }
+                        _ => "The model took too long to answer; backing off.",
                     };
-                    tracing::warn!(%message, "model call failed");
                     self.emit(Event::Retry { turn });
-                    self.emit(Event::Trouble { message });
+                    self.emit(Event::Trouble {
+                        message: message.to_string(),
+                    });
                     let wait = self.governor.fail(now());
                     if self.governor.exhausted() {
                         self.save().await?;
@@ -198,13 +266,16 @@ impl Agent {
     }
 
     async fn propose(&mut self, goal: &str, failed: &[String]) -> Vec<String> {
-        if self.governor.check(now()).is_some() {
+        if self.stopping() || self.governor.check(now()).is_some() {
             return Vec::new();
         }
-        let proposed =
-            tokio::time::timeout(Duration::from_secs(300), self.llm.propose(goal, failed)).await;
+        let proposed = tokio::select! {
+            proposed = tokio::time::timeout(Duration::from_secs(300), self.llm.propose(goal, failed)) => Some(proposed),
+            _ = self.hub.closed() => None,
+        };
         match proposed {
-            Ok(Ok((tactics, processed))) => {
+            None => Vec::new(),
+            Some(Ok(Ok((tactics, processed)))) => {
                 self.governor.spend(processed);
                 tactics
             }

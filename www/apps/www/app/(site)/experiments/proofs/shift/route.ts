@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 			headers: { accept: "text/event-stream" },
 		});
 	} catch {
-		return new Response(null, { status: 502 });
+		return new Response(null, { status: 503 });
 	}
 	if (upstream.status === 404) {
 		return new Response(null, { status: 204 });
@@ -19,11 +19,38 @@ export async function GET(request: Request) {
 	if (!upstream.ok || !upstream.body) {
 		return new Response(null, { status: upstream.status });
 	}
-	return new Response(upstream.body, {
+	return new Response(settled(upstream.body), {
 		headers: {
 			"content-type": "text/event-stream",
 			"cache-control": "no-cache, no-transform",
 			"x-accel-buffering": "no",
+		},
+	});
+}
+
+function settled(body: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
+	const reader = body.getReader();
+	let done = false;
+	const end = (controller: ReadableStreamDefaultController<Uint8Array>) => {
+		if (done) return;
+		done = true;
+		try {
+			controller.close();
+		} catch {}
+	};
+	return new ReadableStream<Uint8Array>({
+		async pull(controller) {
+			try {
+				const read = await reader.read();
+				if (read.done) end(controller);
+				else if (!done) controller.enqueue(read.value);
+			} catch {
+				end(controller);
+			}
+		},
+		cancel(reason) {
+			done = true;
+			return reader.cancel(reason).catch(() => {});
 		},
 	});
 }

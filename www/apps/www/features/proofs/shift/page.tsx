@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
-import { caption } from "./caption";
+import { caption, unmarked } from "./caption";
 import { Exhibit } from "./exhibit";
 import { chip, words } from "./format";
 import type { SearchStep } from "./protocol";
@@ -35,7 +35,7 @@ export function NotebookPage({
 	const turn = following
 		? pending
 		: view.turns.find((t) => t.index === chosen?.turn);
-	const thought = (turn?.think.trim() || turn?.say.trim()) ?? "";
+	const thought = unmarked(turn?.think ?? "") || unmarked(turn?.say ?? "");
 	const lines = caption(thought);
 	const streaming = !!following;
 	const strip = useRef<HTMLOListElement>(null);
@@ -58,14 +58,8 @@ export function NotebookPage({
 			</header>
 			<h3 className="ns-question">{view.question}</h3>
 			<dl className="ns-plan" data-empty={!view.objective || undefined}>
-				<div>
-					<dt>Objective</dt>
-					<dd>{view.objective ?? "—"}</dd>
-				</div>
-				<div>
-					<dt>Predicts</dt>
-					<dd>{view.prediction ?? "—"}</dd>
-				</div>
+				<Planned term="Objective" text={view.objective} />
+				<Planned term="Predicts" text={view.prediction} />
 			</dl>
 			<div className="ns-caption" data-streaming={streaming || undefined}>
 				{lines ? (
@@ -136,5 +130,43 @@ export function NotebookPage({
 				{view.status}
 			</p>
 		</section>
+	);
+}
+
+function Planned({ term, text }: { term: string; text: string | null }) {
+	const clamp = useRef<HTMLSpanElement>(null);
+	const [clipped, setClipped] = useState(false);
+
+	useLayoutEffect(() => {
+		const element = clamp.current;
+		if (!element || !text) {
+			setClipped(false);
+			return;
+		}
+		const measure = () =>
+			setClipped(element.scrollHeight > element.clientHeight + 1);
+		measure();
+		const observer = new ResizeObserver(measure);
+		observer.observe(element);
+		return () => observer.disconnect();
+	}, [text]);
+
+	return (
+		<div>
+			<dt>{term}</dt>
+			<dd
+				data-clipped={clipped || undefined}
+				tabIndex={clipped ? 0 : undefined}
+			>
+				<span className="ns-plan-text" ref={clamp}>
+					{text ?? "—"}
+				</span>
+				{clipped ? (
+					<span className="ns-plan-full" aria-hidden="true">
+						{text}
+					</span>
+				) : null}
+			</dd>
+		</div>
 	);
 }

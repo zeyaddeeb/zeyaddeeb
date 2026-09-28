@@ -42,7 +42,10 @@ pub async fn run(agent: &mut Agent, front: &'static Front) -> Result<Episode, St
             thinking: true,
             max_tokens: agent.config.max_tokens,
         };
-        let reply = agent.ask(turn, ask).await?;
+        let reply = match agent.ask(turn, ask).await {
+            Err(Stop::Shutdown) => break,
+            reply => reply?,
+        };
         record.turns += 1;
         record.tokens += reply.tokens;
         history.push(prompt);
@@ -55,15 +58,61 @@ pub async fn run(agent: &mut Agent, front: &'static Front) -> Result<Episode, St
             Some(Message::User { content: results })
         } else if nudges < NUDGES {
             nudges += 1;
-            Some(Message::user("Act now with exactly one tool call."))
+            Some(Message::user(if reply.looped {
+                "You were repeating yourself, so I stopped you. No tool call arrived and nothing ran. Make exactly one tool call now, with arguments you have not tried."
+            } else {
+                "No tool call arrived, so nothing ran. Make exactly one tool call now."
+            }))
         } else {
             None
         };
     }
-    if desk.conclusion.is_none() {
+    if desk.conclusion.is_none() && !agent.stopping() {
         conclude(agent, &mut desk, &preamble, &history, pending, &mut record).await?;
     }
+    if desk.conclusion.is_none() {
+        desk.conclusion = Some((cut_off(record.turns), String::new()));
+    }
     finish(agent, desk, record).await
+}
+
+fn cut_off(turns: u32) -> String {
+    format!(
+        "Cut off by a restart after {turns} {}.",
+        if turns == 1 { "action" } else { "actions" }
+    )
+}
+
+pub fn interrupted(number: u64, front: &str, started: i64, turns: &[Turn]) -> Episode {
+    let calls: Vec<_> = turns.iter().flat_map(|turn| &turn.calls).collect();
+    let planned = |key: &str| {
+        calls
+            .iter()
+            .find(|call| call.tool == Tool::Plan.name() && call.ok)
+            .and_then(|call| call.args[key].as_str())
+            .unwrap_or_default()
+            .to_string()
+    };
+    let graded: Vec<bool> = calls
+        .iter()
+        .filter_map(|call| call.verdict.as_ref())
+        .filter(|verdict| verdict.known.is_none())
+        .map(|verdict| verdict.held)
+        .collect();
+    Episode {
+        number,
+        front: front.to_string(),
+        objective: planned("objective"),
+        prediction: planned("prediction"),
+        summary: cut_off(turns.len() as u32),
+        held: graded.iter().filter(|&&held| held).count() as u32,
+        broken: graded.iter().filter(|&&held| !held).count() as u32,
+        turns: turns.len() as u32,
+        tokens: turns.iter().map(|turn| turn.tokens).sum(),
+        started,
+        ended: turns.last().map_or(started, |turn| turn.at),
+        ..Default::default()
+    }
 }
 
 async fn act(
@@ -130,7 +179,10 @@ async fn conclude(
         thinking: false,
         max_tokens: 400,
     };
-    let reply = agent.ask(turn, ask).await?;
+    let reply = match agent.ask(turn, ask).await {
+        Err(Stop::Shutdown) => return Ok(()),
+        reply => reply?,
+    };
     record.turns += 1;
     record.tokens += reply.tokens;
     act(agent, desk, record.number, turn, &reply).await?;

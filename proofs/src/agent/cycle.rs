@@ -14,9 +14,10 @@ const DISPLACED: Duration = Duration::from_secs(60);
 impl Agent {
     pub async fn run(mut self) {
         tracing::info!(episodes = self.state.episodes, "the night shift begins");
-        loop {
+        while !self.stopping() {
             if let Err(stop) = self.shift().await {
                 let pause = match stop {
+                    Stop::Shutdown => break,
                     Stop::Displaced => DISPLACED,
                     Stop::GaveUp => self.config.limits.backoff_max,
                     Stop::Failed(error) => {
@@ -31,15 +32,51 @@ impl Agent {
                 self.rest(pause).await;
             }
         }
+        self.bench.release();
+        if let Err(error) = self.save().await {
+            tracing::error!(%error, "could not save before stopping");
+        }
+        tracing::info!("the night shift is parked");
+    }
+
+    async fn recover(&mut self) -> anyhow::Result<()> {
+        if self.state.open_front.is_empty() {
+            return Ok(());
+        }
+        let number = self.state.episodes + 1;
+        let front = std::mem::take(&mut self.state.open_front);
+        let closed = match self.store.episode(number).await? {
+            Some(_) => true,
+            None => {
+                let turns = self.store.turns(number).await?;
+                if !turns.is_empty() {
+                    let record =
+                        episode::interrupted(number, &front, self.state.open_since, &turns);
+                    self.store.put_episode(&record).await?;
+                    self.emit(Event::Concluded { episode: record });
+                }
+                !turns.is_empty()
+            }
+        };
+        if closed {
+            tracing::info!(number, "closed an episode a restart cut off");
+            self.state.episodes = number;
+            self.state.last_front = front;
+        }
+        self.save().await
     }
 
     pub async fn shift(&mut self) -> Result<(), Stop> {
         if self.config.mode == Mode::Watched && self.hub.watchers() == 0 {
             self.rest(Duration::ZERO).await;
         }
+        if self.stopping() {
+            return Err(Stop::Shutdown);
+        }
         if !self.store.claim(&self.config.holder, LEASE_SECONDS).await? {
             return Err(Stop::Displaced);
         }
+        self.recover().await?;
         self.bench.rest_if_idle();
         let ids: Vec<&str> = FRONTS.iter().map(|front| front.id).collect();
         let (chosen, arms) = bandit::choose(&self.state.arms, &ids, &self.state.last_front);
@@ -49,12 +86,18 @@ impl Agent {
             front: front.id.to_string(),
             arms,
         });
+        self.state.open_front = front.id.to_string();
+        self.state.open_since = super::now();
         self.save().await?;
         let record = episode::run(self, front).await?;
         self.state.episodes = record.number;
         self.state.last_front = front.id.to_string();
+        self.state.open_front.clear();
         bandit::reward(&mut self.state.arms, front.id, record.reward);
         self.save().await?;
+        if self.stopping() {
+            return Err(Stop::Shutdown);
+        }
         if self.state.episodes.is_multiple_of(self.config.sleep_every) {
             sleep::run(self).await?;
             self.save().await?;
@@ -76,7 +119,7 @@ impl Agent {
         });
         let mut left = pause;
         let mut waiting = false;
-        loop {
+        while !self.stopping() {
             if self.hub.watchers() > 0 && left > self.config.rest_watched {
                 left = self.config.rest_watched;
             }
@@ -96,11 +139,11 @@ impl Agent {
                         reason: Some("it works only while someone is watching".into()),
                     });
                 }
-                tokio::time::sleep(SLICE).await;
+                self.nap(SLICE).await;
                 continue;
             }
             let step = left.min(SLICE);
-            tokio::time::sleep(step).await;
+            self.nap(step).await;
             left = left.saturating_sub(step);
         }
     }

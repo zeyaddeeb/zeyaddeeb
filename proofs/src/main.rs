@@ -5,7 +5,7 @@ use proofs::{
 };
 use std::{net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
 
-const DRAIN: Duration = Duration::from_secs(5);
+const DRAIN: Duration = Duration::from_secs(10);
 
 fn env<T: std::str::FromStr>(name: &str, fallback: T) -> T {
     std::env::var(name)
@@ -35,14 +35,16 @@ async fn main() -> anyhow::Result<()> {
     let mut app = Router::new()
         .route("/health", get(|| async { "ok" }))
         .merge(playground::routes::router(pool));
+    let hub = Hub::new();
+    let mut running = None;
     if let Some(config) = agent::config::Config::from_env() {
-        let hub = Hub::new();
-        let (store, about) = agent::start(config, hub.clone()).await?;
-        app = app.merge(agent::routes::router(hub, store, about));
+        let (store, about, agent) = agent::start(config, hub.clone()).await?;
+        running = Some(agent);
+        app = app.merge(agent::routes::router(hub.clone(), store, about));
         tracing::info!("the agent is awake");
     } else if let Some(database) = agent::config::archive() {
         let (store, about) = agent::archive(&database).await?;
-        app = app.merge(agent::routes::router(Hub::new(), store, about));
+        app = app.merge(agent::routes::router(hub.clone(), store, about));
         tracing::info!("the agent is off; its notebook is open");
     }
     let app = app.layer(DefaultBodyLimit::max(16 * 1024));
@@ -51,25 +53,28 @@ async fn main() -> anyhow::Result<()> {
     let addr: SocketAddr = format!("{host}:3005").parse()?;
     tracing::info!(%addr, workers, "proofs backend listening");
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    let (stop, stopped) = tokio::sync::watch::channel(false);
-    let server = axum::serve(listener, app).with_graceful_shutdown(async move {
-        let mut stopped = stopped;
-        let _ = stopped.changed().await;
+    let closing = hub.clone();
+    let mut server = tokio::spawn(async move {
+        axum::serve(listener, app)
+            .with_graceful_shutdown(async move { closing.closed().await })
+            .await
     });
+    let mut terminate = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
     tokio::select! {
-        served = server => served?,
-        _ = async {
-            let mut terminate =
-                tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
-                    .expect("SIGTERM handler");
-            tokio::select! {
-                _ = tokio::signal::ctrl_c() => {}
-                _ = terminate.recv() => {}
-            }
-            let _ = stop.send(true);
-            tokio::time::sleep(DRAIN).await;
-            tracing::info!("open event streams cut after the drain");
-        } => {}
+        served = &mut server => return Ok(served??),
+        _ = tokio::signal::ctrl_c() => {}
+        _ = terminate.recv() => {}
+    }
+    hub.close();
+    let parked = tokio::time::timeout(DRAIN, async {
+        if let Some(agent) = running {
+            let _ = agent.await;
+        }
+        let _ = server.await;
+    })
+    .await;
+    if parked.is_err() {
+        tracing::warn!("stopped before the agent finished parking");
     }
     Ok(())
 }

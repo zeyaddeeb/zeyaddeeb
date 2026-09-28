@@ -43,6 +43,7 @@ pub struct Desk {
     pub conclusion: Option<(String, String)>,
     pub tally: Tally,
     claims: u32,
+    refusals: Vec<(String, Value)>,
 }
 
 pub(super) struct Done {
@@ -70,6 +71,14 @@ impl Done {
     }
 }
 
+fn sent(args: &Value) -> String {
+    let text = args.to_string();
+    match text.char_indices().nth(300) {
+        Some((at, _)) => format!("{}…", &text[..at]),
+        None => text,
+    }
+}
+
 pub(super) fn text(args: &Value, key: &str, limit: usize) -> Option<String> {
     let value = args[key].as_str()?.trim();
     (!value.is_empty()).then(|| value.chars().take(limit).collect())
@@ -85,6 +94,7 @@ impl Desk {
             conclusion: None,
             tally: Tally::default(),
             claims: 0,
+            refusals: Vec::new(),
         }
     }
 
@@ -98,13 +108,31 @@ impl Desk {
             tool: name.to_string(),
             args: args.clone(),
         });
-        let done = match Tool::parse(name).filter(|tool| self.allowed.contains(tool)) {
-            None => Done::refused(format!("There is no tool called {name} here.")),
+        let mut done = match Tool::parse(name).filter(|tool| self.allowed.contains(tool)) {
+            None => Done::refused(format!(
+                "There is no tool called {name} here. Tools here: {}.",
+                self.allowed
+                    .iter()
+                    .map(|tool| tool.name())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )),
             Some(tool) if self.plan.is_none() && tool != Tool::Plan => {
                 Done::refused("Begin with plan: the objective and your prediction.")
             }
             Some(tool) => self.dispatch(agent, tool, args).await,
         };
+        if !done.ok {
+            let attempt = (name.to_string(), args.clone());
+            if self.refusals.contains(&attempt) {
+                done.summary = format!(
+                    "You sent exactly this before and it was refused the same way. Change the arguments. {}",
+                    done.summary
+                );
+            } else {
+                self.refusals.push(attempt);
+            }
+        }
         let summary = done.summary.clone();
         agent.emit(Event::Outcome {
             turn,
@@ -206,7 +234,7 @@ impl Desk {
         let began = Instant::now();
         let mut reading = match self.read(agent, tool, args).await {
             Ok(reading) => reading,
-            Err(error) => return Done::refused(error),
+            Err(error) => return Done::refused(format!("{error} You sent {}.", sent(args))),
         };
         if let Some(data) = reading.data.as_object_mut() {
             data.insert("millis".into(), json!(began.elapsed().as_millis() as u64));
