@@ -27,6 +27,15 @@ export interface Experiment {
 
 export const experiments: Experiment[] = [
 	{
+		id: "meat-content",
+		number: 15,
+		title: "Meat Content",
+		line: "If everyone replies with “Claude said:”, how much of the conversation is people? An xkcd-style what-if with a gzip label, two people wired between two Claudes, and a ping slower than a pigeon.",
+		stack: ["TypeScript", "CompressionStream", "SVG", "Branching processes"],
+		href: "/experiments/meat-content",
+		kind: "dom",
+	},
+	{
 		id: "play-that-thing",
 		number: 14,
 		title: "Play That Thing",

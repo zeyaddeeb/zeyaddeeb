@@ -64,7 +64,6 @@ function Calibrated({ about }: { about: About | null }) {
 }
 
 function Head({
-	awake,
 	episodes,
 	about,
 	connection,
@@ -74,7 +73,6 @@ function Head({
 	about: About | null;
 	connection: Connection;
 }) {
-	const off = about?.mode === "off";
 	return (
 		<header className="ns-head">
 			<blockquote className="ns-quote">
