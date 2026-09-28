@@ -1,3 +1,4 @@
+mod gateway;
 mod tags;
 mod written;
 
@@ -8,17 +9,14 @@ use rig_core::{
     client::CompletionClient,
     completion::{CompletionModel, ToolDefinition},
     message::{AssistantContent, Message, ToolCall},
-    providers::openai,
     streaming::StreamedAssistantContent,
 };
 use serde_json::json;
 use tags::{Piece, Splitter};
 
-pub type Model = <openai::CompletionsClient as CompletionClient>::CompletionModel;
-
 #[derive(Clone)]
 pub struct Llm {
-    model: Model,
+    model: gateway::Model,
 }
 
 pub struct Ask<'a> {
@@ -61,10 +59,7 @@ impl Reply {
 
 impl Llm {
     pub fn new(url: &str, key: &str, model: &str) -> Result<Self> {
-        let client = openai::CompletionsClient::builder()
-            .api_key(key)
-            .base_url(url)
-            .build()?;
+        let client = gateway::client(url, key)?;
         Ok(Llm {
             model: client.completion_model(model),
         })
