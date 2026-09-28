@@ -89,18 +89,6 @@ function Head({
 			</p>
 			<dl className="ns-vitals">
 				<div>
-					<dt>
-						{off ? "Status" : about?.mode === "watched" ? "Works" : "Awake"}
-					</dt>
-					<dd className="ns-vital-status">
-						{off
-							? "Off shift"
-							: about?.mode === "watched"
-								? "While watched"
-								: (awake ?? "—")}
-					</dd>
-				</div>
-				<div>
 					<dt>Episodes</dt>
 					<dd className="ns-vital-count">{episodes ?? "—"}</dd>
 				</div>
