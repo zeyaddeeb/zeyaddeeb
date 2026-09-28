@@ -4,7 +4,11 @@ import { LifeArrow } from "@zeyaddeeb/ui";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { type Experiment, number } from "@/features/catalog/catalog";
+import {
+	type Experiment,
+	number,
+	topicLabel,
+} from "@/features/catalog/catalog";
 import { HOME_VARIANT } from "@/features/tiling/engine";
 import { useShouldRun } from "@/lib/hooks/use-animation-activity";
 import { useWasm } from "@/lib/hooks/use-wasm";
@@ -112,6 +116,11 @@ function Row({
 					<span className="row__stack">{experiment.stack.join(" / ")}</span>
 				</div>
 				<p className="row__description">{experiment.line}</p>
+				<span className="row__topics">
+					{experiment.topics.map((topic) => (
+						<span key={topic}>{topicLabel(topic)}</span>
+					))}
+				</span>
 				<span className="row__preview" aria-hidden="true">
 					{live && touched ? (
 						<Band experiment={experiment} running={running} />

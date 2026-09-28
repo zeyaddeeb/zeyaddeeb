@@ -1,6 +1,26 @@
 import { pageMetadata } from "@zeyaddeeb/ui/seo";
 
-export type ExperimentKind = "wasm" | "network" | "mic" | "remote" | "dom";
+export type Topic =
+	| "ai"
+	| "math"
+	| "graphics"
+	| "design"
+	| "systems"
+	| "sound"
+	| "other";
+
+export const topics: { value: Topic; label: string }[] = [
+	{ value: "ai", label: "AI" },
+	{ value: "math", label: "Math" },
+	{ value: "graphics", label: "Graphics" },
+	{ value: "design", label: "Design" },
+	{ value: "systems", label: "Systems" },
+	{ value: "sound", label: "Sound" },
+	{ value: "other", label: "Other" },
+];
+
+export const topicLabel = (topic: Topic) =>
+	topics.find((t) => t.value === topic)?.label ?? topic;
 
 export type LiveSource =
 	| "life"
@@ -20,7 +40,7 @@ export interface Experiment {
 	line: string;
 	stack: string[];
 	href: string;
-	kind: ExperimentKind;
+	topics: Topic[];
 	live?: LiveSource;
 	external?: boolean;
 }
@@ -33,7 +53,7 @@ export const experiments: Experiment[] = [
 		line: "If everyone replies with “Claude said:”, how much of the conversation is people? An xkcd-style what-if with a gzip label, two people wired between two Claudes, and a ping slower than a pigeon.",
 		stack: ["TypeScript", "CompressionStream", "SVG", "Branching processes"],
 		href: "/experiments/meat-content",
-		kind: "dom",
+		topics: ["ai", "math"],
 	},
 	{
 		id: "play-that-thing",
@@ -42,7 +62,7 @@ export const experiments: Experiment[] = [
 		line: "Trade fours with Louis Armstrong, Johnny Dodds and Kid Ory, rebuilt from their own transcribed solos, and see which record every answer came from.",
 		stack: ["TypeScript", "Web Audio", "Markov model", "Mini-notation"],
 		href: "/experiments/play-that-thing",
-		kind: "dom",
+		topics: ["sound", "ai"],
 	},
 	{
 		id: "compute-crunch",
@@ -51,7 +71,7 @@ export const experiments: Experiment[] = [
 		line: "Route the world’s AI demand by hand, then watch a linear program beat you and put a price on every constraint.",
 		stack: ["Python", "OR-Tools", "FastAPI", "Linear programming"],
 		href: "/experiments/compute-crunch",
-		kind: "network",
+		topics: ["math", "systems"],
 	},
 	{
 		id: "game-of-life",
@@ -60,7 +80,7 @@ export const experiments: Experiment[] = [
 		line: "Draw cells, run Conway’s Game of Life, and compare Rust with JavaScript.",
 		stack: ["Rust", "WASM", "Canvas"],
 		href: "/experiments/game-of-life",
-		kind: "wasm",
+		topics: ["graphics", "math"],
 		live: "life",
 	},
 	{
@@ -70,7 +90,7 @@ export const experiments: Experiment[] = [
 		line: "Six animated hyperbolic tilings inspired by M. C. Escher.",
 		stack: ["Rust", "WASM", "Hyperbolic geometry"],
 		href: "/experiments/circle-limit",
-		kind: "wasm",
+		topics: ["math", "graphics"],
 		live: "tiling",
 	},
 	{
@@ -80,7 +100,7 @@ export const experiments: Experiment[] = [
 		line: "A shared text editor that syncs changes between browsers and handles offline edits.",
 		stack: ["Rust", "WASM", "RGA", "WebSocket", "SurrealDB"],
 		href: "/experiments/crdt",
-		kind: "network",
+		topics: ["systems"],
 		live: "crdt",
 	},
 	{
@@ -90,7 +110,7 @@ export const experiments: Experiment[] = [
 		line: "Matrix-style falling text, laid out with Pretext and animated with CSS.",
 		stack: ["Pretext", "CSS", "Typography"],
 		href: "/experiments/pretext-matrix",
-		kind: "dom",
+		topics: ["graphics", "design"],
 		live: "rain",
 	},
 	{
@@ -100,7 +120,7 @@ export const experiments: Experiment[] = [
 		line: "See the frequencies in your microphone’s audio, with four display modes.",
 		stack: ["Rust", "WASM", "Web Audio"],
 		href: "/experiments/audio-visualizer",
-		kind: "mic",
+		topics: ["sound", "graphics"],
 		live: "audio",
 	},
 	{
@@ -110,7 +130,7 @@ export const experiments: Experiment[] = [
 		line: "Browse client projects on a draggable canvas.",
 		stack: ["Canvas", "UX"],
 		href: "/experiments/portfolio",
-		kind: "dom",
+		topics: ["design"],
 		live: "portfolio",
 	},
 	{
@@ -120,7 +140,7 @@ export const experiments: Experiment[] = [
 		line: "My programming history, from a DOS prompt to Kubernetes and Rust, with each interface running.",
 		stack: ["TypeScript", "Rust", "WASM"],
 		href: "/story",
-		kind: "dom",
+		topics: ["other"],
 		live: "story",
 	},
 	{
@@ -130,7 +150,7 @@ export const experiments: Experiment[] = [
 		line: "A basketball agent trained with reinforcement learning in Rust and Bevy.",
 		stack: ["Rust", "Bevy", "SAC", "WASM"],
 		href: "https://robot.zeyaddeeb.com",
-		kind: "remote",
+		topics: ["ai"],
 		live: "robot",
 		external: true,
 	},
@@ -141,7 +161,7 @@ export const experiments: Experiment[] = [
 		line: "An interactive gallery pairing engineering concepts with paintings.",
 		stack: ["Next.js", "GSAP", "Canvas"],
 		href: "https://moonspell.fm/",
-		kind: "remote",
+		topics: ["design"],
 		live: "moonspell",
 		external: true,
 	},
@@ -152,7 +172,7 @@ export const experiments: Experiment[] = [
 		line: "Make a Wes Anderson scene: one flat drawing, a camera that may only slide, cut, or zoom, and a screenplay that runs it.",
 		stack: ["SVG viewBox", "SMIL", "Web Speech", "@property"],
 		href: "/experiments/wes-anderson",
-		kind: "dom",
+		topics: ["design", "graphics"],
 	},
 	{
 		id: "deepseek",
@@ -161,7 +181,7 @@ export const experiments: Experiment[] = [
 		line: "Train a small model inspired by DeepSeek V4.1 on Rust code, questions, and scored answers. Inspect live predictions and training results.",
 		stack: ["Rust", "Candle", "Axum", "SSE", "SVG"],
 		href: "/experiments/deepseek",
-		kind: "network",
+		topics: ["ai"],
 	},
 	{
 		id: "proofs",
@@ -170,7 +190,7 @@ export const experiments: Experiment[] = [
 		line: "Try writing a few proofs in Lean, from 2 + 2 = 4 to induction, then watch an agent work on the Riemann hypothesis around the clock.",
 		stack: ["Lean 4", "Mathlib", "Rust", "Axum", "rig", "SurrealDB"],
 		href: "/experiments/proofs",
-		kind: "network",
+		topics: ["math", "ai"],
 	},
 ];
 

@@ -1,15 +1,11 @@
-import { Pagination } from "@zeyaddeeb/ui/pagination";
 import { listingMetadata } from "@zeyaddeeb/ui/seo";
-import Form from "next/form";
-import Link from "next/link";
+import { Suspense } from "react";
 import { experiments } from "@/features/catalog/catalog";
 import {
 	type ExperimentSearchParams,
-	experimentFilters,
-	experimentListingHref,
-	listExperiments,
+	readQuery,
 } from "@/features/catalog/experiment-listing";
-import { ExperimentsIndex } from "@/features/index/experiments-index";
+import { ExperimentsListing } from "@/features/index/experiments-listing";
 import "@/features/index/experiments-index.css";
 
 interface PageProps {
@@ -17,21 +13,22 @@ interface PageProps {
 }
 
 export async function generateMetadata({ searchParams }: PageProps) {
-	const { search, type, page } = listExperiments(await searchParams);
+	const { search, topic, sort } = readQuery(await searchParams);
 	return listingMetadata({
 		path: "/experiments",
 		section: "Experiments",
 		title: "Experiments",
 		description:
 			"Interactive experiments by Zeyad Deeb in Rust and WebAssembly: graphics, collaborative editing, audio processing, and reinforcement learning.",
-		page: String(page),
-		filters: { search, type },
+		filters: {
+			search,
+			topic,
+			sort: sort === "newest" ? undefined : sort,
+		},
 	});
 }
 
-export default async function ExperimentsPage({ searchParams }: PageProps) {
-	const { items, search, type, page, total, totalPages, from, to } =
-		listExperiments(await searchParams);
+export default function ExperimentsPage() {
 	return (
 		<main className="index">
 			<header className="index__head container">
@@ -42,56 +39,15 @@ export default async function ExperimentsPage({ searchParams }: PageProps) {
 					project to try it.
 				</p>
 			</header>
-			<div className="container index__controls">
-				<Form
-					key={`${search}:${type}:${page}`}
-					action="/experiments"
-					scroll={false}
-					role="search"
-					className="index__search"
-				>
-					{type && <input type="hidden" name="type" value={type} />}
-					<input
-						type="search"
-						name="search"
-						aria-label="Search experiments"
-						defaultValue={search}
-						placeholder="Search experiments..."
-					/>
-					<button type="submit">Search</button>
-				</Form>
-				<nav aria-label="Filter experiments by type" className="index__filters">
-					{[{ value: "", label: "All" }, ...experimentFilters].map((filter) => (
-						<Link
-							key={filter.value}
-							href={experimentListingHref({ search, type: filter.value })}
-							scroll={false}
-							aria-current={type === filter.value ? "true" : undefined}
-						>
-							{filter.label}
-						</Link>
-					))}
-				</nav>
-				<div className="index__results">
-					<p>{total ? `${from}–${to} of ${total} projects` : "0 projects"}</p>
-					{(search || type) && (
-						<Link href="/experiments" scroll={false}>
-							Clear filters
-						</Link>
-					)}
-				</div>
-			</div>
-			{items.length ? (
-				<ExperimentsIndex items={items} />
-			) : (
-				<div className="container index__empty">
-					<h2>No experiments found</h2>
-					<p>Try another search or clear the filters.</p>
-				</div>
-			)}
-			{totalPages > 1 && (
-				<Pagination page={page} totalPages={totalPages} disabled={false} />
-			)}
+			<Suspense
+				fallback={
+					<p className="container index__note" role="status">
+						Loading experiments…
+					</p>
+				}
+			>
+				<ExperimentsListing />
+			</Suspense>
 		</main>
 	);
 }
