@@ -1,6 +1,9 @@
 use crate::{
-    goals::{self, Goal},
-    levels::{Level, LEVELS},
+    lean::{
+        goals::{self, Goal},
+        process::Process,
+    },
+    playground::levels::{Level, LEVELS},
 };
 use anyhow::{anyhow, bail, Context};
 use serde::Serialize;
@@ -8,12 +11,9 @@ use serde_json::{json, Value};
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
-    process::Stdio,
     time::Duration,
 };
 use tokio::{
-    io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
-    process::{Child, ChildStdin, ChildStdout, Command},
     sync::{Mutex, Semaphore},
     time::timeout,
 };
@@ -34,9 +34,7 @@ pub struct Run {
 }
 
 pub struct Repl {
-    _child: Child,
-    stdin: ChildStdin,
-    stdout: BufReader<ChildStdout>,
+    process: Process,
     bases: HashMap<&'static str, u64>,
     starts: HashMap<&'static str, Vec<Goal>>,
     uses: usize,
@@ -45,28 +43,8 @@ pub struct Repl {
 
 impl Repl {
     pub async fn spawn(dir: &Path) -> anyhow::Result<Self> {
-        let dir = dir
-            .canonicalize()
-            .with_context(|| format!("finding {}", dir.display()))?;
-        let binary = dir.join(".lake/build/bin/repl");
-        let mut command = Command::new(&binary);
-        if let Some(root) = sysroot(&dir) {
-            command.env("LEAN_SYSROOT", root);
-        }
-        let mut child = command
-            .current_dir(&dir)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::null())
-            .kill_on_drop(true)
-            .spawn()
-            .with_context(|| format!("starting {}", binary.display()))?;
-        let stdin = child.stdin.take().context("repl stdin")?;
-        let stdout = BufReader::new(child.stdout.take().context("repl stdout")?);
         let mut repl = Repl {
-            _child: child,
-            stdin,
-            stdout,
+            process: Process::spawn(dir, None).await?,
             bases: HashMap::new(),
             starts: HashMap::new(),
             uses: 0,
@@ -101,25 +79,7 @@ impl Repl {
     }
 
     async fn send(&mut self, request: &Value) -> anyhow::Result<Value> {
-        let mut line = serde_json::to_string(request)?;
-        line.push_str("\n\n");
-        self.stdin.write_all(line.as_bytes()).await?;
-        self.stdin.flush().await?;
-        let mut text = String::new();
-        loop {
-            let mut line = String::new();
-            if self.stdout.read_line(&mut line).await? == 0 {
-                bail!("repl exited; is the Lean toolchain from lean-toolchain installed with elan, or LEAN_SYSROOT set?");
-            }
-            if line.trim().is_empty() {
-                if text.trim().is_empty() {
-                    continue;
-                }
-                break;
-            }
-            text.push_str(&line);
-        }
-        Ok(serde_json::from_str(&text)?)
+        self.process.send(request).await
     }
 
     pub async fn run(&mut self, level: &Level, tactics: &[String], limit: Duration) -> Run {
@@ -185,19 +145,6 @@ impl Repl {
             micros: began.elapsed().as_micros() as u64,
         }
     }
-}
-
-fn sysroot(dir: &Path) -> Option<PathBuf> {
-    if std::env::var_os("LEAN_SYSROOT").is_some() {
-        return None;
-    }
-    let toolchain = std::fs::read_to_string(dir.join("lean-toolchain")).ok()?;
-    let name = toolchain.trim().replace('/', "--").replace(':', "---");
-    let home = std::env::var_os("ELAN_HOME")
-        .map(PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".elan")))?;
-    let root = home.join("toolchains").join(name);
-    root.join("lib/lean").is_dir().then_some(root)
 }
 
 fn failed(tactic: &str, error: &str) -> Step {

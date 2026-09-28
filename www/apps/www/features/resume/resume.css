@@ -60,10 +60,6 @@
 	border-top: 6px solid var(--red);
 }
 
-.resume__results > div + div {
-	border-left: 2px solid var(--ink);
-}
-
 .resume__results > div:nth-child(2) {
 	border-top-color: var(--blue);
 }
@@ -251,6 +247,10 @@
 	font-size: 17px;
 	text-decoration: underline;
 	text-underline-offset: 4px;
+}
+
+.resume__results > div + div {
+	border-left: 2px solid var(--ink);
 }
 
 @media (max-width: 900px) {

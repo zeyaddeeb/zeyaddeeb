@@ -88,11 +88,6 @@
 	list-style: none;
 }
 
-.cc .cc-lines .cc-bullet {
-	position: relative;
-	transition: translate var(--dur-2) var(--ease);
-}
-
 .cc .cc-lines .cc-bullet:hover {
 	translate: 0 -2px;
 }
@@ -142,18 +137,9 @@
 	clip-path: polygon(50% 0, 100% 100%, 0 100%);
 }
 
-.cc-bullet[data-shape="triangle"] > span {
-	translate: 0 4px;
-	font-size: 0.8em;
-}
-
 .cc-bullet[data-shape="diamond"] {
 	border-radius: 0;
 	clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-}
-
-.cc-bullet[data-shape="diamond"] > span {
-	font-size: 0.85em;
 }
 
 .cc-status-short {
@@ -196,11 +182,6 @@
 	opacity: 0.6;
 }
 
-.cc-reach[data-ok] path {
-	stroke: var(--cc-ink);
-	opacity: 0.8;
-}
-
 .cc-reach text,
 .cc-amount,
 .cc-chip,
@@ -214,10 +195,6 @@
 .cc-reach text {
 	font: 400 11px / 1 var(--font-mono);
 	fill: var(--red);
-}
-
-.cc-reach[data-ok] text {
-	fill: var(--cc-ink);
 }
 
 .cc-ghost {
@@ -352,15 +329,6 @@
 	list-style: none;
 }
 
-.cc .cc-search li {
-	flex: none;
-	width: 14px;
-	height: 14px;
-	padding: 0;
-	border: 2px solid var(--cc-ink);
-	transition: background var(--dur-2) var(--ease);
-}
-
 .cc .cc-search li[data-state="past"] {
 	background: color-mix(in srgb, var(--cc-ink) 30%, transparent);
 }
@@ -410,11 +378,6 @@
 	width: 48px;
 	height: 48px;
 	translate: -50% -50%;
-}
-
-.cc-hits[data-dense] li {
-	width: 32px;
-	height: 32px;
 }
 
 .cc .cc-hits button {
@@ -555,23 +518,10 @@
 	transition: width var(--dur-3) var(--ease);
 }
 
-.cc-bar[data-tone="ink"] .cc-bar-track span,
-.cc-bar[data-tone="carbon"] .cc-bar-track span {
-	background: var(--cc-ink);
-}
-
-.cc-bar[data-over] .cc-bar-track span {
-	background: var(--red);
-}
-
 .cc-bar[data-hidden] .cc-bar-track {
 	background: none;
 	outline: 2px dashed var(--cc-rule);
 	outline-offset: -2px;
-}
-
-.cc-bar[data-hidden] .cc-bar-track span {
-	visibility: hidden;
 }
 
 .cc-bar-value {
@@ -815,6 +765,28 @@
 	color: var(--cc-dim);
 }
 
+.cc-bullet[data-shape="triangle"] > span {
+	translate: 0 4px;
+	font-size: 0.8em;
+}
+
+.cc-bullet[data-shape="diamond"] > span {
+	font-size: 0.85em;
+}
+
+.cc-bar[data-tone="ink"] .cc-bar-track span,
+.cc-bar[data-tone="carbon"] .cc-bar-track span {
+	background: var(--cc-ink);
+}
+
+.cc-bar[data-over] .cc-bar-track span {
+	background: var(--red);
+}
+
+.cc-bar[data-hidden] .cc-bar-track span {
+	visibility: hidden;
+}
+
 @keyframes cc-in {
 	from {
 		opacity: 0;
@@ -1033,10 +1005,6 @@
 .cc-notes p {
 	max-width: 68ch;
 	margin: 0;
-}
-
-.cc-notes p + p {
-	margin-top: 12px;
 }
 
 .cc-notes {
@@ -1300,11 +1268,6 @@
 	stroke-width: 2;
 }
 
-.cc-breaker[data-tripped] path,
-.cc-breaker[data-tripped] rect {
-	stroke: var(--red);
-}
-
 .cc-amount[data-bad],
 .cc-chip[data-bad] {
 	fill: var(--red);
@@ -1330,6 +1293,11 @@
 	font: 600 10px / 1 var(--font-mono);
 	fill: var(--on-line);
 	font-variant-numeric: tabular-nums;
+}
+
+.cc-breaker[data-tripped] path,
+.cc-breaker[data-tripped] rect {
+	stroke: var(--red);
 }
 
 .cc-campus[data-selected] rect {
@@ -1463,6 +1431,38 @@
 .cc-hits .cc-line-hit {
 	width: 36px;
 	height: 36px;
+}
+
+.cc .cc-lines .cc-bullet {
+	position: relative;
+	transition: translate var(--dur-2) var(--ease);
+}
+
+.cc .cc-search li {
+	flex: none;
+	width: 14px;
+	height: 14px;
+	padding: 0;
+	border: 2px solid var(--cc-ink);
+	transition: background var(--dur-2) var(--ease);
+}
+
+.cc-hits[data-dense] li {
+	width: 32px;
+	height: 32px;
+}
+
+.cc-reach[data-ok] path {
+	stroke: var(--cc-ink);
+	opacity: 0.8;
+}
+
+.cc-reach[data-ok] text {
+	fill: var(--cc-ink);
+}
+
+.cc-notes p + p {
+	margin-top: 12px;
 }
 
 @keyframes cc-flow {

@@ -50,7 +50,6 @@ function Seams({ pieces }: { pieces: number[] }) {
 				const at = x;
 				x += w + 1;
 				return (
-					// biome-ignore lint/suspicious/noArrayIndexKey: fixed drawing
 					<rect key={k} x={at} y="0" width={Math.min(w, 24 - at)} height="8" />
 				);
 			})}

@@ -6,14 +6,27 @@ tasks:
     script: "test -x .repl/.lake/build/bin/repl || (git clone --depth 1 --branch v4.34.0 https://github.com/leanprover-community/repl .repl && cd .repl && lake build)"
     options:
       cache: false
+  mathlib:
+    script: "test -d mathlib/.lake/packages/mathlib/.lake/build || (cd mathlib && lake exe cache get)"
+    options:
+      cache: false
   dev:
     script: "cargo run --release"
     deps:
       - "repl"
+  agent:
+    script: "cargo run --release"
+    env:
+      PROOFS_AGENT: "on"
+      PROOFS_AGENT_LLM_URL: "http://127.0.0.1:1234/v1"
+    deps:
+      - "repl"
+      - "mathlib"
   test:
     script: "cargo test --all"
     deps:
       - "repl"
+      - "mathlib"
   helm-lint:
     script: "helm lint deployments/helm"
     options:

@@ -2,8 +2,7 @@
 
 import { z } from "zod";
 import type { Checked, LevelStart } from "@/features/proofs/protocol";
-
-const service = process.env.PROOFS_BACKEND_URL ?? "http://127.0.0.1:3005";
+import { PROOFS_SERVICE_URL as service } from "./service";
 
 const checkSchema = z.strictObject({
 	level: z.string().regex(/^[a-z]{1,24}$/),

@@ -605,7 +605,7 @@ export function JazzLab() {
 					<Clock
 						sources={sources}
 						heard={
-							ledger && ledger.heardSpan && state.lineup === "trade"
+							ledger?.heardSpan && state.lineup === "trade"
 								? ledger.answer.heard
 								: 0
 						}

@@ -24,19 +24,19 @@ function Notes() {
 		<div className="cc-notes">
 			<h3>Act 1: Route the world</h3>
 			<p>
-				The locations are real, but the demand is made up for these puzzles.
-				Latency is estimated using great-circle distance, a signal speed of two
-				thirds the speed of light, and a 1.4× multiplier to account for indirect
-				fiber routes. Regional power prices and grid carbon intensities are
-				rough examples.
+				The cities and data centers are real places. Demand, power prices, and
+				carbon intensities are examples chosen for the puzzles. Latency
+				estimates use the great-circle distance between locations, multiplied by
+				1.4 to allow for bends in the fiber route, with signals traveling at two
+				thirds the speed of light.
 			</p>
 			<h3>The linear program</h3>
 			<p>
-				The solver chooses how many megawatts of compute each data center
-				allocates to each city. It excludes routes that exceed the latency limit
-				and keeps each site within its capacity. Unmet city demand adds a $1,400
-				per megawatt-hour penalty to the cost. Training can run at any site;
-				postponing it adds a $500 per megawatt-hour penalty.
+				The solver assigns compute from data centers to cities, measured in
+				megawatts. Each site has a capacity limit, and routes over the latency
+				limit are ruled out. Any city demand left unserved costs $1,400 per
+				megawatt-hour. Training can go to any site, with a $500 per
+				megawatt-hour penalty for leaving it until later.
 			</p>
 			<dl className="cc-formula">
 				<div>
@@ -63,39 +63,38 @@ function Notes() {
 			</dl>
 			<h3>The solver</h3>
 			<p>
-				A Python service uses GLOP, the linear solver in Google’s OR-Tools, to
-				find the lowest-cost allocation. It also returns dual values, which
-				describe how the minimum cost changes as constraints are relaxed. The
-				savings shown on the page are calculated by running the solver again
-				with one extra megawatt of capacity at a site, or one extra tonne
-				allowed under the carbon cap, and comparing the costs.
+				A Python service runs GLOP, the linear solver in Google’s OR-Tools, to
+				find the cheapest allocation. GLOP also returns dual values: the rate at
+				which the cost changes when a limit is relaxed. The savings shown here
+				come from solving the problem again with one extra megawatt at a site or
+				one extra tonne under the carbon cap, then comparing the two costs.
 			</p>
 			<h3>Adding capacity</h3>
 			<p>
-				In chapter 3, new capacity comes in 25 MW blocks. SCIP solves the
-				integer program to choose where to build, then GLOP allocates the
-				compute. Each block has a cost, so adding capacity only helps if the
-				savings justify it.
+				Chapter 3 lets you build capacity in 25 MW blocks. SCIP solves the
+				integer program that decides where to build, then GLOP assigns the
+				compute. The cost of each block counts toward the score, so a new block
+				needs to save more than it costs.
 			</p>
 			<p>
-				The model treats every megawatt of compute as interchangeable. It
-				doesn’t account for GPU types, network capacity, queueing, or fairness.
+				All compute is interchangeable in this model. GPU types, network
+				capacity, queueing, and fairness aren’t included.
 			</p>
 
 			<h3>Act 2: Data Center Alley</h3>
 			<p>
-				The substations, their neighborhoods, and the shape of the network come
-				from OpenStreetMap’s map of the 230 kV and 500 kV lines in Loudoun
-				County, simplified to two 500 kV hubs and seven substations. Line
-				lengths are real. Line limits, loads, prices, and land costs are
-				illustrative; utilities don’t publish substation headroom.
+				The network comes from OpenStreetMap’s 230 kV and 500 kV lines in
+				Loudoun County, simplified to two 500 kV hubs and seven substations. The
+				locations and line lengths come from the map. Line limits, loads,
+				prices, and land costs are made up for the puzzles; the map doesn’t tell
+				us how much spare capacity a substation has.
 			</p>
 			<p>
-				Power flow uses the standard DC approximation: the flow on a line is the
-				difference in voltage angle across it divided by its reactance, which
-				here is proportional to its length. So power can’t be sent down one
-				line. Every injection spreads across every path at once, and one full
-				line limits the whole network.
+				Power flow uses the DC approximation. Flow on a line is the difference
+				in voltage angle between its ends, divided by its reactance. Here,
+				reactance is proportional to line length. Power splits across the
+				available paths, so you can’t choose a single route for it to take. A
+				line at its limit can prevent you from supplying more power elsewhere.
 			</p>
 			<dl className="cc-formula">
 				<div>
@@ -129,49 +128,55 @@ function Notes() {
 			</dl>
 			<h3>The solvers</h3>
 			<p>
-				Placing campuses is a mixed-integer program, solved with SCIP. Choosing
-				which lines to build or switch out is another, solved with SCIP: a line
-				out of service drops its flow equation, written with a big-M constraint.
-				Both return a decision, and GLOP then re-solves the power flow exactly.
-				The key move is measured with the same counterfactual approach as Act 1:
-				force the tempting choice, or close the opened breaker, and solve again.
+				SCIP chooses where to place campuses and which lines to build or take
+				out of service. Both are mixed-integer problems. A big-M constraint lets
+				the model drop a line’s flow equation when it is out of service. Once
+				those choices are fixed, GLOP solves the power flow again. To measure
+				how much a particular choice helped, the solver runs again with the
+				alternative forced in, or with the opened breaker closed.
 			</p>
 			<p>
-				Chapter 2 is Braess’s paradox on a power grid. Adding a line adds a new
-				loop, and the physics of that loop can push more power onto a line that
-				is already full. Removing a line can do the opposite. Grid operators use
-				this on purpose; it is called optimal transmission switching.
+				Chapter 2 shows Braess’s paradox. A new line can create a loop that
+				pushes more power onto an already full line, making the result worse.
+				Taking a line out can help for the same reason. Choosing which lines to
+				keep in service is called optimal transmission switching.
 			</p>
-			<h3>Watching the solver think</h3>
+			<h3>The search replay</h3>
 			<p>
-				Where a chapter needs integer decisions, SCIP searches with branch and
-				bound. The replay is real: the service reruns SCIP’s deterministic
-				search, stopping after its first, second, third solution and so on, and
-				records each plan with the lower bound SCIP had proved at that moment.
-				The times shown are SCIP’s own.
+				SCIP uses branch and bound for the integer decisions. To make the
+				replay, the service repeats the same deterministic search, stopping
+				after one solution, then two, then three, and so on. It records each
+				plan, the lower bound on cost at that point, and SCIP’s elapsed time.
 			</p>
 
 			<h3>Act 3: Campuses keep coming</h3>
 			<p>
-				The grid is Act 2’s, solved once per year from 2027 to 2030 as one
-				mixed-integer program. Each project gets a start year; it counts only
-				once its lead time has passed, and one crew can start one project a
-				year. Turbines are rented per year, and in the last chapter breakers can
-				be opened per year too. The score is the average hour across the four
-				years. Lead times, costs, and campus sizes are illustrative.
+				This uses the same grid as Act 2, with all four years from 2027 to 2030
+				planned together in one mixed-integer program. You choose when each
+				project starts, but it only adds capacity after construction finishes.
+				One crew can start one project each year. Turbine rentals are chosen
+				year by year; in the last chapter, breaker settings are too. The score
+				is the average hourly cost across the four years. Lead times, costs, and
+				campus sizes are examples for the puzzles.
 			</p>
 
 			<h3>Act 4: Who signs?</h3>
 			<p>
-				This is a two-stage stochastic program. Turbines ordered today are the
-				first stage and cost the same in every future; rush orders are the
-				second, chosen after the signings are known, and they are scarce.
-				Chapter 1 measures the value of the stochastic solution: how much worse
-				the plan built for the average signing does across the real futures.
-				Chapter 2 minimizes the most expensive future instead, which is robust
-				optimization. Chapter 3 is the expected value of perfect information:
-				the best blind plan against the best plan for each future, weighted by
-				the odds.
+				You order turbines before knowing which customers will sign. Once the
+				signings are known, you can place a limited number of rush orders. These
+				two rounds of decisions make this a two-stage stochastic program. The
+				initial order and its cost are the same in every scenario; rush orders
+				depend on what happens.
+			</p>
+			<p>
+				Chapter 1 compares a plan made for average demand with one that accounts
+				for each possible outcome and its probability. The difference in
+				expected cost is the value of the stochastic solution. Chapter 2
+				minimizes the cost of the worst outcome, using robust optimization.
+				Chapter 3 asks how much you could save if you knew who would sign before
+				ordering. It compares the best advance order with separate plans for
+				each outcome, weighted by their probabilities. That saving is the
+				expected value of perfect information.
 			</p>
 
 			<h3>Sources</h3>

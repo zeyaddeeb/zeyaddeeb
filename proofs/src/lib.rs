@@ -1,4 +1,4 @@
-pub mod goals;
-pub mod guard;
-pub mod levels;
-pub mod repl;
+pub mod agent;
+pub mod lean;
+pub mod math;
+pub mod playground;

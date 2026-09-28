@@ -39,7 +39,7 @@ describe("music", () => {
 	it("voices chords above a floor", () => {
 		const bb7 = chord("Bb7");
 		expect(bb7?.root).toBe(10);
-		expect(voicing(bb7!, 57)).toEqual([58, 62, 65, 68]);
+		expect(bb7 && voicing(bb7, 57)).toEqual([58, 62, 65, 68]);
 		expect(chord("Hm")).toBeNull();
 	});
 

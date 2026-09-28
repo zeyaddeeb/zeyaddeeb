@@ -1,5 +1,10 @@
 FROM rust:bookworm AS builder
 
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    clang \
+    cmake \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY . .
@@ -34,6 +39,13 @@ RUN cd /repl \
     && cp -R "$prefix/lib/lean/Init" "$prefix"/lib/lean/Init.olean* /sysroot/lib/lean/ \
     && find /sysroot -type f ! -name '*.olean' ! -name '*.olean.private' ! -name '*.olean.server' -delete
 
+COPY mathlib/lakefile.toml mathlib/lake-manifest.json mathlib/lean-toolchain mathlib/Header.lean mathlib/Prune.lean /mathlib/
+
+RUN cd /mathlib \
+    && lake exe cache get \
+    && lake env lean --run Prune.lean /sysroot/lib/lean Header.lean \
+    && rm -rf /mathlib/.lake
+
 
 FROM debian:bookworm-slim AS base
 
@@ -46,6 +58,7 @@ COPY --from=lean /sysroot /opt/lean
 
 ENV LEAN_SYSROOT=/opt/lean
 ENV PROOFS_REPL_DIR=/app/repl
+ENV PROOFS_AGENT_LEAN_PATH=/opt/lean/lib/lean
 
 RUN groupadd --gid 1000 app && useradd --uid 1000 --gid 1000 --create-home app
 USER 1000:1000

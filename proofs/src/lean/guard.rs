@@ -64,6 +64,11 @@ const DENIED: &[&str] = &[
 
 const DENIED_PREFIXES: &[&str] = &["unsafe", "native", "run_", "dbg", "builtin", "by_elab"];
 
+const DECLARATION_BYTES: usize = 4000;
+const DECLARATION_LINES: usize = 60;
+const DECLARATION_DENIED: &[&str] = &["partial", "mutual", "local", "scoped"];
+const OPENERS: &[&str] = &["theorem", "lemma", "example", "open"];
+
 pub fn tactic(text: &str) -> Result<(), Refusal> {
     let text = text.trim();
     if text.is_empty() {
@@ -72,6 +77,30 @@ pub fn tactic(text: &str) -> Result<(), Refusal> {
     if text.len() > MAX_BYTES || text.lines().count() > MAX_LINES {
         return Err(Refusal::TooLong);
     }
+    words(text, &[])
+}
+
+pub fn declaration(text: &str) -> Result<(), Refusal> {
+    let text = text.trim();
+    if text.is_empty() {
+        return Err(Refusal::Empty);
+    }
+    if text.len() > DECLARATION_BYTES || text.lines().count() > DECLARATION_LINES {
+        return Err(Refusal::TooLong);
+    }
+    let first = text.split_whitespace().next().unwrap_or("");
+    if !OPENERS.contains(&first) {
+        return Err(Refusal::Word);
+    }
+    for word in text.split(|c: char| !(c.is_alphanumeric() || c == '_')) {
+        if DECLARATION_DENIED.contains(&word) {
+            return Err(Refusal::Word);
+        }
+    }
+    words(text, &["open"])
+}
+
+fn words(text: &str, allowed: &[&str]) -> Result<(), Refusal> {
     if text
         .chars()
         .any(|c| (c.is_control() && c != '\n') || matches!(c, '#' | '"' | '`' | '$' | '\\'))
@@ -84,7 +113,7 @@ pub fn tactic(text: &str) -> Result<(), Refusal> {
     for word in words.filter(|w| !w.is_empty()) {
         for part in word.split('.') {
             let part = part.trim_end_matches(['!', '?', '\'']).to_lowercase();
-            if DENIED.contains(&part.as_str())
+            if (DENIED.contains(&part.as_str()) && !allowed.contains(&part.as_str()))
                 || DENIED_PREFIXES
                     .iter()
                     .any(|prefix| part.starts_with(prefix))
@@ -143,5 +172,34 @@ mod tests {
         assert_eq!(tactic("exact `(x)"), Err(Refusal::Character));
         assert_eq!(tactic("  "), Err(Refusal::Empty));
         assert_eq!(tactic(&"a".repeat(241)), Err(Refusal::TooLong));
+    }
+
+    #[test]
+    fn declarations_allow_theorems_only() {
+        for text in [
+            "theorem zeta_two : riemannZeta 2 = (Real.pi : ℂ) ^ 2 / 6 := riemannZeta_two",
+            "lemma sq_pos (x : ℝ) (h : 0 < x) : 0 < x ^ 2 := by positivity",
+            "open Complex in\ntheorem t (s : ℂ) (h : 1 < s.re) : riemannZeta s ≠ 0 := by\n  exact riemannZeta_ne_zero_of_one_lt_re h",
+            "example : (2 : ℕ) + 2 = 4 := by norm_num",
+        ] {
+            assert_eq!(declaration(text), Ok(()), "{text}");
+        }
+        for text in [
+            "axiom rh : RiemannHypothesis",
+            "theorem rh : RiemannHypothesis := sorry",
+            "def f : ℕ := 1",
+            "instance : Inhabited ℕ := ⟨0⟩",
+            "theorem t : True := by native_decide",
+            "open Lean in\ntheorem t : True := trivial",
+            "theorem t : True := by run_tac pure ()",
+            "partial theorem t : True := trivial",
+            "theorem t : True := trivial\n#eval 1",
+            "@[implemented_by f] theorem t : True := trivial",
+            "theorem t : True := trivial\nset_option maxHeartbeats 0 in\ntheorem u : True := trivial",
+            "theorem t : True := trivial\naxiom bad : False",
+            "theorem t : True := trivial\nlocal notation \"x\" => 1",
+        ] {
+            assert!(declaration(text).is_err(), "{text}");
+        }
     }
 }

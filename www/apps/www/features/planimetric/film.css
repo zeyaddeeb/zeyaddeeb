@@ -1008,11 +1008,6 @@
 		grid-template-columns: 1fr 1fr 1fr;
 	}
 
-	.film .film-steps button {
-		padding-inline: 4px;
-		font-size: 11px;
-	}
-
 	.film-settings fieldset {
 		flex-wrap: wrap;
 	}
@@ -1140,6 +1135,11 @@
 		text-align: left;
 		text-transform: none;
 		letter-spacing: 0;
+	}
+
+	.film .film-steps button {
+		padding-inline: 4px;
+		font-size: 11px;
 	}
 
 	.film-drawing-shots b {

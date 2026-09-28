@@ -124,7 +124,7 @@
 	color: var(--dim);
 }
 
-.post-entry:hover h3 {
+.post-entry:hover :where(h3) {
 	text-decoration: underline;
 	text-decoration-color: var(--red);
 	text-underline-offset: 5px;

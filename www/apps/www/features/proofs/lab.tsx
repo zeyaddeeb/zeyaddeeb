@@ -8,11 +8,12 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { number } from "@/features/catalog/catalog";
 import { checkProof, loadLevels } from "@/features/proofs/server/actions";
 import { Board } from "./board";
+import { place } from "./chapters";
 import { type Level, levels } from "./levels";
 import type { LevelStart, Step } from "./protocol";
+import { Rail } from "./rail";
 import { change, hint, legend, narrate } from "./script";
 import "./proofs.css";
 
@@ -61,6 +62,7 @@ export function ProofsLab() {
 	const request = useRef(0);
 
 	const level: Level = levels[index];
+	const here = place(index);
 	const start = starts?.find((s) => s.id === level.id);
 	const tactics = steps.map((s) => s.tactic);
 
@@ -209,26 +211,12 @@ export function ProofsLab() {
 
 	return (
 		<div className="pf" data-solved={solved || undefined}>
-			<nav className="pf-rail" aria-label="Levels">
-				<ol>
-					{levels.map((l, i) => (
-						<li key={l.id}>
-							<button
-								type="button"
-								aria-current={i === index ? "step" : undefined}
-								data-solved={progress[l.id]?.solved || undefined}
-								aria-label={`Level ${number(i + 1)}: ${l.title}${progress[l.id]?.solved ? ", proved" : ""}`}
-								onClick={() => open(i)}
-							>
-								{number(i + 1)}
-							</button>
-						</li>
-					))}
-				</ol>
-				<p className="pf-status" aria-live="polite">
-					{status}
-				</p>
-			</nav>
+			<Rail
+				index={index}
+				status={status}
+				solved={(id) => !!progress[id]?.solved}
+				onOpen={open}
+			/>
 
 			<div className="pf-screen">
 				<section className="pf-board" aria-label="Proof state">
@@ -236,7 +224,7 @@ export function ProofsLab() {
 						<p className="pf-eyebrow pf-say-head">
 							<span>
 								<span className="pf-say-level">
-									Level {number(index + 1)} /{" "}
+									{here.chapter.title} {here.part}/{here.parts} ·{" "}
 								</span>
 								{level.title}
 							</span>

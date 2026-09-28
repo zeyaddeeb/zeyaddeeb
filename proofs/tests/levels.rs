@@ -1,4 +1,4 @@
-use proofs::{
+use proofs::playground::{
     levels::{self, LEVELS},
     repl::Repl,
 };

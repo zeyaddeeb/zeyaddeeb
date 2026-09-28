@@ -7,7 +7,12 @@ spec:
     matchLabels:
       {{- include "microservice.selectorLabels" . | nindent 6 }}
   policyTypes: [Ingress, Egress]
+  {{- with .Values.networkPolicy.egress }}
+  egress:
+    {{- toYaml . | nindent 4 }}
+  {{- else }}
   egress: []
+  {{- end }}
   ingress:
     - from:
         - podSelector:

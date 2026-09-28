@@ -1,0 +1,116 @@
+.pt {
+	display: grid;
+	gap: clamp(16px, 2vw, 24px);
+}
+
+.pt-tabs {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	width: 100%;
+	max-width: 1400px;
+	margin-inline: auto;
+	border-bottom: 2px solid color-mix(in srgb, var(--paper) 28%, transparent);
+}
+
+.frame__stage .pt-tab {
+	display: grid;
+	gap: 4px;
+	align-content: start;
+	min-height: 0;
+	margin-bottom: -2px;
+	padding: 4px 16px 14px 0;
+	border: 0;
+	border-bottom: 4px solid transparent;
+	background: none;
+	color: color-mix(in srgb, var(--paper) 58%, transparent);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+	transition:
+		color var(--dur-2) var(--ease),
+		border-color var(--dur-2) var(--ease);
+}
+
+.frame__stage .pt-tab:hover,
+.frame__stage .pt-tab[aria-selected="true"] {
+	color: var(--paper);
+}
+
+.frame__stage .pt-tab[aria-selected="true"] {
+	border-bottom-color: var(--red);
+}
+
+.frame__stage .pt-tab[data-tab="shift"][aria-selected="true"] {
+	border-bottom-color: var(--blue);
+}
+
+.pt-tab:focus-visible {
+	outline: 2px solid var(--yellow);
+	outline-offset: 3px;
+}
+
+.pt-tab-title {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 14px;
+	align-items: center;
+	font: 600 clamp(18px, 2vw, 24px) / 1.2 var(--font-display);
+}
+
+.pt-live {
+	display: inline-flex;
+	gap: 7px;
+	align-items: center;
+	font: 400 11px / 1 var(--font-mono);
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--paper);
+}
+
+.pt-live::before {
+	content: "";
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	background: var(--red);
+}
+
+.pt-live[data-off] {
+	color: color-mix(in srgb, var(--paper) 58%, transparent);
+}
+
+.pt-live[data-off]::before {
+	box-shadow: inset 0 0 0 2px currentColor;
+	background: none;
+}
+
+.pt-tab-note {
+	font: 400 12px / 1.4 var(--font-mono);
+}
+
+.pt-panel--sheet {
+	width: 100%;
+	max-width: 1400px;
+	margin-inline: auto;
+	padding: clamp(20px, 3vw, 44px);
+	background: var(--paper);
+	color: var(--ink);
+}
+
+@media (max-width: 900px) {
+	.pt-tab-note {
+		display: none;
+	}
+
+	.pt-panel--sheet {
+		width: auto;
+		margin-inline: -24px;
+		padding: 24px 16px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.frame__stage .pt-tab {
+		transition: none;
+	}
+}
