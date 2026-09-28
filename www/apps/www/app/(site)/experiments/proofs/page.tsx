@@ -50,7 +50,7 @@ function Notes() {
 				<h3 className="pf-notes-title">The night shift</h3>
 				<h4>Who is working</h4>
 				<p>
-					Qwen3.5 4B, running on four CPU cores inside the same cluster, driven
+					Qwen3.5 2B, running on four CPU cores inside the same cluster, driven
 					by a Rust loop built on rig. It works in episodes. A bandit picks the
 					front: the zeros on the critical line, rectangles off it,
 					random-matrix statistics, Robin’s inequality, the Mertens function,

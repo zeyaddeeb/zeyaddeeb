@@ -31,7 +31,7 @@ env:
   PROOFS_RECYCLE: "200"
   PROOFS_AGENT: "watched"
   PROOFS_AGENT_LLM_URL: "http://inference-gateway.llm.svc.cluster.local:1234/v1"
-  PROOFS_AGENT_MODEL: "Qwen/Qwen3.5-4B"
+  PROOFS_AGENT_MODEL: "Qwen/Qwen3.5-2B"
   PROOFS_AGENT_DB: "surrealkv:///data/agent"
   PROOFS_AGENT_TOKENS_PER_DAY: "300000"
   PROOFS_AGENT_MAX_TOKENS: "1536"

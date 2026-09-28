@@ -95,7 +95,7 @@ pub fn archive() -> Option<String> {
 }
 
 pub fn model() -> String {
-    var("PROOFS_AGENT_MODEL", "Qwen/Qwen3.5-4B")
+    var("PROOFS_AGENT_MODEL", "Qwen/Qwen3.5-2B")
 }
 
 pub fn tokens_per_day() -> u64 {
