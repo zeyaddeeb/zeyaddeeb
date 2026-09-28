@@ -129,6 +129,7 @@ function Row({
 				<span className="row__arrow" aria-hidden="true">
 					<LifeArrow
 						direction={experiment.external ? "up-right" : "right"}
+						seed={experiment.number}
 						active={active && shouldRun}
 					/>
 				</span>

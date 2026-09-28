@@ -1,0 +1,153 @@
+.vg-specs {
+	--vg-tilerow-cols: 3;
+	--vg-tile-span: 1;
+	row-gap: var(--vg-space-tight);
+}
+
+.vg-spec {
+	--vg-spec-ink: var(--vg-ink);
+	display: flex;
+	flex-direction: column;
+	min-height: 208px;
+}
+
+.vg-spec[data-band="gold"] {
+	--vg-spec-ink: var(--vg-gold);
+}
+
+.vg-spec__figure {
+	margin: 20px 0 0;
+	font: var(--vg-font-m);
+	letter-spacing: -0.03em;
+	white-space: nowrap;
+}
+
+.vg-spec__value {
+	color: var(--vg-spec-ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.vg-spec__notes {
+	display: grid;
+	gap: 4px;
+	margin-top: 16px;
+	font: var(--vg-font-small);
+	color: var(--vg-dim);
+	text-wrap: pretty;
+}
+
+.vg-spec__notes p {
+	margin: 0;
+}
+
+.vg-spec__link {
+	display: inline-flex;
+	align-items: center;
+	align-self: flex-start;
+	gap: 8px;
+	margin-top: auto;
+	padding-top: 16px;
+	font: 500 15px / 1.2 var(--font-display);
+	color: var(--vg-ink);
+	text-decoration: underline;
+	text-decoration-color: var(--vg-rule-2);
+	text-underline-offset: 4px;
+	transition: text-decoration-color var(--dur-2) var(--vg-fade);
+}
+
+.vg-spec__link::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.vg-spec__link:hover {
+		text-decoration-color: var(--vg-red);
+	}
+}
+
+.vg-spec__link svg {
+	width: 12px;
+	height: 12px;
+	flex: none;
+	color: var(--vg-gold);
+}
+
+.vg .vg-spec__link:focus-visible {
+	outline: none;
+}
+
+.vg-spec:has(.vg-spec__link:focus-visible) {
+	outline: 2px solid var(--vg-gold);
+	outline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+	.vg-specs {
+		--vg-tilerow-cols: 2;
+	}
+
+	.vg-spec[data-wide] {
+		--vg-tile-span: 2;
+	}
+}
+
+@media (max-width: 760px) {
+	.vg-specs {
+		--vg-tilerow-cols: 1;
+		row-gap: 0;
+	}
+
+	.vg-spec[data-wide] {
+		--vg-tile-span: 1;
+	}
+
+	.vg-spec[data-band="gold"] {
+		--band-h: 2px;
+	}
+
+	.vg-spec {
+		display: grid;
+		grid-template-columns: 96px minmax(0, 1fr);
+		align-items: baseline;
+		column-gap: 12px;
+		min-height: 0;
+		padding-block: 14px 16px;
+	}
+
+	.vg-spec::before {
+		content: none;
+	}
+
+	.vg-spec__label {
+		grid-column: 1;
+		grid-row: 1;
+	}
+
+	.vg-spec__figure {
+		grid-column: 2;
+		margin: 0;
+		font-size: 24px;
+		line-height: 1.1;
+	}
+
+	.vg-spec__notes {
+		grid-column: 2;
+		margin-top: 6px;
+		font-size: 14px;
+		line-height: 1.45;
+	}
+
+	.vg-spec__notes p + p {
+		display: none;
+	}
+
+	.vg-spec__link {
+		grid-column: 2;
+		justify-self: start;
+		margin-top: 0;
+		padding-top: 8px;
+		font-size: 14px;
+	}
+}

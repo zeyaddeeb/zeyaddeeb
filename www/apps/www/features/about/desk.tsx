@@ -121,7 +121,7 @@ export function Desk() {
 									<a href={l.href} target="_blank" rel="noopener noreferrer">
 										{l.label}{" "}
 										<span aria-hidden="true">
-											<LifeArrow direction="up-right" />
+											<LifeArrow direction="up-right" seed={l.label} />
 										</span>
 									</a>
 								</li>
@@ -130,7 +130,7 @@ export function Desk() {
 									<Link href={l.href}>
 										{l.label}{" "}
 										<span aria-hidden="true">
-											<LifeArrow direction="right" />
+											<LifeArrow direction="right" seed={l.label} />
 										</span>
 									</Link>
 								</li>

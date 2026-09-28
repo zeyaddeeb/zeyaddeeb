@@ -67,7 +67,10 @@ export default function HomePage() {
 							<span className="home__door-title">{door.title}</span>
 							<span className="home__door-line">{door.line}</span>
 							<span className="home__door-arrow" aria-hidden="true">
-								<LifeArrow direction={door.external ? "up-right" : "right"} />
+								<LifeArrow
+									direction={door.external ? "up-right" : "right"}
+									seed={door.title}
+								/>
 							</span>
 						</Link>
 					))}

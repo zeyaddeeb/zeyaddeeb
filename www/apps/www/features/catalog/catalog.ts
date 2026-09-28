@@ -47,6 +47,15 @@ export interface Experiment {
 
 export const experiments: Experiment[] = [
 	{
+		id: "voyager",
+		number: 16,
+		title: "One Light-Day",
+		line: "Voyager 1 taken apart: spin the spacecraft, run its flight computers in Rust, save it from a dead memory chip, and read the Golden Record’s cover the way it was meant to be read.",
+		stack: ["Rust", "WASM", "Canvas 3D", "Web Audio", "JPL Horizons"],
+		href: "/experiments/voyager",
+		topics: ["systems", "graphics"],
+	},
+	{
 		id: "meat-content",
 		number: 15,
 		title: "Meat Content",
@@ -213,10 +222,11 @@ export function experimentMetadata(id: string, description: string) {
 export const number = (n: number) => String(n).padStart(2, "0");
 
 export function neighbors(id: string) {
-	const index = experiments.findIndex((e) => e.id === id);
-	if (index < 0) return null;
-	const local = experiments.filter((e) => !e.external);
+	const local = experiments
+		.filter((e) => !e.external)
+		.sort((a, b) => a.number - b.number);
 	const li = local.findIndex((e) => e.id === id);
+	if (li < 0) return null;
 	return {
 		prev: local[(li - 1 + local.length) % local.length],
 		next: local[(li + 1) % local.length],

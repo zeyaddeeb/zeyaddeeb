@@ -32,4 +32,14 @@ describe("catalog", () => {
 		expect(n?.next.id).toBe("circle-limit");
 		expect(n?.prev.external).toBeFalsy();
 	});
+
+	it("neighbors follow experiment numbers, not listing order", () => {
+		const newest = Math.max(...experiments.map((e) => e.number));
+		const last = experiments.find((e) => e.number === newest);
+		const n = neighbors(last?.id ?? "");
+		expect(n?.prev.number).toBe(newest - 1);
+		expect(n?.next.number).toBe(1);
+		expect(neighbors("proofs")?.next.number).toBe(13);
+		expect(neighbors("story")?.next.id).toBe("wes-anderson");
+	});
 });

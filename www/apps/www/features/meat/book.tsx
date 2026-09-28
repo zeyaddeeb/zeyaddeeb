@@ -87,7 +87,7 @@ export function Book({ pages }: { pages: Page[] }) {
 								<span className="mc-card__finding">{p.finding}</span>
 							</span>
 							<span className="mc-card__open" aria-hidden="true">
-								<LifeArrow direction="up-right" />
+								<LifeArrow direction="up-right" seed={i} />
 							</span>
 						</button>
 					</li>

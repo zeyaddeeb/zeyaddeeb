@@ -1,5 +1,4 @@
 import { listingMetadata } from "@zeyaddeeb/ui/seo";
-import { Suspense } from "react";
 import { experiments } from "@/features/catalog/catalog";
 import {
 	type ExperimentSearchParams,
@@ -8,18 +7,21 @@ import {
 import { ExperimentsListing } from "@/features/index/experiments-listing";
 import "@/features/index/experiments-index.css";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
 	searchParams: Promise<ExperimentSearchParams>;
 }
 
 export async function generateMetadata({ searchParams }: PageProps) {
-	const { search, topic, sort } = readQuery(await searchParams);
+	const { search, topic, sort, page } = readQuery(await searchParams);
 	return listingMetadata({
 		path: "/experiments",
 		section: "Experiments",
 		title: "Experiments",
 		description:
 			"Interactive experiments by Zeyad Deeb in Rust and WebAssembly: graphics, collaborative editing, audio processing, and reinforcement learning.",
+		page: String(page),
 		filters: {
 			search,
 			topic,
@@ -39,15 +41,7 @@ export default function ExperimentsPage() {
 					project to try it.
 				</p>
 			</header>
-			<Suspense
-				fallback={
-					<p className="container index__note" role="status">
-						Loading experiments…
-					</p>
-				}
-			>
-				<ExperimentsListing />
-			</Suspense>
+			<ExperimentsListing />
 		</main>
 	);
 }

@@ -1,0 +1,350 @@
+.vg-ladder {
+	grid-column: content;
+	margin: var(--vg-space-body) 0 0;
+}
+
+.vg-ladder__plot {
+	--top-h: 18px;
+	--rail-y: 58px;
+	--row-y: 74px;
+	--row-step: 44px;
+	--label-h: 34px;
+	--dir: 90deg;
+	position: relative;
+	container-type: inline-size;
+	height: calc(var(--row-y) + var(--row-step) + var(--label-h));
+	margin-bottom: 16px;
+}
+
+.vg-ladder__ticks,
+.vg-ladder__marks {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vg-tick {
+	position: absolute;
+	top: 3px;
+	left: calc(var(--x) * 100%);
+	width: 1px;
+	height: calc(var(--rail-y) - 3px);
+	background: var(--vg-rule-2);
+}
+
+.vg-tick__label {
+	position: absolute;
+	top: -3px;
+	left: 0;
+	font: 400 12px / var(--top-h) var(--font-mono);
+	letter-spacing: 0.04em;
+	color: var(--vg-dim);
+	white-space: nowrap;
+	opacity: var(--show, 1);
+	translate: calc(6px - var(--end, 0) * (100% + 12px) + var(--nudge, 0px)) 0;
+}
+
+.vg-ladder__rail {
+	position: absolute;
+	top: calc(var(--rail-y) - 1px);
+	right: 0;
+	left: 0;
+	height: 2px;
+	background: linear-gradient(
+		var(--dir),
+		var(--vg-blue),
+		color-mix(in srgb, var(--vg-ink) 30%, transparent) calc(var(--v) * 100%),
+		var(--vg-rule) 0
+	);
+}
+
+.vg-ladder__earth {
+	position: absolute;
+	top: 50%;
+	left: 0;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: var(--vg-blue);
+	translate: -50% -50%;
+}
+
+.vg-ladder__home {
+	position: absolute;
+	bottom: 12px;
+	left: 6px;
+	font: 500 15px / 18px var(--font-display);
+	color: var(--vg-blue);
+	white-space: nowrap;
+}
+
+.vg-mark {
+	position: absolute;
+	top: var(--rail-y);
+	left: calc(var(--x) * 100%);
+	width: 1px;
+	height: calc(
+		var(--row-y) -
+		var(--rail-y) +
+		var(--row, 0) *
+		var(--row-step) +
+		var(--label-h)
+	);
+	background: var(--vg-rule-2);
+}
+
+.vg-mark__label {
+	position: absolute;
+	top: calc(var(--row-y) - var(--rail-y));
+	left: 0;
+	display: grid;
+	color: var(--vg-ink);
+	text-align: var(--align, left);
+	white-space: nowrap;
+	translate: calc(6px - var(--end, 0) * (100% + 12px))
+		calc(var(--row, 0) * var(--row-step));
+}
+
+.vg-mark__name {
+	font: 400 15px / 18px var(--font-display);
+	letter-spacing: -0.005em;
+}
+
+.vg-mark__time {
+	font: 400 12px / 16px var(--font-mono);
+	letter-spacing: 0.04em;
+	font-variant-numeric: tabular-nums;
+	color: var(--time, color-mix(in srgb, currentColor 62%, var(--vg-bg)));
+}
+
+.vg-ladder__here {
+	--time: currentColor;
+	position: absolute;
+	top: 3px;
+	left: 0;
+	width: 0;
+	height: calc(var(--rail-y) - 3px);
+	color: var(--vg-gold);
+	translate: calc(var(--p) * 100cqi) 0;
+}
+
+.vg-ladder__here::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: -1px;
+	width: 2px;
+	background: currentColor;
+}
+
+.vg-ladder__dot {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	width: 10px;
+	height: 10px;
+	border: 0 solid currentColor;
+	border-radius: 50%;
+	background: currentColor;
+	translate: -50% -50%;
+}
+
+.vg-ladder__here-label {
+	position: absolute;
+	top: -3px;
+	right: 8px;
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	white-space: nowrap;
+}
+
+.vg-ladder__here-label .vg-mark__name {
+	font-weight: 500;
+}
+
+.vg-ladder__photon {
+	position: absolute;
+	top: calc(var(--rail-y) - 30px);
+	left: 0;
+	width: 0;
+	height: 30px;
+	color: var(--vg-blue);
+	translate: calc(var(--p) * 100cqi) 0;
+}
+
+.vg-ladder__photon::before {
+	content: "";
+	position: absolute;
+	top: 2px;
+	bottom: 0;
+	left: 0;
+	width: 1px;
+	background: currentColor;
+}
+
+.vg-ladder__photon-label {
+	position: absolute;
+	top: 0;
+	left: 0;
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	padding-inline: 4px;
+	background: var(--vg-bg);
+	white-space: nowrap;
+	translate: calc(2px - var(--end, 0) * (100% + 4px)) 0;
+}
+
+@media (max-width: 760px) {
+	.vg-ladder__plot {
+		--rail: 420px;
+		--rail-x: 112px;
+		--dir: 180deg;
+		height: calc(var(--rail) + 12px);
+	}
+
+	.vg-tick {
+		top: calc(var(--x) * var(--rail));
+		left: calc(var(--rail-x) - 12px);
+		width: 12px;
+		height: 1px;
+	}
+
+	.vg-tick__label {
+		top: 0;
+		right: calc(100% + 4px);
+		left: auto;
+		opacity: 1;
+		translate: 0 -50%;
+	}
+
+	.vg-ladder__rail {
+		top: 0;
+		right: auto;
+		left: calc(var(--rail-x) - 1px);
+		width: 2px;
+		height: var(--rail);
+	}
+
+	.vg-ladder__earth {
+		top: 0;
+		left: 50%;
+	}
+
+	.vg-ladder__home {
+		top: 0;
+		bottom: auto;
+		left: 16px;
+		translate: 0 -50%;
+	}
+
+	.vg-ladder__home::before {
+		content: "";
+		position: absolute;
+		top: 50%;
+		left: -15px;
+		width: 13px;
+		height: 1px;
+		background: currentColor;
+	}
+
+	.vg-mark {
+		top: calc(var(--x) * var(--rail));
+		left: var(--rail-x);
+		width: 10px;
+		height: 1px;
+	}
+
+	.vg-mark::after {
+		content: "";
+		position: absolute;
+		top: min(0px, var(--dy, 0px));
+		left: 9px;
+		width: 1px;
+		height: calc(max(var(--dy, 0px), -1 * var(--dy, 0px)) + 1px);
+		background: var(--vg-rule-2);
+	}
+
+	.vg-mark__label {
+		top: var(--dy, 0px);
+		left: 16px;
+		display: flex;
+		align-items: baseline;
+		gap: 8px;
+		text-align: left;
+		translate: 0 -50%;
+	}
+
+	.vg-mark__label::before {
+		content: "";
+		position: absolute;
+		top: 50%;
+		left: -7px;
+		width: 7px;
+		height: 1px;
+		background: var(--vg-rule-2);
+	}
+
+	.vg-ladder__here {
+		top: 0;
+		left: var(--rail-x);
+		height: 0;
+		translate: 0 calc(var(--p) * var(--rail));
+	}
+
+	.vg-ladder__here::before {
+		top: -1px;
+		bottom: auto;
+		left: 0;
+		width: 14px;
+		height: 2px;
+	}
+
+	.vg-ladder__here-label {
+		top: 0;
+		right: auto;
+		left: 16px;
+		translate: 0 -50%;
+	}
+
+	.vg-ladder__photon {
+		top: 0;
+		left: var(--rail-x);
+		height: 0;
+		translate: 0 calc(var(--p) * var(--rail));
+	}
+
+	.vg-ladder__photon::before {
+		top: -0.5px;
+		bottom: auto;
+		left: -16px;
+		width: 16px;
+		height: 1px;
+	}
+
+	.vg-ladder__photon-label {
+		top: 0;
+		right: 16px;
+		left: auto;
+		display: grid;
+		justify-items: end;
+		gap: 0;
+		padding: 2px 0 2px 6px;
+		translate: 0 -50%;
+	}
+
+	.vg-ladder__photon-label .vg-mark__name,
+	.vg-ladder__photon-label .vg-mark__time {
+		font: 400 12px / 16px var(--font-mono);
+		letter-spacing: 0;
+	}
+}
+
+.vg-ladder__photon[data-arrived="true"] .vg-ladder__dot {
+	width: 16px;
+	height: 16px;
+	border-width: 2px;
+	background: transparent;
+}

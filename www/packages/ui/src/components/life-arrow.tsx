@@ -1,106 +1,42 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import {
+	type Direction,
+	key,
+	PERIOD,
+	pick,
+	specimen,
+	variants,
+} from "./life-ships";
 
 const CELL = 5;
 const SIZE = 25;
-const PERIOD = 4;
 const GEN_MS = 130;
-
-type Cell = [number, number];
-
-const GLIDER: Cell[] = [
-	[0, 0],
-	[0, 1],
-	[0, 2],
-	[1, 2],
-	[2, 1],
-];
-
-const LWSS: Cell[] = [
-	[0, 0],
-	[0, 3],
-	[1, 4],
-	[2, 0],
-	[2, 4],
-	[3, 1],
-	[3, 2],
-	[3, 3],
-	[3, 4],
-];
-
-const key = (r: number, c: number) => `${r},${c}`;
-
-function step(cells: Cell[]): Cell[] {
-	const alive = new Set(cells.map(([r, c]) => key(r, c)));
-	const counts = new Map<string, number>();
-	for (const [r, c] of cells) {
-		for (let dr = -1; dr <= 1; dr++) {
-			for (let dc = -1; dc <= 1; dc++) {
-				if (!dr && !dc) continue;
-				const k = key(r + dr, c + dc);
-				counts.set(k, (counts.get(k) ?? 0) + 1);
-			}
-		}
-	}
-	const next: Cell[] = [];
-	for (const [k, n] of counts) {
-		if (n === 3 || (n === 2 && alive.has(k))) {
-			const [r, c] = k.split(",").map(Number);
-			next.push([r, c]);
-		}
-	}
-	return next;
-}
-
-type Frame = { r: number; c: number; alive: boolean[] };
-
-function frames(seed: Cell[]): Frame[] {
-	const gens: Cell[][] = [seed];
-	for (let g = 0; g < PERIOD; g++) gens.push(step(gens[g]));
-	const union = new Map<string, Frame>();
-	gens.forEach((cells, g) => {
-		for (const [r, c] of cells) {
-			const k = key(r, c);
-			let f = union.get(k);
-			if (!f) {
-				f = { r, c, alive: new Array<boolean>(gens.length).fill(false) };
-				union.set(k, f);
-			}
-			f.alive[g] = true;
-		}
-	});
-	return [...union.values()];
-}
-
-const SHIPS = {
-	glider: { frames: frames(GLIDER), cols: 3, rows: 3 },
-	lwss: { frames: frames(LWSS), cols: 5, rows: 4 },
-};
-
-const directions = {
-	right: { ship: "lwss", rotate: 0 },
-	down: { ship: "lwss", rotate: 90 },
-	left: { ship: "lwss", rotate: 180 },
-	up: { ship: "lwss", rotate: 270 },
-	"up-right": { ship: "glider", rotate: 0 },
-} satisfies Record<string, { ship: keyof typeof SHIPS; rotate: number }>;
 
 export function LifeArrow({
 	direction = "right",
+	seed,
 	className,
 	active,
 }: {
-	direction?: keyof typeof directions;
+	direction?: Direction;
+	seed?: string | number;
 	className?: string;
 	active?: boolean;
 }) {
 	const ref = useRef<SVGSVGElement>(null);
+	const id = useId();
 	const [gen, setGen] = useState(0);
-	const { ship, rotate } = directions[direction];
-	const { frames: cells, cols, rows } = SHIPS[ship];
-	const ox = (SIZE - cols * CELL) / 2;
-	const oy = (SIZE - rows * CELL) / 2;
+	const { frames, rows, cols } = specimen(
+		direction,
+		pick(seed ?? id, variants(direction)),
+	);
+	const width = Math.max(SIZE, cols * CELL);
+	const height = Math.max(SIZE, rows * CELL);
+	const ox = (width - cols * CELL) / 2;
+	const oy = (height - rows * CELL) / 2;
+	const lag = pick(seed ?? id, PERIOD * 2) * GEN_MS;
 
 	useEffect(() => {
 		const svg = ref.current;
@@ -116,14 +52,20 @@ export function LifeArrow({
 			for (const t of timers) clearTimeout(t);
 			timers = [];
 		};
-		const sail = (repeat: boolean) => {
+		const sail = (repeat: boolean, delay = 0) => {
 			clear();
 			for (let g = 1; g <= PERIOD; g++) {
-				timers.push(window.setTimeout(() => setGen(g), (g - 1) * GEN_MS));
+				timers.push(
+					window.setTimeout(() => setGen(g), delay + (g - 1) * GEN_MS),
+				);
 			}
 			if (repeat) {
-				timers.push(window.setTimeout(() => setGen(0), PERIOD * GEN_MS));
-				timers.push(window.setTimeout(() => sail(true), (PERIOD + 4) * GEN_MS));
+				timers.push(
+					window.setTimeout(() => setGen(0), delay + PERIOD * GEN_MS),
+				);
+				timers.push(
+					window.setTimeout(() => sail(true), delay + (PERIOD + 4) * GEN_MS),
+				);
 			}
 		};
 		const rest = () => {
@@ -137,7 +79,8 @@ export function LifeArrow({
 				!motion.matches &&
 				document.visibilityState === "visible"
 			) {
-				sail(active !== undefined || !hover.matches);
+				const idle = active === undefined && !hover.matches;
+				sail(active !== undefined || idle, idle ? lag : 0);
 			} else {
 				rest();
 			}
@@ -187,14 +130,14 @@ export function LifeArrow({
 			hover.removeEventListener("change", update);
 			document.removeEventListener("visibilitychange", update);
 		};
-	}, [active]);
+	}, [active, lag]);
 
 	return (
 		<svg
 			ref={ref}
-			viewBox={`0 0 ${SIZE} ${SIZE}`}
-			width="1em"
-			height="1em"
+			viewBox={`0 0 ${width} ${height}`}
+			width={`${width / SIZE}em`}
+			height={`${height / SIZE}em`}
 			fill="currentColor"
 			aria-hidden="true"
 			focusable="false"
@@ -206,21 +149,19 @@ export function LifeArrow({
 				overflow: "visible",
 			}}
 		>
-			<g transform={`rotate(${rotate} ${SIZE / 2} ${SIZE / 2})`}>
-				{cells.map(({ r, c, alive }) => (
-					<rect
-						key={key(r, c)}
-						x={ox + c * CELL + 0.5}
-						y={oy + r * CELL + 0.5}
-						width={CELL - 1}
-						height={CELL - 1}
-						style={{
-							opacity: alive[gen] ? 1 : 0,
-							transition: `opacity ${GEN_MS}ms ease-out`,
-						}}
-					/>
-				))}
-			</g>
+			{frames.map(({ r, c, alive }) => (
+				<rect
+					key={key(r, c)}
+					x={ox + c * CELL + 0.5}
+					y={oy + r * CELL + 0.5}
+					width={CELL - 1}
+					height={CELL - 1}
+					style={{
+						opacity: alive[gen] ? 1 : 0,
+						transition: `opacity ${GEN_MS}ms ease-out`,
+					}}
+				/>
+			))}
 		</svg>
 	);
 }

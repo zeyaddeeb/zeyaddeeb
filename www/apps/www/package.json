@@ -13,7 +13,8 @@
     "clean": "git clean -xdf .next .turbo .cache node_modules",
     "generate:land": "node scripts/capacity-land.mjs && biome format --write features/capacity/land-data.ts",
     "generate:county": "node scripts/capacity-county.mjs && biome format --write features/capacity/county-data.ts",
-    "generate:jazz": "node scripts/jazz-corpus.mjs && biome format --write features/jazz/corpus-data.ts"
+    "generate:jazz": "node scripts/jazz-corpus.mjs && biome format --write features/jazz/corpus-data.ts",
+    "generate:voyager": "node scripts/voyager-ephemeris.mjs && node scripts/voyager-source.mjs && biome format --write features/voyager/ephemeris-data.ts features/voyager/source-data.ts"
   },
   "dependencies": {
     "@chenglou/pretext": "^0.0.9",
@@ -23,6 +24,7 @@
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "three": "^0.186.1",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -30,6 +32,7 @@
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@types/three": "^0.186.0",
     "@zeyaddeeb/config": "workspace:*",
     "postcss": "catalog:",
     "tailwindcss": "catalog:",

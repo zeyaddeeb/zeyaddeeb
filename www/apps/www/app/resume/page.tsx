@@ -106,7 +106,7 @@ export default function ResumePage() {
 											{index > 0 && (
 												<>
 													{" "}
-													<LifeArrow direction="right" />{" "}
+													<LifeArrow direction="right" seed={index - 1} />{" "}
 													<span className="sr-only">to </span>
 												</>
 											)}
@@ -216,14 +216,14 @@ export default function ResumePage() {
 						target="_blank"
 						rel="noopener noreferrer"
 					>
-						LinkedIn <LifeArrow direction="up-right" />
+						LinkedIn <LifeArrow direction="up-right" seed="LinkedIn" />
 					</a>
 					<a
 						href={PROFILE_URLS.github}
 						target="_blank"
 						rel="noopener noreferrer"
 					>
-						GitHub <LifeArrow direction="up-right" />
+						GitHub <LifeArrow direction="up-right" seed="GitHub" />
 					</a>
 				</div>
 			</section>

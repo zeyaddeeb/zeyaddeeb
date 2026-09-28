@@ -1,7 +1,16 @@
 "use client";
 
+import { LifeArrow } from "@zeyaddeeb/ui";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+	type MouseEvent,
+	type ReactNode,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { experiments, type Topic, topics } from "@/features/catalog/catalog";
 import {
 	type ExperimentQuery,
@@ -29,6 +38,104 @@ function CloseIcon() {
 	);
 }
 
+function Pager({
+	page,
+	pages,
+	from,
+	to,
+	total,
+	href,
+	onTurn,
+}: {
+	page: number;
+	pages: number;
+	from: number;
+	to: number;
+	total: number;
+	href: (page: number) => string;
+	onTurn: (page: number) => void;
+}) {
+	const follow = (event: MouseEvent<HTMLAnchorElement>, next: number) => {
+		if (
+			event.button !== 0 ||
+			event.metaKey ||
+			event.ctrlKey ||
+			event.shiftKey ||
+			event.altKey
+		)
+			return;
+		event.preventDefault();
+		if (next !== page) onTurn(next);
+	};
+	const step = (
+		next: number,
+		rel: "prev" | "next",
+		label: string,
+		children: ReactNode,
+	) =>
+		next < 1 || next > pages ? (
+			<span className="pager__plate pager__step" aria-disabled>
+				{children}
+			</span>
+		) : (
+			<Link
+				href={href(next)}
+				prefetch={false}
+				scroll={false}
+				rel={rel}
+				aria-label={label}
+				className="pager__plate pager__step"
+				onClick={(event) => follow(event, next)}
+			>
+				{children}
+			</Link>
+		);
+	return (
+		<nav className="container pager" aria-label="Pages">
+			<p className="pager__range">
+				{from}–{to} of {total}
+			</p>
+			<div className="pager__plates">
+				{step(
+					page - 1,
+					"prev",
+					"Previous page",
+					<>
+						<LifeArrow direction="left" active={page > 1 ? undefined : false} />
+						<span className="pager__word">Previous</span>
+					</>,
+				)}
+				{Array.from({ length: pages }, (_, i) => i + 1).map((n) => (
+					<Link
+						key={n}
+						href={href(n)}
+						prefetch={false}
+						scroll={false}
+						aria-label={`Page ${n}`}
+						aria-current={n === page ? "page" : undefined}
+						className="pager__plate"
+						onClick={(event) => follow(event, n)}
+					>
+						{n}
+					</Link>
+				))}
+				{step(
+					page + 1,
+					"next",
+					"Next page",
+					<>
+						<span className="pager__word">Next</span>
+						<LifeArrow
+							direction="right"
+							active={page < pages ? undefined : false}
+						/>
+					</>,
+				)}
+			</div>
+		</nav>
+	);
+}
+
 export function ExperimentsListing() {
 	const params = useSearchParams();
 	const url = readQuery(Object.fromEntries(params));
@@ -36,6 +143,7 @@ export function ExperimentsListing() {
 	const [search, setSearch] = useState(url.search);
 	const written = useRef(url.search.trim());
 	const input = useRef<HTMLInputElement>(null);
+	const top = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
 		if (url.search.trim() === written.current) return;
@@ -72,16 +180,33 @@ export function ExperimentsListing() {
 		return () => window.removeEventListener("keydown", onKey);
 	}, []);
 
-	const { items, found, counts } = useMemo(
-		() => listExperiments({ search, topic, sort }),
-		[search, topic, sort],
+	const typing = search.trim() !== url.search.trim();
+	const { items, total, page, pages, from, to, found, counts } = useMemo(
+		() => listExperiments({ search, topic, sort, page: typing ? 1 : url.page }),
+		[search, topic, sort, typing, url.page],
 	);
 
 	const go = (next: Partial<ExperimentQuery>) => {
-		const query = { search, topic, sort, ...next };
+		const query = { search, topic, sort, page: 1, ...next };
 		written.current = query.search.trim();
 		if (next.search !== undefined) setSearch(next.search);
 		window.history.replaceState(null, "", experimentListingHref(query));
+	};
+
+	const turn = (next: number) => {
+		window.history.pushState(
+			null,
+			"",
+			experimentListingHref({ search, topic, sort, page: next }),
+		);
+		const status = top.current;
+		if (!status || status.getBoundingClientRect().top >= 0) return;
+		status.scrollIntoView({
+			block: "start",
+			behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+				? "auto"
+				: "smooth",
+		});
 	};
 
 	const filtered = Boolean(search.trim() || topic);
@@ -160,11 +285,13 @@ export function ExperimentsListing() {
 						</button>
 					))}
 				</fieldset>
-				<div className="finder__status">
+				<div className="finder__status" ref={top}>
 					<p aria-live="polite">
-						{filtered
-							? `Showing ${items.length} of ${experiments.length}`
-							: `Showing all ${experiments.length}`}
+						{pages > 1
+							? `Showing ${from}–${to} of ${total}`
+							: filtered
+								? `Showing ${total} of ${experiments.length}`
+								: `Showing all ${total}`}
 						{filtered ? (
 							<button
 								type="button"
@@ -192,7 +319,22 @@ export function ExperimentsListing() {
 				</div>
 			</div>
 			{items.length ? (
-				<ExperimentsIndex items={items} />
+				<>
+					<ExperimentsIndex items={items} />
+					{pages > 1 ? (
+						<Pager
+							page={page}
+							pages={pages}
+							from={from}
+							to={to}
+							total={total}
+							href={(n) =>
+								experimentListingHref({ search, topic, sort, page: n })
+							}
+							onTurn={turn}
+						/>
+					) : null}
+				</>
 			) : (
 				<div className="container index__empty">
 					<h2>

@@ -568,6 +568,7 @@ export function Poster({ head }: { head: ReactNode }) {
 												direction={
 													item.experiment.external ? "up-right" : "right"
 												}
+												seed={item.experiment.number}
 												active={current}
 											/>
 										</span>
@@ -714,6 +715,7 @@ export function Poster({ head }: { head: ReactNode }) {
 											direction={
 												item.experiment.external ? "up-right" : "right"
 											}
+											seed={item.experiment.number}
 										/>
 									)}
 								</span>
@@ -781,6 +783,7 @@ export function Poster({ head }: { head: ReactNode }) {
 												direction={
 													item.experiment.external ? "up-right" : "right"
 												}
+												seed={item.experiment.number}
 											/>
 										</span>
 									</Link>

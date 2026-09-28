@@ -17,7 +17,7 @@ export function SourceLink({
 			className={className}
 		>
 			{children}&nbsp;
-			<LifeArrow direction="up-right" />
+			<LifeArrow direction="up-right" seed={SOURCE_REPOSITORY} />
 		</a>
 	);
 }

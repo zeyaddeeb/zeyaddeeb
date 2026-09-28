@@ -84,7 +84,7 @@ export function ExperimentFrame({
 					<Link href={nav.prev.href} className="frame__nav-link">
 						<span className="eyebrow">
 							<span aria-hidden="true">
-								<LifeArrow direction="left" />
+								<LifeArrow direction="left" seed={nav.prev.number} />
 							</span>{" "}
 							{number(nav.prev.number)}
 						</span>
@@ -97,7 +97,7 @@ export function ExperimentFrame({
 						<span className="eyebrow">
 							{number(nav.next.number)}{" "}
 							<span aria-hidden="true">
-								<LifeArrow direction="right" />
+								<LifeArrow direction="right" seed={nav.next.number} />
 							</span>
 						</span>
 						<span className="frame__nav-title">{nav.next.title}</span>

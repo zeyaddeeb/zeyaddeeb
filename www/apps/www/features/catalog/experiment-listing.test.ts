@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { experiments, topics } from "./catalog";
 import {
+	EXPERIMENT_PAGE_SIZE,
 	experimentListingHref,
 	listExperiments,
 	readQuery,
@@ -8,19 +9,26 @@ import {
 
 const list = (params: Parameters<typeof readQuery>[0] = {}) =>
 	listExperiments(readQuery(params));
+const all = (params: Parameters<typeof readQuery>[0] = {}) => {
+	const { pages } = list(params);
+	return Array.from(
+		{ length: pages },
+		(_, i) => list({ ...params, page: String(i + 1) }).items,
+	).flat();
+};
 const ids = (params: Parameters<typeof readQuery>[0] = {}) =>
-	list(params).items.map((item) => item.id);
+	all(params).map((item) => item.id);
 
 describe("experiment listing", () => {
 	it("lists the whole catalog newest first by default", () => {
-		const numbers = list().items.map((item) => item.number);
+		const numbers = all().map((item) => item.number);
 		expect(numbers).toHaveLength(experiments.length);
 		expect(numbers).toEqual([...numbers].sort((a, b) => b - a));
 	});
 
 	it("sorts oldest first and by title", () => {
 		expect(list({ sort: "oldest" }).items[0].number).toBe(1);
-		const titles = list({ sort: "title" }).items.map((item) => item.title);
+		const titles = all({ sort: "title" }).map((item) => item.title);
 		expect(titles).toEqual(
 			[...titles].sort((a, b) => a.localeCompare(b, "en")),
 		);
@@ -55,6 +63,31 @@ describe("experiment listing", () => {
 		expect(searched.counts.sound).toBe(1);
 	});
 
+	it("pages six at a time and clamps out-of-range pages", () => {
+		const first = list();
+		expect(first.items).toHaveLength(EXPERIMENT_PAGE_SIZE);
+		expect(first).toMatchObject({
+			page: 1,
+			pages: Math.ceil(experiments.length / EXPERIMENT_PAGE_SIZE),
+			from: 1,
+			to: EXPERIMENT_PAGE_SIZE,
+			total: experiments.length,
+		});
+		expect(new Set(ids()).size).toBe(experiments.length);
+		const last = list({ page: "999" });
+		expect(last.page).toBe(last.pages);
+		expect(last.to).toBe(experiments.length);
+		expect(last.items).toHaveLength(last.to - last.from + 1);
+		expect(list({ page: "0" }).page).toBe(1);
+		expect(list({ page: "abc" }).page).toBe(1);
+		expect(list({ search: "no-such-experiment" })).toMatchObject({
+			page: 1,
+			pages: 1,
+			from: 0,
+			to: 0,
+		});
+	});
+
 	it("gives every experiment at least one known topic", () => {
 		const known = new Set(topics.map((t) => t.value));
 		for (const e of experiments) {
@@ -64,10 +97,13 @@ describe("experiment listing", () => {
 	});
 
 	it("ignores malformed and unknown parameters", () => {
-		expect(readQuery({ topic: "unknown", sort: "loudest" })).toEqual({
+		expect(
+			readQuery({ topic: "unknown", sort: "loudest", page: "-2" }),
+		).toEqual({
 			search: "",
 			topic: "",
 			sort: "newest",
+			page: 1,
 		});
 		expect(
 			readQuery({ search: ["moonspell", "rust"], topic: ["design", "ai"] }),
@@ -83,16 +119,18 @@ describe("experiment listing", () => {
 			search: " Rust & WASM ",
 			topic: "graphics",
 			sort: "title",
+			page: 2,
 		});
 		const url = new URL(href, "https://www.zeyaddeeb.com");
 		expect(readQuery(Object.fromEntries(url.searchParams))).toEqual({
 			search: "Rust & WASM",
 			topic: "graphics",
 			sort: "title",
+			page: 2,
 		});
-		expect(experimentListingHref({ search: "  ", sort: "newest" })).toBe(
-			"/experiments",
-		);
+		expect(
+			experimentListingHref({ search: "  ", sort: "newest", page: 1 }),
+		).toBe("/experiments");
 		expect(experimentListingHref({ topic: "ai" })).toBe(
 			"/experiments?topic=ai",
 		);

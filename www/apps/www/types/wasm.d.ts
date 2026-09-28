@@ -80,4 +80,42 @@ declare module "@zeyaddeeb/wasm" {
 		len(): number;
 		text(): string;
 	}
+
+	export enum Pulse {
+		Coast = 0,
+		Plus = 1,
+		Minus = 2,
+	}
+
+	export class Aacs {
+		constructor(deadband: number);
+		free(): void;
+		step(dt: number): Pulse;
+		nudge(rate: number): void;
+		signal_db(): number;
+		set_deadband(deadband: number): void;
+		error(): number;
+		rate(): number;
+		pulses(): number;
+	}
+
+	export class Fds {
+		constructor();
+		free(): void;
+		fail(): void;
+		relocate(routine: number, base: number): number;
+		healthy(): boolean;
+		frame(watts: number, nanotesla: number): Uint16Array;
+		peek(word: number): number;
+		owners(): Uint8Array;
+		base(routine: number): number;
+	}
+
+	export function beamwidth(): number;
+	export function kick(): number;
+	export function routine_count(): number;
+	export function routine_name(routine: number): string;
+	export function routine_len(routine: number): number;
+	export function calls(): Uint32Array;
+	export function command_bits(opcode: number, operand: number): Uint8Array;
 }
