@@ -164,22 +164,18 @@
 	z-index: 60;
 	width: 100%;
 	height: 3px;
-	background: var(--red);
-	transform: scaleX(0);
-	transform-origin: left;
 	pointer-events: none;
-	animation: site-progress linear both;
-	animation-timeline: scroll(root);
 }
 
-@keyframes site-progress {
-	from {
-		transform: scaleX(0);
-	}
-
-	to {
-		transform: scaleX(1);
-	}
+.site-progress__fill {
+	display: block;
+	width: 100%;
+	height: 100%;
+	background: var(--red);
+	/* Animate the fill independently of its fixed viewport container. */
+	transform: scaleX(0);
+	transform-origin: left;
+	will-change: transform;
 }
 
 .site-header nav ul a {

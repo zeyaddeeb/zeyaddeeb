@@ -5,6 +5,12 @@
 
 html:has(.vg) {
 	scrollbar-gutter: stable;
+	/* Clip at the viewport, without nested clip layers around sticky content. */
+	overflow-x: hidden;
+}
+
+body:has(.vg) {
+	overflow-x: visible;
 }
 
 .vg {
@@ -65,7 +71,6 @@ html:has(.vg) {
 	--vg-ease: cubic-bezier(0.33, 1, 0.68, 1);
 	--vg-fade: cubic-bezier(0.22, 0.61, 0.36, 1);
 	position: relative;
-	overflow-x: clip;
 	padding-bottom: var(--vg-space-end);
 	background: var(--vg-bg);
 	color: var(--vg-ink);
