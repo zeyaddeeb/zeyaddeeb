@@ -1,19 +1,22 @@
 import type { Color, Form, Kind, Shape } from "./scenes";
 
-export const COLS = 8;
-export const ROWS = 6;
+export const COLS = 14;
+export const ROWS = 7;
+export const XHEIGHT = 2;
+export const BASELINE = 5;
 
-export const LAND = { x: 4.8, y: 0.45, cell: 0.85 };
-export const PORT = { x: 0.36, y: 3.89, cell: 0.66 };
+export const LAND = { x: 4.84, y: 1.32, cell: 0.48 };
+export const PORT = { x: 0.36, y: 4.55, cell: 0.377 };
 
 const BASE = 0x4e00;
-const STRIDE = 256;
+const STRIDE = 512;
 const RESET = 15 * STRIDE;
 
 export interface Piece {
 	id: Shape | string;
 	label: string;
-	size: 1 | 2;
+	w: number;
+	h: number;
 	c: Color;
 	k: Kind;
 	turns: boolean;
@@ -34,53 +37,58 @@ export interface Box {
 export const kit: Piece[] = [
 	{
 		id: "block",
-		label: "Large blue quarter circle",
-		size: 2,
+		label: "Blue ring",
+		w: 3,
+		h: 3,
 		c: "blue",
-		k: "quarter",
-		turns: true,
-	},
-	{
-		id: "sun",
-		label: "Black circle with a yellow halo",
-		size: 2,
-		c: "none",
-		k: "halo",
+		k: "ring",
 		turns: false,
 	},
+	{ id: "sun", label: "Red arch", w: 3, h: 3, c: "red", k: "bow", turns: true },
 	{
 		id: "moon",
-		label: "Small red quarter circle",
-		size: 1,
-		c: "red",
-		k: "quarter",
+		label: "Tall stem",
+		w: 1,
+		h: 5,
+		c: "ink",
+		k: "rect",
 		turns: true,
 	},
 	{
 		id: "slab",
-		label: "Large yellow triangle",
-		size: 2,
-		c: "yellow",
-		k: "tri",
+		label: "Red arch",
+		w: 3,
+		h: 3,
+		c: "red",
+		k: "bow",
 		turns: true,
 	},
 	{
 		id: "core",
-		label: "Large red half circle",
-		size: 2,
-		c: "red",
-		k: "semi",
+		label: "Tall stem",
+		w: 1,
+		h: 5,
+		c: "ink",
+		k: "rect",
 		turns: true,
 	},
-	{ id: "line", label: "Black arc", size: 2, c: "ink", k: "arc", turns: true },
-	{ id: "dot", label: "Here now", size: 1, c: "red", k: "round", turns: false },
 	{
-		id: "petal",
-		label: "Small blue quarter circle",
-		size: 1,
-		c: "blue",
-		k: "quarter",
+		id: "line",
+		label: "Short stem",
+		w: 1,
+		h: 3,
+		c: "ink",
+		k: "rect",
 		turns: true,
+	},
+	{
+		id: "dot",
+		label: "Here now",
+		w: 1,
+		h: 1,
+		c: "red",
+		k: "round",
+		turns: false,
 	},
 ];
 
@@ -90,14 +98,13 @@ const at = (col: number, row: number, rot = 0): Place => ({
 });
 
 export const initial: Place[] = [
-	at(5, 1, 1),
-	at(0, 1),
-	at(6, 3),
-	at(3, 3),
-	at(0, 4, 2),
-	at(1, 2),
-	at(7, 0),
-	at(7, 3, 1),
+	at(0, 2),
+	at(4, 2),
+	at(4, 0),
+	at(9, 2),
+	at(9, 0),
+	at(13, 2),
+	at(13, 0),
 ];
 
 export const resetCode = String.fromCodePoint(BASE + RESET);
@@ -106,8 +113,8 @@ function pieceAt(index: number) {
 	return kit[index];
 }
 
-export function size(piece: Piece) {
-	return { w: piece.size, h: piece.size };
+export function size(piece: Piece, rot = 0) {
+	return rot % 2 ? { w: piece.h, h: piece.w } : { w: piece.w, h: piece.h };
 }
 
 export function fits(index: number, place: Place) {
@@ -116,7 +123,7 @@ export function fits(index: number, place: Place) {
 	if (place.cell < 0 || place.cell >= COLS * ROWS) return false;
 	if (place.rot < 0 || place.rot > 3) return false;
 	if (!piece.turns && place.rot !== 0) return false;
-	const { w, h } = size(piece);
+	const { w, h } = size(piece, place.rot);
 	return (
 		(place.cell % COLS) + w <= COLS && Math.floor(place.cell / COLS) + h <= ROWS
 	);
@@ -125,7 +132,7 @@ export function fits(index: number, place: Place) {
 export function snap(index: number, col: number, row: number, rot: number) {
 	const piece = pieceAt(index);
 	if (!piece) return null;
-	const { w, h } = size(piece);
+	const { w, h } = size(piece, rot);
 	const c = Math.max(0, Math.min(COLS - w, Math.round(col)));
 	const r = Math.max(0, Math.min(ROWS - h, Math.round(row)));
 	return { cell: r * COLS + c, rot };
@@ -165,10 +172,21 @@ export function isInitial(layout: Place[]) {
 	);
 }
 
-export function boxOf(index: number, col: number, row: number) {
+export function boxOf(index: number, col: number, row: number, rot = 0) {
 	const piece = pieceAt(index);
-	const { w, h } = piece ? size(piece) : { w: 1, h: 1 };
+	const { w, h } = piece ? size(piece, rot) : { w: 1, h: 1 };
 	return { col, row, w, h };
+}
+
+export function turned(index: number, place: Place) {
+	const piece = pieceAt(index);
+	if (!piece?.turns) return null;
+	const rot = (place.rot + 1) % 4;
+	const from = size(piece, place.rot);
+	const to = size(piece, rot);
+	const col = (place.cell % COLS) + (from.w - to.w) / 2;
+	const row = Math.floor(place.cell / COLS) + (from.h - to.h) / 2;
+	return snap(index, col, row, rot);
 }
 
 export function toLand(box: Box) {
@@ -204,7 +222,13 @@ export function forms(index: number, box: Box, spin: number) {
 	const piece = pieceAt(index);
 	if (!piece) return null;
 	const skin = { c: piece.c, k: piece.k, r: piece.turns ? spin * 90 : 0 };
-	const land: Form = { ...toLand(box), ...skin };
-	const port: Form = { ...toPort(box), ...skin };
+	const body = {
+		col: box.col + (box.w - piece.w) / 2,
+		row: box.row + (box.h - piece.h) / 2,
+		w: piece.w,
+		h: piece.h,
+	};
+	const land: Form = { ...toLand(body), ...skin };
+	const port: Form = { ...toPort(body), ...skin };
 	return { land, port };
 }

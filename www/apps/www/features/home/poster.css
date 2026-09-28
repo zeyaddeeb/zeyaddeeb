@@ -85,6 +85,10 @@
 	stroke: color-mix(in srgb, var(--ink) 38%, transparent);
 }
 
+.poster__grid-guides {
+	stroke: color-mix(in srgb, var(--red) 40%, transparent);
+}
+
 .poster__grid-lines {
 	stroke: color-mix(in srgb, var(--ink) 9%, transparent);
 	opacity: 0;
@@ -128,21 +132,19 @@
 	border-radius: 50%;
 }
 
-.poster__shape[data-k="arch"] {
-	border-radius: 50% 50% 0 0 / 100% 100% 0 0;
-}
-
-.poster__shape[data-k="tri"] {
-	clip-path: polygon(0 0, 0 0, 100% 100%, 0 100%);
-}
-
-.poster__shape[data-k="quarter"] {
-	border-radius: 100% 0 0 0;
-}
-
-.poster__shape[data-k="semi"] {
+.poster__shape[data-k="ring"] {
 	border-radius: 50%;
-	clip-path: polygon(0 50%, 100% 50%, 100% 100%, 0 100%);
+	mask: radial-gradient(
+		closest-side,
+		transparent calc(100% / 3),
+		#000 calc(100% / 3 + 0.5px)
+	);
+}
+
+.poster__shape[data-k="bow"] {
+	mask:
+		url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3 3' preserveAspectRatio='none'%3E%3Cpath d='M0 3V1.5a1.5 1.5 0 0 1 3 0V3H2V1.5a.5 .5 0 0 0-1 0V3z'/%3E%3C/svg%3E")
+		0 0 / 100% 100%;
 }
 
 .poster__skin {
@@ -212,26 +214,6 @@
 		content-box;
 }
 
-.poster__shape[data-k="halo"] {
-	border-radius: 50%;
-	background-image: radial-gradient(
-		closest-side,
-		var(--ink) calc(50% - 0.5px),
-		var(--yellow) 50%,
-		color-mix(in srgb, var(--yellow) 0%, transparent) 100%
-	);
-}
-
-.poster__shape[data-k="arc"] {
-	--t: calc(var(--sw) * 0.07);
-	border-radius: 100% 0 0 0;
-	mask: radial-gradient(
-		circle at 100% 100%,
-		transparent calc(var(--sw) - var(--t)),
-		#000 calc(var(--sw) - var(--t) + 0.5px)
-	);
-}
-
 .poster__shape[data-away] {
 	opacity: 0;
 }
@@ -253,12 +235,16 @@
 	box-shadow: inset 0 0 0 2px var(--ink);
 }
 
+.poster__shape[data-shape="dot"] {
+	container-type: size;
+}
+
 .poster__count {
 	position: absolute;
 	inset: 0;
 	display: grid;
 	place-items: center;
-	font: 500 calc(var(--u) * 0.34) / 1 var(--font-display);
+	font: 500 42cqw / 1 var(--font-display);
 	font-variant-numeric: tabular-nums;
 	letter-spacing: -0.03em;
 	color: var(--paper);

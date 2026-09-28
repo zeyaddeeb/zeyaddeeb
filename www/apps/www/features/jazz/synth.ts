@@ -15,7 +15,9 @@ interface Horn {
 	pan: number;
 }
 
-const horns: Record<"cornet" | "clarinet" | "trombone", Horn> = {
+type HornVoice = "cornet" | "clarinet" | "trombone" | "you";
+
+const horns: Record<HornVoice, Horn> = {
 	cornet: {
 		partials: "saw",
 		detune: 5,
@@ -26,7 +28,19 @@ const horns: Record<"cornet" | "clarinet" | "trombone", Horn> = {
 		vibrato: { rate: 5.4, depth: 11, delay: 0.22 },
 		breath: 0.02,
 		level: 0.34,
-		pan: 0,
+		pan: 0.12,
+	},
+	you: {
+		partials: "saw",
+		detune: 4,
+		bright: 6,
+		body: 1150,
+		attack: 0.02,
+		scoop: -35,
+		vibrato: { rate: 5.1, depth: 9, delay: 0.26 },
+		breath: 0.024,
+		level: 0.34,
+		pan: -0.3,
 	},
 	clarinet: {
 		partials: [1, 0, 0.5, 0, 0.32, 0, 0.2, 0, 0.13, 0, 0.08, 0, 0.05],
@@ -83,7 +97,7 @@ const strings: Record<"piano" | "banjo", Pluck> = {
 };
 
 export interface Sound {
-	voice: Voice;
+	voice: Voice | "you";
 	keys: number[];
 	slide: number | null;
 	when: number;
@@ -186,7 +200,19 @@ export class Band {
 		return wave;
 	}
 
-	private horn(voice: keyof typeof horns, key: number, sound: Sound) {
+	hold(key: number, velocity = 0.95) {
+		const when = this.ctx.currentTime + 0.005;
+		return this.horn("you", key, {
+			voice: "you",
+			keys: [key],
+			slide: null,
+			when,
+			duration: 30,
+			velocity,
+		});
+	}
+
+	private horn(voice: HornVoice, key: number, sound: Sound) {
 		const ctx = this.ctx;
 		const spec = horns[voice];
 		const { when, velocity } = sound;
@@ -232,6 +258,7 @@ export class Band {
 			);
 		}
 		vibrato.connect(depth);
+		const sources: AudioScheduledSourceNode[] = [vibrato];
 
 		const target = sound.slide === null ? null : hz(sound.slide);
 		for (const offset of [-spec.detune, spec.detune]) {
@@ -251,9 +278,11 @@ export class Band {
 			osc.connect(filter);
 			osc.start(when);
 			osc.stop(end + release * 2);
+			sources.push(osc);
 		}
 		vibrato.start(when);
 		vibrato.stop(end + release * 2);
+		let breath: GainNode | null = null;
 
 		if (spec.breath > 0) {
 			const air = ctx.createBufferSource();
@@ -263,7 +292,7 @@ export class Band {
 			band.type = "bandpass";
 			band.frequency.value = Math.min(8000, f * 3);
 			band.Q.value = 1.4;
-			const breath = ctx.createGain();
+			breath = ctx.createGain();
 			breath.gain.setValueAtTime(0, when);
 			breath.gain.linearRampToValueAtTime(spec.breath * velocity, when + 0.02);
 			breath.gain.setTargetAtTime(
@@ -275,7 +304,20 @@ export class Band {
 			air.connect(band).connect(breath).connect(this.bus(voice, spec.pan));
 			air.start(when, Math.random() * 0.5);
 			air.stop(end + 0.2);
+			sources.push(air);
 		}
+
+		return (at = ctx.currentTime) => {
+			const t = Math.max(at, when + 0.03);
+			for (const param of [amp.gain, breath?.gain]) {
+				if (!param) continue;
+				param.cancelScheduledValues(t);
+				param.setTargetAtTime(0, t, release / 3);
+			}
+			filter.frequency.cancelScheduledValues(t);
+			filter.frequency.setTargetAtTime(f * 1.2, t, release / 2);
+			for (const source of sources) source.stop(t + release * 3);
+		};
 	}
 
 	warm(voice: keyof typeof strings, keys: number[]) {

@@ -15,6 +15,7 @@ const score = (code: Partial<Score["code"]>, ratio = 1): Score => ({
 	swing: ratio,
 	code: {
 		chords: "",
+		you: "",
 		cornet: "",
 		clarinet: "",
 		trombone: "",

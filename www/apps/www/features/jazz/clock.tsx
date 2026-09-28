@@ -1,6 +1,7 @@
 "use client";
 
 import { type RefObject, useMemo } from "react";
+import type { Focus } from "./chart";
 import { swing } from "./music";
 import {
 	type CompiledScore,
@@ -10,12 +11,8 @@ import {
 	type Voice,
 	voices,
 } from "./score";
-import { chorus } from "./tune";
-
-export interface Selection {
-	lane: LaneId;
-	start: number;
-}
+import { chorus, ticks } from "./tune";
+import { useSmall } from "./use-small";
 
 const C = 500;
 
@@ -55,24 +52,107 @@ function sector(r0: number, r1: number, t0: number, t1: number) {
 	return `M${fixed(ax)} ${fixed(ay)}A${r1} ${r1} 0 0 1 ${fixed(bx)} ${fixed(by)}L${fixed(cx)} ${fixed(cy)}A${r0} ${r0} 0 0 0 ${fixed(dx)} ${fixed(dy)}Z`;
 }
 
+export interface Live {
+	key: number;
+	clock: number;
+	end: number | null;
+}
+
+export interface Source {
+	t0: number;
+	t1: number;
+	label: string;
+	title: string;
+	kind: "him" | "you" | "heard";
+}
+
+function band(r: number, t0: number, t1: number, reverse: boolean) {
+	const [ax, ay] = point(r, reverse ? t1 : t0);
+	const [bx, by] = point(r, reverse ? t0 : t1);
+	const large = t1 - t0 > chorus / 2 ? 1 : 0;
+	return `M${fixed(ax)} ${fixed(ay)}A${r} ${r} 0 ${large} ${reverse ? 0 : 1} ${fixed(bx)} ${fixed(by)}`;
+}
+
+function Sources({ sources }: { sources: Source[] }) {
+	const small = useSmall();
+	const size = small ? 34 : 19;
+	return (
+		<g className="jz-sources-ring">
+			<circle cx={C} cy={C} r={510} className="jz-sources-guide" />
+			{sources.map((s, k) => {
+				const mid = (s.t0 + s.t1) / 2;
+				const bottom = mid > chorus / 4 && mid < (chorus * 3) / 4;
+				const r = bottom ? 526 + size * 0.75 : 526;
+				const length = ((s.t1 - s.t0) / chorus) * 2 * Math.PI * r;
+				const room = Math.floor(length / (size * 0.61));
+				const text =
+					room < 4
+						? ""
+						: s.label.length <= room
+							? s.label
+							: `${s.label.slice(0, room - 1)}…`;
+				const id = `jz-src-${k}-${Math.round(s.t0 * 100)}`;
+				return (
+					<g
+						key={id}
+						className="jz-source"
+						data-kind={s.kind}
+						data-t0={s.t0}
+						data-t1={s.t1}
+					>
+						<title>{s.title}</title>
+						<path
+							d={sector(502, 518, s.t0, Math.max(s.t0 + 0.05, s.t1 - 0.03))}
+						/>
+						{text ? (
+							<>
+								<path
+									id={id}
+									d={band(r, s.t0, s.t1 - 0.03, bottom)}
+									fill="none"
+								/>
+								<text fontSize={size}>
+									<textPath
+										href={`#${id}`}
+										startOffset="50%"
+										textAnchor="middle"
+									>
+										{text}
+									</textPath>
+								</text>
+							</>
+						) : null}
+					</g>
+				);
+			})}
+		</g>
+	);
+}
+
 interface ClockProps {
+	sources: Source[];
+	heard: number;
 	compiled: CompiledScore;
 	ratio: number;
-	selection: Selection | null;
+	focus: Focus | null;
+	live: Live[];
 	arm: RefObject<SVGGElement | null>;
-	onSelect: (selection: Selection | null) => void;
+	onFocus: (focus: Focus | null) => void;
 }
 
 export function Clock({
+	sources,
+	heard,
 	compiled,
 	ratio,
-	selection,
+	focus,
+	live,
 	arm,
-	onSelect,
+	onFocus,
 }: ClockProps) {
 	const lanes = useMemo(() => {
 		const out = {} as Record<LaneId, Note[]>;
-		for (const lane of ["chords", ...voices] as LaneId[]) {
+		for (const lane of ["chords", "you", ...voices] as LaneId[]) {
 			out[lane] = [];
 			for (let bar = 0; bar < chorus; bar++)
 				out[lane].push(...notes(compiled, lane, bar, ratio));
@@ -83,10 +163,10 @@ export function Clock({
 	const ranges = useMemo(() => {
 		const out = {} as Record<Voice, [number, number]>;
 		for (const lane of voices) {
-			const keys = lanes[lane].flatMap((n) => [
-				...n.keys,
-				...(n.slide === null ? [] : [n.slide]),
-			]);
+			const keys = [
+				...lanes[lane],
+				...(lane === "cornet" ? lanes.you : []),
+			].flatMap((n) => [...n.keys, ...(n.slide === null ? [] : [n.slide])]);
 			let lo = Math.min(...keys);
 			let hi = Math.max(...keys);
 			if (!keys.length) [lo, hi] = [60, 72];
@@ -97,7 +177,7 @@ export function Clock({
 			out[lane] = [lo, hi];
 		}
 		return out;
-	}, [lanes]);
+	}, [lanes, live]);
 
 	const radius = (lane: Voice, key: number) => {
 		const [r0, r1] = rings[lane];
@@ -105,18 +185,40 @@ export function Clock({
 		return r0 + 6 + ((key - lo) / (hi - lo)) * (r1 - r0 - 12);
 	};
 
-	const picked = (lane: LaneId, start: number) =>
-		selection?.lane === lane && selection.start === start;
+	const spot = (lane: LaneId, note: Note): Focus => {
+		const bar = Math.floor(note.begin + 1e-9);
+		return { lane, bar, at: Math.round((note.begin - bar) * ticks) };
+	};
+
+	const picked = (lane: LaneId, note: Note) => {
+		const s = spot(lane, note);
+		return focus?.lane === lane && focus.bar === s.bar && focus.at === s.at;
+	};
 
 	return (
-		<svg viewBox="0 0 1000 1000" className="jz-dial" aria-hidden="true">
+		<svg viewBox="-60 -60 1120 1120" className="jz-dial" aria-hidden="true">
+			<Sources sources={sources} />
 			{Array.from({ length: chorus }, (_, bar) => {
 				const chord = lanes.chords.find((n) => Math.floor(n.begin) === bar);
 				const [lx, ly] = point(466, bar + 0.5);
 				const [x0, y0] = point(140, bar);
 				const [x1, y1] = point(492, bar);
 				return (
-					<g key={`bar-${bar}`} className="jz-sector" data-bar={bar}>
+					<g
+						key={`bar-${bar}`}
+						className="jz-sector"
+						data-bar={bar}
+						data-picked={
+							(focus?.lane === "chords" && focus.bar === bar) || undefined
+						}
+						onPointerDown={() =>
+							onFocus(
+								focus?.lane === "chords" && focus.bar === bar
+									? null
+									: { lane: "chords", bar, at: 0 },
+							)
+						}
+					>
 						<path
 							d={sector(440, 492, bar, bar + 1)}
 							className="jz-sector-band"
@@ -160,15 +262,17 @@ export function Clock({
 					</g>
 				);
 			})}
-			{voices.map((lane) => (
+			{([...voices, "you"] as const).map((lane) => (
 				<g key={lane} className="jz-ring" data-lane={lane}>
-					<circle
-						cx={C}
-						cy={C}
-						r={(rings[lane][0] + rings[lane][1]) / 2}
-						className="jz-ring-guide"
-					/>
-					{lanes[lane].map((note) => {
+					{lane === "you" ? null : (
+						<circle
+							cx={C}
+							cy={C}
+							r={(rings[lane][0] + rings[lane][1]) / 2}
+							className="jz-ring-guide"
+						/>
+					)}
+					{lanes[lane].map((note, index) => {
 						const t0 = note.onset;
 						const t1 = Math.max(t0 + 0.02, note.offset - 0.01);
 						const common = {
@@ -176,13 +280,14 @@ export function Clock({
 							"data-t0": note.onset,
 							"data-t1": note.offset,
 							"data-token": `${lane}:${note.span[0]}`,
-							"data-selected": picked(lane, note.span[0]) || undefined,
-							onPointerDown: () =>
-								onSelect(
-									picked(lane, note.span[0])
-										? null
-										: { lane, start: note.span[0] },
-								),
+							"data-selected": picked(lane, note) || undefined,
+							"data-heard":
+								(lane === "you" && index >= lanes.you.length - heard) ||
+								undefined,
+							onPointerDown: (event: { stopPropagation: () => void }) => {
+								event.stopPropagation();
+								onFocus(picked(lane, note) ? null : spot(lane, note));
+							},
 						};
 						const key = `${note.span[0]}:${note.begin}`;
 						if (lane === "banjo") {
@@ -218,14 +323,15 @@ export function Clock({
 						}
 						const k = note.keys[0];
 						if (k === undefined) return null;
-						const r0 = radius(lane, k);
-						const r1 = note.slide === null ? r0 : radius(lane, note.slide);
+						const ring = lane === "you" ? "cornet" : lane;
+						const r0 = radius(ring, k);
+						const r1 = note.slide === null ? r0 : radius(ring, note.slide);
 						const [x, y] = point(r0, t0);
 						const s = 13;
 						return (
 							<g key={key} {...common}>
 								<polyline points={arc(r0, r1, t0, t1)} className="jz-tail" />
-								{lane === "cornet" ? (
+								{lane === "cornet" || lane === "you" ? (
 									<polygon
 										points={`${fixed(x)},${fixed(y - s * 0.6)} ${fixed(x + s * 0.55)},${fixed(y + s * 0.45)} ${fixed(x - s * 0.55)},${fixed(y + s * 0.45)}`}
 									/>
@@ -245,6 +351,23 @@ export function Clock({
 					})}
 				</g>
 			))}
+			<g className="jz-ring jz-live" data-lane="you">
+				{live.map((note) => {
+					const t0 = ((note.clock % chorus) + chorus) % chorus;
+					const t1 = t0 + Math.max(0.02, (note.end ?? note.clock) - note.clock);
+					const r = radius("cornet", note.key);
+					const [x, y] = point(r, t0);
+					const s = 13;
+					return (
+						<g key={`${note.clock}:${note.key}`} className="jz-note" data-on="">
+							<polyline points={arc(r, r, t0, t1)} className="jz-tail" />
+							<polygon
+								points={`${fixed(x)},${fixed(y - s * 0.6)} ${fixed(x + s * 0.55)},${fixed(y + s * 0.45)} ${fixed(x - s * 0.55)},${fixed(y + s * 0.45)}`}
+							/>
+						</g>
+					);
+				})}
+			</g>
 			<g ref={arm} className="jz-arm">
 				<line x1={C} y1={C - 136} x2={C} y2={C - 496} />
 			</g>

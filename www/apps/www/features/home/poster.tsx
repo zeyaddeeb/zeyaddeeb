@@ -21,6 +21,7 @@ import {
 import { useWasm } from "@/lib/hooks/use-wasm";
 import { clamp } from "@/lib/math";
 import {
+	BASELINE,
 	type Box,
 	boxOf,
 	COLS,
@@ -37,6 +38,8 @@ import {
 	snap,
 	toLand,
 	toPort,
+	turned,
+	XHEIGHT,
 } from "./bauspiel";
 import { type Form, type Shape, type Spot, scenes, shapes } from "./scenes";
 import "./poster.css";
@@ -131,6 +134,7 @@ function Grid({
 		}
 	}
 	for (let r = 0; r <= rows; r++) lines += `M0 ${r}H${cols}`;
+	const guides = `M0 ${XHEIGHT}H${cols}M0 ${BASELINE}H${cols}`;
 	return (
 		<svg
 			className={className}
@@ -139,6 +143,7 @@ function Grid({
 			aria-hidden="true"
 		>
 			<path className="poster__grid-lines" d={lines} />
+			<path className="poster__grid-guides" d={guides} />
 			<path className="poster__grid-marks" d={marks} />
 		</svg>
 	);
@@ -240,12 +245,8 @@ export function Poster({ head }: { head: ReactNode }) {
 
 	const turn = (index: number) => {
 		const current = layout[index];
-		if (!kit[index]?.turns || !current) return;
-		const rot = (current.rot + 1) % 4;
-		place(
-			index,
-			snap(index, current.cell % COLS, Math.floor(current.cell / COLS), rot),
-		);
+		if (!current) return;
+		place(index, turned(index, current));
 	};
 
 	const lift = (
@@ -359,7 +360,7 @@ export function Poster({ head }: { head: ReactNode }) {
 		const current = layout[selected];
 		const at = toBoard(event.clientX, event.clientY);
 		if (!current || !at) return;
-		const box = boxOf(selected, 0, 0);
+		const box = boxOf(selected, 0, 0, current.rot);
 		const { col, row } = at;
 		place(
 			selected,
@@ -421,7 +422,11 @@ export function Poster({ head }: { head: ReactNode }) {
 		const dragging = drag?.index === index && drag.moved;
 		const col = dragging && drag ? drag.col : current.cell % COLS;
 		const row = dragging && drag ? drag.row : Math.floor(current.cell / COLS);
-		return forms(index, boxOf(index, col, row), spins.current[index] ?? 0);
+		return forms(
+			index,
+			boxOf(index, col, row, current.rot),
+			spins.current[index] ?? 0,
+		);
 	};
 
 	const titleOf = (i: number) =>
@@ -586,6 +591,7 @@ export function Poster({ head }: { head: ReactNode }) {
 									drag.index,
 									drag.target.cell % COLS,
 									Math.floor(drag.target.cell / COLS),
+									drag.target.rot,
 								),
 							)}
 						/>
@@ -598,7 +604,7 @@ export function Poster({ head }: { head: ReactNode }) {
 							const col = dragging && drag ? drag.col : current.cell % COLS;
 							const row =
 								dragging && drag ? drag.row : Math.floor(current.cell / COLS);
-							const style = frame(boxOf(index, col, row));
+							const style = frame(boxOf(index, col, row, current.rot));
 							return (
 								<button
 									key={piece.id}

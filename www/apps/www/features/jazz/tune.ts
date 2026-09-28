@@ -1,4 +1,5 @@
 import { noteName } from "./music";
+import { cycle, type Node } from "./pattern";
 import { compileAll, type LaneId, notes, type Score } from "./score";
 
 export const chorus = 12;
@@ -7,7 +8,7 @@ type Bars = string[];
 
 const all = (bar: string): Bars => Array(chorus).fill(bar);
 
-const changes: Bars = [
+export const changes: Bars = [
 	"Bb7",
 	"Eb7",
 	"Bb7",
@@ -104,7 +105,7 @@ const breakRunHigh = [
 ];
 
 export type Tempo = "medium" | "drag" | "stomp";
-export type Lineup = "lead" | "everybody" | "clarinet" | "answer";
+export type Lineup = "lead" | "everybody" | "clarinet" | "answer" | "trade";
 export type Rhythm = "four" | "two" | "stop";
 
 export interface Calls {
@@ -221,7 +222,98 @@ export function serialize(bars: Bars): string {
 	return `<${items.join(" ")}>`;
 }
 
-export function arrange(c: Calls): Score {
+export interface Trading {
+	voice: "cornet" | "clarinet" | "trombone";
+	you: Bars;
+	answer: Bars;
+}
+
+export const roles = changes.map((c) => ["Bb7", "Eb7", "F7"].indexOf(c));
+
+function gcd(a: number, b: number): number {
+	return b ? gcd(b, a % b) : a;
+}
+
+export interface Item {
+	text: string;
+	size: number;
+	begin: number;
+}
+
+export const ticks = 48;
+
+export function itemsOf(node: Node | null, bar: number): Item[] {
+	const items: Item[] = [];
+	let at = 0;
+	for (const hap of node ? cycle(node, bar) : []) {
+		const from = Math.round((hap.begin - bar) * ticks);
+		const to = Math.round((hap.end - bar) * ticks);
+		if (from < at || to <= from) continue;
+		if (from > at) items.push({ text: "~", size: from - at, begin: at });
+		items.push({ text: hap.value, size: to - from, begin: from });
+		at = to;
+	}
+	if (at < ticks) items.push({ text: "~", size: ticks - at, begin: at });
+	return items;
+}
+
+export function formatBar(items: { text: string; size: number }[]): string {
+	const merged: { text: string; size: number }[] = [];
+	for (const item of items) {
+		const last = merged.at(-1);
+		if (last && last.text === "~" && item.text === "~") last.size += item.size;
+		else merged.push({ ...item });
+	}
+	if (merged.every((i) => i.text === "~")) return "~";
+	const unit = merged.reduce((g, i) => gcd(g, i.size), ticks);
+	const words = merged.map((i) =>
+		i.size === unit ? i.text : `${i.text}@${i.size / unit}`,
+	);
+	return words.length === 1 ? words[0] : `[${words.join(" ")}]`;
+}
+
+export function barsOf(node: Node | null, count = chorus): Bars {
+	return Array.from({ length: count }, (_, bar) =>
+		formatBar(itemsOf(node, bar)),
+	);
+}
+
+export const rhythms: Record<
+	"piano" | "banjo",
+	{ code: string; name: string }[]
+> = {
+	piano: [
+		{ code: "1 x 5 x", name: "Stride" },
+		{ code: "1 ~ 5 ~", name: "Two-beat" },
+		{ code: "x x x x", name: "Four" },
+		{ code: "x ~ ~ ~", name: "One hit" },
+		{ code: "~", name: "Rest" },
+	],
+	banjo: [
+		{ code: "x x x x", name: "Four" },
+		{ code: "x ~ x ~", name: "Two-beat" },
+		{ code: "[x x] x [x x] x", name: "Doubled" },
+		{ code: "x ~ ~ ~", name: "One hit" },
+		{ code: "~", name: "Rest" },
+	],
+};
+
+export const chordChoices = [
+	"Bb7",
+	"Eb7",
+	"F7",
+	"Edim",
+	"G7",
+	"Cm7",
+	"C7",
+	"Ab7",
+	"D7",
+	"Gm7",
+	"Bb6",
+	"Ebm6",
+];
+
+export function arrange(c: Calls, trading?: Trading): Score {
 	let cornet = head.map((bar, i) =>
 		c.blue && bends.includes(i) ? bar.replace("d5", "db5>d5") : bar,
 	);
@@ -236,7 +328,12 @@ export function arrange(c: Calls): Score {
 	} else if (c.lineup === "answer") {
 		clarinet = cornet.map((_, i) => answers[i] ?? "~");
 		cornet = cornet.map((bar, i) => (i in answers ? "~" : bar));
+	} else if (c.lineup === "trade") {
+		cornet = all("~");
 	}
+	const horns = { cornet, clarinet, trombone };
+	if (c.lineup === "trade" && trading)
+		horns[trading.voice] = [...trading.answer];
 	const pattern = {
 		four: ["x x x x", "1 x 5 x"],
 		two: ["x ~ x ~", "1 ~ 5 ~"],
@@ -244,12 +341,13 @@ export function arrange(c: Calls): Score {
 	}[c.rhythm];
 	const banjo = all(pattern[0]);
 	const piano = all(pattern[1]);
-	if (c.break) {
-		const soloist = c.lineup === "clarinet" ? "clarinet" : "cornet";
+	if (c.break)
 		for (const lane of [banjo, piano]) {
 			lane[10] = "x ~ ~ ~";
 			lane[11] = "~";
 		}
+	if (c.break && c.lineup !== "trade") {
+		const soloist = c.lineup === "clarinet" ? "clarinet" : "cornet";
 		trombone[10] = trombone[10] === "~" ? "~" : "[bb2 ~ ~ ~]";
 		trombone[11] = "~";
 		if (soloist === "cornet") {
@@ -265,9 +363,10 @@ export function arrange(c: Calls): Score {
 		swing: c.swing ? swings[c.tempo] : 1,
 		code: {
 			chords: serialize(changes),
-			cornet: serialize(cornet),
-			clarinet: serialize(clarinet),
-			trombone: serialize(trombone),
+			you: c.lineup === "trade" && trading ? serialize(trading.you) : "~",
+			cornet: serialize(horns.cornet),
+			clarinet: serialize(horns.clarinet),
+			trombone: serialize(horns.trombone),
 			piano: serialize(piano),
 			banjo: serialize(banjo),
 		},
@@ -315,7 +414,7 @@ export interface Caption {
 
 export const welcome: Caption = {
 	shout: "One, two, one two three four!",
-	text: "Press the red disc to count the band in. Then call out changes: each call lands on the next bar and rewrites the code.",
+	text: "Count the band in and call out changes, or pick a player below and trade fours with a model made from his own recorded solos.",
 	record: null,
 };
 

@@ -24,8 +24,8 @@ export const voices = [
 	"banjo",
 ] as const;
 export type Voice = (typeof voices)[number];
-export type LaneId = "chords" | Voice;
-export const laneIds: LaneId[] = ["chords", ...voices];
+export type LaneId = "chords" | "you" | Voice;
+export const laneIds: LaneId[] = ["chords", "you", ...voices];
 
 export interface Score {
 	tempo: number;
@@ -46,6 +46,7 @@ export interface Compiled {
 
 const hints: Record<LaneId, string> = {
 	chords: "a chord like Bb7, Eb, F7 or Gm",
+	you: "a note like bb4, or a slide like db5>d5",
 	cornet: "a note like bb4, or a slide like db5>d5",
 	clarinet: "a note like d6, or a slide like f5>ab5",
 	trombone: "a note like bb2, or a slide like f2>bb2",

@@ -48,14 +48,22 @@ export class Transport {
 		return 240 / this.score.tempo;
 	}
 
-	queue(score: Score, compiled = compileAll(score)): number | null {
+	queue(
+		score: Score,
+		compiled = compileAll(score),
+		land?: number,
+	): number | null {
 		if (!this.playing) {
 			this.score = score;
 			this.compiled = compiled;
 			this.pending = null;
 			return null;
 		}
-		const at = Math.max(0, Math.ceil(this.scheduled - 1e-9));
+		const next = Math.max(0, Math.ceil(this.scheduled - 1e-9));
+		const at =
+			land === undefined
+				? next
+				: Math.max(land, Math.floor(this.scheduled + 1e-9));
 		this.pending = { score, compiled, at };
 		return at;
 	}
@@ -148,7 +156,7 @@ export class Transport {
 				const accent =
 					Math.abs(note.onset * 4 - Math.round(note.onset * 4)) < 1e-6;
 				this.band.play({
-					voice: lane as Voice,
+					voice: lane as Voice | "you",
 					keys: note.keys,
 					slide: note.slide,
 					when: this.timeAt(onset) + (Math.random() - 0.5) * 0.008,

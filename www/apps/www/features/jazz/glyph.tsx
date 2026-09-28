@@ -10,7 +10,9 @@ export function Glyph({ lane, size = 12 }: { lane: LaneId; size?: number }) {
 			className="jz-glyph"
 			data-lane={lane}
 		>
-			{lane === "cornet" ? <polygon points="6,1 11.5,11 0.5,11" /> : null}
+			{lane === "cornet" || lane === "you" ? (
+				<polygon points="6,1 11.5,11 0.5,11" />
+			) : null}
 			{lane === "clarinet" ? <circle cx="6" cy="6" r="5.2" /> : null}
 			{lane === "trombone" ? <rect x="1" y="1" width="10" height="10" /> : null}
 			{lane === "piano" ? (

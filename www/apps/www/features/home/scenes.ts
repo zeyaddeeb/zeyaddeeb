@@ -14,15 +14,7 @@ export type Shape = (typeof shapes)[number];
 
 export type Color = "ink" | "paper" | "red" | "blue" | "yellow" | "none";
 
-export type Kind =
-	| "rect"
-	| "round"
-	| "tri"
-	| "arch"
-	| "quarter"
-	| "semi"
-	| "halo"
-	| "arc";
+export type Kind = "rect" | "round" | "ring" | "bow";
 
 export type Pattern = "lines" | "bars" | "sunset" | "rays" | "dots" | "ruler";
 
