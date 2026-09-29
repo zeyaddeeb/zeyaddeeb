@@ -1,0 +1,136 @@
+.at-wheel {
+	display: block;
+	width: 100%;
+	height: 100%;
+	touch-action: pan-y;
+	cursor: grab;
+	user-select: none;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.at-wheel:active {
+	cursor: grabbing;
+}
+
+.at-wheel__pipe {
+	fill: var(--paper);
+}
+
+.at-wheel__knob {
+	fill: var(--charcoal);
+	stroke: var(--paper);
+	stroke-width: 3;
+}
+
+.at-wheel__pointer {
+	stroke: var(--blue);
+	stroke-width: 4;
+	stroke-linecap: square;
+}
+
+.at-wheel__stream {
+	stroke: var(--blue);
+	stroke-dasharray: 12 5;
+	animation: at-flow 0.45s linear infinite;
+}
+
+.at-wheel__rim {
+	fill: none;
+	stroke: var(--at-line);
+	stroke-width: 2;
+}
+
+.at-wheel__spoke {
+	stroke: var(--at-faint);
+	stroke-width: 1.5;
+}
+
+.at-wheel__spoke--index {
+	stroke: var(--at-line);
+	stroke-width: 4;
+}
+
+.at-wheel__trace {
+	fill: none;
+	stroke: var(--paper);
+	stroke-opacity: 0.45;
+	stroke-width: 1.5;
+	stroke-linejoin: round;
+}
+
+.at-wheel__cupgroup {
+	cursor: pointer;
+}
+
+.at-wheel__back {
+	fill: var(--charcoal);
+}
+
+.at-wheel__water {
+	fill: var(--blue);
+}
+
+.at-wheel__cup {
+	fill: none;
+	stroke: var(--paper);
+	stroke-width: 2.5;
+}
+
+.at-wheel__drip {
+	stroke: var(--blue);
+	stroke-width: 2.5;
+	stroke-dasharray: 3 7;
+	animation: at-drip 0.8s linear infinite;
+}
+
+.at-wheel__ghost rect {
+	fill: none;
+	stroke: var(--paper);
+	stroke-width: 2;
+	stroke-dasharray: 4 3;
+	opacity: 0.8;
+}
+
+.at-wheel__hub {
+	fill: var(--paper);
+	stroke: var(--charcoal);
+	stroke-width: 2;
+}
+
+.at-wheel__hub[data-dir="clockwise"] {
+	fill: var(--red);
+}
+
+.at-wheel__hub[data-dir="anticlockwise"] {
+	fill: var(--yellow);
+}
+
+.at-wheel__weight {
+	fill: var(--paper);
+	stroke: var(--charcoal);
+	stroke-width: 3;
+}
+
+.at-wheel[data-paused="true"] .at-wheel__stream,
+.at-wheel[data-paused="true"] .at-wheel__drip {
+	animation-play-state: paused;
+}
+
+@keyframes at-flow {
+	to {
+		stroke-dashoffset: -17;
+	}
+}
+
+@keyframes at-drip {
+	to {
+		stroke-dashoffset: -10;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.at-wheel__stream,
+	.at-wheel__drip {
+		animation: none;
+	}
+}

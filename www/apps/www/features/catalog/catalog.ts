@@ -47,6 +47,15 @@ export interface Experiment {
 
 export const experiments: Experiment[] = [
 	{
+		id: "attractor",
+		number: 17,
+		title: "Which Way It Turns",
+		line: "Pour water on a wheel of leaky cups and watch where it ends up: at rest, turning one way, rocking like a clock, or tumbling forever. One tap walks through every kind of attractor.",
+		stack: ["Rust", "WASM", "Runge–Kutta", "Canvas", "SVG"],
+		href: "/experiments/attractor",
+		topics: ["math", "graphics"],
+	},
+	{
 		id: "voyager",
 		number: 16,
 		title: "One Light-Day",

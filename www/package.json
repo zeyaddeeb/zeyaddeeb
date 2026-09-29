@@ -1,6 +1,6 @@
 {
   "name": "zeyaddeeb",
-  "version": "0.1.79",
+  "version": "0.1.80",
   "private": true,
   "scripts": {
     "build": "turbo build",
@@ -10,14 +10,14 @@
     "db:push": "turbo run db:push --filter=@zeyaddeeb/db",
     "db:seed": "turbo run db:seed --filter=@zeyaddeeb/db",
     "lint": "biome lint",
-    "format": "biome format --write",
+    "format": "biome check --write --linter-enabled=false",
     "clean": "turbo clean",
     "check-types": "turbo check-types",
     "test": "turbo test"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
-    "turbo": "^2.11.4",
+    "turbo": "^2.11.5",
     "typescript": "^7.0.2"
   },
   "engines": {

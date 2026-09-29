@@ -1,0 +1,201 @@
+.at {
+	--at-dim: color-mix(in srgb, var(--paper) 64%, transparent);
+	--at-line: color-mix(in srgb, var(--paper) 34%, transparent);
+	--at-faint: color-mix(in srgb, var(--paper) 16%, transparent);
+	--at-rule: color-mix(in srgb, var(--paper) 20%, transparent);
+	--at-pad: 24px;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	grid-template-areas:
+		"top top"
+		"wf pf"
+		"water water"
+		"wa pa"
+		"wr pr"
+		"err err";
+	max-width: 1320px;
+	margin-inline: auto;
+	border: 2px solid var(--at-rule);
+	background: var(--charcoal);
+	color: var(--paper);
+	font-family: var(--font-display);
+}
+
+.at :focus-visible {
+	outline: 2px solid var(--yellow);
+	outline-offset: 3px;
+}
+
+.at-top {
+	display: flex;
+	grid-area: top;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 20px;
+	padding: 18px var(--at-pad);
+	border-bottom: 2px solid var(--at-rule);
+}
+
+.at-caption {
+	min-height: calc(2 * 1.4em);
+	max-width: 72ch;
+	margin: 0;
+	font: 500 clamp(17px, 1.5vw, 20px) / 1.4 var(--font-display);
+	letter-spacing: -0.01em;
+}
+
+.at-top__controls {
+	display: flex;
+	flex: none;
+	gap: 8px;
+}
+
+.at-control {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.at-short {
+	display: none;
+}
+
+.at-control__icon {
+	width: 12px;
+	height: 12px;
+	fill: currentColor;
+}
+
+.at-fig {
+	display: grid;
+	grid-template-rows: auto auto 1fr;
+	gap: 4px;
+	min-width: 0;
+	padding: 18px var(--at-pad) 12px;
+}
+
+.at-fig--wheel {
+	grid-area: wf;
+}
+
+.at-fig--path {
+	grid-area: pf;
+	border-left: 2px solid var(--at-rule);
+}
+
+.at .at-eyebrow {
+	margin: 0;
+	font: 400 11px / 1.4 var(--font-mono);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--at-dim);
+}
+
+.at-sub {
+	margin: 0;
+	font: 400 14px / 1.45 var(--font-display);
+	color: var(--at-dim);
+}
+
+.at-sub strong {
+	font-weight: 600;
+	color: var(--paper);
+}
+
+.at-figure {
+	position: relative;
+	height: clamp(300px, min(34vw, calc(100svh - 430px)), 520px);
+	margin-top: 8px;
+}
+
+.at-row--water {
+	grid-area: water;
+	padding: 14px var(--at-pad);
+	border-block: 2px solid var(--at-rule);
+}
+
+.at-cell {
+	min-width: 0;
+	padding: 16px var(--at-pad) 0;
+}
+
+.at-cell--wheel-acts {
+	grid-area: wa;
+}
+
+.at-cell--path-acts {
+	grid-area: pa;
+	border-left: 2px solid var(--at-rule);
+}
+
+.at-cell--wheel-read {
+	grid-area: wr;
+	padding-bottom: 18px;
+}
+
+.at-cell--path-read {
+	grid-area: pr;
+	padding-bottom: 18px;
+	border-left: 2px solid var(--at-rule);
+}
+
+.at-path {
+	position: absolute;
+	inset: 0;
+}
+
+.at-path__canvas {
+	position: absolute;
+	inset: 22px 0;
+	width: 100%;
+	height: calc(100% - 44px);
+	touch-action: pan-y;
+	cursor: crosshair;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.at-path__axis {
+	position: absolute;
+	font: 400 11px / 1.4 var(--font-mono);
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--at-dim);
+	pointer-events: none;
+}
+
+.at-path__axis--top {
+	top: 0;
+	left: 50%;
+	translate: -50% 0;
+}
+
+.at-path__axis--bottom {
+	bottom: 0;
+	left: 50%;
+	translate: -50% 0;
+}
+
+.at-path__axis--left {
+	bottom: 0;
+	left: 0;
+	color: var(--yellow);
+}
+
+.at-path__axis--right {
+	right: 0;
+	bottom: 0;
+	color: var(--red);
+}
+
+.at-error {
+	grid-area: err;
+	margin: 0;
+	padding: 16px var(--at-pad);
+	color: var(--at-dim);
+}
+
+@media (max-width: 1100px) {
+	.at-path__axis--bottom {
+		display: none;
+	}
+}

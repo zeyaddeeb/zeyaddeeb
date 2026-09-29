@@ -1,0 +1,112 @@
+.at-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.at-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.at-turn {
+	width: 14px;
+	height: 14px;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.6;
+	stroke-linecap: square;
+}
+
+.at-readout {
+	display: grid;
+	align-content: start;
+	gap: 8px;
+	min-height: 96px;
+	margin: 0;
+}
+
+.at-readout__text {
+	margin: 0;
+	font: 400 14px / 1.5 var(--font-display);
+	color: var(--at-dim);
+}
+
+.at-readout > .at-readout__text {
+	color: var(--paper);
+}
+
+.at-tally__bar {
+	display: flex;
+	height: 10px;
+	background: var(--charcoal-3);
+}
+
+.at-tally__bar [data-part] {
+	transition: width var(--dur-2) var(--ease-out);
+}
+
+.at-tally__bar [data-part="settled-clockwise"] {
+	background: var(--red);
+}
+
+.at-tally__bar [data-part="clockwise"] {
+	background: color-mix(in srgb, var(--red) 45%, var(--charcoal));
+}
+
+.at-tally__bar [data-part="anticlockwise"] {
+	background: color-mix(in srgb, var(--yellow) 45%, var(--charcoal));
+}
+
+.at-tally__bar [data-part="settled-anticlockwise"] {
+	background: var(--yellow);
+}
+
+.at-digits {
+	width: 100%;
+	max-width: 420px;
+	border-collapse: collapse;
+	font: 400 12px / 1.4 var(--font-mono);
+	font-variant-numeric: tabular-nums;
+}
+
+.at-digits th,
+.at-digits td {
+	padding: 1px 0;
+	text-align: right;
+	white-space: pre;
+}
+
+.at-digits thead th {
+	font-size: 10.5px;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--at-dim);
+}
+
+.at-digits tbody th {
+	padding-right: 8px;
+	text-align: left;
+	font: 400 12px / 1.4 var(--font-mono);
+	color: var(--at-dim);
+}
+
+.at-digits mark {
+	background: none;
+	color: var(--yellow);
+}
+
+@media (max-width: 640px) {
+	.at-readout {
+		min-height: 88px;
+	}
+
+	.at-readout__text {
+		font-size: 13px;
+	}
+
+	.at-digits {
+		font-size: 11px;
+	}
+}

@@ -1,0 +1,102 @@
+@media (max-width: 640px) {
+	.at {
+		--at-pad: 12px;
+		grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+		grid-template-areas:
+			"top top"
+			"wf pf"
+			"water water"
+			"wa wa"
+			"pa pa"
+			"wr wr"
+			"pr pr"
+			"err err";
+		border-width: 0;
+	}
+
+	.at-top {
+		padding: 14px var(--at-pad) 12px;
+	}
+
+	.at-caption {
+		min-height: calc(3 * 1.4em);
+		font-size: 16px;
+	}
+
+	.at-top__controls {
+		gap: 6px;
+	}
+
+	.at-control {
+		justify-content: center;
+		width: 40px;
+		height: 40px;
+		padding: 0;
+	}
+
+	.at-control__label,
+	.at-button__label,
+	.at-long {
+		display: none;
+	}
+
+	.at-short {
+		display: inline;
+	}
+
+	.at-fig {
+		padding: 14px 8px 8px var(--at-pad);
+	}
+
+	.at-sub {
+		font-size: 12px;
+	}
+
+	.at-figure {
+		height: min(54vw, 224px);
+	}
+
+	.at-path__canvas {
+		inset: 16px 0;
+		height: calc(100% - 32px);
+	}
+
+	.at-path__axis {
+		font-size: 9px;
+		letter-spacing: 0.02em;
+	}
+
+	.at-cell {
+		padding: 12px 8px 0 var(--at-pad);
+	}
+
+	.at-actions {
+		gap: 6px;
+	}
+
+	.at-button {
+		justify-content: center;
+		min-width: 40px;
+		padding-inline: 10px;
+	}
+
+	.at-fig--path {
+		padding-left: 10px;
+		border-left-width: 1px;
+	}
+
+	.at-cell--path-acts {
+		padding: 8px var(--at-pad) 0;
+		border-left: 0;
+	}
+
+	.at-cell--wheel-read,
+	.at-cell--path-read {
+		padding: 12px var(--at-pad) 14px;
+		border-left: 0;
+	}
+
+	.at-cell--path-read {
+		border-top: 1px solid var(--at-rule);
+	}
+}

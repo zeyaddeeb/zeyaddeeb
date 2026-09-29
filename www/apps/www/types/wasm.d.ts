@@ -118,4 +118,30 @@ declare module "@zeyaddeeb/wasm" {
 	export function routine_len(routine: number): number;
 	export function calls(): Uint32Array;
 	export function command_bits(opcode: number, operand: number): Uint8Array;
+
+	export class Wheel {
+		constructor(sigma: number, rho: number);
+		free(): void;
+		place(x: number, y: number, z: number): void;
+		shove(dx: number): void;
+		set_rho(rho: number): void;
+		rounded(places: number): Wheel;
+		advance(tau: number, samples: number): Float32Array;
+		x(): number;
+		y(): number;
+		z(): number;
+		angle(): number;
+	}
+
+	export function hopf(sigma: number): number;
+	export class Swarm {
+		constructor(sigma: number, rho: number);
+		free(): void;
+		scatter(x: number, y: number, z: number, spread: number, n: number): void;
+		clear(): void;
+		len(): number;
+		is_empty(): boolean;
+		set_rho(rho: number): void;
+		advance(tau: number): Float32Array;
+	}
 }

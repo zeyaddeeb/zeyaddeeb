@@ -1,0 +1,57 @@
+.at-notes h3 {
+	margin: 28px 0 8px;
+	font: 600 18px / 1.3 var(--font-display);
+}
+
+.at-notes h3:first-child {
+	margin-top: 0;
+}
+
+.at-notes p {
+	max-width: 68ch;
+	margin: 0;
+}
+
+.at-notes p + p {
+	margin-top: 12px;
+}
+
+.at-notes code {
+	font: 400 0.86em / 1 var(--font-mono);
+}
+
+.at-notes .at-notes__math {
+	padding-left: 16px;
+	border-left: 2px solid var(--ink);
+	font: 400 15px / 1.8 var(--font-mono);
+}
+
+.at-notes__list {
+	display: grid;
+	gap: 8px;
+	max-width: 68ch;
+	margin: 12px 0;
+	padding-left: 1.2em;
+}
+
+.at-sources {
+	display: grid;
+	gap: 10px;
+	max-width: 68ch;
+	margin: 0;
+	padding-left: 1.2em;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.at-out {
+	color: inherit;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.at-out__arrow {
+	width: 0.72em;
+	height: 0.72em;
+	margin-left: 0.28em;
+}

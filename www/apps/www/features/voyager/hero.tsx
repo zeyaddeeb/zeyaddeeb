@@ -182,6 +182,7 @@ export function Hero() {
 		let ranges: [number, number][] = [];
 		let beats: Beat[] = BEATS.map((id) => ({ id, from: 0, to: 0 }));
 		let marks: number[] = [];
+		let done = 0;
 		let measure: [number, number] = [0, 0];
 		let measuring = false;
 		let line = 0;
@@ -379,6 +380,8 @@ export function Hero() {
 				const r = name.getBoundingClientRect();
 				return r.top - origin + r.height / 2 - el.offsetHeight / 2 - line;
 			});
+			const tail = items[items.length - 1];
+			done = (marks[marks.length - 1] ?? 0) + (tail?.offsetHeight ?? 0);
 		};
 
 		const plan = () => {
@@ -590,7 +593,7 @@ export function Hero() {
 			const view = viewOf(pose, take.cam.scale, take.cam.cx, take.cam.cy);
 
 			let index = -1;
-			if (beat === "parts")
+			if (beat === "parts" && u < done)
 				for (let k = 0; k < marks.length; k++) if (u >= marks[k]) index = k;
 			if (index !== active) {
 				active = index;
