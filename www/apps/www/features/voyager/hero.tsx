@@ -25,6 +25,7 @@ import {
 	reach,
 	type Shot,
 	slots,
+	smoother,
 	soften,
 	solve,
 	track,
@@ -96,8 +97,10 @@ const CORE: ReadonlySet<PartId> = new Set(
 const ALL: ReadonlySet<PartId> = new Set(ORDER);
 const DISH: ReadonlySet<PartId> = new Set<PartId>(["hga"]);
 const SEED = fix(Date.UTC(2026, 8, 28));
-const TAU_SCROLL = 0.08;
+// Touch flicks cover a whole transition in a few frames, so tall mode trails scroll more.
+const TAU_SCROLL: Record<Mode, number> = { wide: 0.08, tall: 0.22 };
 const TAU_RETURN = 0.4;
+const DOCK_MS = 380;
 const ARRIVAL_MS = 2800;
 const RIM_STEPS = 48;
 const two = (n: number) => String(n).padStart(2, "0");
@@ -200,6 +203,9 @@ export function Hero() {
 		let hover: PartId | null = null;
 		let manual: { index: number; base: number } | null = null;
 		let step = 0;
+		let dockPart: PartId | null = null;
+		let dockPrev: PartId | null = null;
+		let dockT0 = 0;
 		let frame = 0;
 		let visible = true;
 		let last = performance.now();
@@ -474,6 +480,8 @@ export function Hero() {
 			if (id !== "parts") {
 				hover = null;
 				manual = null;
+				dockPart = null;
+				dockPrev = null;
 			}
 		};
 
@@ -554,9 +562,19 @@ export function Hero() {
 			});
 		};
 
-		const dockLeader = (view: View, focus: PartId) => {
+		const dockLeader = (view: View, focus: PartId, now: number) => {
 			if (!stage || !dock || !dockLine || !dockRing) return;
-			const [ax, ay] = stage.anchor(focus, view);
+			let [ax, ay] = stage.anchor(focus, view);
+			if (dockPrev) {
+				const t = (now - dockT0) / DOCK_MS;
+				if (t >= 1) dockPrev = null;
+				else {
+					const [bx, by] = stage.anchor(dockPrev, view);
+					const k = smoother(t);
+					ax = bx + (ax - bx) * k;
+					ay = by + (ay - by) * k;
+				}
+			}
 			const x = Math.min(w - 6, Math.max(6, ax));
 			const y = Math.min(dock.offsetTop - 12, Math.max(60, ay));
 			dockLine.setAttribute(
@@ -643,7 +661,7 @@ export function Hero() {
 			if (!seeded || still.matches) {
 				s = u;
 				seeded = true;
-			} else s += (u - s) * (1 - Math.exp(-dt / TAU_SCROLL));
+			} else s += (u - s) * (1 - Math.exp(-dt / TAU_SCROLL[mode]));
 			if (Math.abs(u - s) < 1e-3) s = u;
 			const nextBeat = beatAt(u, p.beats, beat);
 			if (nextBeat !== beat) {
@@ -697,6 +715,11 @@ export function Hero() {
 						showCards(step);
 					}
 					focus = TAGS[step].part;
+					if (focus !== dockPart) {
+						dockPrev = dockPart && !still.matches ? dockPart : null;
+						dockT0 = now;
+						dockPart = focus;
+					}
 				} else focus = hover;
 			}
 			view.focus = mode === "wide" ? focus : null;
@@ -714,7 +737,8 @@ export function Hero() {
 				glDpr,
 				stage ? 1 : 0,
 			].join(" ");
-			if (stage && signature !== drawn) {
+			const fresh = signature !== drawn;
+			if (stage && fresh) {
 				drawn = signature;
 				stage.draw(view);
 				watch(now, gap);
@@ -726,15 +750,16 @@ export function Hero() {
 					}
 					arrived = true;
 				}
-				if (beat === "parts" || take.hold === 2) {
-					if (mode === "wide") leaders(view, focus);
-					else if (focus) dockLeader(view, focus);
-				}
+				if (mode === "wide" && (beat === "parts" || take.hold === 2))
+					leaders(view, focus);
 				if (beat === "life" || take.hold === 1) dims(view);
 			} else gaps.length = 0;
+			if (stage && mode === "tall" && focus && (fresh || dockPrev))
+				dockLeader(view, focus, now);
 
 			const moving =
 				Math.abs(u - s) > 1e-3 ||
+				dockPrev !== null ||
 				pointer !== null ||
 				arrival !== null ||
 				velocity !== 0 ||

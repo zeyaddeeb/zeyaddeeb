@@ -35,6 +35,7 @@ const STACKED =
 	"(max-width: 760px), (max-width: 1099px) and (orientation: portrait)";
 const SLOP = 10;
 const REACH = 1.5;
+const TAU_STACKED = 0.25;
 
 const clamp = (v: number, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v));
 const at = (year: number) => clamp((year - LAUNCH_YEAR) / SPAN);
@@ -143,23 +144,39 @@ export function Power({ now }: { now: number }) {
 		const el = root.current;
 		const st = stick.current;
 		if (!el || !st) return;
+		const narrow = window.matchMedia(STACKED);
+		const still = window.matchMedia("(prefers-reduced-motion: reduce)");
 		let frame = 0;
 		let top = 0;
+		let shown: number | null = null;
+		let last = 0;
 		const measure = () => {
 			top = Number.parseFloat(getComputedStyle(st).top) || 0;
 		};
-		const apply = () => {
+		const apply = (now = performance.now()) => {
 			frame = 0;
-			if (held.current) return;
+			if (held.current) {
+				shown = null;
+				return;
+			}
 			const r = el.getBoundingClientRect();
 			const travel = r.height - st.offsetHeight;
 			const p = travel > 0 ? clamp((top - r.top) / travel) : 0;
 			const t = smooth(clamp((p - 0.05) / 0.85));
-			const next = LAUNCH_YEAR + (todayRef.current - LAUNCH_YEAR) * t;
+			const target = LAUNCH_YEAR + (todayRef.current - LAUNCH_YEAR) * t;
+			const dt = Math.min(0.05, (now - last) / 1000);
+			last = now;
+			if (shown === null || still.matches || !narrow.matches) shown = target;
+			else shown += (target - shown) * (1 - Math.exp(-dt / TAU_STACKED));
+			if (Math.abs(target - shown) < 0.002) shown = target;
+			else frame = requestAnimationFrame(apply);
+			const next = shown;
 			setYear((y) => (Math.abs(y - next) < 0.002 ? y : next));
 		};
 		const queue = () => {
-			if (!frame) frame = requestAnimationFrame(apply);
+			if (frame) return;
+			last = performance.now();
+			frame = requestAnimationFrame(apply);
 		};
 		const resize = () => {
 			measure();

@@ -63,13 +63,13 @@ export const PACE: Record<Mode, Pace> = {
 		],
 	},
 	tall: {
-		span: 360,
+		span: 555,
 		cue: 6,
 		beats: [
 			{ id: "title", from: 0, to: 55 },
-			{ id: "life", from: 80, to: 135 },
-			{ id: "parts", from: 160, to: 265 },
-			{ id: "home", from: 300, to: 360 },
+			{ id: "life", from: 80, to: 140 },
+			{ id: "parts", from: 215, to: 425 },
+			{ id: "home", from: 500, to: 555 },
 		],
 	},
 };

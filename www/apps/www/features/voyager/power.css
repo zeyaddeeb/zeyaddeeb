@@ -497,7 +497,7 @@
 	.vg-power {
 		--row: clamp(22px, min(4.1svh + 1.8px, (100svh - 334px) / 10), 40px);
 		--pad: 0px;
-		height: 300svh;
+		height: 460svh;
 	}
 
 	.vg-power__stick {
