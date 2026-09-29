@@ -32,10 +32,9 @@ export function LifeArrow({
 		direction,
 		pick(seed ?? id, variants(direction)),
 	);
-	const width = Math.max(SIZE, cols * CELL);
-	const height = Math.max(SIZE, rows * CELL);
-	const ox = (width - cols * CELL) / 2;
-	const oy = (height - rows * CELL) / 2;
+	const side = Math.max(SIZE, cols * CELL, rows * CELL);
+	const ox = (side - cols * CELL) / 2;
+	const oy = (side - rows * CELL) / 2;
 	const lag = pick(seed ?? id, PERIOD * 2) * GEN_MS;
 
 	useEffect(() => {
@@ -135,9 +134,9 @@ export function LifeArrow({
 	return (
 		<svg
 			ref={ref}
-			viewBox={`0 0 ${width} ${height}`}
-			width={`${width / SIZE}em`}
-			height={`${height / SIZE}em`}
+			viewBox={`0 0 ${side} ${side}`}
+			width="1em"
+			height="1em"
 			fill="currentColor"
 			aria-hidden="true"
 			focusable="false"

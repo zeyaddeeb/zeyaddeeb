@@ -11,6 +11,8 @@ export type Ship = keyof typeof SHIPS;
 
 export const PERIOD = 4;
 
+const RESTING = [0, 2];
+
 export const FLEETS = {
 	right: ["lwss", "mwss", "hwss"],
 	left: ["lwss", "mwss", "hwss"],
@@ -71,7 +73,7 @@ export type Specimen = {
 };
 
 export const variants = (direction: Direction) =>
-	FLEETS[direction].length * PERIOD;
+	FLEETS[direction].length * RESTING.length;
 
 export function pick(seed: string | number, count: number) {
 	if (typeof seed === "number") {
@@ -94,7 +96,7 @@ export function specimen(direction: Direction, index: number): Specimen {
 	if (cached) return cached;
 	const fleet: Ship[] = FLEETS[direction];
 	const ship = fleet[index % fleet.length];
-	const phase = index % PERIOD;
+	const phase = RESTING[index % RESTING.length];
 	const gens = [cells(ship)];
 	for (let g = 0; g < phase + PERIOD; g++) gens.push(step(gens[g]));
 	const flight = gens.slice(phase);

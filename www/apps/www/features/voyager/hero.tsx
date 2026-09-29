@@ -6,6 +6,7 @@ import { preload } from "react-dom";
 import { duration, fix, grouped } from "./ephemeris";
 import {
 	ARRIVE,
+	type Beat,
 	type BeatId,
 	type Box,
 	beatAt,
@@ -17,14 +18,12 @@ import {
 	MEDIA_TALL,
 	type Mode,
 	ORDER,
-	PACE,
 	PLANS,
 	type Pose,
 	RIM,
 	RIM_RADIUS,
 	reach,
 	type Shot,
-	slots,
 	smoother,
 	soften,
 	solve,
@@ -39,7 +38,6 @@ interface Tag {
 	name: string;
 	spec?: string;
 	dots?: readonly (readonly [string, boolean])[];
-	also?: readonly PartId[];
 }
 
 const TAGS: readonly Tag[] = [
@@ -78,7 +76,6 @@ const TAGS: readonly Tag[] = [
 			["LECP", false],
 			["PLS", false],
 		],
-		also: ["crs", "pls"],
 	},
 	{
 		part: "record",
@@ -97,17 +94,21 @@ const CORE: ReadonlySet<PartId> = new Set(
 const ALL: ReadonlySet<PartId> = new Set(ORDER);
 const DISH: ReadonlySet<PartId> = new Set<PartId>(["hga"]);
 const SEED = fix(Date.UTC(2026, 8, 28));
-// Touch flicks cover a whole transition in a few frames, so tall mode trails scroll more.
-const TAU_SCROLL: Record<Mode, number> = { wide: 0.08, tall: 0.22 };
+const NAV = 52;
+const READ: Record<Mode, number> = { wide: 0.5, tall: 0.3 };
+const LEAD = 0.1;
+const REACH = 0.4;
+const CUE_PX = 40;
+const TAU_SCROLL = 0.08;
 const TAU_RETURN = 0.4;
-const DOCK_MS = 380;
+const POINT_MS = 380;
 const ARRIVAL_MS = 2800;
 const RIM_STEPS = 48;
 const two = (n: number) => String(n).padStart(2, "0");
 
 const light = (seconds: number) => {
 	const d = duration(seconds);
-	return `${d.h} h ${two(d.m)} m ${two(d.s)} s`;
+	return `${d.h} h ${two(d.m)} m ${two(d.s)} s`;
 };
 
 const spoken = (t: Tag) =>
@@ -139,36 +140,28 @@ export function Hero() {
 
 	useEffect(() => {
 		const section = root.current;
-		const stick = section?.querySelector<HTMLElement>(".vg-hero__stick");
-		const cv = section?.querySelector<HTMLCanvasElement>(".vg-hero__canvas");
-		const svg = section?.querySelector<SVGSVGElement>(".vg-hero__ink");
-		if (!section || !stick || !cv || !svg) return;
+		const one = <T extends Element>(sel: string) =>
+			section?.querySelector<T>(sel) ?? null;
+		const stick = one<HTMLElement>(".vg-hero__stick");
+		const cv = one<HTMLCanvasElement>(".vg-hero__canvas");
+		const svg = one<SVGSVGElement>(".vg-hero__ink");
+		const head = one<HTMLElement>(".vg-hero__head");
+		const flow = one<HTMLElement>(".vg-hero__flow");
+		if (!section || !stick || !cv || !svg || !head || !flow) return;
 		const q = <T extends Element>(sel: string) =>
 			[...section.querySelectorAll<T>(sel)] as T[];
-		const one = <T extends Element>(sel: string) =>
-			section.querySelector<T>(sel);
-		const beatsEl = BEATS.map((id) => one<HTMLElement>(`[data-beat="${id}"]`));
-		const tagsLayer = one<HTMLElement>(".vg-hero__tags");
-		const tagEls = q<HTMLElement>(".vg-hero__tag");
-		const leaderEls = q<SVGPathElement>("[data-leader]");
-		const ringEls = q<SVGCircleElement>("[data-ring]");
-		const pipEls = q<SVGCircleElement>("[data-pip]");
-		const extraEls = q<SVGCircleElement>("[data-extra]");
-		const partsInk = one<SVGGElement>('[data-ink="parts"]');
+		const blocks = q<HTMLElement>("[data-block]");
+		const items = q<HTMLElement>(".vg-hero__item");
+		const list = one<HTMLElement>(".vg-hero__list");
 		const lifeInk = one<SVGGElement>('[data-ink="life"]');
-		const dockInk = one<SVGGElement>('[data-ink="dock"]');
+		const pointInk = one<SVGGElement>('[data-ink="point"]');
+		const pointLine = one<SVGPathElement>("[data-pointline]");
+		const pointRing = one<SVGCircleElement>("[data-pointring]");
+		const pointGate = one<SVGCircleElement>("[data-pointgate]");
 		const dimLines = q<SVGPathElement>("[data-dim]");
 		const dimTags = q<HTMLElement>(".vg-hero__dim");
 		const dimsLayer = one<HTMLElement>(".vg-hero__dims");
-		const dockLine = one<SVGPathElement>("[data-dockline]");
-		const dockRing = one<SVGCircleElement>("[data-dockring]");
-		const dock = one<HTMLElement>(".vg-hero__dock");
-		const cards = q<HTMLElement>(".vg-hero__card");
-		const prev = one<HTMLButtonElement>('[data-step="-1"]');
-		const next = one<HTMLButtonElement>('[data-step="1"]');
 		const cue = one<HTMLElement>(".vg-hero__cue");
-		const zoneLeft = one<HTMLElement>(".vg-hero__zone--left");
-		const zoneRight = one<HTMLElement>(".vg-hero__zone--right");
 		const km = one<HTMLElement>(".vg-hero__km");
 		const lt = one<HTMLElement>(".vg-hero__lt");
 
@@ -187,10 +180,12 @@ export function Hero() {
 		let shots: Shot[] = [];
 		let fits: Fit[] = [];
 		let ranges: [number, number][] = [];
-		let sides: ("left" | "right")[] = [];
-		let tagHeight = 48;
-		let colLeft = 0;
-		let colRight = 0;
+		let beats: Beat[] = BEATS.map((id) => ({ id, from: 0, to: 0 }));
+		let marks: number[] = [];
+		let measure: [number, number] = [0, 0];
+		let measuring = false;
+		let line = 0;
+		let gate = 0;
 		let seeded = false;
 		let u = 0;
 		let s = 0;
@@ -200,12 +195,11 @@ export function Hero() {
 		let pointer: { id: number; x: number; t: number } | null = null;
 		let arrival: { t0: number; amount: number } | null = null;
 		let arrived = false;
-		let hover: PartId | null = null;
-		let manual: { index: number; base: number } | null = null;
-		let step = 0;
-		let dockPart: PartId | null = null;
-		let dockPrev: PartId | null = null;
-		let dockT0 = 0;
+		let active = -1;
+		let pointPart: PartId | null = null;
+		let pointAt: [number, number] | null = null;
+		let pointFrom: [number, number] | null = null;
+		let pointT0 = 0;
 		let frame = 0;
 		let visible = true;
 		let last = performance.now();
@@ -213,17 +207,6 @@ export function Hero() {
 		let firstFrame = 0;
 		const gaps: number[] = [];
 		const off = new Map<PartId, number>();
-		const painted = new Map<Element, string>();
-
-		const paint = (
-			el: Element | null | undefined,
-			key: string,
-			apply: () => void,
-		) => {
-			if (!el || painted.get(el) === key) return;
-			painted.set(el, key);
-			apply();
-		};
 
 		const setState = (el: Element | null | undefined, on: boolean) => {
 			if (!el) return;
@@ -262,8 +245,6 @@ export function Hero() {
 					}
 				: null;
 
-		const pace = () => PACE[mode];
-
 		const viewOf = (
 			pose: Pose,
 			scale: number,
@@ -288,106 +269,120 @@ export function Hero() {
 			};
 		};
 
-		const plan = () => {
-			const tall = mode === "tall";
-			const nav = 52;
-			const edge = tall ? 10 : 24;
-			const pad = tall ? 14 : 28;
-			const base: Box = {
-				l: edge,
-				t: nav + (tall ? 10 : 16),
-				r: w - edge,
-				b: h - (tall ? 14 : 28),
-			};
-			const copy = beatsEl.map((el) => box(el, pad));
+		const frameTall = (): Fit[] => {
+			const inside: Box = { l: 10, t: NAV + 10, r: w - 10, b: h - 14 };
+			const fit = (
+				fill: number,
+				cap: number,
+				core: ReadonlySet<PartId>,
+			): Fit => ({
+				w,
+				h,
+				inside,
+				avoid: [],
+				target: [w / 2, (inside.t + inside.b) / 2],
+				fill,
+				cap,
+				core,
+			});
+			return [
+				fit(0.94, 120, CORE),
+				fit(0.95, 220, ALL),
+				fit(0.96, 220, CORE),
+				fit(0.97, (0.78 * w) / (2 * RIM_RADIUS), DISH),
+			];
+		};
+
+		const frameWide = (): Fit[] => {
+			const base: Box = { l: 24, t: NAV + 16, r: w - 24, b: h - 28 };
+			const edge = flow.offsetLeft + flow.offsetWidth;
+			gate = (list ? list.getBoundingClientRect().right : edge) + 12;
+			const side: Box = { ...base, l: edge + 40 };
+			const column: Box = { l: 0, t: 0, r: edge + 20, b: h };
+			const middle = (side.l + side.r) / 2;
+			const title = box(head, 28);
 			const cueBox = box(cue, 10);
-			const dockBox = box(dock, 12);
-			const left = box(zoneLeft, 0);
-			const right = box(zoneRight, 0);
-			colLeft = left ? left.r : w * 0.2;
-			colRight = right ? right.l : w * 0.8;
-			const fitTitle: Fit = {
-				w,
-				h,
-				inside: base,
-				avoid: [copy[0], cueBox].filter((b): b is Box => !!b),
-				target: tall
-					? [w / 2, ((copy[0]?.b ?? h * 0.4) + base.b) / 2]
-					: [w * 0.68, h * 0.55],
-				fill: 0.94,
-				cap: tall ? 120 : 260,
-				core: CORE,
-			};
-			const fitLife: Fit = {
-				w,
-				h,
-				inside: base,
-				avoid: [copy[1]].filter((b): b is Box => !!b),
-				target: tall
-					? [w / 2, ((copy[1]?.b ?? h * 0.3) + base.b) / 2]
-					: [w * 0.58, h * 0.6],
-				fill: 0.95,
-				cap: 220,
-				core: ALL,
-			};
-			const head = copy[2];
-			const partsInside: Box = tall
-				? {
-						l: base.l,
-						r: base.r,
-						t: head ? head.b : base.t,
-						b: dockBox ? dockBox.t : base.b,
-					}
-				: {
-						l: colLeft + 28,
-						r: colRight - 28,
-						t: head ? head.b : base.t,
-						b: base.b,
-					};
-			const fitParts: Fit = {
-				w,
-				h,
-				inside: partsInside,
-				avoid: [
-					head,
-					tall ? dockBox : null,
-					tall || !left
-						? null
-						: { l: 0, t: partsInside.t, r: colLeft + 8, b: h },
-					tall || !right
-						? null
-						: { l: colRight - 8, t: partsInside.t, r: w, b: h },
-				].filter((b): b is Box => !!b),
-				target: [
-					(partsInside.l + partsInside.r) / 2,
-					(partsInside.t + partsInside.b) / 2,
-				],
-				fill: 0.96,
-				cap: 220,
-				core: CORE,
-			};
-			const home = copy[3];
-			const fitHome: Fit = {
-				w,
-				h,
-				inside: tall ? { ...base, b: home ? home.t : base.b } : base,
-				avoid: [home].filter((b): b is Box => !!b),
-				target: tall
-					? [w / 2, (base.t + (home ? home.t : h * 0.6)) / 2]
-					: [
-							Math.max(w * 0.66, (home?.r ?? 0) + (w - (home?.r ?? 0)) / 2),
-							h * 0.52,
-						],
-				fill: 0.97,
-				cap: tall
-					? (0.78 * w) / (2 * RIM_RADIUS)
-					: Math.min(
-							(0.68 * (h - nav)) / (2 * RIM_RADIUS),
-							(0.4 * w) / (2 * RIM_RADIUS),
-						),
-				core: DISH,
-			};
-			fits = [fitTitle, fitLife, fitParts, fitHome];
+			return [
+				{
+					w,
+					h,
+					inside: base,
+					avoid: [title, cueBox].filter((b): b is Box => !!b),
+					target: [w * 0.68, h * 0.55],
+					fill: 0.94,
+					cap: 260,
+					core: CORE,
+				},
+				{
+					w,
+					h,
+					inside: base,
+					avoid: [column],
+					target: [middle, h * 0.56],
+					fill: 0.95,
+					cap: 220,
+					core: ALL,
+				},
+				{
+					w,
+					h,
+					inside: side,
+					avoid: [column],
+					target: [middle, (side.t + side.b) / 2],
+					fill: 0.96,
+					cap: 220,
+					core: CORE,
+				},
+				{
+					w,
+					h,
+					inside: base,
+					avoid: [column],
+					target: [middle, h * 0.52],
+					fill: 0.97,
+					cap: Math.min(
+						(0.68 * (h - NAV)) / (2 * RIM_RADIUS),
+						(0.4 * w) / (2 * RIM_RADIUS),
+					),
+					core: DISH,
+				},
+			];
+		};
+
+		const chart = () => {
+			const origin = section.getBoundingClientRect().top;
+			const top = (el: Element) => el.getBoundingClientRect().top - origin;
+			const vh = document.documentElement.clientHeight;
+			const zone = mode === "tall" ? h : NAV;
+			line = zone + (vh - zone) * READ[mode];
+			const lead = vh * LEAD;
+			const enter = blocks.map((el) => top(el) - vh - lead);
+			const land = blocks.map((el) => top(el) - line);
+			const end = section.offsetHeight - h;
+			let prev = 0;
+			beats = BEATS.map((id, i) => {
+				const from = Math.max(prev, i === 0 ? 0 : (land[i - 1] ?? prev));
+				const to = Math.max(
+					from,
+					i < BEATS.length - 1 ? (enter[i] ?? from) : end,
+				);
+				prev = to;
+				return { id, from, to };
+			});
+			const [title, life, parts] = beats;
+			measure = [
+				life.from - (life.from - title.to) * REACH,
+				life.to + (parts.from - life.to) * REACH,
+			];
+			marks = items.map((el) => {
+				const name = el.querySelector(".vg-hero__item-name") ?? el;
+				const r = name.getBoundingClientRect();
+				return r.top - origin + r.height / 2 - el.offsetHeight / 2 - line;
+			});
+		};
+
+		const plan = () => {
+			fits = mode === "tall" ? frameTall() : frameWide();
 			const plans = PLANS[mode];
 			shots = BEATS.map((id, i) => {
 				const p = plans[id];
@@ -403,30 +398,8 @@ export function Hero() {
 				reach(drifted(shot, 0), shot.cam, fits[i], 0.9),
 			);
 			svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
-			tagsLayer?.style.setProperty(
-				"--tag-w",
-				`${Math.max(140, Math.round(Math.min(colLeft - edge, w - colRight - edge)))}px`,
-			);
-			tagHeight = Math.max(40, ...tagEls.map((t) => t.offsetHeight));
-			assignSides();
+			chart();
 			drawn = "";
-		};
-
-		const assignSides = () => {
-			const shot = shots[2];
-			if (!stage || !shot) return;
-			const pose = drifted(shot, 0);
-			const view = viewOf(pose, shot.cam.scale, shot.cam.cx, shot.cam.cy);
-			const xs = TAGS.map((t) => stage?.anchor(t.part, view)[0] ?? 0);
-			const order = xs.map((_, i) => i).sort((a, b) => xs[a] - xs[b]);
-			const half = Math.floor(TAGS.length / 2);
-			sides = TAGS.map(() => "right");
-			order.forEach((i, k) => {
-				sides[i] = k < half ? "left" : "right";
-			});
-			tagEls.forEach((el, i) => {
-				el.dataset.side = sides[i];
-			});
 		};
 
 		const size = () => {
@@ -436,12 +409,6 @@ export function Hero() {
 			glDpr = degraded ? 1.5 : Math.min(2, Math.max(1.5, device));
 			stage?.resize(w, h, glDpr);
 			plan();
-		};
-
-		const progress = () => {
-			const rect = section.getBoundingClientRect();
-			const span = section.offsetHeight - stick.offsetHeight;
-			return span > 0 ? clamp(-rect.top / span) : 0;
 		};
 
 		const tick = () => {
@@ -463,126 +430,47 @@ export function Hero() {
 			}
 		};
 
-		const stepIndex = (local: number) =>
-			Math.min(TAGS.length - 1, Math.max(0, Math.floor(local * TAGS.length)));
-
-		const enter = (id: BeatId | null) => {
-			beatsEl.forEach((el, i) => {
-				setState(el, BEATS[i] === id);
-			});
-			setState(lifeInk, id === "life");
-			setState(dimsLayer, id === "life");
-			setState(partsInk, id === "parts" && mode === "wide");
-			setState(tagsLayer, id === "parts" && mode === "wide");
-			setState(dockInk, id === "parts" && mode === "tall");
-			setState(dock, id === "parts" && mode === "tall");
-			if (dock) dock.inert = !(id === "parts" && mode === "tall");
-			if (id !== "parts") {
-				hover = null;
-				manual = null;
-				dockPart = null;
-				dockPrev = null;
-			}
-		};
-
-		const showCards = (index: number) => {
-			cards.forEach((c, i) => {
-				if (i === index) c.dataset.on = "";
-				else delete c.dataset.on;
-			});
-			if (prev) prev.disabled = index <= 0;
-			if (next) next.disabled = index >= TAGS.length - 1;
-		};
-
-		const leaders = (view: View, focus: PartId | null) => {
-			if (!stage) return;
-			const s0 = stage;
-			const fit = fits[2];
-			const top = fit.inside.t + tagHeight / 2;
-			const bottom = h - 28 - tagHeight / 2;
-			const anchors = TAGS.map((t) => s0.anchor(t.part, view));
-			const ys: number[] = new Array(TAGS.length).fill(0);
-			for (const side of ["left", "right"] as const) {
-				const idx = TAGS.map((_, i) => i).filter((i) => sides[i] === side);
-				const placed = slots(
-					idx.map((i) => anchors[i][1]),
-					top,
-					bottom,
-					tagHeight + 10,
-				);
-				idx.forEach((i, k) => {
-					ys[i] = placed[k];
-				});
-			}
-			let extra = 0;
-			TAGS.forEach((t, i) => {
-				const [ax, ay] = anchors[i];
-				const left = sides[i] === "left";
-				const y = ys[i];
-				const col = left ? colLeft : colRight;
-				const start = left ? col + 6 : col - 6;
-				const knee = left
-					? Math.min(ax, Math.max(start + 16, fit.inside.l))
-					: Math.max(ax, Math.min(start - 16, fit.inside.r));
-				const hot = focus === t.part;
-				const el = tagEls[i];
-				paint(el, `${col.toFixed(1)} ${y.toFixed(1)} ${hot}`, () => {
-					el.style.translate = `${col.toFixed(1)}px ${y.toFixed(1)}px`;
-					if (hot) el.dataset.hot = "";
-					else delete el.dataset.hot;
-				});
-				const yy = Math.round(y) + 0.5;
-				let d = `M${start.toFixed(1)} ${yy}H${knee.toFixed(1)}L${ax.toFixed(1)} ${ay.toFixed(1)}`;
-				for (const part of t.also ?? []) {
-					const [ex, ey] = s0.anchor(part, view);
-					d += `M${knee.toFixed(1)} ${yy}L${ex.toFixed(1)} ${ey.toFixed(1)}`;
-					const pip = extraEls[extra++];
-					if (pip) {
-						pip.setAttribute("cx", ex.toFixed(1));
-						pip.setAttribute("cy", ey.toFixed(1));
-						if (hot) pip.dataset.hot = "";
-						else delete pip.dataset.hot;
-					}
-				}
-				const line = leaderEls[i];
-				if (line) {
-					line.setAttribute("d", d);
-					if (hot) line.dataset.hot = "";
-					else delete line.dataset.hot;
-				}
-				const ring = ringEls[i];
-				const pip = pipEls[i];
-				for (const c of [ring, pip]) {
-					if (!c) continue;
-					c.setAttribute("cx", ax.toFixed(1));
-					c.setAttribute("cy", ay.toFixed(1));
-					if (hot) c.dataset.hot = "";
-					else delete c.dataset.hot;
-				}
+		const mark = (index: number) => {
+			items.forEach((el, i) => {
+				if (i === index) el.dataset.on = "";
+				else delete el.dataset.on;
 			});
 		};
 
-		const dockLeader = (view: View, focus: PartId, now: number) => {
-			if (!stage || !dock || !dockLine || !dockRing) return;
-			let [ax, ay] = stage.anchor(focus, view);
-			if (dockPrev) {
-				const t = (now - dockT0) / DOCK_MS;
-				if (t >= 1) dockPrev = null;
+		const point = (view: View, part: PartId, now: number) => {
+			if (!stage || !pointLine || !pointRing) return;
+			let [ax, ay] = stage.anchor(part, view);
+			if (pointFrom) {
+				const t = (now - pointT0) / POINT_MS;
+				if (t >= 1) pointFrom = null;
 				else {
-					const [bx, by] = stage.anchor(dockPrev, view);
 					const k = smoother(t);
-					ax = bx + (ax - bx) * k;
-					ay = by + (ay - by) * k;
+					ax = pointFrom[0] + (ax - pointFrom[0]) * k;
+					ay = pointFrom[1] + (ay - pointFrom[1]) * k;
 				}
 			}
-			const x = Math.min(w - 6, Math.max(6, ax));
-			const y = Math.min(dock.offsetTop - 12, Math.max(60, ay));
-			dockLine.setAttribute(
+			pointAt = [ax, ay];
+			if (mode === "tall") {
+				const x = clamp(ax, 6, w - 6);
+				const y = clamp(ay, NAV + 8, h - 12);
+				pointLine.setAttribute(
+					"d",
+					`M${Math.round(x) + 0.5} ${(y + 5).toFixed(1)}V${h}`,
+				);
+				pointRing.setAttribute("cx", x.toFixed(1));
+				pointRing.setAttribute("cy", y.toFixed(1));
+				return;
+			}
+			const y = Math.round(line) + 0.5;
+			const knee = Math.min(ax, Math.max(gate + 16, fits[2].inside.l));
+			pointLine.setAttribute(
 				"d",
-				`M${Math.round(x) + 0.5} ${(y + 5).toFixed(1)}V${dock.offsetTop}`,
+				`M${gate.toFixed(1)} ${y}H${knee.toFixed(1)}L${ax.toFixed(1)} ${ay.toFixed(1)}`,
 			);
-			dockRing.setAttribute("cx", x.toFixed(1));
-			dockRing.setAttribute("cy", y.toFixed(1));
+			pointRing.setAttribute("cx", ax.toFixed(1));
+			pointRing.setAttribute("cy", ay.toFixed(1));
+			pointGate?.setAttribute("cx", gate.toFixed(1));
+			pointGate?.setAttribute("cy", y.toFixed(1));
 		};
 
 		const dims = (view: View) => {
@@ -611,6 +499,7 @@ export function Hero() {
 			const mid = [(a[0] + b[0]) / 2 + nx * 4, (a[1] + b[1]) / 2 + ny * 4];
 			if (dimTags[0])
 				dimTags[0].style.translate = `${mid[0].toFixed(1)}px ${mid[1].toFixed(1)}px`;
+			if (dimTags[1]) dimTags[1].hidden = mode === "tall";
 			if (mode === "tall") {
 				dimLines[1]?.setAttribute("d", "");
 				return;
@@ -654,21 +543,21 @@ export function Hero() {
 			const gap = now - last;
 			const dt = Math.min(0.05, gap / 1000);
 			last = now;
-			const p = pace();
-			const raw = progress() * p.span;
-			const scrolled = Math.abs(raw - u) > 1e-3;
-			u = raw;
+			const at = -section.getBoundingClientRect().top;
+			const scrolled = Math.abs(at - u) > 1e-3;
+			u = at;
 			if (!seeded || still.matches) {
 				s = u;
 				seeded = true;
-			} else s += (u - s) * (1 - Math.exp(-dt / TAU_SCROLL[mode]));
-			if (Math.abs(u - s) < 1e-3) s = u;
-			const nextBeat = beatAt(u, p.beats, beat);
-			if (nextBeat !== beat) {
-				beat = nextBeat;
-				enter(beat);
-			}
-			setState(cue, u < p.cue && beat === "title");
+			} else s += (u - s) * (1 - Math.exp(-dt / TAU_SCROLL));
+			if (Math.abs(u - s) < 0.25) s = u;
+			beat = beatAt(u, beats, beat);
+			setState(cue, beat === "title" && u < CUE_PX);
+			const measured = s >= measure[0] && s <= measure[1];
+			const shown = measured && !measuring;
+			measuring = measured;
+			setState(lifeInk, measuring);
+			setState(dimsLayer, measuring);
 
 			if (arrival) {
 				const t = clamp((now - arrival.t0) / ARRIVAL_MS);
@@ -682,12 +571,12 @@ export function Hero() {
 				spin += velocity * dt;
 				velocity *= 0.92 ** (dt * 60);
 				if (Math.abs(velocity) < 0.002) velocity = 0;
-				if (scrolled || Math.abs(u - s) > 0.05) {
+				if (scrolled || Math.abs(u - s) > 0.5) {
 					velocity = 0;
 					spin *= Math.exp(-dt / TAU_RETURN);
 				}
 			}
-			const take = track(s, p.beats, shots, still.matches);
+			const take = track(s, beats, shots, still.matches);
 			const range = take.hold >= 0 ? ranges[take.hold] : null;
 			let extra = spin;
 			if (arrival) {
@@ -700,29 +589,22 @@ export function Hero() {
 			const pose: Pose = { ...take.pose, yaw: take.pose.yaw + limited };
 			const view = viewOf(pose, take.cam.scale, take.cam.cx, take.cam.cy);
 
-			let focus: PartId | null = null;
-			if (beat === "parts") {
-				if (mode === "tall") {
-					const b = p.beats[2];
-					const auto = stepIndex((u - b.from) / (b.to - b.from));
-					if (manual && manual.base !== auto) manual = null;
-					const index = manual ? manual.index : auto;
-					if (
-						index !== step ||
-						!cards.some((c) => c.dataset.on !== undefined)
-					) {
-						step = index;
-						showCards(step);
-					}
-					focus = TAGS[step].part;
-					if (focus !== dockPart) {
-						dockPrev = dockPart && !still.matches ? dockPart : null;
-						dockT0 = now;
-						dockPart = focus;
-					}
-				} else focus = hover;
+			let index = -1;
+			if (beat === "parts")
+				for (let k = 0; k < marks.length; k++) if (u >= marks[k]) index = k;
+			if (index !== active) {
+				active = index;
+				mark(active);
 			}
-			view.focus = mode === "wide" ? focus : null;
+			const focus = index >= 0 ? TAGS[index].part : null;
+			const turned = focus !== pointPart;
+			if (turned) {
+				pointFrom = focus && pointAt && !still.matches ? pointAt : null;
+				if (!focus) pointAt = null;
+				pointT0 = now;
+				pointPart = focus;
+			}
+			setState(pointInk, focus !== null);
 
 			const signature = [
 				view.yaw.toFixed(5),
@@ -731,7 +613,6 @@ export function Hero() {
 				view.cx.toFixed(2),
 				view.cy.toFixed(2),
 				view.explode.toFixed(4),
-				focus,
 				w,
 				h,
 				glDpr,
@@ -745,21 +626,19 @@ export function Hero() {
 				if (!cv.dataset.ready) {
 					cv.dataset.ready = "";
 					firstFrame = now;
-					if (!arrived && !still.matches && beat === "title" && s < 4) {
+					if (!arrived && !still.matches && beat === "title" && u < CUE_PX) {
 						arrival = { t0: now, amount: ARRIVE };
 					}
 					arrived = true;
 				}
-				if (mode === "wide" && (beat === "parts" || take.hold === 2))
-					leaders(view, focus);
-				if (beat === "life" || take.hold === 1) dims(view);
 			} else gaps.length = 0;
-			if (stage && mode === "tall" && focus && (fresh || dockPrev))
-				dockLeader(view, focus, now);
+			if (stage && measuring && (fresh || shown)) dims(view);
+			if (stage && focus && (fresh || turned || pointFrom))
+				point(view, focus, now);
 
 			const moving =
 				Math.abs(u - s) > 1e-3 ||
-				dockPrev !== null ||
+				pointFrom !== null ||
 				pointer !== null ||
 				arrival !== null ||
 				velocity !== 0 ||
@@ -804,31 +683,12 @@ export function Hero() {
 			kick();
 		};
 
-		const hoverOn = (e: Event) => {
-			const i = tagEls.indexOf(e.currentTarget as HTMLElement);
-			if (i >= 0 && beat === "parts") {
-				hover = TAGS[i].part;
-				kick();
-			}
-		};
-		const hoverOff = () => {
-			hover = null;
-			kick();
-		};
-
-		const stepBy = (delta: number) => {
-			const b = pace().beats[2];
-			const auto = stepIndex((u - b.from) / (b.to - b.from));
-			const index = Math.min(TAGS.length - 1, Math.max(0, step + delta));
-			manual = { index, base: auto };
-			kick();
-		};
-		const onPrev = () => stepBy(-1);
-		const onNext = () => stepBy(1);
-
 		const io = new IntersectionObserver(([entry]) => {
 			visible = entry.isIntersecting;
-			if (visible) kick();
+			if (visible) {
+				seeded = false;
+				kick();
+			}
 		});
 		const ro = new ResizeObserver(() => {
 			const tall = tallQuery.matches;
@@ -843,6 +703,8 @@ export function Hero() {
 		});
 		io.observe(section);
 		ro.observe(stick);
+		ro.observe(head);
+		ro.observe(flow);
 		size();
 		tick();
 		const odometer = window.setInterval(() => {
@@ -854,12 +716,6 @@ export function Hero() {
 		window.addEventListener("pointerup", up);
 		window.addEventListener("pointercancel", cancel);
 		window.addEventListener("scroll", kick, { passive: true });
-		for (const el of tagEls) {
-			el.addEventListener("pointerenter", hoverOn);
-			el.addEventListener("pointerleave", hoverOff);
-		}
-		prev?.addEventListener("click", onPrev);
-		next?.addEventListener("click", onNext);
 		document.fonts?.ready.then(() => {
 			if (cancelled) return;
 			plan();
@@ -883,7 +739,6 @@ export function Hero() {
 				}
 				stage = made;
 				stage.resize(w, h, glDpr);
-				assignSides();
 				drawn = "";
 				kick();
 			})
@@ -902,12 +757,6 @@ export function Hero() {
 			window.removeEventListener("pointerup", up);
 			window.removeEventListener("pointercancel", cancel);
 			window.removeEventListener("scroll", kick);
-			for (const el of tagEls) {
-				el.removeEventListener("pointerenter", hoverOn);
-				el.removeEventListener("pointerleave", hoverOff);
-			}
-			prev?.removeEventListener("click", onPrev);
-			next?.removeEventListener("click", onNext);
 			stage?.dispose();
 			stage = null;
 		};
@@ -915,6 +764,29 @@ export function Hero() {
 
 	return (
 		<section className="vg-hero" ref={root} aria-labelledby="vg-hero-name">
+			<header className="vg-hero__head">
+				<p className="vg-eyebrow">Launched September 5, 1977</p>
+				<h2 id="vg-hero-name" className="vg-hero__wordmark">
+					Voyager 1<span className="vg-stop">.</span>
+				</h2>
+				<p className="vg-hero__lede">
+					The farthest thing people have ever made. Still switched on.
+				</p>
+				<dl className="vg-hero__odo">
+					<div className="vg-hero__tile">
+						<dt>Kilometers from Earth</dt>
+						<dd>
+							<span className="vg-hero__km">{grouped(SEED.km)}</span>
+						</dd>
+					</div>
+					<div className="vg-hero__tile">
+						<dt>Light takes</dt>
+						<dd>
+							<span className="vg-hero__lt">{light(SEED.lightSeconds)}</span>
+						</dd>
+					</div>
+				</dl>
+			</header>
 			<div className="vg-hero__stick">
 				<canvas
 					className="vg-hero__canvas"
@@ -926,44 +798,17 @@ export function Hero() {
 						<path className="vg-hero__dimline" data-dim="" />
 						<path className="vg-hero__dimline" data-dim="" />
 					</g>
-					<g className="vg-hero__layer" data-ink="parts" data-state="wait">
-						{TAGS.map((t) => (
-							<path key={t.part} data-leader="" />
-						))}
-						{TAGS.map((t) => (
-							<circle key={t.part} data-ring="" r="4.5" />
-						))}
-						{TAGS.map((t) => (
-							<circle
-								key={t.part}
-								data-pip=""
-								className="vg-hero__pip"
-								r="1.5"
-							/>
-						))}
-						{TAGS.flatMap((t) => t.also ?? []).map((part) => (
-							<circle key={part} data-extra="" className="vg-hero__pip" r="2" />
-						))}
-					</g>
-					<g className="vg-hero__layer" data-ink="dock" data-state="wait">
-						<path data-dockline="" data-hot="" />
-						<circle data-dockring="" data-hot="" r="4.5" />
+					<g className="vg-hero__layer" data-ink="point" data-state="wait">
+						<path data-pointline="" data-hot="" />
+						<circle data-pointring="" data-hot="" r="4.5" />
+						<circle
+							data-pointgate=""
+							data-hot=""
+							className="vg-hero__pip"
+							r="2.5"
+						/>
 					</g>
 				</svg>
-				<i className="vg-hero__zone vg-hero__zone--left" />
-				<i className="vg-hero__zone vg-hero__zone--right" />
-				<div
-					className="vg-hero__tags vg-hero__layer"
-					data-state="wait"
-					aria-hidden="true"
-				>
-					{TAGS.map((t) => (
-						<div key={t.part} className="vg-hero__tag" data-side="right">
-							<span className="vg-hero__tag-name">{t.name}</span>
-							<Spec tag={t} />
-						</div>
-					))}
-				</div>
 				<div
 					className="vg-hero__dims vg-hero__layer"
 					data-state="wait"
@@ -972,131 +817,12 @@ export function Hero() {
 					<p className="vg-hero__dim">13 m</p>
 					<p className="vg-hero__dim">3.7 m</p>
 				</div>
-				<div
-					className="vg-hero__beat vg-hero__beat--title"
-					data-beat="title"
-					data-state="in"
-				>
-					<p className="vg-eyebrow">Launched September 5, 1977</p>
-					<h2 id="vg-hero-name" className="vg-hero__wordmark">
-						Voyager 1<span className="vg-stop">.</span>
-					</h2>
-					<p className="vg-hero__lede">
-						The farthest thing people have ever made. Still switched{" "}on.
-					</p>
-					<dl className="vg-hero__odo">
-						<div className="vg-hero__tile">
-							<dt>Kilometers from Earth</dt>
-							<dd>
-								<span className="vg-hero__km">{grouped(SEED.km)}</span>
-							</dd>
-						</div>
-						<div className="vg-hero__tile">
-							<dt>Light takes</dt>
-							<dd>
-								<span className="vg-hero__lt">{light(SEED.lightSeconds)}</span>
-							</dd>
-						</div>
-					</dl>
-				</div>
-				<div
-					className="vg-hero__beat vg-hero__beat--life"
-					data-beat="life"
-					data-state="wait"
-					aria-hidden="true"
-				>
-					<p className="vg-hero__big">
-						Built for a five‑year trip to Jupiter and{" "}Saturn.
-						<span className="vg-dim">
-							{" "}
-							Still working, forty‑nine years{" "}later.
-						</span>
-					</p>
-				</div>
-				<div
-					className="vg-hero__beat vg-hero__beat--parts"
-					data-beat="parts"
-					data-state="wait"
-					aria-hidden="true"
-				>
-					<p className="vg-hero__big">
-						Ten instruments.{" "}
-						<span className="vg-dim">
-							Two still on<span className="vg-stop">.</span>
-						</span>
-					</p>
-					<ul className="vg-hero__key">
-						<li>
-							<i className="vg-hero__dot" data-on="" />
-							Still on
-						</li>
-						<li>
-							<i className="vg-hero__dot" />
-							Switched off
-						</li>
-					</ul>
-				</div>
-				<div
-					className="vg-hero__beat vg-hero__beat--home"
-					data-beat="home"
-					data-state="wait"
-					aria-hidden="true"
-				>
-					<p className="vg-hero__big">
-						It is looking at you<span className="vg-stop">.</span>
-						<span className="vg-dim">
-							{" "}
-							Its dish has to hold Earth inside a radio beam just 0.6°{" "}wide.
-						</span>
-					</p>
-				</div>
-				<div className="vg-hero__dock vg-hero__layer" data-state="wait" inert>
-					<div className="vg-hero__deck">
-						<div className="vg-hero__cards" aria-live="polite">
-							{TAGS.map((t, i) => (
-								<div
-									key={t.part}
-									className="vg-hero__card"
-									data-on={i === 0 ? "" : undefined}
-								>
-									<p className="vg-hero__count">
-										{i + 1} / {TAGS.length}
-									</p>
-									<p className="vg-hero__card-name">{t.name}</p>
-									<Spec tag={t} />
-								</div>
-							))}
-						</div>
-						<div className="vg-hero__steps">
-							<button
-								type="button"
-								className="vg-hero__step"
-								data-step="-1"
-								aria-label="Previous part"
-								disabled
-							>
-								<LifeArrow direction="left" active={false} />
-							</button>
-							<button
-								type="button"
-								className="vg-hero__step"
-								data-step="1"
-								aria-label="Next part"
-							>
-								<LifeArrow direction="right" active={false} />
-							</button>
-						</div>
-					</div>
-				</div>
 				<p
 					className="vg-hero__cue vg-hero__layer"
 					data-state="in"
 					aria-hidden="true"
 				>
-					<span className="vg-hero__cue-fine">
-						Scroll to take it apart. Drag to turn it.
-					</span>
-					<span className="vg-hero__cue-touch">Scroll to take it apart</span>
+					Scroll to take it apart. Drag to turn it.
 					<LifeArrow direction="down" active={false} />
 				</p>
 				<div className="vg-hero__sr">
@@ -1115,6 +841,55 @@ export function Hero() {
 					<p>
 						It is looking at you. Its dish has to hold Earth inside a radio beam
 						just 0.6° wide.
+					</p>
+				</div>
+			</div>
+			<div className="vg-hero__flow" aria-hidden="true">
+				<div className="vg-hero__block" data-block="">
+					<p className="vg-hero__big">
+						Built for a five‑year trip to Jupiter and Saturn.
+						<span className="vg-dim">
+							{" "}
+							Still working, forty‑nine years later.
+						</span>
+					</p>
+				</div>
+				<div className="vg-hero__block" data-block="">
+					<p className="vg-hero__big">
+						Ten instruments.{" "}
+						<span className="vg-dim">
+							Two still on<span className="vg-stop">.</span>
+						</span>
+					</p>
+					<ul className="vg-hero__key">
+						<li>
+							<i className="vg-hero__dot" data-on="" />
+							Still on
+						</li>
+						<li>
+							<i className="vg-hero__dot" />
+							Switched off
+						</li>
+					</ul>
+					<ol className="vg-hero__list">
+						{TAGS.map((t, i) => (
+							<li key={t.part} className="vg-hero__item">
+								<p className="vg-hero__count">
+									{i + 1} / {TAGS.length}
+								</p>
+								<p className="vg-hero__item-name">{t.name}</p>
+								<Spec tag={t} />
+							</li>
+						))}
+					</ol>
+				</div>
+				<div className="vg-hero__block" data-block="">
+					<p className="vg-hero__big">
+						It is looking at you<span className="vg-stop">.</span>
+						<span className="vg-dim">
+							{" "}
+							Its dish has to hold Earth inside a radio beam just 0.6° wide.
+						</span>
 					</p>
 				</div>
 			</div>

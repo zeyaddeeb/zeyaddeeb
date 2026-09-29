@@ -43,36 +43,7 @@ export interface Beat {
 	to: number;
 }
 
-export interface Pace {
-	span: number;
-	beats: readonly Beat[];
-	cue: number;
-}
-
 export const MEDIA_TALL = "(max-width: 760px), (max-aspect-ratio: 4/5)";
-
-export const PACE: Record<Mode, Pace> = {
-	wide: {
-		span: 330,
-		cue: 6,
-		beats: [
-			{ id: "title", from: 0, to: 55 },
-			{ id: "life", from: 80, to: 140 },
-			{ id: "parts", from: 165, to: 245 },
-			{ id: "home", from: 280, to: 330 },
-		],
-	},
-	tall: {
-		span: 555,
-		cue: 6,
-		beats: [
-			{ id: "title", from: 0, to: 55 },
-			{ id: "life", from: 80, to: 140 },
-			{ id: "parts", from: 215, to: 425 },
-			{ id: "home", from: 500, to: 555 },
-		],
-	},
-};
 
 export const MAG_ROOT: V3 = [-1.428, 0.523, 0.209];
 export const MAG_TIP: V3 = [-12.059, 8.595, 1.829];
@@ -545,42 +516,6 @@ export function nearestBeat(u: number, beats: readonly Beat[]): number {
 		}
 	});
 	return best;
-}
-
-export function slots(
-	want: readonly number[],
-	top: number,
-	bottom: number,
-	gap: number,
-): number[] {
-	const n = want.length;
-	if (n === 0) return [];
-	const order = want.map((_, i) => i).sort((a, b) => want[a] - want[b]);
-	const shifted = order.map((i, k) => want[i] - k * gap);
-	const blocks: { sum: number; count: number }[] = [];
-	for (const v of shifted) {
-		blocks.push({ sum: v, count: 1 });
-		while (blocks.length > 1) {
-			const a = blocks[blocks.length - 2];
-			const b = blocks[blocks.length - 1];
-			if (a.sum / a.count <= b.sum / b.count) break;
-			a.sum += b.sum;
-			a.count += b.count;
-			blocks.pop();
-		}
-	}
-	const fitted: number[] = [];
-	for (const b of blocks)
-		for (let k = 0; k < b.count; k++) fitted.push(b.sum / b.count);
-	const placed = fitted.map((v, k) => v + k * gap);
-	for (let k = 0; k < n; k++) placed[k] = Math.max(placed[k], top + k * gap);
-	for (let k = n - 1; k >= 0; k--)
-		placed[k] = Math.min(placed[k], bottom - (n - 1 - k) * gap);
-	const out = new Array<number>(n);
-	order.forEach((i, k) => {
-		out[i] = placed[k];
-	});
-	return out;
 }
 
 export interface Shot {
