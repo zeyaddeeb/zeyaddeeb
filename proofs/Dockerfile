@@ -42,7 +42,8 @@ RUN cd /repl \
 COPY mathlib/lakefile.toml mathlib/lake-manifest.json mathlib/lean-toolchain mathlib/Header.lean mathlib/Prune.lean /mathlib/
 
 RUN cd /mathlib \
-    && lake exe cache get \
+    && imports="$(sed -n 's/^import //p' Header.lean)" \
+    && lake exe cache get $imports \
     && lake env lean --run Prune.lean --premises /sysroot/premises.json Header.lean \
     && lake env lean --run Prune.lean /sysroot/lib/lean Header.lean \
     && rm -rf /mathlib/.lake

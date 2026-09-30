@@ -7,7 +7,7 @@ tasks:
     options:
       cache: false
   mathlib:
-    script: "test -d mathlib/.lake/packages/mathlib/.lake/build || (cd mathlib && lake exe cache get)"
+    script: "test -d mathlib/.lake/packages/mathlib/.lake/build || (cd mathlib && lake exe cache get $(sed -n 's/^import //p' Header.lean))"
     options:
       cache: false
   premises:
