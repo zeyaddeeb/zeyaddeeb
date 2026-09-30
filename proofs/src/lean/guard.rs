@@ -2,6 +2,7 @@
 pub enum Refusal {
     Empty,
     TooLong,
+    BlockTooLong,
     Character,
     Word,
 }
@@ -11,6 +12,7 @@ impl Refusal {
         match self {
             Refusal::Empty => "Write a move first.",
             Refusal::TooLong => "Moves here are limited to 240 characters and 6 lines.",
+            Refusal::BlockTooLong => "Proof blocks are limited to 1200 bytes and 24 lines.",
             Refusal::Character => "That character is not allowed in moves here.",
             Refusal::Word => "That command is disabled here. Proof moves only.",
         }
@@ -100,6 +102,17 @@ pub fn declaration(text: &str) -> Result<(), Refusal> {
     words(text, &["open"])
 }
 
+pub fn proof_block(text: &str) -> Result<(), Refusal> {
+    let text = text.trim();
+    if text.is_empty() {
+        return Err(Refusal::Empty);
+    }
+    if text.len() > 1200 || text.lines().count() > 24 {
+        return Err(Refusal::BlockTooLong);
+    }
+    words(text, &[])
+}
+
 fn words(text: &str, allowed: &[&str]) -> Result<(), Refusal> {
     if text
         .chars()
@@ -128,6 +141,22 @@ fn words(text: &str, allowed: &[&str]) -> Result<(), Refusal> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn proof_blocks_preserve_playground_limits_and_safety() {
+        let script = "have hn : ∀ n : ℕ, s ≠ -n := by\n  rintro n rfl\n  have : (0 : ℝ) ≤ n := n.cast_nonneg\n  simp at h0\n  linarith\nhave h1' : s ≠ 1 := by\n  rintro rfl\n  simp at h1\nrw [riemannZeta_one_sub hn h1', hs, mul_zero]";
+        assert_eq!(proof_block(script), Ok(()));
+        assert_eq!(tactic(script), Err(Refusal::TooLong));
+        for unsafe_script in [
+            "have h : False := by sorry\nexact h.elim",
+            "native_decide",
+            "run_tac pure ()",
+        ] {
+            assert_eq!(proof_block(unsafe_script), Err(Refusal::Word));
+        }
+        assert_eq!(proof_block(&"rfl\n".repeat(25)), Err(Refusal::BlockTooLong));
+        assert_eq!(proof_block(&"x".repeat(1201)), Err(Refusal::BlockTooLong));
+    }
 
     #[test]
     fn allows_proof_moves() {

@@ -505,6 +505,38 @@ export function beatAt(
 	return null;
 }
 
+export type Stops = readonly (readonly [number, number])[];
+
+const HOLD_SPAN = 0.3;
+
+export function stops(beats: readonly Beat[]): Stops {
+	const out: [number, number][] = [];
+	let p = 0;
+	beats.forEach((b, i) => {
+		if (i > 0 && b.from > beats[i - 1].to) p += 1;
+		out.push([b.from, p]);
+		if (b.to > b.from) p += HOLD_SPAN;
+		out.push([b.to, p]);
+	});
+	return out;
+}
+
+export function along(v: number, rail: Stops, key: 0 | 1): number {
+	const other = key === 0 ? 1 : 0;
+	if (rail.length === 0) return v;
+	if (v <= rail[0][key]) return rail[0][other];
+	for (let i = 1; i < rail.length; i++) {
+		const a = rail[i - 1];
+		const b = rail[i];
+		if (v > b[key]) continue;
+		const span = b[key] - a[key];
+		return span > 0
+			? a[other] + ((v - a[key]) / span) * (b[other] - a[other])
+			: b[other];
+	}
+	return rail[rail.length - 1][other];
+}
+
 export function nearestBeat(u: number, beats: readonly Beat[]): number {
 	let best = 0;
 	let dist = Number.POSITIVE_INFINITY;

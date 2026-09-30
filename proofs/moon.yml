@@ -10,6 +10,12 @@ tasks:
     script: "test -d mathlib/.lake/packages/mathlib/.lake/build || (cd mathlib && lake exe cache get)"
     options:
       cache: false
+  premises:
+    script: "cd mathlib && lake env lean --run Prune.lean --premises .lake/premises.json Header.lean"
+    deps:
+      - "mathlib"
+    options:
+      cache: false
   dev:
     script: "cargo run --release"
     deps:
@@ -22,11 +28,13 @@ tasks:
     deps:
       - "repl"
       - "mathlib"
+      - "premises"
   test:
     script: "cargo test --all"
     deps:
       - "repl"
       - "mathlib"
+      - "premises"
   helm-lint:
     script: "helm lint deployments/helm"
     options:

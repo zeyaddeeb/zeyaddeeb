@@ -147,6 +147,10 @@ impl Workbench {
         &self.library
     }
 
+    pub fn session(&self) -> Option<u64> {
+        self.live.as_ref().map(|_| self.starts)
+    }
+
     pub fn release(&mut self) {
         self.live = None;
     }
@@ -340,6 +344,27 @@ impl Workbench {
     }
 
     pub async fn apply(&mut self, state: u64, tactic: &str) -> Moved {
+        self.apply_guarded(state, tactic, guard::tactic(tactic))
+            .await
+    }
+
+    pub async fn apply_block(&mut self, state: u64, script: &str) -> Moved {
+        let indented = script
+            .lines()
+            .map(|line| format!("  {line}"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let block = format!("(\n{indented}\n)");
+        self.apply_guarded(state, &block, guard::proof_block(script))
+            .await
+    }
+
+    async fn apply_guarded(
+        &mut self,
+        state: u64,
+        tactic: &str,
+        guarded: Result<(), guard::Refusal>,
+    ) -> Moved {
         let refused = |error: String| Moved {
             ok: false,
             state: None,
@@ -347,7 +372,7 @@ impl Workbench {
             error: Some(error),
             suggestion: None,
         };
-        if let Err(refusal) = guard::tactic(tactic) {
+        if let Err(refusal) = guarded {
             return refused(refusal.message().to_string());
         }
         let reply = match self

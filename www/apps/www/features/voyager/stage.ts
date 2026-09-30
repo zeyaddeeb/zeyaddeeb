@@ -1152,8 +1152,16 @@ export async function createStage(
 	};
 
 	const resize = (w: number, h: number, dpr: number) => {
-		width = Math.max(1, w);
-		height = Math.max(1, h);
+		const nextWidth = Math.max(1, w);
+		const nextHeight = Math.max(1, h);
+		if (
+			nextWidth === width &&
+			nextHeight === height &&
+			dpr === renderer.getPixelRatio()
+		)
+			return;
+		width = nextWidth;
+		height = nextHeight;
 		posed[0] = Number.NaN;
 		renderer.setPixelRatio(dpr);
 		renderer.setSize(width, height, false);

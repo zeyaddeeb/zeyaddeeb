@@ -569,7 +569,7 @@ impl Desk {
             None => match search::prove(agent, &statement).await {
                 Ok(Some(found)) => {
                     helped = Some(found.helped);
-                    format!("by\n  {}", found.tactics.join("\n  "))
+                    search::script(&found.tactics)
                 }
                 Ok(None) => {
                     return Done::refused(
@@ -599,9 +599,6 @@ impl Desk {
             Some(helped) => !helped,
             None => agent.bench.automatic(&statement).await,
         };
-        if let Err(error) = agent.bench.adopt(&code).await {
-            return Done::refused(format!("Lean accepted it but could not keep it: {error}"));
-        }
         let lemma = Lemma {
             name: name.clone(),
             code: code.clone(),
@@ -610,7 +607,9 @@ impl Desk {
             axioms: checked.axioms.clone(),
             routine,
         };
-        let _ = agent.store.put_lemma(&lemma).await;
+        if let Err(error) = agent.keep_lemma(&lemma).await {
+            return Done::refused(format!("Lean accepted it but could not keep it: {error}"));
+        }
         if routine {
             agent.state.routine += 1;
             self.tally.routine += 1;

@@ -241,12 +241,18 @@ async fn brief(agent: &mut Agent, front: &'static Front) -> anyhow::Result<Strin
         .await?;
     open.extend(store.nodes_where(front.id, Trust::Open, OPEN).await?);
     let recent = store.episodes_on(front.id, RECENT).await?;
+    let dependencies = if front.id == "lean" {
+        prompts::formal_targets(&open, &store.nodes().await?, &store.links().await?)
+    } else {
+        Vec::new()
+    };
     Ok(prompts::brief(&prompts::Brief {
         front,
         state: &agent.state,
         related: &related,
         open: &open,
         recent: &recent,
+        dependencies: &dependencies,
         actions: agent.config.actions,
     }))
 }

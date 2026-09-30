@@ -43,6 +43,7 @@ COPY mathlib/lakefile.toml mathlib/lake-manifest.json mathlib/lean-toolchain mat
 
 RUN cd /mathlib \
     && lake exe cache get \
+    && lake env lean --run Prune.lean --premises /sysroot/premises.json Header.lean \
     && lake env lean --run Prune.lean /sysroot/lib/lean Header.lean \
     && rm -rf /mathlib/.lake
 
@@ -60,6 +61,7 @@ COPY --from=lean /sysroot /opt/lean
 ENV LEAN_SYSROOT=/opt/lean
 ENV PROOFS_REPL_DIR=/app/repl
 ENV PROOFS_AGENT_LEAN_PATH=/opt/lean/lib/lean
+ENV PROOFS_AGENT_PREMISES=/opt/lean/premises.json
 
 RUN groupadd --gid 1000 app && useradd --uid 1000 --gid 1000 --create-home app
 USER 1000:1000

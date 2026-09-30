@@ -327,19 +327,40 @@ impl Store {
     }
 
     pub async fn put_lemma(&self, lemma: &Lemma) -> Result<()> {
-        let _: Option<Lemma> = self
-            .db
-            .upsert(("lemma", lemma.name.clone()))
-            .content(lemma.clone())
-            .await?;
+        self.db.query("BEGIN TRANSACTION; LET $sequence = array::len(SELECT name FROM lemma); UPSERT type::record('lemma', $name) CONTENT $lemma; UPDATE type::record('lemma', $name) SET sequence = $sequence; COMMIT TRANSACTION;")
+            .bind(("name", lemma.name.clone())).bind(("lemma", lemma.clone())).await?.check()?;
         Ok(())
     }
 
     pub async fn lemmas(&self) -> Result<Vec<Lemma>> {
         let mut response = self
             .db
-            .query("SELECT * OMIT id FROM lemma ORDER BY episode")
+            .query("SELECT * OMIT id FROM lemma ORDER BY episode, sequence")
             .await?;
+        Ok(response.take(0)?)
+    }
+
+    pub async fn put_proof(&self, proof: &ProofExperience) -> Result<()> {
+        let _: Option<ProofExperience> = self
+            .db
+            .upsert(("proof", proof.key.clone()))
+            .content(proof.clone())
+            .await?;
+        Ok(())
+    }
+
+    pub async fn proof(&self, key: &str) -> Result<Option<ProofExperience>> {
+        Ok(self.db.select(("proof", key)).await?)
+    }
+
+    pub async fn proof_examples(
+        &self,
+        query: &str,
+        environment: &str,
+        limit: usize,
+    ) -> Result<Vec<ProofExperience>> {
+        let mut response = self.db.query("SELECT *, search::score(1) AS score OMIT id FROM proof WHERE text @1,OR@ $query AND environment = $environment AND checked = true ORDER BY score DESC LIMIT $limit")
+            .bind(("query", query.to_string())).bind(("environment", environment.to_string())).bind(("limit", limit as i64)).await?.check()?;
         Ok(response.take(0)?)
     }
 }
@@ -350,6 +371,43 @@ mod tests {
 
     async fn store() -> Store {
         Store::connect("mem://", None).await.unwrap()
+    }
+
+    #[tokio::test]
+    async fn checked_proof_experience_survives_transcript_pruning() {
+        let store = store().await;
+        let proof = ProofExperience {
+            key: "checked".into(),
+            statement: "theorem saved : True".into(),
+            environment: "pinned".into(),
+            library: "before".into(),
+            checked: true,
+            blocks: vec!["trivial".into()],
+            text: "zeta reflection".into(),
+            ..Default::default()
+        };
+        store.put_proof(&proof).await.unwrap();
+        store
+            .put_proof(&ProofExperience {
+                key: "failed".into(),
+                checked: false,
+                ..proof.clone()
+            })
+            .await
+            .unwrap();
+        store.forget_turns_before(100).await.unwrap();
+        let found = store.proof_examples("zeta", "pinned", 3).await.unwrap();
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].key, "checked");
+        assert!(found[0].replayable("theorem saved : True", "pinned", "before"));
+        assert!(!found[0].replayable("theorem saved : False", "pinned", "before"));
+        assert!(!found[0].replayable("theorem saved : True", "pinned", "after"));
+        assert!(store
+            .proof_examples("zeta", "another-version", 3)
+            .await
+            .unwrap()
+            .is_empty());
+        assert!(store.proof("failed").await.unwrap().is_some());
     }
 
     #[tokio::test]

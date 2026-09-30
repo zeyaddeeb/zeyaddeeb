@@ -219,6 +219,36 @@ pub struct Lemma {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, SurrealValue)]
+pub struct ProofFailure {
+    pub goal: String,
+    pub script: String,
+    pub error: String,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, SurrealValue)]
+pub struct ProofExperience {
+    pub key: String,
+    pub statement: String,
+    pub shape: String,
+    pub environment: String,
+    pub library: String,
+    pub goal: String,
+    pub blocks: Vec<String>,
+    pub failures: Vec<ProofFailure>,
+    pub helpers: Vec<String>,
+    pub checked: bool,
+    pub axioms: Vec<String>,
+    pub episode: u64,
+    pub text: String,
+}
+
+impl ProofExperience {
+    pub fn replayable(&self, statement: &str, environment: &str, library: &str) -> bool {
+        self.statement == statement && self.environment == environment && self.library == library
+    }
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, SurrealValue)]
 #[serde(rename_all = "camelCase")]
 pub struct Arm {
     pub front: String,

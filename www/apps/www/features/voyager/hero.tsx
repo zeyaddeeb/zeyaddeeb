@@ -6,6 +6,7 @@ import { preload } from "react-dom";
 import { duration, fix, grouped } from "./ephemeris";
 import {
 	ARRIVE,
+	along,
 	type Beat,
 	type BeatId,
 	type Box,
@@ -24,9 +25,11 @@ import {
 	RIM_RADIUS,
 	reach,
 	type Shot,
+	type Stops,
 	smoother,
 	soften,
 	solve,
+	stops,
 	track,
 } from "./hero-frame";
 import type { PartId } from "./model";
@@ -100,6 +103,8 @@ const LEAD = 0.1;
 const REACH = 0.4;
 const CUE_PX = 40;
 const TAU_SCROLL = 0.08;
+const SWING = 0.3;
+const SETTLE = 1e-3;
 const TAU_RETURN = 0.4;
 const POINT_MS = 380;
 const ARRIVAL_MS = 2800;
@@ -181,6 +186,7 @@ export function Hero() {
 		let fits: Fit[] = [];
 		let ranges: [number, number][] = [];
 		let beats: Beat[] = BEATS.map((id) => ({ id, from: 0, to: 0 }));
+		let rail: Stops = [];
 		let marks: number[] = [];
 		let done = 0;
 		let measure: [number, number] = [0, 0];
@@ -190,6 +196,7 @@ export function Hero() {
 		let seeded = false;
 		let u = 0;
 		let s = 0;
+		let progress = 0;
 		let beat: BeatId | null = null;
 		let spin = 0;
 		let velocity = 0;
@@ -370,6 +377,7 @@ export function Hero() {
 				prev = to;
 				return { id, from, to };
 			});
+			rail = stops(beats);
 			const [title, life, parts] = beats;
 			measure = [
 				life.from - (life.from - title.to) * REACH,
@@ -421,16 +429,14 @@ export function Hero() {
 		};
 
 		const watch = (now: number, gap: number) => {
-			if (degraded || !coarse.matches || !stage || glDpr <= 1.5) return;
-			if (!firstFrame || now - firstFrame < 2000) return;
+			if (degraded || !coarse.matches || !stage || glDpr <= 1.5) return false;
+			if (!firstFrame || now - firstFrame < 2000) return false;
 			gaps.push(gap);
-			if (gaps.length < 60) return;
+			if (gaps.length < 60) return false;
 			const sorted = [...gaps].sort((a, b) => a - b);
 			gaps.length = 0;
-			if (sorted[Math.floor(sorted.length * 0.9)] > 20) {
-				degraded = true;
-				size();
-			}
+			degraded = sorted[Math.floor(sorted.length * 0.9)] > 20;
+			return degraded;
 		};
 
 		const mark = (index: number) => {
@@ -549,11 +555,21 @@ export function Hero() {
 			const at = -section.getBoundingClientRect().top;
 			const scrolled = Math.abs(at - u) > 1e-3;
 			u = at;
+			const goal = along(u, rail, 0);
 			if (!seeded || still.matches) {
-				s = u;
+				progress = goal;
 				seeded = true;
-			} else s += (u - s) * (1 - Math.exp(-dt / TAU_SCROLL));
-			if (Math.abs(u - s) < 0.25) s = u;
+			} else {
+				const cap = dt / SWING;
+				progress += clamp(
+					(goal - progress) * (1 - Math.exp(-dt / TAU_SCROLL)),
+					-cap,
+					cap,
+				);
+			}
+			if (Math.abs(goal - progress) < SETTLE) progress = goal;
+			const settled = progress === goal;
+			s = settled ? u : along(progress, rail, 1);
 			beat = beatAt(u, beats, beat);
 			setState(cue, beat === "title" && u < CUE_PX);
 			const measured = s >= measure[0] && s <= measure[1];
@@ -574,7 +590,7 @@ export function Hero() {
 				spin += velocity * dt;
 				velocity *= 0.92 ** (dt * 60);
 				if (Math.abs(velocity) < 0.002) velocity = 0;
-				if (scrolled || Math.abs(u - s) > 0.5) {
+				if (scrolled || !settled) {
 					velocity = 0;
 					spin *= Math.exp(-dt / TAU_RETURN);
 				}
@@ -623,9 +639,9 @@ export function Hero() {
 			].join(" ");
 			const fresh = signature !== drawn;
 			if (stage && fresh) {
+				if (watch(now, gap)) size();
 				drawn = signature;
 				stage.draw(view);
-				watch(now, gap);
 				if (!cv.dataset.ready) {
 					cv.dataset.ready = "";
 					firstFrame = now;
@@ -640,7 +656,7 @@ export function Hero() {
 				point(view, focus, now);
 
 			const moving =
-				Math.abs(u - s) > 1e-3 ||
+				!settled ||
 				pointFrom !== null ||
 				pointer !== null ||
 				arrival !== null ||
@@ -686,12 +702,21 @@ export function Hero() {
 			kick();
 		};
 
+		const redraw = () => {
+			cancelAnimationFrame(frame);
+			last = performance.now();
+			draw(last);
+		};
+
+		const repaint = () => {
+			drawn = "";
+			redraw();
+		};
+
 		const io = new IntersectionObserver(([entry]) => {
 			visible = entry.isIntersecting;
-			if (visible) {
-				seeded = false;
-				kick();
-			}
+			seeded = false;
+			repaint();
 		});
 		const ro = new ResizeObserver(() => {
 			const tall = tallQuery.matches;
@@ -702,7 +727,7 @@ export function Hero() {
 				beat = null;
 				seeded = false;
 			}
-			kick();
+			redraw();
 		});
 		io.observe(section);
 		ro.observe(stick);
@@ -715,6 +740,7 @@ export function Hero() {
 				tick();
 		}, 100);
 		cv.addEventListener("pointerdown", down);
+		cv.addEventListener("webglcontextrestored", repaint);
 		window.addEventListener("pointermove", move);
 		window.addEventListener("pointerup", up);
 		window.addEventListener("pointercancel", cancel);
@@ -756,6 +782,7 @@ export function Hero() {
 			io.disconnect();
 			ro.disconnect();
 			cv.removeEventListener("pointerdown", down);
+			cv.removeEventListener("webglcontextrestored", repaint);
 			window.removeEventListener("pointermove", move);
 			window.removeEventListener("pointerup", up);
 			window.removeEventListener("pointercancel", cancel);

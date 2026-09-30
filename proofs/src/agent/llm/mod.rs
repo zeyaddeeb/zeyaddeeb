@@ -17,6 +17,58 @@ use rig_core::{
 use serde_json::{json, Value};
 use std::{fmt, time::Duration};
 
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct ProofPlan {
+    #[serde(default)]
+    pub strategy: String,
+    #[serde(default)]
+    pub candidates: Vec<String>,
+    #[serde(default)]
+    pub helpers: Vec<Helper>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Helper {
+    pub statement: String,
+    #[serde(default)]
+    pub proof: Option<String>,
+}
+
+impl ProofPlan {
+    pub fn parse(value: &Value) -> Result<Self> {
+        let mut plan: Self = serde_json::from_value(value.clone())?;
+        plan.candidates.retain(|script| !script.trim().is_empty());
+        plan.candidates.truncate(3);
+        plan.helpers
+            .retain(|helper| !helper.statement.trim().is_empty());
+        plan.helpers.truncate(3);
+        Ok(plan)
+    }
+
+    pub fn from_reply(reply: &Reply) -> Self {
+        if let Some(call) = reply
+            .calls
+            .iter()
+            .find(|call| call.function.name == "proof_plan")
+        {
+            return Self::parse(&call.function.arguments).unwrap_or_default();
+        }
+        let text = reply.said.trim();
+        let json_text = text
+            .strip_prefix("```json")
+            .and_then(|text| text.strip_suffix("```"))
+            .unwrap_or(text)
+            .trim();
+        if let Ok(value) = serde_json::from_str::<Value>(json_text) {
+            return Self::parse(&value).unwrap_or_default();
+        }
+        Self {
+            candidates: tactics(text),
+            ..Self::default()
+        }
+    }
+}
+
 const READY_LIMIT: Duration = Duration::from_secs(5);
 use tags::{Piece, Splitter};
 
@@ -213,21 +265,40 @@ impl Llm {
     }
 
     pub async fn propose(&self, goal: &str, failed: &[String]) -> Result<(Vec<String>, u64)> {
-        let tried = if failed.is_empty() {
-            "nothing yet".to_string()
-        } else {
-            failed.join("; ")
-        };
+        let (plan, tokens) = self
+            .plan(&json!({"goals": [goal], "failures": failed}), 1536)
+            .await?;
+        Ok((plan.candidates, tokens))
+    }
+
+    pub async fn plan(&self, context: &Value, max_tokens: u64) -> Result<(ProofPlan, u64)> {
         let ask = Ask {
             preamble: super::prompts::PROPOSER,
             history: &[],
-            prompt: Message::user(format!("Goal:\n{goal}\n\nAlready failed: {tried}")),
-            tools: Vec::new(),
-            thinking: false,
-            max_tokens: 200,
+            prompt: Message::user(serde_json::to_string(context)?),
+            tools: vec![ToolDefinition {
+                name: "proof_plan".into(),
+                description: "Propose alternative Lean tactic blocks and optional smaller independent lemmas.".into(),
+                parameters: json!({
+                    "type": "object",
+                    "properties": {
+                        "strategy": {"type": "string"},
+                        "candidates": {"type": "array", "maxItems": 3, "items": {"type": "string", "maxLength": 1200}},
+                        "helpers": {"type": "array", "maxItems": 3, "items": {
+                            "type": "object", "properties": {
+                                "statement": {"type": "string", "maxLength": 1200},
+                                "proof": {"type": "string", "maxLength": 1200}
+                            }, "required": ["statement"]
+                        }}
+                    },
+                    "required": ["strategy", "candidates", "helpers"]
+                }),
+            }],
+            thinking: true,
+            max_tokens,
         };
         let reply = self.reply(ask, |_, _| {}).await?;
-        Ok((tactics(&reply.said), reply.processed()))
+        Ok((ProofPlan::from_reply(&reply), reply.processed()))
     }
 }
 
@@ -289,6 +360,59 @@ pub fn tactics(text: &str) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn proof_plans_accept_tools_json_and_legacy_replies() {
+        let args =
+            json!({"strategy": "split", "candidates": ["constructor\n· exact hp\n· exact hq"]});
+        let mut reply = Reply {
+            said: args.to_string(),
+            ..Reply::default()
+        };
+        assert_eq!(
+            ProofPlan::from_reply(&reply).candidates[0],
+            "constructor\n· exact hp\n· exact hq"
+        );
+        reply.said = "1. simp\n2. exact h".into();
+        assert_eq!(
+            ProofPlan::from_reply(&reply).candidates,
+            vec!["simp", "exact h"]
+        );
+        if let AssistantContent::ToolCall(call) =
+            AssistantContent::tool_call("plan", "proof_plan", args)
+        {
+            reply.calls.push(call);
+        }
+        assert_eq!(ProofPlan::from_reply(&reply).strategy, "split");
+    }
+
+    #[test]
+    fn proof_plans_preserve_multiline_blocks() {
+        let script = "have hn : ∀ n : ℕ, s ≠ -n := by\n  rintro n rfl\n  have : (0 : ℝ) ≤ n := n.cast_nonneg\n  simp at h0\n  linarith\nhave h1' : s ≠ 1 := by\n  rintro rfl\n  simp at h1\nrw [riemannZeta_one_sub hn h1', hs, mul_zero]";
+        let plan = ProofPlan::parse(&json!({
+            "strategy": "Establish the functional equation's side conditions.",
+            "candidates": [script],
+            "helpers": [{"statement": "lemma positive_ne_one (s : ℂ) (h : s.re < 1) : s ≠ 1"}],
+        }))
+        .unwrap();
+        assert_eq!(plan.candidates, vec![script]);
+        assert_eq!(plan.helpers.len(), 1);
+        assert!(plan.helpers[0].proof.is_none());
+        assert_eq!(
+            serde_json::from_value::<ProofPlan>(serde_json::to_value(&plan).unwrap())
+                .unwrap()
+                .candidates,
+            plan.candidates
+        );
+    }
+
+    #[test]
+    fn proof_plans_are_bounded_and_typed() {
+        let plan = ProofPlan::parse(&json!({"candidates": ["", "rfl", "simp", "omega", "aesop"]}))
+            .unwrap();
+        assert_eq!(plan.candidates, vec!["rfl", "simp", "omega"]);
+        assert!(ProofPlan::parse(&json!({"candidates": [42]})).is_err());
+    }
 
     #[test]
     fn reads_proposed_tactics() {

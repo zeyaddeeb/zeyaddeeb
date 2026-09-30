@@ -1,10 +1,18 @@
 use super::{
     fronts::Front,
-    memory::{AgentState, Episode, Node},
+    memory::{AgentState, Episode, Link, Node, Relation, Trust},
 };
 
-pub const PROPOSER: &str = "You propose Lean 4 Mathlib tactics for the goal you are shown. \
-Reply with up to three tactics, one per line, and nothing else.";
+pub const PROPOSER: &str = "You prove Lean 4 theorems in the supplied Mathlib environment. \
+Reason about the original statement, all goals and hypotheses, available premise signatures, \
+successful path, and exact Lean errors. Return a proof_plan tool call, not prose. \
+Give up to three alternative complete tactic blocks, preserving newlines and indentation; \
+do not include an outer 'by'. Each block may close the goal or make structural progress. \
+Repair errors rather than repeating failed blocks. Only use premise names supported by the context \
+or standard Mathlib automation. When useful, propose up to three smaller named helper theorems \
+with all variables and assumptions explicit and optional tactic-block proofs. A helper must not \
+assume the original conclusion. Never use sorry, admit, native_decide, or unsafe tactics. \
+Every proof will be checked independently by Lean.";
 
 pub fn researcher(awake: &str) -> String {
     format!(
@@ -48,6 +56,7 @@ pub struct Brief<'a> {
     pub related: &'a [Node],
     pub open: &'a [Node],
     pub recent: &'a [Episode],
+    pub dependencies: &'a [String],
     pub actions: usize,
 }
 
@@ -58,6 +67,7 @@ pub fn brief(brief: &Brief) -> String {
         related,
         open,
         recent,
+        dependencies,
         actions,
     } = brief;
     let mut text = format!(
@@ -93,6 +103,11 @@ pub fn brief(brief: &Brief) -> String {
     section(&mut text, "Open on this front", open.iter().map(Node::line));
     section(
         &mut text,
+        "Formal dependency hints (registered graph only, not proof)",
+        dependencies.iter().cloned(),
+    );
+    section(
+        &mut text,
         "Last episodes here",
         recent
             .iter()
@@ -100,6 +115,36 @@ pub fn brief(brief: &Brief) -> String {
     );
     text.push_str(&format!("\n\nYou have {actions} actions. Begin with plan."));
     text
+}
+
+pub fn formal_targets(open: &[Node], nodes: &[Node], links: &[Link]) -> Vec<String> {
+    let mut targets = Vec::new();
+    for target in open.iter().filter(|node| node.lean.is_some()) {
+        let mut missing = Vec::new();
+        for dependency in links
+            .iter()
+            .filter(|link| link.from == target.key && link.relation == Relation::Uses)
+        {
+            match nodes.iter().find(|node| node.key == dependency.to) {
+                Some(node) if matches!(node.trust, Trust::Mathlib | Trust::Verified) => {}
+                Some(node) => missing.push(format!("{} ({:?})", node.key, node.trust)),
+                None => missing.push(format!("{} (missing)", dependency.to)),
+            }
+        }
+        let ready = missing.is_empty();
+        let line = if ready {
+            format!("[{}]: no unresolved registered dependencies", target.key)
+        } else {
+            format!(
+                "[{}]: bridge dependencies: {}",
+                target.key,
+                missing.join(", ")
+            )
+        };
+        targets.push((!ready, line));
+    }
+    targets.sort();
+    targets.into_iter().map(|(_, line)| line).collect()
 }
 
 pub fn digest(episodes: &[Episode], nodes: &[Node], letter: &str) -> String {
@@ -183,12 +228,51 @@ mod tests {
             related: &[],
             open: &[],
             recent: &[],
+            dependencies: &[],
             actions: 8,
         });
         assert!(text.starts_with("Episode 5 · The line"));
         assert!(text.contains("t = 1234.5"));
         assert!(text.contains("Lehmer pair near 7005"));
         assert!(text.ends_with("You have 8 actions. Begin with plan."));
+    }
+
+    #[test]
+    fn formal_dependency_hints_require_verified_or_mathlib_prerequisites() {
+        let nodes = crate::agent::seed::nodes();
+        let links = crate::agent::seed::links();
+        let open: Vec<Node> = nodes
+            .iter()
+            .filter(|node| node.front == "lean" && node.trust == Trust::Open)
+            .cloned()
+            .collect();
+        let hints = formal_targets(&open, &nodes, &links);
+        assert!(hints
+            .iter()
+            .any(|line| line.contains("[strip]: bridge dependencies:")
+                && line.contains("no-zero-right")
+                && line.contains("nothing-left")));
+        let mut nodes = nodes;
+        for node in &mut nodes {
+            if node.key == "no-zero-right" || node.key == "nothing-left" {
+                node.trust = Trust::Measured;
+            }
+        }
+        assert!(formal_targets(&open, &nodes, &links).iter().any(|line| line
+            .contains("[strip]: bridge dependencies:")
+            && line.contains("Measured")));
+        for node in &mut nodes {
+            if node.key == "no-zero-right" || node.key == "nothing-left" {
+                node.trust = Trust::Verified;
+            }
+        }
+        assert!(formal_targets(&open, &nodes, &links)
+            .iter()
+            .any(|line| line == "[strip]: no unresolved registered dependencies"));
+        nodes.retain(|node| node.key != "nothing-left");
+        assert!(formal_targets(&open, &nodes, &links)
+            .iter()
+            .any(|line| line.contains("nothing-left (missing)")));
     }
 
     #[test]

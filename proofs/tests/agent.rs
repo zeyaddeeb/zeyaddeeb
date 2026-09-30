@@ -359,6 +359,232 @@ async fn one_shift_climbs_the_trust_ladder_and_sleeps() {
 }
 
 #[tokio::test]
+async fn proof_search_repairs_using_lean_errors_and_keeps_nested_blocks() {
+    if !workbench::Workbench::new(workbench::Config::from_env(), vec![]).available() {
+        return;
+    }
+    let statement = "theorem mock_repaired (s : ℂ) (h0 : 0 < s.re) (h1 : s.re < 1) (hs : riemannZeta s = 0) : riemannZeta (1 - s) = 0";
+    let block = "have hn : ∀ n : ℕ, s ≠ -n := by\n  rintro n rfl\n  have : (0 : ℝ) ≤ n := n.cast_nonneg\n  simp at h0\n  linarith\nhave h1' : s ≠ 1 := by\n  rintro rfl\n  simp at h1\nrw [riemannZeta_one_sub hn h1', hs, mul_zero]";
+    let shared: Shared = Arc::new(Mutex::new(Script {
+        turns: VecDeque::from([
+            vec![Part::Call(
+                "plan",
+                json!({"objective": "Prove reflection", "prediction": "The side conditions suffice", "instrument": "formalize"}),
+            )],
+            vec![Part::Call(
+                "formalize",
+                json!({"statement": statement, "claim": "rh"}),
+            )],
+            vec![Part::Call(
+                "proof_plan",
+                json!({"strategy": "Try a lemma", "candidates": ["exact missing_name"], "helpers": []}),
+            )],
+            vec![Part::Call(
+                "proof_plan",
+                json!({"strategy": "Repair the missing premise", "candidates": [block], "helpers": []}),
+            )],
+            vec![Part::Call(
+                "conclude",
+                json!({"summary": "Reflection checked", "next": "Use it"}),
+            )],
+        ]),
+        ..Default::default()
+    }));
+    let store = Store::connect("mem://", None).await.unwrap();
+    let mut settings = config(serve(shared.clone()).await);
+    settings.sleep_every = 100;
+    let mut agent = Agent::new(settings, store.clone(), Hub::new())
+        .await
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(120), agent.shift())
+        .await
+        .unwrap()
+        .unwrap();
+    let lemmas = store.lemmas().await.unwrap();
+    let lemma = lemmas
+        .iter()
+        .find(|lemma| lemma.name == "mock_repaired")
+        .expect("the repaired proof is kept");
+    assert!(lemma.code.contains("    rintro n rfl"));
+    assert_eq!(store.node("rh").await.unwrap().unwrap().trust, Trust::Open);
+    let requests = shared.lock().unwrap().requests.clone();
+    assert_eq!(requests[2]["enable_thinking"], true);
+    assert_eq!(requests[2]["max_tokens"], 512);
+    let repair = requests[3]["messages"].to_string();
+    assert!(
+        repair.contains("missing_name") && repair.contains("Unknown identifier"),
+        "{repair}"
+    );
+    assert!(repair.contains("mock_repaired") && repair.contains("hyps"));
+    let first = requests[2]["messages"].to_string();
+    assert!(
+        first.contains("riemannZeta_one_sub") && first.contains("type"),
+        "{first}"
+    );
+    shared.lock().unwrap().turns.extend([
+        vec![Part::Call("plan", json!({"objective": "Test a nearby target", "prediction": "Past proofs are guidance only", "instrument": "formalize"}))],
+        vec![Part::Call("formalize", json!({"statement": "theorem not_implied (s : ℂ) (h0 : 0 < s.re) (h1 : s.re < 1) (hs : riemannZeta s = 0) : riemannZeta (1 - s) = 1"}))],
+        vec![Part::Call("proof_plan", json!({"strategy": "The checked example does not prove this conclusion", "candidates": [], "helpers": []}))],
+        vec![Part::Call("conclude", json!({"summary": "Example recalled, new target not proved", "next": "Keep the verified conclusion"}))],
+    ]);
+    tokio::time::timeout(Duration::from_secs(120), agent.shift())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(store.lemmas().await.unwrap().len(), 1);
+    let request = shared.lock().unwrap().requests[7].clone();
+    let content = request["messages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|message| message["role"] == "user")
+        .unwrap()["content"]
+        .as_str()
+        .unwrap();
+    let context: Value = serde_json::from_str(content).unwrap();
+    let examples = context["checked_examples"].as_array().unwrap();
+    assert!(examples.iter().any(|example| example["statement"]
+        .as_str()
+        .unwrap()
+        .contains("mock_repaired")
+        && example["checked"] == true));
+    assert!(examples.iter().all(|example| example["checked"] == true));
+}
+
+#[tokio::test]
+async fn proof_helpers_are_checked_reused_and_replayed_in_order() {
+    let bench_config = workbench::Config::from_env();
+    if !workbench::Workbench::new(bench_config.clone(), vec![]).available() {
+        return;
+    }
+    let statement = "theorem a_from_helper (s : ℂ) (h0 : 0 < s.re) (h1 : s.re < 1) (hs : riemannZeta s = 0) : riemannZeta (1 - s) = 0";
+    let helper = "lemma z_helper_no_negative (s : ℂ) (h0 : 0 < s.re) : ∀ n : ℕ, s ≠ -n";
+    let proof = "rintro n rfl\nhave : (0 : ℝ) ≤ n := n.cast_nonneg\nsimp at h0\nlinarith";
+    let parent = "have h1' : s ≠ 1 := by\n  rintro rfl\n  simp at h1\nrw [riemannZeta_one_sub (z_helper_no_negative s h0) h1', hs, mul_zero]";
+    let shared: Shared = Arc::new(Mutex::new(Script {
+        turns: VecDeque::from([
+            vec![Part::Call(
+                "plan",
+                json!({"objective": "Prove reflection via a bridge", "prediction": "The bridge suffices", "instrument": "formalize"}),
+            )],
+            vec![Part::Call(
+                "formalize",
+                json!({"statement": statement, "claim": "rh"}),
+            )],
+            vec![Part::Call(
+                "proof_plan",
+                json!({"strategy": "Prove the integer exclusion separately", "candidates": [parent], "helpers": [
+                    {"statement": helper, "proof": proof}, {"statement": helper, "proof": proof}, {"statement": statement}
+                ]}),
+            )],
+            vec![Part::Call(
+                "conclude",
+                json!({"summary": "Both checked", "next": "Reuse the bridge"}),
+            )],
+        ]),
+        ..Default::default()
+    }));
+    let store = Store::connect("mem://", None).await.unwrap();
+    let mut settings = config(serve(shared.clone()).await);
+    settings.search_budget = 6;
+    settings.sleep_every = 100;
+    let mut agent = Agent::new(settings, store.clone(), Hub::new())
+        .await
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(120), agent.shift())
+        .await
+        .unwrap()
+        .unwrap();
+    let lemmas = store.lemmas().await.unwrap();
+    assert_eq!(
+        lemmas
+            .iter()
+            .map(|lemma| lemma.name.as_str())
+            .collect::<Vec<_>>(),
+        ["z_helper_no_negative", "a_from_helper"]
+    );
+    assert_eq!(store.node("rh").await.unwrap().unwrap().trust, Trust::Open);
+    let mut replay = workbench::Workbench::new(
+        bench_config,
+        lemmas.iter().map(|lemma| lemma.code.clone()).collect(),
+    );
+    let checked = replay.check("theorem after_restart (s : ℂ) (h0 : 0 < s.re) (h1 : s.re < 1) (hs : riemannZeta s = 0) : riemannZeta (1 - s) = 0 := a_from_helper s h0 h1 hs").await;
+    assert!(checked.ok, "{checked:?}");
+    assert_eq!(
+        shared.lock().unwrap().requests.len(),
+        4,
+        "duplicate and cyclic helpers do not spawn extra model calls"
+    );
+}
+
+#[tokio::test]
+async fn proof_helpers_do_not_prove_a_false_parent() {
+    if !workbench::Workbench::new(workbench::Config::from_env(), vec![]).available() {
+        return;
+    }
+    let statement = "theorem false_parent : 2 + 2 = 5";
+    let shared: Shared = Arc::new(Mutex::new(Script {
+        turns: VecDeque::from([
+            vec![Part::Call(
+                "plan",
+                json!({"objective": "Check the impossible target", "prediction": "It must fail", "instrument": "formalize"}),
+            )],
+            vec![Part::Call(
+                "formalize",
+                json!({"statement": statement, "claim": "false-parent"}),
+            )],
+            vec![Part::Call(
+                "proof_plan",
+                json!({"strategy": "Try a supporting lemma", "candidates": ["exact helper_only_true"], "helpers": [{"statement": "lemma helper_only_true : True", "proof": "trivial"}]}),
+            )],
+            vec![Part::Call(
+                "proof_plan",
+                json!({"strategy": "No valid proof", "candidates": [], "helpers": []}),
+            )],
+            vec![Part::Call(
+                "conclude",
+                json!({"summary": "The parent is still unproved", "next": "Use a true statement"}),
+            )],
+        ]),
+        ..Default::default()
+    }));
+    let store = Store::connect("mem://", None).await.unwrap();
+    let mut target = proofs::agent::memory::Node::new(
+        "false-parent",
+        proofs::agent::memory::Kind::Target,
+        Trust::Open,
+        "False target",
+        statement,
+    );
+    target.lean = Some(statement.into());
+    store.put_node(&target).await.unwrap();
+    let mut settings = config(serve(shared).await);
+    settings.search_budget = 3;
+    settings.sleep_every = 100;
+    let mut agent = Agent::new(settings, store.clone(), Hub::new())
+        .await
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(120), agent.shift())
+        .await
+        .unwrap()
+        .unwrap();
+    let lemmas = store.lemmas().await.unwrap();
+    assert_eq!(lemmas.len(), 1);
+    assert_eq!(lemmas[0].name, "helper_only_true");
+    assert_eq!(
+        store.node("false-parent").await.unwrap().unwrap().trust,
+        Trust::Open
+    );
+    assert!(store
+        .turns(1)
+        .await
+        .unwrap()
+        .iter()
+        .flat_map(|turn| &turn.calls)
+        .any(|call| call.tool == "formalize" && !call.ok));
+}
+
+#[tokio::test]
 async fn watched_mode_waits_for_a_viewer_before_it_spends_anything() {
     let shared: Shared = Arc::new(Mutex::new(Script {
         turns: script(false),

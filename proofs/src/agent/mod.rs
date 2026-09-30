@@ -20,7 +20,7 @@ use config::Config;
 use governor::{Governor, Wait};
 use live::{Event, Hub, Phase};
 use llm::{Ask, Llm, Reply};
-use memory::{AgentState, Store};
+use memory::{AgentState, Lemma, Store};
 use std::{sync::Arc, time::Duration};
 
 const LEASE_SECONDS: u64 = 1200;
@@ -48,6 +48,7 @@ pub struct Agent {
     hub: Arc<Hub>,
     llm: Llm,
     bench: Workbench,
+    premises: Arc<crate::lean::premises::Index>,
     governor: Governor,
     state: AgentState,
 }
@@ -120,6 +121,7 @@ impl Agent {
             .map(|lemma| lemma.code)
             .collect();
         Ok(Agent {
+            premises: crate::lean::premises::Index::from_env(&config.workbench.header),
             bench: Workbench::new(config.workbench.clone(), library),
             governor: Governor::new(config.limits, state.budget.clone()),
             config,
@@ -132,6 +134,12 @@ impl Agent {
 
     fn emit(&self, event: Event) {
         self.hub.emit(event);
+    }
+
+    async fn keep_lemma(&mut self, lemma: &Lemma) -> anyhow::Result<()> {
+        self.bench.adopt(&lemma.code).await?;
+        self.store.put_lemma(lemma).await?;
+        Ok(())
     }
 
     async fn save(&mut self) -> anyhow::Result<()> {
@@ -265,23 +273,36 @@ impl Agent {
         }
     }
 
-    async fn propose(&mut self, goal: &str, failed: &[String]) -> Vec<String> {
+    async fn propose(
+        &mut self,
+        context: &serde_json::Value,
+        tokens: u64,
+        limit: Duration,
+    ) -> (llm::ProofPlan, u64) {
         if self.stopping() || self.governor.check(now()).is_some() {
-            return Vec::new();
+            return (llm::ProofPlan::default(), 0);
+        }
+        let max_tokens = self
+            .config
+            .max_tokens
+            .min(tokens)
+            .min(self.governor.remaining(now()));
+        if max_tokens == 0 {
+            return (llm::ProofPlan::default(), 0);
         }
         let proposed = tokio::select! {
-            proposed = tokio::time::timeout(Duration::from_secs(300), self.llm.propose(goal, failed)) => Some(proposed),
+            proposed = tokio::time::timeout(limit.min(self.config.turn_limit).min(Duration::from_secs(300)), self.llm.plan(context, max_tokens)) => Some(proposed),
             _ = self.hub.closed() => None,
         };
         match proposed {
-            None => Vec::new(),
-            Some(Ok(Ok((tactics, processed)))) => {
+            None => (llm::ProofPlan::default(), 0),
+            Some(Ok(Ok((plan, processed)))) => {
                 self.governor.spend(processed);
-                tactics
+                (plan, processed)
             }
             _ => {
                 self.governor.fail(now());
-                Vec::new()
+                (llm::ProofPlan::default(), tokens)
             }
         }
     }
