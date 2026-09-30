@@ -8,11 +8,11 @@ use anyhow::Result;
 use echo::Echo;
 use futures::StreamExt;
 use rig_core::{
-    client::{Client, CompletionClient, VerifyClient},
-    completion::{CompletionError, CompletionModel, ToolDefinition},
-    http_client,
-    message::{AssistantContent, Message, ToolCall},
-    streaming::StreamedAssistantContent,
+    completion::{CompletionRequest, ToolDefinition},
+    message::{AssistantContent, Message, ToolCall, ToolName},
+    providers::openai::{wire::Chat, OpenAI},
+    streaming::{Item, StreamEvent},
+    Model, ProviderError,
 };
 use serde_json::{json, Value};
 use std::{fmt, time::Duration};
@@ -74,8 +74,8 @@ use tags::{Piece, Splitter};
 
 #[derive(Clone)]
 pub struct Llm {
-    client: Client<gateway::Gateway>,
-    model: gateway::Model,
+    client: OpenAI,
+    model: Model<Chat>,
 }
 
 #[derive(Debug)]
@@ -93,21 +93,18 @@ pub fn unreachable(error: &anyhow::Error) -> bool {
     if error.is::<Dropped>() {
         return true;
     }
-    match error.downcast_ref::<CompletionError>() {
-        Some(CompletionError::HttpError(http)) => {
-            status(http).is_none_or(|code| code >= 500 || code == 408 || code == 429)
-        }
-        Some(CompletionError::ResponseError(_) | CompletionError::JsonError(_)) => true,
+    match error.downcast_ref::<ProviderError>() {
+        Some(
+            ProviderError::Http(_)
+            | ProviderError::Truncated
+            | ProviderError::Response(_)
+            | ProviderError::Json(_),
+        ) => true,
+        Some(ProviderError::ProviderResponse(response)) => response.status.is_none_or(|status| {
+            let code = status.as_u16();
+            code >= 500 || code == 408 || code == 429
+        }),
         _ => false,
-    }
-}
-
-fn status(error: &http_client::Error) -> Option<u16> {
-    match error {
-        http_client::Error::InvalidStatusCode(status)
-        | http_client::Error::InvalidStatusCodeWithMessage(status, _)
-        | http_client::Error::InvalidStatusCodeWithDetails { status, .. } => Some(status.as_u16()),
-        _ => None,
     }
 }
 
@@ -152,9 +149,9 @@ impl Reply {
 
 impl Llm {
     pub fn new(url: &str, key: &str, model: &str) -> Result<Self> {
-        let client = gateway::client(url, key)?;
+        let client = gateway::client(url, key);
         Ok(Llm {
-            model: client.completion_model(model),
+            model: client.chat(model),
             client,
         })
     }
@@ -172,9 +169,7 @@ impl Llm {
             + serde_json::to_string(&ask.prompt).map_or(0, |text| text.len())
             + serde_json::to_string(&ask.tools).map_or(0, |text| text.len());
         let names: Vec<String> = ask.tools.iter().map(|tool| tool.name.clone()).collect();
-        let request = self
-            .model
-            .completion_request(ask.prompt)
+        let request = CompletionRequest::new(ask.prompt)
             .preamble(ask.preamble.to_string())
             .messages(ask.history.iter().cloned())
             .tools(ask.tools)
@@ -186,14 +181,12 @@ impl Llm {
                 "top_k": 20,
                 "presence_penalty": if ask.thinking { 1.5 } else { 0.0 },
                 "truncate_sequence": true,
-            }))
-            .build();
-        let mut stream = self.model.stream(request).await?;
+            }));
+        let mut stream = self.model.stream(request)?;
         let mut reply = Reply::default();
         let mut splitter = Splitter::default();
         let mut musing = Splitter::thinking();
         let mut echo = Echo::default();
-        let mut ended = false;
         let mut route = |piece: Piece, reply: &mut Reply| match piece {
             Piece::Think(text) => {
                 sink(Channel::Think, &text);
@@ -206,36 +199,48 @@ impl Llm {
         };
         while let Some(item) = stream.next().await {
             match item? {
-                StreamedAssistantContent::ReasoningDelta { reasoning, .. } => {
-                    for piece in musing.push(&reasoning) {
+                Item::Event(StreamEvent::Reasoning { text, .. }) => {
+                    for piece in musing.push(&text) {
                         route(piece, &mut reply);
                     }
-                    if echo.push(&reasoning) {
+                    if echo.push(&text) {
                         reply.looped = true;
                         break;
                     }
                 }
-                StreamedAssistantContent::Text(text) => {
-                    for piece in splitter.push(text.text()) {
+                Item::Event(StreamEvent::Text { text, .. }) => {
+                    for piece in splitter.push(&text) {
                         route(piece, &mut reply);
                     }
-                    if echo.push(text.text()) {
+                    if echo.push(&text) {
                         reply.looped = true;
                         break;
                     }
                 }
-                StreamedAssistantContent::ToolCall { tool_call, .. } => reply.calls.push(tool_call),
-                StreamedAssistantContent::Final(done) => {
-                    ended = true;
-                    reply.tokens = done.usage.output_tokens;
-                    reply.read = done
-                        .usage
-                        .input_tokens
-                        .saturating_sub(done.usage.cached_input_tokens);
-                }
+                Item::Event(StreamEvent::End {
+                    content: AssistantContent::ToolCall(tool_call),
+                    ..
+                }) => reply.calls.push(tool_call),
                 _ => {}
             }
         }
+        let ended = if reply.looped {
+            false
+        } else {
+            match stream.finish().await {
+                Ok(response) => {
+                    let usage = response.usage;
+                    reply.tokens = usage.output_tokens.unwrap_or(0);
+                    reply.read = usage
+                        .input_tokens
+                        .unwrap_or(0)
+                        .saturating_sub(usage.cached_input_tokens.unwrap_or(0));
+                    true
+                }
+                Err(ProviderError::Truncated) => false,
+                Err(error) => return Err(error.into()),
+            }
+        };
         if !ended && !reply.looped {
             return Err(Dropped.into());
         }
@@ -248,6 +253,7 @@ impl Llm {
                 .into_iter()
                 .enumerate()
                 .filter_map(|(index, (name, args))| {
+                    let name = ToolName::new(name).ok()?;
                     match AssistantContent::tool_call(format!("written-{index}"), name, args) {
                         AssistantContent::ToolCall(call) => Some(call),
                         _ => None,
@@ -379,7 +385,7 @@ mod tests {
             vec!["simp", "exact h"]
         );
         if let AssistantContent::ToolCall(call) =
-            AssistantContent::tool_call("plan", "proof_plan", args)
+            AssistantContent::tool_call("plan", ToolName::new("proof_plan").unwrap(), args)
         {
             reply.calls.push(call);
         }

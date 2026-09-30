@@ -27,6 +27,7 @@ function status(call: CallView): StepStatus {
 		return (outcome.data as { routine?: boolean } | null)?.routine
 			? "routine"
 			: "proved";
+	if (call.tool === "reduce") return "proved";
 	if (outcome.verdict?.known && outcome.verdict.held) return "known";
 	if (outcome.verdict) return outcome.verdict.held ? "held" : "broke";
 	return "done";

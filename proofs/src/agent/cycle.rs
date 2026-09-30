@@ -1,9 +1,9 @@
 use super::{
     bandit,
     config::Mode,
-    episode,
-    fronts::{self, FRONTS},
+    episode, improve,
     live::{Event, Phase},
+    memory::Layer,
     sleep, Agent, Stop, LEASE_SECONDS,
 };
 use std::time::Duration;
@@ -50,8 +50,13 @@ impl Agent {
             None => {
                 let turns = self.store.turns(number).await?;
                 if !turns.is_empty() {
-                    let record =
-                        episode::interrupted(number, &front, self.state.open_since, &turns);
+                    let record = episode::interrupted(
+                        number,
+                        &front,
+                        self.state.open_since,
+                        self.state.open_rules,
+                        &turns,
+                    );
                     self.store.put_episode(&record).await?;
                     self.emit(Event::Concluded { episode: record });
                 }
@@ -78,30 +83,40 @@ impl Agent {
         }
         self.recover().await?;
         self.bench.rest_if_idle();
-        let ids: Vec<&str> = FRONTS.iter().map(|front| front.id).collect();
-        let (chosen, arms) = bandit::choose(&self.state.arms, &ids, &self.state.last_front);
-        let front = fronts::find(&chosen).expect("bandit chooses a known front");
+        let run = improve::next(self).await?;
         self.emit(Event::Wake {
             episode: self.state.episodes + 1,
-            front: front.id.to_string(),
-            arms,
+            front: run.front.id.to_string(),
+            arms: run.arms,
+            rules: run.version,
         });
-        self.state.open_front = front.id.to_string();
+        self.state.open_front = run.front.id.to_string();
         self.state.open_since = super::now();
+        self.state.open_rules = run.version;
         self.save().await?;
-        let record = episode::run(self, front).await?;
+        let record = episode::run(self, run.front, run.version, &run.lines).await?;
         self.state.episodes = record.number;
-        self.state.last_front = front.id.to_string();
+        self.state.last_front = run.front.id.to_string();
         self.state.open_front.clear();
-        bandit::reward(&mut self.state.arms, front.id, record.reward);
+        bandit::reward(&mut self.state.arms, run.front.id, record.reward);
         self.save().await?;
         if self.stopping() {
             return Err(Stop::Shutdown);
         }
-        if self.state.episodes.is_multiple_of(self.config.sleep_every) {
+        let judged = improve::settle(self, &record).await?;
+        self.save().await?;
+        let slept = self.state.episodes.is_multiple_of(self.config.sleep_every);
+        if slept {
             sleep::run(self).await?;
             self.save().await?;
         }
+        if judged {
+            improve::review(self).await?;
+        }
+        if self.state.challenger == 0 && (judged || slept) {
+            improve::revise(self, Layer::Playbook).await?;
+        }
+        self.save().await?;
         let pause = if self.hub.watchers() > 0 {
             self.config.rest_watched
         } else {

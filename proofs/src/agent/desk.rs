@@ -1,13 +1,16 @@
 use super::{
     fronts::Front,
     live::Event,
-    memory::{Call, Evidence, Kind, Lemma, Link, Node, Probe, Relation, Stretch, Trust, Verdict},
+    memory::{
+        Call, Evidence, Kind, Lemma, Link, Node, Probe, Reduction, Relation, Stretch, Trust,
+        Verdict,
+    },
     search,
     tools::{
         instruments::{self, number, Reading},
         referee, Tool,
     },
-    Agent,
+    tree, Agent,
 };
 use crate::{
     lean::workbench::{declared, signature},
@@ -21,6 +24,8 @@ use std::{
 };
 
 const INSTRUMENT_LIMIT: Duration = Duration::from_secs(120);
+pub(super) const REPEATED: &str =
+    "You sent exactly this before and it was refused the same way. Change the arguments. ";
 const DEFAULT_WIDTH: f64 = 60.0;
 
 #[derive(Debug, Default)]
@@ -31,6 +36,8 @@ pub struct Tally {
     pub routine: u32,
     pub known: u32,
     pub records: u32,
+    pub reduced: u32,
+    pub composed: u32,
     pub advanced: bool,
     pub touched: Vec<String>,
 }
@@ -40,9 +47,11 @@ pub struct Desk {
     pub front: &'static Front,
     allowed: Vec<Tool>,
     pub plan: Option<(String, String)>,
+    pub heuristic: String,
     pub conclusion: Option<(String, String)>,
     pub tally: Tally,
     claims: u32,
+    reductions: u32,
     refusals: Vec<(String, Value)>,
 }
 
@@ -91,9 +100,11 @@ impl Desk {
             front,
             allowed,
             plan: None,
+            heuristic: String::new(),
             conclusion: None,
             tally: Tally::default(),
             claims: 0,
+            reductions: 0,
             refusals: Vec::new(),
         }
     }
@@ -125,10 +136,7 @@ impl Desk {
         if !done.ok {
             let attempt = (name.to_string(), args.clone());
             if self.refusals.contains(&attempt) {
-                done.summary = format!(
-                    "You sent exactly this before and it was refused the same way. Change the arguments. {}",
-                    done.summary
-                );
+                done.summary = format!("{REPEATED}{}", done.summary);
             } else {
                 self.refusals.push(attempt);
             }
@@ -162,6 +170,7 @@ impl Desk {
             Tool::Recall => recall(agent, args).await,
             Tool::Link => link(agent, self.episode, args).await,
             Tool::Conclude => self.conclude(args),
+            Tool::Reduce => self.reduce(agent, args).await,
             instrument => self.measure(agent, instrument, args).await,
         }
     }
@@ -173,6 +182,16 @@ impl Desk {
             return Done::refused("plan needs an objective and a prediction.");
         };
         self.plan = Some((objective, prediction));
+        let wanted = args["move"]
+            .as_str()
+            .unwrap_or_default()
+            .trim()
+            .to_lowercase();
+        self.heuristic = super::prompts::MOVES
+            .iter()
+            .find(|(id, _)| *id == wanted)
+            .map(|(id, _)| id.to_string())
+            .unwrap_or_default();
         Done::said("Planned. Go.")
     }
 
@@ -563,6 +582,10 @@ impl Desk {
         if !agent.bench.available() {
             return Done::refused("Lean is not available right now.");
         }
+        let claim = match text(args, "claim", 60) {
+            Some(claim) => Some(claim),
+            None => self.matching(agent, &statement).await,
+        };
         let mut helped = None;
         let proof = match text(args, "proof", 3000) {
             Some(proof) => proof.trim_start_matches(":=").trim().to_string(),
@@ -572,9 +595,16 @@ impl Desk {
                     search::script(&found.tactics)
                 }
                 Ok(None) => {
+                    self.attempted(
+                        agent,
+                        claim.as_deref(),
+                        &statement,
+                        "the proof search ran out of moves",
+                    )
+                    .await;
                     return Done::refused(
                         "The proof search ran out of moves. Try a proof, or a smaller lemma.",
-                    )
+                    );
                 }
                 Err(error) => return Done::refused(error),
             },
@@ -588,6 +618,8 @@ impl Desk {
                 .chars()
                 .take(500)
                 .collect::<String>();
+            self.attempted(agent, claim.as_deref(), &statement, &error)
+                .await;
             return Done {
                 ok: false,
                 summary: format!("Lean rejected it: {error}"),
@@ -602,7 +634,7 @@ impl Desk {
         let lemma = Lemma {
             name: name.clone(),
             code: code.clone(),
-            node: text(args, "claim", 60),
+            node: claim,
             episode: self.episode,
             axioms: checked.axioms.clone(),
             routine,
@@ -701,8 +733,359 @@ impl Desk {
             if let Ok(true) = agent.store.link(&link).await {
                 agent.emit(Event::Link { link });
             }
+            return note;
         }
-        note
+        format!("{note}{}", self.compose(agent, &proved).await)
+    }
+
+    async fn attempted(
+        &mut self,
+        agent: &mut Agent,
+        key: Option<&str>,
+        statement: &str,
+        why: &str,
+    ) {
+        let Some(key) = key else { return };
+        let Ok(Some(mut node)) = agent.store.node(key).await else {
+            return;
+        };
+        let exact = node
+            .lean
+            .as_deref()
+            .is_some_and(|lean| signature(lean) == signature(statement));
+        if !exact || matches!(node.trust, Trust::Verified | Trust::Mathlib) {
+            return;
+        }
+        node.evidence.push(Evidence {
+            episode: self.episode,
+            tool: "lean".into(),
+            summary: format!(
+                "Lean rejected an attempt: {}",
+                why.chars().take(200).collect::<String>()
+            ),
+            held: Some(false),
+        });
+        node.updated = super::now();
+        if agent.store.put_node(&node).await.is_ok() {
+            self.tally.touched.push(node.key.clone());
+            agent.emit(Event::Node { node });
+        }
+    }
+
+    async fn matching(&self, agent: &mut Agent, statement: &str) -> Option<String> {
+        let shape = signature(statement);
+        agent
+            .store
+            .nodes()
+            .await
+            .ok()?
+            .into_iter()
+            .find(|node| {
+                !matches!(node.trust, Trust::Verified | Trust::Mathlib)
+                    && node
+                        .lean
+                        .as_deref()
+                        .is_some_and(|lean| signature(lean) == shape)
+            })
+            .map(|node| node.key)
+    }
+
+    async fn reduce(&mut self, agent: &mut Agent, args: &Value) -> Done {
+        let Some(key) = text(args, "target", 60) else {
+            return Done::refused(
+                "reduce needs target: the key of an open Lean target, such as rh.",
+            );
+        };
+        let target = match agent.store.node(&key).await {
+            Ok(Some(node)) => node,
+            _ => return Done::refused(format!("There is no key {key}.")),
+        };
+        let Some(lean) = target.lean.clone() else {
+            return Done::refused(format!("{key} has no Lean statement to reduce."));
+        };
+        if matches!(target.trust, Trust::Verified | Trust::Mathlib) {
+            return Done::refused(format!("{key} is already proved."));
+        }
+        if target.trust == Trust::Refuted {
+            return Done::refused(format!("{key} was refuted; reduce an open target."));
+        }
+        let hypotheses: Vec<String> = match &args["from"] {
+            Value::Array(items) => items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(|item| item.trim().to_string())
+                .filter(|item| !item.is_empty())
+                .collect(),
+            Value::String(item) if !item.trim().is_empty() => vec![item.trim().to_string()],
+            _ => Vec::new(),
+        };
+        if hypotheses.is_empty() || hypotheses.len() > tree::OBLIGATIONS {
+            return Done::refused(
+                "from needs one to three Lean propositions the target should follow from.",
+            );
+        }
+        if let Some(long) = hypotheses.iter().find(|h| h.chars().count() > 600) {
+            return Done::refused(format!(
+                "Keep each statement under 600 characters; one has {}.",
+                long.chars().count()
+            ));
+        }
+        if hypotheses.iter().any(|h| h.contains(":=")) {
+            return Done::refused("Give each statement as a proposition, without a proof.");
+        }
+        if let Some(same) = hypotheses.iter().find(|h| tree::restates(&lean, h)) {
+            return Done::refused(format!(
+                "\"{same}\" restates {key}; reduce it to something smaller."
+            ));
+        }
+        let routes = agent
+            .store
+            .reductions()
+            .await
+            .map(|all| all.iter().filter(|r| r.target == key).count())
+            .unwrap_or(0);
+        if routes >= tree::ROUTES {
+            return Done::refused(format!(
+                "{key} already has {routes} routes; prove one of their obligations instead."
+            ));
+        }
+        let Some((target_name, _)) = tree::proposition(&lean) else {
+            return Done::refused(format!("{key}'s Lean statement cannot be reduced."));
+        };
+        self.reductions += 1;
+        let name = format!("{target_name}_from_e{}_{}", self.episode, self.reductions);
+        let Some(statement) = tree::reduction(&lean, &name, &hypotheses) else {
+            return Done::refused(format!("{key}'s Lean statement cannot be reduced."));
+        };
+        if !agent.bench.available() {
+            return Done::refused("Lean is not available right now.");
+        }
+        if agent.bench.restated(&statement).await {
+            return Done::refused(
+                "Lean's automation gets the target straight from these statements, so they only restate it. Reduce to something smaller.",
+            );
+        }
+        for (at, hypothesis) in hypotheses.iter().enumerate() {
+            if agent.bench.disproved(hypothesis).await {
+                return Done::refused(format!(
+                    "Lean disproves statement {} on its own, so this route leads nowhere.",
+                    at + 1
+                ));
+            }
+        }
+        let proof = match text(args, "proof", 3000) {
+            Some(proof) => proof.trim_start_matches(":=").trim().to_string(),
+            None => match search::prove(agent, &statement).await {
+                Ok(Some(found)) => search::script(&found.tactics),
+                Ok(None) => {
+                    return Done::refused(
+                        "The proof search could not derive the target from these. Give a proof, or reduce differently.",
+                    )
+                }
+                Err(error) => return Done::refused(error),
+            },
+        };
+        let code = format!("{statement} := {proof}");
+        let checked = agent.bench.check(&code).await;
+        if !checked.ok {
+            let error = checked
+                .errors
+                .join(" ")
+                .chars()
+                .take(500)
+                .collect::<String>();
+            return Done {
+                ok: false,
+                summary: format!("Lean rejected the reduction: {error}"),
+                verdict: None,
+                data: json!({"code": code, "errors": checked.errors}),
+            };
+        }
+        let lemma = Lemma {
+            name: name.clone(),
+            code: code.clone(),
+            node: Some(key.clone()),
+            episode: self.episode,
+            axioms: checked.axioms.clone(),
+            routine: false,
+        };
+        if let Err(error) = agent.keep_lemma(&lemma).await {
+            return Done::refused(format!("Lean accepted it but could not keep it: {error}"));
+        }
+        let titles: Vec<String> = args["titles"]
+            .as_array()
+            .map(|all| {
+                all.iter()
+                    .filter_map(Value::as_str)
+                    .map(|t| t.trim().chars().take(80).collect())
+                    .collect()
+            })
+            .unwrap_or_default();
+        let mut obligations = Vec::new();
+        for (at, hypothesis) in hypotheses.iter().enumerate() {
+            let obligation = format!("ob{}-{}-{}", self.episode, self.reductions, at + 1);
+            let title = titles
+                .get(at)
+                .filter(|t| !t.is_empty())
+                .cloned()
+                .unwrap_or_else(|| format!("Step {} toward {}", at + 1, target.title));
+            let mut node = Node::new(&obligation, Kind::Target, Trust::Open, &title, hypothesis);
+            node.front = "lean".into();
+            node.episode = self.episode;
+            node.source = Some(format!("Obligation of {name}"));
+            node.lean = Some(tree::obligation(&name, at, hypothesis));
+            node.updated = super::now();
+            if agent.store.put_node(&node).await.is_ok() {
+                agent.emit(Event::Node { node });
+            }
+            let link = Link {
+                from: key.clone(),
+                to: obligation.clone(),
+                relation: Relation::Uses,
+                episode: self.episode,
+            };
+            if let Ok(true) = agent.store.link(&link).await {
+                agent.emit(Event::Link { link });
+            }
+            obligations.push(obligation);
+        }
+        let reduction = Reduction {
+            lemma: name.clone(),
+            target: key.clone(),
+            obligations: obligations.clone(),
+            episode: self.episode,
+            closed: false,
+        };
+        if let Err(error) = agent.store.put_reduction(&reduction).await {
+            return Done::refused(format!(
+                "Lean accepted it but could not keep the route: {error}"
+            ));
+        }
+        let mut target = target;
+        target.evidence.push(Evidence {
+            episode: self.episode,
+            tool: "lean".into(),
+            summary: format!("Reduced by {name} to {}", obligations.join(", ")),
+            held: None,
+        });
+        target.updated = super::now();
+        if agent.store.put_node(&target).await.is_ok() {
+            agent.emit(Event::Node { node: target });
+        }
+        agent.state.reductions += 1;
+        self.tally.reduced += 1;
+        self.tally.touched.push(key.clone());
+        let listed: Vec<String> = obligations
+            .iter()
+            .zip(&hypotheses)
+            .enumerate()
+            .map(|(at, (key, _))| {
+                format!("{key}: {}", tree::obligation(&name, at, &hypotheses[at]))
+            })
+            .collect();
+        Done {
+            ok: true,
+            summary: format!(
+                "Lean accepted {name} in {} ms: {key} follows from {}. Prove {} with formalize, passing claim. {}",
+                checked.millis,
+                obligations.join(" and "),
+                if obligations.len() == 1 { "it" } else { "them" },
+                listed.join("; ")
+            ),
+            verdict: None,
+            data: json!({
+                "code": code,
+                "axioms": checked.axioms,
+                "millis": checked.millis,
+                "target": key,
+                "obligations": obligations,
+            }),
+        }
+    }
+
+    async fn compose(&mut self, agent: &mut Agent, proved: &str) -> String {
+        let mut notes = String::new();
+        let mut queue = vec![proved.to_string()];
+        while let Some(key) = queue.pop() {
+            let Ok(reductions) = agent.store.reductions().await else {
+                break;
+            };
+            for mut reduction in reductions
+                .into_iter()
+                .filter(|r| !r.closed && r.obligations.contains(&key))
+            {
+                let mut proofs = Vec::new();
+                for obligation in &reduction.obligations {
+                    match agent.store.node(obligation).await {
+                        Ok(Some(node)) if node.trust == Trust::Verified => {
+                            proofs.extend(tree::proved_by(&node))
+                        }
+                        _ => break,
+                    }
+                }
+                if proofs.len() != reduction.obligations.len() {
+                    continue;
+                }
+                let Ok(Some(mut target)) = agent.store.node(&reduction.target).await else {
+                    continue;
+                };
+                if matches!(target.trust, Trust::Verified | Trust::Mathlib) {
+                    reduction.closed = true;
+                    let _ = agent.store.put_reduction(&reduction).await;
+                    continue;
+                }
+                let Some(lean) = target.lean.clone() else {
+                    continue;
+                };
+                let code = tree::assembly(&lean, &reduction.lemma, &proofs);
+                let checked = agent.bench.check(&code).await;
+                let Some(name) = declared(&code).into_iter().next().filter(|_| checked.ok) else {
+                    continue;
+                };
+                let lemma = Lemma {
+                    name,
+                    code: code.clone(),
+                    node: Some(target.key.clone()),
+                    episode: self.episode,
+                    axioms: checked.axioms.clone(),
+                    routine: false,
+                };
+                if agent.keep_lemma(&lemma).await.is_err() {
+                    continue;
+                }
+                target.trust = Trust::Verified;
+                target.proof = Some(code);
+                target.episode = self.episode;
+                target.updated = super::now();
+                target.evidence.push(Evidence {
+                    episode: self.episode,
+                    tool: "lean".into(),
+                    summary: format!(
+                        "Proved by composing {} with {}",
+                        reduction.lemma,
+                        proofs.join(", ")
+                    ),
+                    held: Some(true),
+                });
+                if agent.store.put_node(&target).await.is_ok() {
+                    self.tally.touched.push(target.key.clone());
+                    agent.emit(Event::Node {
+                        node: target.clone(),
+                    });
+                }
+                reduction.closed = true;
+                let _ = agent.store.put_reduction(&reduction).await;
+                agent.state.verified += 1;
+                self.tally.verified += 1;
+                self.tally.composed += 1;
+                notes.push_str(&format!(
+                    " With that, {} is proved by composition.",
+                    target.key
+                ));
+                queue.push(target.key);
+            }
+        }
+        notes
     }
 }
 

@@ -1,4 +1,4 @@
-use super::memory::{AgentState, Episode, Link, Node, Verdict};
+use super::memory::{AgentState, Episode, Layer, Link, Node, Rules, Verdict};
 use serde::Serialize;
 use serde_json::Value;
 use std::sync::{Arc, Mutex};
@@ -55,9 +55,17 @@ pub enum Event {
         episode: u64,
         front: String,
         arms: Vec<Arm>,
+        rules: u64,
     },
     Sleep {
         after: u64,
+    },
+    Revise {
+        after: u64,
+        layer: Layer,
+    },
+    Rules {
+        rules: Rules,
     },
     Phase {
         phase: Phase,
@@ -243,6 +251,7 @@ mod tests {
             episode: 1,
             front: "line".into(),
             arms: Vec::new(),
+            rules: 1,
         });
         hub.emit(Event::Stats {
             state: AgentState::default(),
@@ -283,6 +292,7 @@ mod tests {
             episode: 1,
             front: "line".into(),
             arms: Vec::new(),
+            rules: 1,
         });
         hub.emit(delta(0, Channel::Think, "The zeros "));
         hub.emit(delta(0, Channel::Think, "repel."));
@@ -308,6 +318,7 @@ mod tests {
             episode: 2,
             front: "divisors".into(),
             arms: Vec::new(),
+            rules: 1,
         });
         let backlog = hub.backlog();
         assert_eq!(backlog.len(), 2);

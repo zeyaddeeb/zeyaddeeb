@@ -1,7 +1,8 @@
 use super::{
     fronts::FRONTS,
     live::{Envelope, Hub},
-    memory::{AgentState, Episode, Lemma, Link, Node, Probe, Store, Stretch, Turn},
+    memory::{AgentState, Episode, Lemma, Link, Node, Probe, Rules, Store, Stretch, Turn},
+    tree::{self, Numbers, Row},
     About,
 };
 use axum::{
@@ -71,7 +72,17 @@ struct Overview {
     links: Vec<Link>,
     lemmas: Vec<Lemma>,
     strip: Strip,
+    rules: Vec<Rules>,
+    tree: Tree,
     watchers: usize,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Tree {
+    rows: Vec<Row>,
+    focus: Option<String>,
+    reductions: usize,
 }
 
 #[derive(Serialize)]
@@ -123,6 +134,15 @@ async fn overview(State(shared): State<Shared>) -> Result<Json<Overview>, Status
     let keep = probes.len().saturating_sub(200);
     probes.drain(..keep);
     let state = store.state().await.map_err(failed)?.unwrap_or_default();
+    let nodes = store.nodes().await.map_err(failed)?;
+    let links = store.links().await.map_err(failed)?;
+    let reductions = store.reductions().await.map_err(failed)?;
+    let numbers = Numbers::new(&nodes, &links, &reductions);
+    let tree = Tree {
+        rows: tree::numbered(tree::rows(&nodes, &links, &reductions), &numbers),
+        focus: numbers.focus(),
+        reductions: reductions.len(),
+    };
     Ok(Json(Overview {
         about: shared.about.clone(),
         strip: strip(state.frontier, &stretches, probes),
@@ -137,9 +157,11 @@ async fn overview(State(shared): State<Shared>) -> Result<Json<Overview>, Status
             .collect(),
         backlog: shared.hub.backlog(),
         episodes: store.episodes(PAGE).await.map_err(failed)?,
-        nodes: store.nodes().await.map_err(failed)?,
-        links: store.links().await.map_err(failed)?,
+        nodes,
+        links,
         lemmas: store.lemmas().await.map_err(failed)?,
+        rules: store.lineage().await.map_err(failed)?,
+        tree,
         watchers: shared.hub.watchers(),
     }))
 }

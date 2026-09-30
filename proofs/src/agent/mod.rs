@@ -5,15 +5,18 @@ mod desk;
 mod episode;
 pub mod fronts;
 pub mod governor;
+mod improve;
 pub mod live;
 pub mod llm;
 pub mod memory;
 pub mod prompts;
 pub mod routes;
+pub mod rules;
 mod search;
 pub mod seed;
 mod sleep;
 pub mod tools;
+pub mod tree;
 
 use crate::lean::workbench::Workbench;
 use config::Config;
@@ -59,12 +62,19 @@ pub struct About {
     pub mode: &'static str,
     pub model: String,
     pub tokens_per_day: u64,
+    pub trial_pairs: usize,
+    pub alpha: f64,
     pub lean: &'static str,
     pub mathlib: &'static str,
     pub calibration: Vec<crate::math::calibration::Check>,
 }
 
-async fn about(mode: &'static str, model: String, tokens_per_day: u64) -> anyhow::Result<About> {
+async fn about(
+    mode: &'static str,
+    model: String,
+    tokens_per_day: u64,
+    trial_pairs: usize,
+) -> anyhow::Result<About> {
     let calibration = tokio::task::spawn_blocking(crate::math::calibration::run).await?;
     if calibration.iter().any(|check| !check.passed) {
         tracing::error!(?calibration, "an instrument failed calibration");
@@ -73,6 +83,8 @@ async fn about(mode: &'static str, model: String, tokens_per_day: u64) -> anyhow
         mode,
         model,
         tokens_per_day,
+        trial_pairs,
+        alpha: rules::ALPHA,
         lean: crate::lean::workbench::lean_version(),
         mathlib: crate::lean::workbench::mathlib_version(),
         calibration,
@@ -80,7 +92,13 @@ async fn about(mode: &'static str, model: String, tokens_per_day: u64) -> anyhow
 }
 
 pub async fn archive(database: &str) -> anyhow::Result<(Store, About)> {
-    let about = about("off", config::model(), config::tokens_per_day()).await?;
+    let about = about(
+        "off",
+        config::model(),
+        config::tokens_per_day(),
+        config::trial_pairs(),
+    )
+    .await?;
     let store = Store::connect(database, None).await?;
     Ok((store, about))
 }
@@ -93,6 +111,7 @@ pub async fn start(
         config.mode.name(),
         config.model.clone(),
         config.limits.tokens_per_day,
+        config.trial_pairs,
     )
     .await?;
     let store = Store::connect(&config.database, None).await?;
@@ -120,7 +139,7 @@ impl Agent {
             .into_iter()
             .map(|lemma| lemma.code)
             .collect();
-        Ok(Agent {
+        let mut agent = Agent {
             premises: crate::lean::premises::Index::from_env(&config.workbench.header),
             bench: Workbench::new(config.workbench.clone(), library),
             governor: Governor::new(config.limits, state.budget.clone()),
@@ -129,7 +148,9 @@ impl Agent {
             hub,
             llm,
             state,
-        })
+        };
+        agent.seed_rules().await?;
+        Ok(agent)
     }
 
     fn emit(&self, event: Event) {

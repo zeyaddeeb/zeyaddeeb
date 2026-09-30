@@ -35,6 +35,15 @@ const ROUTINE: &[&str] = &[
     "(ring_nf; done)",
     "aesop",
 ];
+const RESTATED: &[&str] = &[
+    "assumption",
+    "tauto",
+    "(simp_all; done)",
+    "(intros; simp_all; done)",
+    "aesop",
+    "(unfold RiemannHypothesis at *; tauto)",
+    "(unfold RiemannHypothesis at *; aesop)",
+];
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -317,6 +326,23 @@ impl Workbench {
         let code = format!(
             "example {} := by first | {}",
             signature(statement),
+            ROUTINE.join(" | ")
+        );
+        self.check(&code).await.ok
+    }
+
+    pub async fn restated(&mut self, statement: &str) -> bool {
+        let code = format!(
+            "example {} := by first | {}",
+            signature(statement),
+            RESTATED.join(" | ")
+        );
+        self.check(&code).await.ok
+    }
+
+    pub async fn disproved(&mut self, proposition: &str) -> bool {
+        let code = format!(
+            "example : ¬ ({proposition}) := by first | {}",
             ROUTINE.join(" | ")
         );
         self.check(&code).await.ok

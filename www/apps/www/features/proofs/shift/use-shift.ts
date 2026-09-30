@@ -3,7 +3,7 @@
 import { useEffect, useReducer, useState } from "react";
 import { loadShift } from "@/features/proofs/server/shift";
 import type { About, Envelope, Front, Overview, Strip } from "./protocol";
-import { initial, type Live, reduce } from "./reduce";
+import { initial, type Live, lineage, reduce } from "./reduce";
 
 export type Connection =
 	| "waking"
@@ -63,7 +63,12 @@ function step(shift: Shift, action: Action): Shift {
 				...shift,
 				strip: action.overview.strip,
 				live: shift.live
-					? { ...shift.live, lemmas: action.overview.lemmas }
+					? {
+							...shift.live,
+							lemmas: action.overview.lemmas,
+							tree: action.overview.tree ?? shift.live.tree,
+							rules: { ...lineage(action.overview), ...shift.live.rules },
+						}
 					: shift.live,
 			};
 		case "event":

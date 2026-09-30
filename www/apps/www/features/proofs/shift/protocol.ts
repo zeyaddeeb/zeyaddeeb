@@ -99,6 +99,9 @@ export interface Episode {
 	tokens: number;
 	started: number;
 	ended: number;
+	rules?: number;
+	reduced?: number;
+	heuristic?: string;
 }
 
 export interface Probe {
@@ -148,6 +151,73 @@ export interface AgentState {
 	arms: { front: string; pulls: number; reward: number }[];
 	records: Records;
 	budget: { dayStart: number; spent: number; failures: number };
+	rules?: number;
+	challenger?: number;
+	method?: number;
+	half?: Half | null;
+	reductions?: number;
+}
+
+export interface Half {
+	front: string;
+	version: number;
+	reward: number;
+	episode: number;
+}
+
+export type Layer = "playbook" | "method";
+export type Standing = "champion" | "trial" | "retired" | "lost" | "reverted";
+
+export interface Change {
+	op: "add" | "drop" | "rewrite";
+	rule: number | null;
+	text: string;
+	was: string;
+	because: string;
+}
+
+export interface Pair {
+	front: string;
+	champion: number;
+	challenger: number;
+	championEpisode: number;
+	challengerEpisode: number;
+}
+
+export interface Rules {
+	layer: Layer;
+	version: number;
+	parent: number;
+	lines: string[];
+	change: Change | null;
+	standing: Standing;
+	method: number;
+	pairs: Pair[];
+	gains: number[];
+	wins: number;
+	gain: number | null;
+	p: number | null;
+	born: number;
+	decided: number;
+}
+
+export type Via = "root" | "reduction" | "uses" | "implies" | "supports";
+
+export interface TreeRow {
+	key: string;
+	depth: number;
+	via: Via;
+	lemma: string | null;
+	title: string;
+	trust: Trust;
+	lean: string | null;
+	number: number | null;
+}
+
+export interface Tree {
+	rows: TreeRow[];
+	focus: string | null;
+	reductions: number;
 }
 
 export interface Arm {
@@ -172,8 +242,16 @@ export type Channel = "think" | "say";
 export type Phase = "work" | "sleep" | "rest";
 
 export type Event =
-	| { type: "wake"; episode: number; front: string; arms: Arm[] }
+	| {
+			type: "wake";
+			episode: number;
+			front: string;
+			arms: Arm[];
+			rules?: number;
+	  }
 	| { type: "sleep"; after: number }
+	| { type: "revise"; after: number; layer: Layer }
+	| { type: "rules"; rules: Rules }
 	| {
 			type: "phase";
 			phase: Phase;
@@ -233,6 +311,8 @@ export interface About {
 	mode?: "always" | "watched" | "off";
 	model: string;
 	tokensPerDay: number;
+	trialPairs?: number;
+	alpha?: number;
 	lean: string;
 	mathlib: string;
 	calibration: Calibration[];
@@ -248,6 +328,8 @@ export interface Overview {
 	links: Link[];
 	lemmas: Lemma[];
 	strip: Strip;
+	rules?: Rules[];
+	tree?: Tree;
 	watchers: number;
 }
 

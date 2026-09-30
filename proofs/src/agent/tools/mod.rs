@@ -22,6 +22,8 @@ pub enum Tool {
     Zeta,
     Insight,
     Letter,
+    Reduce,
+    Revise,
 }
 
 const SHARED: &[Tool] = &[
@@ -51,6 +53,8 @@ const ALL: &[Tool] = &[
     Tool::Zeta,
     Tool::Insight,
     Tool::Letter,
+    Tool::Reduce,
+    Tool::Revise,
 ];
 
 impl Tool {
@@ -71,6 +75,8 @@ impl Tool {
             Tool::Zeta => "zeta",
             Tool::Insight => "insight",
             Tool::Letter => "letter",
+            Tool::Reduce => "reduce",
+            Tool::Revise => "revise",
         }
     }
 
@@ -111,13 +117,17 @@ impl Tool {
     fn shape(self) -> (&'static str, Map<String, Value>, Vec<&'static str>) {
         match self {
             Tool::Plan => (
-                "Begin the episode: one objective, and what you predict before you look.",
+                "Begin the episode as Pólya would: the move you will make, one objective, and what you predict before you look.",
                 fields(&[
+                    (
+                        "move",
+                        json!({"type": "string", "enum": super::prompts::MOVES.iter().map(|(id, _)| *id).collect::<Vec<_>>(), "description": "Pólya's move for this episode."}),
+                    ),
                     ("objective", string("What this episode will settle or test.")),
                     ("prediction", string("What you expect to see, stated so it could be wrong.")),
                     ("instrument", string("The tool you will use first.")),
                 ]),
-                vec!["objective", "prediction", "instrument"],
+                vec!["move", "objective", "prediction", "instrument"],
             ),
             Tool::Conjecture => (
                 "Record a claim before testing it. Returns its key; pass the key as claim when you measure or formalize.",
@@ -160,10 +170,10 @@ A statement your library already proves is refused.",
                 vec!["from", "to", "relation"],
             ),
             Tool::Conclude => (
-                "End the episode.",
+                "End the episode by looking back.",
                 fields(&[
-                    ("summary", string("What you learned, in two sentences, with the numbers.")),
-                    ("next", string("What the next episode on this front should try.")),
+                    ("summary", string("What you learned, in two sentences, with the numbers. Can you check the result?")),
+                    ("next", string("Can you use the result, or the method, elsewhere? What should the next episode on this front try?")),
                 ]),
                 vec!["summary", "next"],
             ),
@@ -235,6 +245,31 @@ Fields: margin, ratio, digits.",
                 "Finish sleeping: a note under 80 words to your future self about where to look next and what not to repeat.",
                 fields(&[("text", string("The note."))]),
                 vec!["text"],
+            ),
+            Tool::Reduce => (
+                "Prove in Lean that an open target follows from one to three smaller statements. Lean checks: if every statement in from holds, \
+the target holds. Each statement becomes a new open obligation under the target, with its own Lean statement to prove later. \
+When every obligation under a target is proved, the target is proved by composition. Restatements of the target and statements Lean can disprove are refused.",
+                fields(&[
+                    ("target", string("Key of an open target with a Lean statement, such as rh.")),
+                    (
+                        "from",
+                        json!({"type": "array", "items": {"type": "string"}, "maxItems": 3, "description": "Lean propositions with no free variables, e.g. ∀ s : ℂ, riemannZeta s = 0 → 1 / 2 < s.re → s.re < 1 → False"}),
+                    ),
+                    ("proof", string("Optional: by and tactics proving the target from ob1, ob2, ob3, the statements in from. Leave out to let the proof search try.")),
+                    ("titles", json!({"type": "array", "items": {"type": "string"}, "description": "Optional short name for each obligation."})),
+                ]),
+                vec!["target", "from"],
+            ),
+            Tool::Revise => (
+                "Make exactly one change to your rules: add a rule, drop one, or rewrite one.",
+                fields(&[
+                    ("change", json!({"type": "string", "enum": ["add", "drop", "rewrite"]})),
+                    ("rule", integer("The rule's number, for drop and rewrite.")),
+                    ("text", string("The new rule, for add and rewrite: one instruction.")),
+                    ("because", string("What you saw that this change should fix.")),
+                ]),
+                vec!["change", "because"],
             ),
         }
     }

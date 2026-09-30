@@ -16,6 +16,8 @@ const LABELS: Record<string, string> = {
 	zeta: "Evaluate ζ",
 	insight: "Insight",
 	letter: "Letter to itself",
+	reduce: "Reduce in Lean",
+	revise: "Revise its rules",
 };
 
 const SHORT: Record<string, string> = {
@@ -34,6 +36,8 @@ const SHORT: Record<string, string> = {
 	zeta: "ζ",
 	insight: "Insight",
 	letter: "Letter",
+	reduce: "Reduce",
+	revise: "Revise",
 };
 
 export function short(tool: string): string {
@@ -78,6 +82,13 @@ export function chip(tool: string, args: Record<string, unknown>): string {
 				return `x ${count(num(args, "x") ?? 0)}`;
 			case "hasse":
 				return `${num(args, "a") ?? 0}, ${num(args, "b") ?? 0}`;
+			case "reduce":
+				return text(args, "target");
+			case "revise": {
+				const change = text(args, "change");
+				const rule = num(args, "rule");
+				return rule === null ? change : `${change} ${rule}`;
+			}
 			default:
 				return "";
 		}
@@ -190,10 +201,32 @@ export function describe(tool: string, args: Record<string, unknown>): string {
 			return text(args, "summary");
 		case "letter":
 			return text(args, "text");
+		case "reduce": {
+			const from = statements(args);
+			return `${text(args, "target")} from ${from.length} ${from.length === 1 ? "statement" : "statements"}`;
+		}
+		case "revise":
+			return text(args, "text") || text(args, "because");
 		default:
 			return "";
 	}
 }
+
+export function statements(args: Record<string, unknown>): string[] {
+	const from = args.from;
+	if (Array.isArray(from))
+		return from.filter((item): item is string => typeof item === "string");
+	return typeof from === "string" && from.trim() ? [from] : [];
+}
+
+export const MOVES: Record<string, string> = {
+	backwards: "Work backwards",
+	decompose: "Decompose",
+	specialize: "Specialize",
+	generalize: "Generalize",
+	analogy: "Analogy",
+	related: "A related problem",
+};
 
 export function prediction(args: Record<string, unknown>): string | null {
 	const expect = args.expect as Record<string, unknown> | undefined;

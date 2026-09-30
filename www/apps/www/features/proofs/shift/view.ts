@@ -41,6 +41,18 @@ export function liveView(
 			title: `Asleep after episode ${live.state.episodes}`,
 			question: "Turning what happened into what it knows.",
 		};
+	if (live.mode === "revise")
+		return {
+			...base,
+			title:
+				live.layer === "method"
+					? `Revising how it revises · after episode ${live.state.episodes}`
+					: `Revising its rules · after episode ${live.state.episodes}`,
+			question:
+				live.layer === "method"
+					? "A new method is kept only if the trials it produces gain more."
+					: "One change, tested in paired episodes before it is kept.",
+		};
 	if (live.episode === null)
 		return {
 			...base,
@@ -86,6 +98,7 @@ export function archivedView(opened: Opened, fronts: Front[]): PageView {
 			`${episode.broken} broke`,
 			episode.known ? `${episode.known} known in advance` : null,
 			`${episode.verified} proved`,
+			episode.reduced ? `${episode.reduced} reduced` : null,
 			episode.routine ? `${episode.routine} routine` : null,
 			duration(episode.ended - episode.started),
 			`${count(episode.tokens)} tokens`,

@@ -110,3 +110,39 @@ async fn mathlib_checks_adopts_and_searches() {
     assert!(done.ok, "{done:?}");
     assert!(done.goals.is_empty());
 }
+
+#[tokio::test]
+async fn the_hypothesis_reduces_to_the_strip_and_restatements_are_caught() {
+    let Some(mut bench) = bench() else { return };
+    let strip = "∀ s : ℂ, riemannZeta s = 0 → 0 < s.re → s.re < 1 → s.re = 1 / 2".to_string();
+    let left = "∀ s : ℂ, riemannZeta s = 0 → s.re ≤ 0 → ∃ n : ℕ, s = -2 * (n + 1)".to_string();
+    let statement = proofs::agent::tree::reduction(
+        "theorem riemann_hypothesis : RiemannHypothesis",
+        "riemann_hypothesis_from_test",
+        &[strip.clone(), left.clone()],
+    )
+    .unwrap();
+    assert!(!bench.restated(&statement).await, "a real reduction");
+    assert!(!bench.disproved(&strip).await);
+    assert!(!bench.disproved(&left).await);
+    let proof = "by\n  unfold RiemannHypothesis\n  intro s hs htrivial _\n  by_cases hle : s.re ≤ 0\n  · exact absurd (ob2 s hs hle) htrivial\n  · by_cases hge : 1 ≤ s.re\n    · exact absurd hs (riemannZeta_ne_zero_of_one_le_re hge)\n    · exact ob1 s hs (lt_of_not_ge hle) (lt_of_not_ge hge)";
+    let checked = bench.check(&format!("{statement} := {proof}")).await;
+    assert!(checked.ok, "{checked:?}");
+
+    let unfolded =
+        "∀ s : ℂ, riemannZeta s = 0 → (¬∃ n : ℕ, s = -2 * (n + 1)) → s ≠ 1 → s.re = 1 / 2"
+            .to_string();
+    let restated = proofs::agent::tree::reduction(
+        "theorem riemann_hypothesis : RiemannHypothesis",
+        "riemann_hypothesis_restated",
+        &[unfolded],
+    )
+    .unwrap();
+    assert!(bench.restated(&restated).await, "the definition, unfolded");
+    assert!(bench.disproved("2 + 2 = 5").await);
+
+    let opened = bench
+        .open("theorem zeta_ne_zero_real_strip (σ : ℝ) (h0 : 0 < σ) (h1 : σ < 1) : riemannZeta (σ : ℂ) ≠ 0")
+        .await;
+    assert!(opened.is_ok(), "{opened:?}");
+}

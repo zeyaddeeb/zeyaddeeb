@@ -271,17 +271,14 @@ async fn search(
         episode: agent.state.episodes + 1,
         ..Default::default()
     };
-    let result = search_inner(
-        agent,
+    let task = Task {
         statement,
-        &initial,
+        initial: &initial,
         allow_helpers,
-        budget,
-        &examples,
-        previous.as_ref(),
-        &mut experience,
-    )
-    .await;
+        examples: &examples,
+        previous: previous.as_ref(),
+    };
+    let result = search_inner(agent, &task, budget, &mut experience).await;
     experience.text = format!("{} {}", experience.shape, experience.goal);
     if let Err(error) = agent.store.put_proof(&experience).await {
         tracing::warn!(%error, "could not keep proof experience");
@@ -318,16 +315,27 @@ fn example_context(examples: &[ProofExperience]) -> Vec<serde_json::Value> {
     selected
 }
 
+struct Task<'a> {
+    statement: &'a str,
+    initial: &'a [String],
+    allow_helpers: bool,
+    examples: &'a [ProofExperience],
+    previous: Option<&'a ProofExperience>,
+}
+
 async fn search_inner(
     agent: &mut Agent,
-    statement: &str,
-    initial: &[String],
-    allow_helpers: bool,
+    task: &Task<'_>,
     budget: &mut Budget,
-    examples: &[ProofExperience],
-    previous: Option<&ProofExperience>,
     experience: &mut ProofExperience,
 ) -> Result<Attempt, String> {
+    let Task {
+        statement,
+        initial,
+        allow_helpers,
+        examples,
+        previous,
+    } = *task;
     let opened = tokio::time::timeout(budget.remaining(), agent.bench.open(statement))
         .await
         .map_err(|_| "Lean ran out of search time.".to_string())?
@@ -547,6 +555,13 @@ async fn search_inner(
     Ok(Attempt::default())
 }
 
+fn first_goal(goals: &[String]) -> String {
+    goals
+        .first()
+        .map(|goal| goal.chars().take(400).collect())
+        .unwrap_or_default()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -607,11 +622,4 @@ mod tests {
             2
         );
     }
-}
-
-fn first_goal(goals: &[String]) -> String {
-    goals
-        .first()
-        .map(|goal| goal.chars().take(400).collect())
-        .unwrap_or_default()
 }

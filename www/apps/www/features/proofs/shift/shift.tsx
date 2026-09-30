@@ -4,12 +4,14 @@ import { useMemo, useState } from "react";
 import { duration } from "./format";
 import { Ladder } from "./ladder";
 import { Library } from "./library";
+import { Loops } from "./loops";
 import { NotebookPage } from "./page";
 import type { About } from "./protocol";
 import { Quilt } from "./quilt";
-import { Arms, Letter, Tiles } from "./record";
+import { Arms, Letter, Moves, Tiles } from "./record";
 import { figure } from "./strip";
 import { StripView } from "./strip-view";
+import { ProofTree } from "./tree";
 import { type Connection, useNow, useShift } from "./use-shift";
 import { useTranscript } from "./use-transcript";
 import { archivedView, liveView } from "./view";
@@ -256,12 +258,20 @@ export function NightShift() {
 					/>
 				</aside>
 			</div>
+			<ProofTree tree={live.tree} nodes={live.nodes} />
+			<Loops
+				rules={live.rules}
+				state={live.state}
+				about={about}
+				onPick={setViewing}
+			/>
 			<Ladder nodes={live.nodes} links={live.links} />
 			<div className="ns-archive">
 				<Library lemmas={live.lemmas} />
 				<div className="ns-archive-side">
 					<Letter state={live.state} />
 					<Arms state={live.state} fronts={fronts} />
+					<Moves episodes={live.episodes} />
 				</div>
 			</div>
 		</section>

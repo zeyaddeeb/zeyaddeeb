@@ -180,6 +180,12 @@ pub struct Episode {
     pub tokens: u64,
     pub started: i64,
     pub ended: i64,
+    #[surreal(default)]
+    pub rules: u64,
+    #[surreal(default)]
+    pub reduced: u32,
+    #[surreal(default)]
+    pub heuristic: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
@@ -300,7 +306,138 @@ pub struct AgentState {
     pub open_front: String,
     #[surreal(default)]
     pub open_since: i64,
+    #[surreal(default)]
+    pub open_rules: u64,
     pub arms: Vec<Arm>,
     pub records: Records,
     pub budget: Ledger,
+    #[surreal(default)]
+    pub rules: u64,
+    #[surreal(default)]
+    pub challenger: u64,
+    #[surreal(default)]
+    pub method: u64,
+    #[surreal(default)]
+    pub half: Option<Half>,
+    #[surreal(default)]
+    pub reductions: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, SurrealValue)]
+#[serde(rename_all = "lowercase")]
+pub enum Layer {
+    Playbook,
+    Method,
+}
+
+impl Layer {
+    pub fn name(self) -> &'static str {
+        match self {
+            Layer::Playbook => "playbook",
+            Layer::Method => "method",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, SurrealValue)]
+#[serde(rename_all = "lowercase")]
+pub enum Standing {
+    Champion,
+    Trial,
+    Retired,
+    Lost,
+    Reverted,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, SurrealValue)]
+#[serde(rename_all = "camelCase")]
+pub struct Change {
+    pub op: String,
+    pub rule: Option<u32>,
+    pub text: String,
+    pub was: String,
+    pub because: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, SurrealValue)]
+#[serde(rename_all = "camelCase")]
+pub struct Pair {
+    pub front: String,
+    pub champion: f64,
+    pub challenger: f64,
+    pub champion_episode: u64,
+    pub challenger_episode: u64,
+}
+
+impl Pair {
+    pub fn gain(&self) -> f64 {
+        self.challenger - self.champion
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, SurrealValue)]
+#[serde(rename_all = "camelCase")]
+pub struct Half {
+    pub front: String,
+    pub version: u64,
+    pub reward: f64,
+    pub episode: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, SurrealValue)]
+#[serde(rename_all = "camelCase")]
+pub struct Rules {
+    pub layer: Layer,
+    pub version: u64,
+    pub parent: u64,
+    pub lines: Vec<String>,
+    pub change: Option<Change>,
+    pub standing: Standing,
+    pub method: u64,
+    pub pairs: Vec<Pair>,
+    pub gains: Vec<f64>,
+    pub wins: u32,
+    pub gain: Option<f64>,
+    pub p: Option<f64>,
+    pub born: u64,
+    pub decided: u64,
+}
+
+impl Rules {
+    pub fn seed(layer: Layer, lines: Vec<String>, born: u64) -> Self {
+        Rules {
+            layer,
+            version: 1,
+            parent: 0,
+            lines,
+            change: None,
+            standing: Standing::Champion,
+            method: 0,
+            pairs: Vec::new(),
+            gains: Vec::new(),
+            wins: 0,
+            gain: None,
+            p: None,
+            born,
+            decided: 0,
+        }
+    }
+
+    pub fn id(&self) -> String {
+        rules_id(self.layer, self.version)
+    }
+}
+
+pub fn rules_id(layer: Layer, version: u64) -> String {
+    format!("{}-{version}", layer.name())
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, SurrealValue)]
+#[serde(rename_all = "camelCase")]
+pub struct Reduction {
+    pub lemma: String,
+    pub target: String,
+    pub obligations: Vec<String>,
+    pub episode: u64,
+    pub closed: bool,
 }

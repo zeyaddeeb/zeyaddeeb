@@ -4,11 +4,14 @@ import type {
 	BlueprintNode,
 	Envelope,
 	Episode,
+	Layer,
 	Lemma,
 	Link,
 	Overview,
 	Phase,
+	Rules,
 	SearchStep,
+	Tree,
 	Verdict,
 } from "./protocol";
 
@@ -44,9 +47,11 @@ export interface Scan {
 
 export interface Live {
 	seq: number;
-	mode: "work" | "sleep" | "idle";
+	mode: "work" | "sleep" | "revise" | "idle";
+	layer: Layer | null;
 	episode: number | null;
 	front: string | null;
+	version: number | null;
 	arms: Arm[];
 	phase: {
 		phase: Phase;
@@ -63,16 +68,32 @@ export interface Live {
 	links: Link[];
 	episodes: Episode[];
 	lemmas: Lemma[];
+	rules: Record<string, Rules>;
+	tree: Tree | null;
 }
 
 const EPISODES = 60;
+
+export function rulesKey(rules: Pick<Rules, "layer" | "version">): string {
+	return `${rules.layer}-${rules.version}`;
+}
+
+export function lineage(
+	overview: Pick<Overview, "rules">,
+): Record<string, Rules> {
+	return Object.fromEntries(
+		(overview.rules ?? []).map((r) => [rulesKey(r), r]),
+	);
+}
 
 export function initial(overview: Overview): Live {
 	const start: Live = {
 		seq: 0,
 		mode: "idle",
+		layer: null,
 		episode: null,
 		front: null,
+		version: null,
 		arms: [],
 		phase: null,
 		turns: [],
@@ -84,6 +105,8 @@ export function initial(overview: Overview): Live {
 		links: overview.links,
 		episodes: overview.episodes,
 		lemmas: overview.lemmas,
+		rules: lineage(overview),
+		tree: overview.tree ?? null,
 	};
 	return overview.backlog.reduce(reduce, start);
 }
@@ -131,8 +154,10 @@ export function reduce(live: Live, envelope: Envelope): Live {
 			return {
 				...next,
 				mode: "work",
+				layer: null,
 				episode: envelope.episode,
 				front: envelope.front,
+				version: envelope.rules ?? null,
 				arms: envelope.arms,
 				phase: null,
 				turns: [],
@@ -144,10 +169,26 @@ export function reduce(live: Live, envelope: Envelope): Live {
 			return {
 				...next,
 				mode: "sleep",
+				layer: null,
 				phase: null,
 				turns: [],
 				search: [],
 				trouble: null,
+			};
+		case "revise":
+			return {
+				...next,
+				mode: "revise",
+				layer: envelope.layer,
+				phase: null,
+				turns: [],
+				search: [],
+				trouble: null,
+			};
+		case "rules":
+			return {
+				...next,
+				rules: { ...next.rules, [rulesKey(envelope.rules)]: envelope.rules },
 			};
 		case "phase":
 			return {

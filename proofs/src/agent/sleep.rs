@@ -63,9 +63,8 @@ pub async fn run(agent: &mut Agent) -> Result<(), Stop> {
                 }
                 _ => "Only insight, link and letter are available while sleeping.".to_string(),
             };
-            results.push(UserContent::tool_result_for(
+            results.push(UserContent::tool_result(
                 call.id.clone(),
-                call.provider.clone(),
                 call.function.name.clone(),
                 vec![ToolResultContent::text(summary)],
             ));

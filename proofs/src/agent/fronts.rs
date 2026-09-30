@@ -74,13 +74,16 @@ Count points, check the bound, watch the Frobenius angles settle into the Sato�
     },
     Front {
         id: "lean",
-        title: "Lean",
-        question: "What can be proved, with no gaps, about where the zeros can be?",
-        brief: "Mathlib states RiemannHypothesis and proves the functional equation (riemannZeta_one_sub), the trivial zeros (riemannZeta_neg_two_mul_nat_add_one) \
-and non-vanishing on Re s ≥ 1 (riemannZeta_ne_zero_of_one_le_re). Build the reduction to the critical strip one lemma at a time. \
+        title: "The proof",
+        question: "What stands between Mathlib and a proof of the hypothesis?",
+        brief: "Attack RiemannHypothesis in Lean; the proof tree below shows what Lean has checked and what is still open. \
+Mathlib already proves the functional equation (riemannZeta_one_sub), the trivial zeros (riemannZeta_neg_two_mul_nat_add_one) \
+and non-vanishing on Re s ≥ 1 (riemannZeta_ne_zero_of_one_le_re). Two moves grow the tree: formalize proves an open statement outright, \
+passing its key as claim; reduce proves in Lean that an open target follows from one to three smaller statements, which become new obligations under it. \
+When every obligation under a target is proved, the target is proved by composition. Work on the open leaves first. \
 Every lemma is checked by Lean, and #print axioms must show only propext, Classical.choice and Quot.sound.",
-        instruments: &[],
-        query: "Lean Mathlib lemma critical strip functional equation trivial zeros",
+        instruments: &[Tool::Reduce],
+        query: "Lean Mathlib lemma critical strip functional equation trivial zeros reduction obligation",
     },
 ];
 

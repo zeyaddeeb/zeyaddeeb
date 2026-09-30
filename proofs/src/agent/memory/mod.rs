@@ -23,6 +23,12 @@ struct Key {
 }
 
 #[derive(Debug, Clone, SurrealValue)]
+pub struct Acted {
+    pub episode: u64,
+    pub calls: Vec<Call>,
+}
+
+#[derive(Debug, Clone, SurrealValue)]
 struct Hit {
     number: u64,
     score: f64,
@@ -340,6 +346,53 @@ impl Store {
         Ok(response.take(0)?)
     }
 
+    pub async fn acted_since(&self, episode: u64) -> Result<Vec<Acted>> {
+        let mut response = self
+            .db
+            .query("SELECT episode, calls FROM turn WHERE episode >= $episode ORDER BY episode")
+            .bind(("episode", episode as i64))
+            .await?;
+        Ok(response.take(0)?)
+    }
+
+    pub async fn put_rules(&self, rules: &Rules) -> Result<()> {
+        let _: Option<Rules> = self
+            .db
+            .upsert(("rules", rules.id()))
+            .content(rules.clone())
+            .await?;
+        Ok(())
+    }
+
+    pub async fn rules(&self, layer: Layer, version: u64) -> Result<Option<Rules>> {
+        Ok(self.db.select(("rules", rules_id(layer, version))).await?)
+    }
+
+    pub async fn lineage(&self) -> Result<Vec<Rules>> {
+        let mut response = self
+            .db
+            .query("SELECT * OMIT id FROM rules ORDER BY version DESC LIMIT 400")
+            .await?;
+        Ok(response.take(0)?)
+    }
+
+    pub async fn put_reduction(&self, reduction: &Reduction) -> Result<()> {
+        let _: Option<Reduction> = self
+            .db
+            .upsert(("reduction", reduction.lemma.clone()))
+            .content(reduction.clone())
+            .await?;
+        Ok(())
+    }
+
+    pub async fn reductions(&self) -> Result<Vec<Reduction>> {
+        let mut response = self
+            .db
+            .query("SELECT * OMIT id FROM reduction ORDER BY episode")
+            .await?;
+        Ok(response.take(0)?)
+    }
+
     pub async fn put_proof(&self, proof: &ProofExperience) -> Result<()> {
         let _: Option<ProofExperience> = self
             .db
@@ -503,6 +556,52 @@ mod tests {
         assert!(store.node("kept").await.unwrap().is_some());
         drop(store);
         let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[tokio::test]
+    async fn rule_versions_round_trip_with_their_trials() {
+        let store = store().await;
+        let mut rules = Rules::seed(Layer::Playbook, vec!["Pass claim.".into()], 3);
+        rules.version = 2;
+        rules.parent = 1;
+        rules.standing = Standing::Trial;
+        rules.change = Some(Change {
+            op: "add".into(),
+            rule: None,
+            text: "Pass claim.".into(),
+            was: String::new(),
+            because: "Claims never moved.".into(),
+        });
+        rules.pairs.push(Pair {
+            front: "line".into(),
+            champion: 0.2,
+            challenger: 0.4,
+            champion_episode: 4,
+            challenger_episode: 5,
+        });
+        store.put_rules(&rules).await.unwrap();
+        store
+            .put_rules(&Rules::seed(Layer::Method, vec!["One change.".into()], 0))
+            .await
+            .unwrap();
+        let back = store.rules(Layer::Playbook, 2).await.unwrap().unwrap();
+        assert_eq!(back.standing, Standing::Trial);
+        assert_eq!(back.pairs[0].gain(), 0.4 - 0.2);
+        assert_eq!(back.change.unwrap().because, "Claims never moved.");
+        assert!(store.rules(Layer::Method, 2).await.unwrap().is_none());
+        assert_eq!(store.lineage().await.unwrap().len(), 2);
+        let state = AgentState {
+            half: Some(Half {
+                front: "line".into(),
+                version: 2,
+                reward: 0.5,
+                episode: 7,
+            }),
+            ..Default::default()
+        };
+        store.save_state(&state).await.unwrap();
+        let back = store.state().await.unwrap().unwrap();
+        assert_eq!(back.half.unwrap().episode, 7);
     }
 
     #[tokio::test]

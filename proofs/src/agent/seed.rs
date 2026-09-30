@@ -272,6 +272,16 @@ const ENTRIES: &[Entry] = &[
         source: None,
         lean: Some("theorem rh_iff_strip : RiemannHypothesis ↔ ∀ s : ℂ, riemannZeta s = 0 → 0 < s.re → s.re < 1 → s.re = 1 / 2"),
     },
+    Entry {
+        key: "real-segment",
+        kind: Kind::Conjecture,
+        trust: Trust::Open,
+        front: "lean",
+        title: "No zeros on the real segment",
+        body: "ζ(σ) ≠ 0 for real σ with 0 < σ < 1; in fact ζ(σ) < 0 there. A special case: the part of the strip on the real axis holds no zeros at all.",
+        source: None,
+        lean: Some("theorem zeta_ne_zero_real_strip (σ : ℝ) (h0 : 0 < σ) (h1 : σ < 1) : riemannZeta (σ : ℂ) ≠ 0"),
+    },
 ];
 
 const LINKS: &[(&str, Relation, &str)] = &[
@@ -300,6 +310,7 @@ const LINKS: &[(&str, Relation, &str)] = &[
     ("strip", Relation::Uses, "no-zero-right"),
     ("strip", Relation::Uses, "nothing-left"),
     ("strip", Relation::Equivalent, "rh"),
+    ("real-segment", Relation::Supports, "rh"),
 ];
 
 pub fn nodes() -> Vec<Node> {

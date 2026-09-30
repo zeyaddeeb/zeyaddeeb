@@ -33,6 +33,7 @@ pub struct Config {
     pub sleep_every: u64,
     pub keep_episodes: u64,
     pub search_budget: usize,
+    pub trial_pairs: usize,
     pub limits: Limits,
     pub workbench: workbench::Config,
 }
@@ -77,6 +78,7 @@ impl Config {
             sleep_every: number::<u64>("PROOFS_AGENT_SLEEP_EVERY", 4).max(1),
             keep_episodes: number("PROOFS_AGENT_KEEP_EPISODES", 200),
             search_budget: number("PROOFS_AGENT_SEARCH_NODES", 10),
+            trial_pairs: trial_pairs(),
             limits: Limits {
                 tokens_per_day: tokens_per_day(),
                 backoff_base: seconds("PROOFS_AGENT_BACKOFF_SECONDS", 30),
@@ -96,6 +98,10 @@ pub fn archive() -> Option<String> {
 
 pub fn model() -> String {
     var("PROOFS_AGENT_MODEL", "Qwen/Qwen3.5-2B")
+}
+
+pub fn trial_pairs() -> usize {
+    number::<usize>("PROOFS_AGENT_TRIAL_PAIRS", 5).clamp(2, 12)
 }
 
 pub fn tokens_per_day() -> u64 {

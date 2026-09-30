@@ -3,10 +3,10 @@ use super::{
     fronts::Front,
     live::Event,
     llm::{Ask, Reply},
-    memory::{Episode, Trust, Turn},
+    memory::{Episode, Node, Trust, Turn},
     now, prompts,
     tools::{self, Tool},
-    Agent, Stop,
+    tree, Agent, Stop,
 };
 use rig_core::message::{Message, ToolResultContent, UserContent};
 
@@ -15,13 +15,19 @@ const NUDGES: u32 = 2;
 const RELATED: usize = 6;
 const OPEN: usize = 3;
 const RECENT: usize = 2;
+const MOVES_OVER: usize = 60;
 
-pub async fn run(agent: &mut Agent, front: &'static Front) -> Result<Episode, Stop> {
+pub async fn run(
+    agent: &mut Agent,
+    front: &'static Front,
+    version: u64,
+    rules: &[String],
+) -> Result<Episode, Stop> {
     let number = agent.state.episodes + 1;
     let started = now();
     let allowed = tools::work(front);
     let definitions = tools::definitions(&allowed);
-    let preamble = prompts::researcher(&prompts::awake(agent.state.awake_since, started));
+    let preamble = prompts::researcher(&prompts::awake(agent.state.awake_since, started), rules);
     let mut desk = Desk::new(number, front, allowed);
     let mut history: Vec<Message> = Vec::new();
     let mut pending = Some(Message::user(brief(agent, front).await?));
@@ -30,6 +36,7 @@ pub async fn run(agent: &mut Agent, front: &'static Front) -> Result<Episode, St
         number,
         front: front.id.to_string(),
         started,
+        rules: version,
         ..Default::default()
     };
     for turn in 0..agent.config.actions as u32 {
@@ -83,7 +90,7 @@ fn cut_off(turns: u32) -> String {
     )
 }
 
-pub fn interrupted(number: u64, front: &str, started: i64, turns: &[Turn]) -> Episode {
+pub fn interrupted(number: u64, front: &str, started: i64, rules: u64, turns: &[Turn]) -> Episode {
     let calls: Vec<_> = turns.iter().flat_map(|turn| &turn.calls).collect();
     let planned = |key: &str| {
         calls
@@ -111,6 +118,7 @@ pub fn interrupted(number: u64, front: &str, started: i64, turns: &[Turn]) -> Ep
         tokens: turns.iter().map(|turn| turn.tokens).sum(),
         started,
         ended: turns.last().map_or(started, |turn| turn.at),
+        rules,
         ..Default::default()
     }
 }
@@ -133,9 +141,8 @@ async fn act(
         } else {
             "Skipped: at most two calls per turn.".to_string()
         };
-        results.push(UserContent::tool_result_for(
+        results.push(UserContent::tool_result(
             call.id.clone(),
-            call.provider.clone(),
             call.function.name.clone(),
             vec![ToolResultContent::text(summary)],
         ));
@@ -213,6 +220,8 @@ async fn finish(agent: &mut Agent, desk: Desk, mut record: Episode) -> Result<Ep
     record.verified = tally.verified;
     record.routine = tally.routine;
     record.known = tally.known;
+    record.reduced = tally.reduced;
+    record.heuristic = desk.heuristic.clone();
     record.reward = reward(&desk);
     record.ended = now();
     agent.store.put_episode(&record).await?;
@@ -228,6 +237,7 @@ pub fn reward(desk: &Desk) -> f64 {
         + 0.1 * tally.routine as f64
         + 0.4 * tally.broken as f64
         + 0.3 * tally.held as f64
+        + 0.5 * tally.reduced as f64
         + 0.2 * tally.records as f64
         + if tally.advanced { 0.2 } else { 0.0 };
     raw.min(1.5) / 1.5
@@ -241,18 +251,62 @@ async fn brief(agent: &mut Agent, front: &'static Front) -> anyhow::Result<Strin
         .await?;
     open.extend(store.nodes_where(front.id, Trust::Open, OPEN).await?);
     let recent = store.episodes_on(front.id, RECENT).await?;
-    let dependencies = if front.id == "lean" {
-        prompts::formal_targets(&open, &store.nodes().await?, &store.links().await?)
+    let nodes = store.nodes().await?;
+    let links = store.links().await?;
+    let reductions = store.reductions().await?;
+    let numbers = tree::Numbers::new(&nodes, &links, &reductions);
+    let rows = tree::numbered(tree::rows(&nodes, &links, &reductions), &numbers);
+    let focus = numbers
+        .focus()
+        .and_then(|key| nodes.iter().find(|node| node.key == key))
+        .map(|node| focus(node, front.id == "lean"));
+    let outline = if front.id == "lean" {
+        tree::outline(&rows)
     } else {
         Vec::new()
     };
+    let moves = prompts::moves(&store.episodes(MOVES_OVER).await?);
     Ok(prompts::brief(&prompts::Brief {
         front,
         state: &agent.state,
         related: &related,
         open: &open,
         recent: &recent,
-        dependencies: &dependencies,
+        tree: &outline,
+        focus,
+        moves: &moves,
         actions: agent.config.actions,
     }))
+}
+
+fn focus(node: &Node, formal: bool) -> String {
+    if node.key == tree::ROOT {
+        return if formal {
+            "No Lean-checked route under rh yet. Work backwards: reduce rh to smaller statements. A zero off the line \
+would have to lie in the critical strip, because Mathlib rules out zeros with Re s ≥ 1 and the functional equation \
+relates Re s ≤ 0 to Re s ≥ 1."
+                .to_string()
+        } else {
+            "The proof tree under rh has no Lean-checked route yet; the Lean front is working backwards from rh."
+                .to_string()
+        };
+    }
+    let failed = tree::failures(node);
+    let tried = match failed {
+        0 => String::new(),
+        1 => " Lean rejected one attempt; try another way, or reduce it.".to_string(),
+        n => format!(" Lean rejected {n} attempts; reduce it, or specialize."),
+    };
+    let lean = node.lean.as_deref().unwrap_or_default();
+    if formal {
+        format!(
+            "the most-proving open leaf is [{}] {}. Lean: {lean}.{tried}",
+            node.key, node.title
+        )
+    } else {
+        format!(
+            "the Lean front is working on [{}] {}. If an instrument can test it, a failed prediction would refute it.",
+            node.key, node.title
+        )
+    }
 }

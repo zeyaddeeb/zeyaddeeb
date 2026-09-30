@@ -190,3 +190,64 @@ describe("the live shift", () => {
 		expect(live.episodes.map((e) => e.number)).toEqual([3, 2]);
 	});
 });
+
+describe("self-improvement", () => {
+	const rules = {
+		layer: "playbook" as const,
+		version: 2,
+		parent: 1,
+		lines: ["Open every episode on the most-proving leaf."],
+		change: {
+			op: "add" as const,
+			rule: null,
+			text: "Open every episode on the most-proving leaf.",
+			was: "",
+			because: "Episodes drifted.",
+		},
+		standing: "trial" as const,
+		method: 1,
+		pairs: [],
+		gains: [],
+		wins: 0,
+		gain: null,
+		p: null,
+		born: 4,
+		decided: 0,
+	};
+
+	it("shows a revision as its own page and keeps every version", () => {
+		let live = initial(overview());
+		live = reduce(live, at({ type: "revise", after: 4, layer: "playbook" }));
+		expect(live.mode).toBe("revise");
+		expect(live.layer).toBe("playbook");
+		live = reduce(live, at({ type: "rules", rules }));
+		expect(live.rules["playbook-2"]?.lines).toEqual(rules.lines);
+		const played = {
+			...rules,
+			pairs: [
+				{
+					front: "lean",
+					champion: 0.2,
+					challenger: 0.5,
+					championEpisode: 5,
+					challengerEpisode: 6,
+				},
+			],
+		};
+		live = reduce(live, at({ type: "rules", rules: played }));
+		expect(live.rules["playbook-2"]?.pairs).toHaveLength(1);
+		live = reduce(
+			live,
+			at({
+				type: "wake",
+				episode: 7,
+				front: "lean",
+				arms: [],
+				rules: 2,
+			}),
+		);
+		expect(live.mode).toBe("work");
+		expect(live.version).toBe(2);
+		expect(live.layer).toBeNull();
+	});
+});

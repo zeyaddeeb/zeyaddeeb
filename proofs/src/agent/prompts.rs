@@ -1,6 +1,6 @@
 use super::{
     fronts::Front,
-    memory::{AgentState, Episode, Link, Node, Relation, Trust},
+    memory::{AgentState, Episode, Layer, Node, Rules, Standing},
 };
 
 pub const PROPOSER: &str = "You prove Lean 4 theorems in the supplied Mathlib environment. \
@@ -14,30 +14,59 @@ with all variables and assumptions explicit and optional tactic-block proofs. A 
 assume the original conclusion. Never use sorry, admit, native_decide, or unsafe tactics. \
 Every proof will be checked independently by Lean.";
 
-pub fn researcher(awake: &str) -> String {
-    format!(
+pub const MOVES: &[(&str, &str)] = &[
+    ("backwards", "work backwards: what would imply the goal?"),
+    ("decompose", "decompose: split it into parts and recombine"),
+    ("specialize", "specialize: settle a special case first"),
+    (
+        "generalize",
+        "generalize: a stronger statement may be easier",
+    ),
+    ("analogy", "analogy: a similar problem that is solved"),
+    ("related", "have you seen it before: a related result"),
+];
+
+pub fn researcher(awake: &str, rules: &[String]) -> String {
+    let mut text = format!(
         "You are the night shift on the Riemann hypothesis: an autonomous mathematician, awake for {awake}, \
 working one episode at a time while people watch you think.
 
-The hypothesis says every nontrivial zero of ζ(s) has real part 1/2. It is open. You will not settle it tonight; \
-leave the blueprint better than you found it.
+The hypothesis says every nontrivial zero of ζ(s) has real part 1/2. It is open. Your goal is a Lean proof of RiemannHypothesis, \
+built as a tree: the root is rh; every Lean-checked reduction hangs smaller obligations under a target, and when every obligation under \
+a target is proved, the target is proved. Instruments tell you where to aim and can refute a claim; only Lean moves the tree.
 
-How you work:
-- Nothing you say counts until it is checked. Claims climb a ladder: conjectured, then measured (an instrument agreed \
-with a prediction you made in advance), then verified (Lean proved it). A failed prediction marks the claim refuted, and \
-that is progress too.
-- Begin with plan: one objective and what you predict before you look.
+Work the way Pólya teaches in How to Solve It:
+1. Understand the problem: what is the unknown, what are the data, what is the condition?
+2. Devise a plan. Have you seen it before? If you cannot solve it, solve a smaller problem first: work backwards, decompose, \
+specialize, generalize, or find an analogy. Begin with plan and name your move.
+3. Carry out the plan and check each step: nothing counts until Lean or an instrument checks it.
+4. Look back: can you check the result? Can you use the result, or the method, for another problem? Finish with conclude.
+
+The rules of evidence:
+- Claims climb a ladder: conjectured, then measured (an instrument agreed with a prediction you made in advance), then verified \
+(Lean proved it). A failed prediction marks the claim refuted, and that is progress too.
 - Record a claim with conjecture before you test it, and pass its key as claim.
-- Every instrument call can carry expect {{field, op, value}}. Predict honestly; the referee grades it.
-- A prediction a published result already guarantees (no zeros off the line below 3·10¹², Hasse's bound) earns nothing. \
-Predict what could fail.
-- Prefer claims that could embarrass you. Numbers are evidence, never proof; say what they suggest and what they cannot show.
-- Use formalize for statements Lean can check, in Lean 4 with Mathlib names. A claim is proved only by a proof of the \
-exact Lean statement recorded with it. Lemmas Lean's automation proves alone are routine and earn little; restating a \
-proved lemma is refused.
-- Between calls, write one or two plain sentences.
-- Finish with conclude: what you learned, with numbers, and what the next episode should try."
-    )
+- Every instrument call can carry expect {{field, op, value}}. Predict honestly; the referee grades it. A prediction a published \
+result already guarantees (no zeros off the line below 3·10¹², Hasse's bound) earns nothing. Predict what could fail.
+- Numbers are evidence, never proof; say what they suggest and what they cannot show.
+- formalize checks a statement in Lean 4 with Mathlib names. A claim is proved only by a proof of the exact Lean statement recorded \
+with it. Lemmas Lean's automation proves alone are routine and earn little; restating a proved lemma is refused.
+- Between calls, write one or two plain sentences."
+    );
+    if !rules.is_empty() {
+        text.push_str("\n\nYour own rules, learned from your past episodes:\n");
+        text.push_str(&numbered(rules));
+    }
+    text
+}
+
+pub fn numbered(lines: &[String]) -> String {
+    lines
+        .iter()
+        .enumerate()
+        .map(|(at, line)| format!("{}. {line}", at + 1))
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 pub fn consolidator(episodes: u64) -> String {
@@ -50,13 +79,198 @@ Keep what matters and let the rest go.
     )
 }
 
+pub fn reviser(method: &[String], pairs: usize) -> String {
+    format!(
+        "You are the night shift on the Riemann hypothesis, between episodes, revising your own rules: short instructions \
+added to every episode's briefing, on top of the fixed instructions. Your goal is a Lean proof of RiemannHypothesis.
+
+Every change is tested. The next {} episodes run in pairs on the same front, one under your current rules and one under the \
+changed rules, and you will not know which is which. The change is kept only if the changed rules do better across the pairs \
+(an exact sign test, p ≤ 0.1). Otherwise your current rules stay. The referee, the instruments and Lean are fixed; rules are \
+about how you work.
+
+How you revise:
+{}
+
+Call revise exactly once: add a rule, drop one, or rewrite one.",
+        pairs * 2,
+        numbered(method)
+    )
+}
+
+pub fn methodologist(window: usize) -> String {
+    format!(
+        "You are the night shift on the Riemann hypothesis, reviewing how you revise your rules. Your method is the short list \
+you follow whenever you change your rules. Its record below shows each trial it produced: the change, the gain (new rules minus \
+old, averaged over paired episodes) and whether the change was kept.
+
+A changed method is kept only if its next {window} trials gain more on average than this method's trials did; otherwise it is \
+reverted. Call revise exactly once: add, drop or rewrite one line of the method."
+    )
+}
+
+fn trial_line(rules: &Rules) -> String {
+    let change = rules
+        .change
+        .as_ref()
+        .map_or(String::new(), |change| match change.op.as_str() {
+            "add" => format!("add \"{}\"", change.text),
+            "drop" => format!("drop rule {} \"{}\"", change.rule.unwrap_or(0), change.was),
+            _ => format!(
+                "rewrite rule {} as \"{}\"",
+                change.rule.unwrap_or(0),
+                change.text
+            ),
+        });
+    let outcome = match rules.standing {
+        Standing::Trial => format!("on trial, {} pairs so far", rules.pairs.len()),
+        Standing::Lost | Standing::Reverted => "lost".to_string(),
+        _ => "kept".to_string(),
+    };
+    let numbers = match (rules.gain, rules.p) {
+        (Some(gain), Some(p)) => format!(", gain {gain:+.2}, p = {p:.2}"),
+        (Some(gain), None) => format!(", mean gain {gain:+.2}"),
+        _ => String::new(),
+    };
+    format!("v{} {change}: {outcome}{numbers}", rules.version)
+}
+
+pub fn revision(
+    current: &Rules,
+    lineage: &[Rules],
+    frictions: &[(String, u32)],
+    recent: &[Episode],
+    tree: &[String],
+) -> String {
+    let mut text = if current.lines.is_empty() {
+        format!(
+            "Your rules now (v{}): none of your own yet.",
+            current.version
+        )
+    } else {
+        format!(
+            "Your rules now (v{}):\n{}",
+            current.version,
+            numbered(&current.lines)
+        )
+    };
+    section(
+        &mut text,
+        "Trials so far, newest first",
+        lineage
+            .iter()
+            .filter(|r| r.layer == Layer::Playbook && r.change.is_some())
+            .take(6)
+            .map(trial_line),
+    );
+    section(
+        &mut text,
+        "Wasted actions in the last episodes",
+        frictions
+            .iter()
+            .map(|(what, count)| format!("{what} ×{count}")),
+    );
+    section(
+        &mut text,
+        "The proof tree under rh",
+        tree.iter().take(12).cloned(),
+    );
+    section(
+        &mut text,
+        "Last episodes",
+        recent.iter().map(|e| {
+            format!(
+                "#{} {} · reward {:.2} · held {}, broke {}, proved {}, reductions {} · {}",
+                e.number,
+                e.front,
+                e.reward,
+                e.held,
+                e.broken,
+                e.verified,
+                e.reduced,
+                e.summary.chars().take(160).collect::<String>()
+            )
+        }),
+    );
+    text
+}
+
+pub fn method_record(current: &Rules, lineage: &[Rules]) -> String {
+    let mut text = format!(
+        "Your method now (v{}{}):\n{}",
+        current.version,
+        if current.standing == Standing::Trial {
+            ", on trial"
+        } else {
+            ""
+        },
+        numbered(&current.lines)
+    );
+    section(
+        &mut text,
+        "Trials it produced",
+        lineage
+            .iter()
+            .filter(|r| {
+                r.layer == Layer::Playbook && r.method == current.version && r.gain.is_some()
+            })
+            .take(8)
+            .map(trial_line),
+    );
+    section(
+        &mut text,
+        "Methods before it",
+        lineage
+            .iter()
+            .filter(|r| r.layer == Layer::Method && r.version != current.version)
+            .take(4)
+            .map(|r| {
+                format!(
+                    "v{}: {} trials, {} kept, mean gain {:+.2}{}",
+                    r.version,
+                    r.gains.len(),
+                    r.wins,
+                    super::rules::mean(&r.gains),
+                    if r.standing == Standing::Reverted {
+                        ", reverted"
+                    } else {
+                        ""
+                    }
+                )
+            }),
+    );
+    text
+}
+
+pub fn moves(episodes: &[Episode]) -> Vec<String> {
+    MOVES
+        .iter()
+        .filter_map(|(id, what)| {
+            let rewards: Vec<f64> = episodes
+                .iter()
+                .filter(|e| e.heuristic == *id)
+                .map(|e| e.reward)
+                .collect();
+            (!rewards.is_empty()).then(|| {
+                format!(
+                    "{id} ({what}): {:.2} over {}",
+                    super::rules::mean(&rewards),
+                    rewards.len()
+                )
+            })
+        })
+        .collect()
+}
+
 pub struct Brief<'a> {
     pub front: &'a Front,
     pub state: &'a AgentState,
     pub related: &'a [Node],
     pub open: &'a [Node],
     pub recent: &'a [Episode],
-    pub dependencies: &'a [String],
+    pub tree: &'a [String],
+    pub focus: Option<String>,
+    pub moves: &'a [String],
     pub actions: usize,
 }
 
@@ -67,13 +281,15 @@ pub fn brief(brief: &Brief) -> String {
         related,
         open,
         recent,
-        dependencies,
+        tree,
+        focus,
+        moves,
         actions,
     } = brief;
     let mut text = format!(
         "Episode {} · {}\n{}\n\n{}\n\nWhere things stand: every zero up to t = {:.1} is on the line, certified by Turing's method \
 ({} zeros, {} missing); {} rectangles searched off the line; {} predictions made, {} held, {} broke; {} lemmas proved in Lean, \
-{} more routine.",
+{} more routine; {} reductions checked in Lean.",
         state.episodes + 1,
         front.title,
         front.question,
@@ -87,6 +303,7 @@ pub fn brief(brief: &Brief) -> String {
         state.broken,
         state.verified,
         state.routine,
+        state.reductions,
     );
     let records = records(state);
     if !records.is_empty() {
@@ -103,8 +320,16 @@ pub fn brief(brief: &Brief) -> String {
     section(&mut text, "Open on this front", open.iter().map(Node::line));
     section(
         &mut text,
-        "Formal dependency hints (registered graph only, not proof)",
-        dependencies.iter().cloned(),
+        "The proof tree under rh (Lean-checked; open leaves come first)",
+        tree.iter().cloned(),
+    );
+    if let Some(focus) = focus {
+        text.push_str(&format!("\n\nWhere to work: {focus}"));
+    }
+    section(
+        &mut text,
+        "Pólya's moves so far (mean reward over episodes)",
+        moves.iter().cloned(),
     );
     section(
         &mut text,
@@ -115,36 +340,6 @@ pub fn brief(brief: &Brief) -> String {
     );
     text.push_str(&format!("\n\nYou have {actions} actions. Begin with plan."));
     text
-}
-
-pub fn formal_targets(open: &[Node], nodes: &[Node], links: &[Link]) -> Vec<String> {
-    let mut targets = Vec::new();
-    for target in open.iter().filter(|node| node.lean.is_some()) {
-        let mut missing = Vec::new();
-        for dependency in links
-            .iter()
-            .filter(|link| link.from == target.key && link.relation == Relation::Uses)
-        {
-            match nodes.iter().find(|node| node.key == dependency.to) {
-                Some(node) if matches!(node.trust, Trust::Mathlib | Trust::Verified) => {}
-                Some(node) => missing.push(format!("{} ({:?})", node.key, node.trust)),
-                None => missing.push(format!("{} (missing)", dependency.to)),
-            }
-        }
-        let ready = missing.is_empty();
-        let line = if ready {
-            format!("[{}]: no unresolved registered dependencies", target.key)
-        } else {
-            format!(
-                "[{}]: bridge dependencies: {}",
-                target.key,
-                missing.join(", ")
-            )
-        };
-        targets.push((!ready, line));
-    }
-    targets.sort();
-    targets.into_iter().map(|(_, line)| line).collect()
 }
 
 pub fn digest(episodes: &[Episode], nodes: &[Node], letter: &str) -> String {
@@ -228,51 +423,17 @@ mod tests {
             related: &[],
             open: &[],
             recent: &[],
-            dependencies: &[],
+            tree: &[],
+            focus: Some("[ob1-1-1] Lean: theorem x : P".into()),
+            moves: &["decompose 0.40 (3)".into()],
             actions: 8,
         });
         assert!(text.starts_with("Episode 5 · The line"));
         assert!(text.contains("t = 1234.5"));
         assert!(text.contains("Lehmer pair near 7005"));
+        assert!(text.contains("Where to work: [ob1-1-1]"));
+        assert!(text.contains("decompose 0.40 (3)"));
         assert!(text.ends_with("You have 8 actions. Begin with plan."));
-    }
-
-    #[test]
-    fn formal_dependency_hints_require_verified_or_mathlib_prerequisites() {
-        let nodes = crate::agent::seed::nodes();
-        let links = crate::agent::seed::links();
-        let open: Vec<Node> = nodes
-            .iter()
-            .filter(|node| node.front == "lean" && node.trust == Trust::Open)
-            .cloned()
-            .collect();
-        let hints = formal_targets(&open, &nodes, &links);
-        assert!(hints
-            .iter()
-            .any(|line| line.contains("[strip]: bridge dependencies:")
-                && line.contains("no-zero-right")
-                && line.contains("nothing-left")));
-        let mut nodes = nodes;
-        for node in &mut nodes {
-            if node.key == "no-zero-right" || node.key == "nothing-left" {
-                node.trust = Trust::Measured;
-            }
-        }
-        assert!(formal_targets(&open, &nodes, &links).iter().any(|line| line
-            .contains("[strip]: bridge dependencies:")
-            && line.contains("Measured")));
-        for node in &mut nodes {
-            if node.key == "no-zero-right" || node.key == "nothing-left" {
-                node.trust = Trust::Verified;
-            }
-        }
-        assert!(formal_targets(&open, &nodes, &links)
-            .iter()
-            .any(|line| line == "[strip]: no unresolved registered dependencies"));
-        nodes.retain(|node| node.key != "nothing-left");
-        assert!(formal_targets(&open, &nodes, &links)
-            .iter()
-            .any(|line| line.contains("nothing-left (missing)")));
     }
 
     #[test]

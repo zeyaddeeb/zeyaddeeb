@@ -20,6 +20,8 @@ export function activity(live: Live, now: number): string {
 		return last
 			? "Sleeping: keeping what matters."
 			: "Falling asleep to consolidate memory.";
+	if (live.mode === "revise")
+		return last ? "Choosing one change to test." : "Reading its trials.";
 	if (live.mode === "idle") return "Waiting for the next episode.";
 	if (!last) return "Reading its notes.";
 	if (last.calls.length) return "Reading the result.";

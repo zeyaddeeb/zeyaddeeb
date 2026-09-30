@@ -178,6 +178,7 @@ fn config(url: String) -> Config {
         sleep_every: 1,
         keep_episodes: 10,
         search_budget: 2,
+        trial_pairs: 4,
         limits: Limits {
             tokens_per_day: 1_000_000,
             backoff_base: Duration::ZERO,
@@ -270,7 +271,25 @@ async fn one_shift_climbs_the_trust_ladder_and_sleeps() {
         (script.violations.clone(), script.requests[0].clone())
     };
     assert!(violations.is_empty(), "{violations:?}");
+    let requests = shared.lock().unwrap().requests.clone();
+    for message in requests
+        .iter()
+        .flat_map(|request| request["messages"].as_array().unwrap())
+        .filter(|message| message["role"] != "user")
+    {
+        assert!(
+            message["content"].is_string() || message["content"].is_null(),
+            "the gateway takes typed parts only from users: {message}"
+        );
+    }
+    assert!(requests.iter().any(|request| request["messages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|m| m["role"] == "tool")));
     assert_eq!(first["enable_thinking"], true);
+    assert_eq!(first["model"], "mock");
+    assert_eq!(first["stream"], true);
     assert!(first["tools"].as_array().unwrap().len() >= 7);
 
     let episode = store.episode(1).await.unwrap().expect("episode 1 stored");
@@ -918,4 +937,208 @@ async fn a_thought_going_in_circles_is_stopped_and_named() {
     let first = &store.turns(1).await.unwrap()[0];
     assert_eq!(first.thought.matches("Let me try").count(), 3);
     assert!(store.episode(1).await.unwrap().is_some());
+}
+
+fn quiet_episode() -> [Vec<Part>; 2] {
+    [
+        vec![Part::Call(
+            "plan",
+            json!({"move": "backwards", "objective": "Look", "prediction": "Nothing new", "instrument": "recall"}),
+        )],
+        vec![Part::Call(
+            "conclude",
+            json!({"summary": "Looked.", "next": "Look again."}),
+        )],
+    ]
+}
+
+#[tokio::test]
+async fn a_rule_change_runs_blind_in_paired_episodes() {
+    let rule = "Open every episode on the most-proving leaf of the tree.";
+    let letter = || vec![Part::Call("letter", json!({"text": "Keep going."}))];
+    let mut turns = VecDeque::new();
+    turns.extend(quiet_episode());
+    turns.push_back(letter());
+    turns.push_back(vec![
+        Part::Think("Plans wander; the tree says where to go."),
+        Part::Call(
+            "revise",
+            json!({"change": "add", "text": rule, "because": "Episodes drifted away from the tree."}),
+        ),
+    ]);
+    for _ in 0..2 {
+        turns.extend(quiet_episode());
+        turns.push_back(letter());
+    }
+    let shared: Shared = Arc::new(Mutex::new(Script {
+        turns,
+        ..Default::default()
+    }));
+    let store = Store::connect("mem://", None).await.unwrap();
+    let hub = Hub::new();
+    let mut events = hub.subscribe();
+    let mut agent = Agent::new(
+        config(serve(shared.clone()).await),
+        store.clone(),
+        hub.clone(),
+    )
+    .await
+    .unwrap();
+    for _ in 0..3 {
+        tokio::time::timeout(Duration::from_secs(120), agent.shift())
+            .await
+            .expect("the shift finishes")
+            .expect("the shift succeeds");
+    }
+    let requests = shared.lock().unwrap().requests.clone();
+    assert_eq!(
+        requests.len(),
+        10,
+        "three episodes, three sleeps, one revision"
+    );
+    let revision = requests[3].to_string();
+    assert!(revision.contains("How you revise") && revision.contains("revise"));
+    assert_eq!(requests[3]["tools"].as_array().unwrap().len(), 1);
+    assert!(
+        !requests[4].to_string().contains(rule),
+        "the old rules run first"
+    );
+    assert!(requests[7].to_string().contains(rule), "then the new rules");
+    assert!(!requests[7].to_string().contains("on trial"), "blind");
+
+    let second = store.episode(2).await.unwrap().unwrap();
+    let third = store.episode(3).await.unwrap().unwrap();
+    assert_eq!(second.front, third.front, "a pair shares its front");
+    assert_eq!((second.rules, third.rules), (1, 2));
+    assert_eq!(second.heuristic, "backwards");
+    let state = store.state().await.unwrap().unwrap();
+    assert_eq!((state.rules, state.challenger), (1, 2));
+    assert!(state.half.is_none());
+    let lineage = store.lineage().await.unwrap();
+    let trial = lineage
+        .iter()
+        .find(|r| r.version == 2 && r.layer == proofs::agent::memory::Layer::Playbook)
+        .unwrap();
+    assert_eq!(trial.lines, vec![rule.to_string()]);
+    assert_eq!(trial.pairs.len(), 1);
+    assert_eq!(
+        trial.change.as_ref().unwrap().because,
+        "Episodes drifted away from the tree."
+    );
+    let seen = drain(&mut events);
+    let wakes: Vec<u64> = seen
+        .iter()
+        .filter_map(|e| match e {
+            Event::Wake { rules, .. } => Some(*rules),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(wakes, vec![1, 1, 2]);
+    assert!(seen.iter().any(|e| matches!(e, Event::Revise { .. })));
+    assert!(seen
+        .iter()
+        .any(|e| matches!(e, Event::Outcome { tool, ok: true, .. } if tool == "revise")));
+}
+
+#[tokio::test]
+async fn a_reduction_and_its_obligations_prove_the_mirror_by_composition() {
+    if !workbench::Workbench::new(workbench::Config::from_env(), vec![]).available() {
+        return;
+    }
+    let negatives = "∀ s : ℂ, 0 < s.re → ∀ n : ℕ, s ≠ -n";
+    let pole = "∀ s : ℂ, s.re < 1 → s ≠ 1";
+    let shared: Shared = Arc::new(Mutex::new(Script {
+        turns: VecDeque::from([
+            vec![Part::Call(
+                "plan",
+                json!({"move": "decompose", "objective": "Split the mirror into its side conditions", "prediction": "Two small lemmas suffice", "instrument": "reduce"}),
+            )],
+            vec![Part::Call(
+                "reduce",
+                json!({
+                    "target": "mirror",
+                    "from": [negatives, pole],
+                    "titles": ["No negative integers right of 0", "Not the pole"],
+                    "proof": "by\n  rw [riemannZeta_one_sub (ob1 s h0) (ob2 s h1), hs, mul_zero]",
+                }),
+            )],
+            vec![Part::Call(
+                "formalize",
+                json!({
+                    "statement": format!("theorem right_of_zero_not_negative : {negatives}"),
+                    "proof": "by\n  rintro s h0 n rfl\n  have : (0 : ℝ) ≤ n := n.cast_nonneg\n  simp at h0\n  linarith",
+                }),
+            )],
+            vec![Part::Call(
+                "formalize",
+                json!({
+                    "statement": format!("theorem left_of_one_not_pole : {pole}"),
+                    "proof": "by\n  rintro s h1 rfl\n  simp at h1",
+                }),
+            )],
+            vec![Part::Call(
+                "conclude",
+                json!({"summary": "The mirror is proved.", "next": "Nothing left here."}),
+            )],
+        ]),
+        ..Default::default()
+    }));
+    let store = Store::connect("mem://", None).await.unwrap();
+    let arms = ["line", "offline", "spectra", "divisors", "mobius", "curves"]
+        .iter()
+        .map(|front| proofs::agent::memory::Arm {
+            front: front.to_string(),
+            pulls: 1,
+            reward: 0.0,
+        })
+        .collect();
+    store
+        .save_state(&AgentState {
+            awake_since: 1,
+            arms,
+            last_front: "line".into(),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    let mut settings = config(serve(shared.clone()).await);
+    settings.sleep_every = 100;
+    let mut agent = Agent::new(settings, store.clone(), Hub::new())
+        .await
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(300), agent.shift())
+        .await
+        .expect("the shift finishes")
+        .expect("the shift succeeds");
+
+    let calls: Vec<Call> = store
+        .turns(1)
+        .await
+        .unwrap()
+        .into_iter()
+        .flat_map(|turn| turn.calls)
+        .collect();
+    let summaries: Vec<&str> = calls.iter().map(|c| c.summary.as_str()).collect();
+    assert!(calls.iter().all(|c| c.ok), "{summaries:#?}");
+    let mirror = store.node("mirror").await.unwrap().unwrap();
+    assert_eq!(mirror.trust, Trust::Verified, "{summaries:#?}");
+    assert!(mirror.evidence.iter().any(|e| e
+        .summary
+        .starts_with("Proved by composing zero_mirror_from_e1_1")));
+    let reductions = store.reductions().await.unwrap();
+    assert_eq!(reductions.len(), 1);
+    assert!(reductions[0].closed);
+    let episode = store.episode(1).await.unwrap().unwrap();
+    assert_eq!(episode.front, "lean");
+    assert_eq!(episode.reduced, 1);
+    assert_eq!(episode.heuristic, "decompose");
+    assert!(store
+        .lemmas()
+        .await
+        .unwrap()
+        .iter()
+        .any(|lemma| lemma.name == "zero_mirror"
+            && lemma.code.contains("apply zero_mirror_from_e1_1")));
+    let state = store.state().await.unwrap().unwrap();
+    assert_eq!(state.reductions, 1);
 }

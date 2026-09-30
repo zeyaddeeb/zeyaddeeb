@@ -1,4 +1,4 @@
-import { count, describe, label, verdict } from "./format";
+import { count, describe, label, MOVES, statements, verdict } from "./format";
 import { Histogram, Ratio, Rectangle, Ticks, Wander } from "./plots";
 import type { SearchStep } from "./protocol";
 import type { Step } from "./steps";
@@ -13,10 +13,21 @@ const numbers = (value: unknown): number[] =>
 const num = (value: unknown): number | null =>
 	typeof value === "number" ? value : null;
 
-const CARDS = ["plan", "conjecture", "conclude", "insight", "letter"];
+const CARDS = ["plan", "conjecture", "conclude", "insight", "letter", "revise"];
+
+const CHANGES: Record<string, string> = {
+	add: "Add a rule",
+	drop: "Drop rule",
+	rewrite: "Rewrite rule",
+};
 
 function firstLine(summary: string): string {
-	const cuts = [" Turing's method", " Your prediction ", " Not graded"]
+	const cuts = [
+		" Turing's method",
+		" Your prediction ",
+		" Not graded",
+		" Prove ",
+	]
 		.map((marker) => summary.indexOf(marker))
 		.filter((at) => at !== -1);
 	return cuts.length ? summary.slice(0, Math.min(...cuts)) : summary;
@@ -40,7 +51,7 @@ export function provenance(step: Step): string | null {
 	const ms = num(data.millis);
 	if (ms === null) return null;
 	const took = `${count(ms)} ms`;
-	if (step.tool === "formalize") {
+	if (step.tool === "formalize" || step.tool === "reduce") {
 		const axioms = Array.isArray(data.axioms)
 			? (data.axioms as string[]).join(", ")
 			: "";
@@ -189,6 +200,12 @@ function words(step: Step): React.ReactNode {
 		case "plan":
 			return (
 				<dl className="ns-card">
+					{MOVES[text("move")] ? (
+						<>
+							<dt>Pólya’s move</dt>
+							<dd className="ns-card-text">{MOVES[text("move")]}</dd>
+						</>
+					) : null}
 					<dt>Objective</dt>
 					<dd className="ns-card-text">{text("objective")}</dd>
 					<dt>Predicts</dt>
@@ -224,6 +241,42 @@ function words(step: Step): React.ReactNode {
 					{text("text")}
 				</blockquote>
 			);
+		case "revise": {
+			const change = text("change");
+			const rule = args.rule;
+			return (
+				<dl className="ns-card">
+					<dt>
+						{CHANGES[change] ?? change}
+						{change !== "add" && rule !== undefined ? ` ${rule}` : ""}
+					</dt>
+					<dd className="ns-card-text">{text("text") || "—"}</dd>
+					<dt>Because</dt>
+					<dd className="ns-card-text">{text("because")}</dd>
+					{step.outcome ? (
+						<dd
+							className="ns-card-note"
+							data-refused={!step.outcome.ok || undefined}
+						>
+							{step.outcome.summary}
+						</dd>
+					) : null}
+				</dl>
+			);
+		}
+		case "reduce": {
+			if (step.status === "refused") return null;
+			return (
+				<dl className="ns-card">
+					<dt>{text("target")} follows from</dt>
+					{statements(args).map((statement, at) => (
+						<dd key={statement} className="ns-card-lean">
+							<b>ob{at + 1}</b> {statement}
+						</dd>
+					))}
+				</dl>
+			);
+		}
 		default:
 			return null;
 	}

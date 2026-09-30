@@ -1,5 +1,5 @@
-import { count } from "./format";
-import type { About, AgentState, Front } from "./protocol";
+import { count, MOVES } from "./format";
+import type { About, AgentState, Episode, Front } from "./protocol";
 
 interface Tile {
 	label: string;
@@ -98,9 +98,45 @@ export function Arms({
 			</ol>
 			<p className="ns-arms-note">
 				A bandit (UCB1) picks the next front: the average reward of past
-				episodes there, plus a bonus for fronts it has rarely tried. Proofs pay
-				most and broken predictions more than held ones. Routine proofs pay
+				episodes there, plus a bonus for fronts it has rarely tried. Every third
+				episode goes to the proof. Proofs pay most, then reductions checked in
+				Lean; broken predictions pay more than held ones. Routine proofs pay
 				little, and outcomes known in advance pay nothing.
+			</p>
+		</div>
+	);
+}
+
+export function Moves({ episodes }: { episodes: Episode[] }) {
+	const rows = Object.entries(MOVES).map(([id, title]) => {
+		const tried = episodes.filter((e) => e.heuristic === id);
+		const mean = tried.length
+			? tried.reduce((sum, e) => sum + e.reward, 0) / tried.length
+			: 0;
+		return { id, title, tried: tried.length, mean };
+	});
+	const best = Math.max(...rows.map((r) => r.mean), 1e-9);
+	return (
+		<div className="ns-arms ns-moves">
+			<p className="ns-eyebrow">Pólya’s moves, by what they earned</p>
+			<ol>
+				{rows.map(({ id, title, tried, mean }) => (
+					<li key={id}>
+						<span>{title}</span>
+						<span
+							className="ns-arm-bar"
+							style={{ "--share": mean / best } as React.CSSProperties}
+						/>
+						<span className="ns-arm-pulls">
+							{tried === 0 ? "untried" : `${tried}×`}
+						</span>
+					</li>
+				))}
+			</ol>
+			<p className="ns-arms-note">
+				Each episode begins by naming one of Pólya’s moves from How to Solve It.
+				Its briefing shows what each move has earned, over its last{" "}
+				{episodes.length} episodes.
 			</p>
 		</div>
 	);
