@@ -115,6 +115,7 @@ pub fn update_stats_ui(training: Res<TrainingState>, mut text_query: StatsTextQu
         } else if success.is_some() {
             let total = training.episode.max(1);
             let rate = (training.baskets_made as f32 / total as f32) * 100.0;
+
             **text = format!(
                 "Baskets: {}/{} ({:.1}%)",
                 training.baskets_made, total, rate
@@ -149,6 +150,7 @@ pub fn update_stats_ui(sim: Res<crate::robot::SimulationState>, mut text_query: 
         } else if success.is_some() {
             let total = sim.episode.max(1);
             let rate = (sim.baskets_made as f32 / total as f32) * 100.0;
+
             **text = format!("Baskets: {}/{} ({:.1}%)", sim.baskets_made, total, rate);
         }
     }

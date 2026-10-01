@@ -113,6 +113,7 @@ const two = (n: number) => String(n).padStart(2, "0");
 
 const light = (seconds: number) => {
 	const d = duration(seconds);
+
 	return `${d.h} h ${two(d.m)} m ${two(d.s)} s`;
 };
 
@@ -141,6 +142,7 @@ export function Hero() {
 		crossOrigin: "anonymous",
 		fetchPriority: "low",
 	});
+
 	const root = useRef<HTMLElement>(null);
 
 	useEffect(() => {
@@ -152,7 +154,9 @@ export function Hero() {
 		const svg = one<SVGSVGElement>(".vg-hero__ink");
 		const head = one<HTMLElement>(".vg-hero__head");
 		const flow = one<HTMLElement>(".vg-hero__flow");
+
 		if (!section || !stick || !cv || !svg || !head || !flow) return;
+
 		const q = <T extends Element>(sel: string) =>
 			[...section.querySelectorAll<T>(sel)] as T[];
 		const blocks = q<HTMLElement>("[data-block]");
@@ -218,24 +222,32 @@ export function Hero() {
 
 		const setState = (el: Element | null | undefined, on: boolean) => {
 			if (!el) return;
+
 			const node = el as HTMLElement | SVGElement;
 			const state = node.dataset.state;
 			const pending = timers.get(el);
+
 			if (on) {
 				if (pending) {
 					window.clearTimeout(pending);
 					timers.delete(el);
 				}
+
 				if (state !== "in") node.dataset.state = "in";
+
 				return;
 			}
+
 			if (state !== "in") return;
+
 			node.dataset.state = "out";
+
 			timers.set(
 				el,
 				window.setTimeout(
 					() => {
 						timers.delete(el);
+
 						if (node.dataset.state === "out") node.dataset.state = "wait";
 					},
 					still.matches ? 0 : 260,
@@ -260,7 +272,9 @@ export function Hero() {
 			cy: number,
 		): View => {
 			const dying = clamp((pose.explode - 0.45) / 0.4);
+
 			for (const part of DEAD) off.set(part, dying * dying * (3 - 2 * dying));
+
 			return {
 				yaw: pose.yaw,
 				pitch: pose.pitch,
@@ -279,6 +293,7 @@ export function Hero() {
 
 		const frameTall = (): Fit[] => {
 			const inside: Box = { l: 10, t: NAV + 10, r: w - 10, b: h - 14 };
+
 			const fit = (
 				fill: number,
 				cap: number,
@@ -293,6 +308,7 @@ export function Hero() {
 				cap,
 				core,
 			});
+
 			return [
 				fit(0.94, 120, CORE),
 				fit(0.95, 220, ALL),
@@ -304,12 +320,15 @@ export function Hero() {
 		const frameWide = (): Fit[] => {
 			const base: Box = { l: 24, t: NAV + 16, r: w - 24, b: h - 28 };
 			const edge = flow.offsetLeft + flow.offsetWidth;
+
 			gate = (list ? list.getBoundingClientRect().right : edge) + 12;
+
 			const side: Box = { ...base, l: edge + 40 };
 			const column: Box = { l: 0, t: 0, r: edge + 20, b: h };
 			const middle = (side.l + side.r) / 2;
 			const title = box(head, 28);
 			const cueBox = box(cue, 10);
+
 			return [
 				{
 					w,
@@ -362,52 +381,71 @@ export function Hero() {
 			const top = (el: Element) => el.getBoundingClientRect().top - origin;
 			const vh = document.documentElement.clientHeight;
 			const zone = mode === "tall" ? h : NAV;
+
 			line = zone + (vh - zone) * READ[mode];
+
 			const lead = vh * LEAD;
 			const enter = blocks.map((el) => top(el) - vh - lead);
 			const land = blocks.map((el) => top(el) - line);
 			const end = section.offsetHeight - h;
 			let prev = 0;
+
 			beats = BEATS.map((id, i) => {
 				const from = Math.max(prev, i === 0 ? 0 : (land[i - 1] ?? prev));
+
 				const to = Math.max(
 					from,
 					i < BEATS.length - 1 ? (enter[i] ?? from) : end,
 				);
+
 				prev = to;
+
 				return { id, from, to };
 			});
+
 			rail = stops(beats);
+
 			const [title, life, parts] = beats;
+
 			measure = [
 				life.from - (life.from - title.to) * REACH,
 				life.to + (parts.from - life.to) * REACH,
 			];
+
 			marks = items.map((el) => {
 				const name = el.querySelector(".vg-hero__item-name") ?? el;
 				const r = name.getBoundingClientRect();
+
 				return r.top - origin + r.height / 2 - el.offsetHeight / 2 - line;
 			});
+
 			const tail = items[items.length - 1];
+
 			done = (marks[marks.length - 1] ?? 0) + (tail?.offsetHeight ?? 0);
 		};
 
 		const plan = () => {
 			fits = mode === "tall" ? frameTall() : frameWide();
+
 			const plans = PLANS[mode];
+
 			shots = BEATS.map((id, i) => {
 				const p = plans[id];
+
 				const poses =
 					id === "title"
 						? [p.pose, { ...p.pose, yaw: p.pose.yaw + ARRIVE }]
 						: p.drift
 							? [drifted(p, -0.5), drifted(p, 0), drifted(p, 0.5)]
 							: [p.pose];
+
 				return { ...p, cam: solve(poses, fits[i]) };
 			});
+
 			ranges = shots.map((shot, i) =>
 				reach(drifted(shot, 0), shot.cam, fits[i], 0.9),
 			);
+
 			svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
 			chart();
 			drawn = "";
@@ -416,7 +454,9 @@ export function Hero() {
 		const size = () => {
 			w = stick.clientWidth;
 			h = stick.clientHeight;
+
 			const device = window.devicePixelRatio || 1;
+
 			glDpr = degraded ? 1.5 : Math.min(2, Math.max(1.5, device));
 			stage?.resize(w, h, glDpr);
 			plan();
@@ -424,18 +464,26 @@ export function Hero() {
 
 		const tick = () => {
 			const f = fix(Date.now());
+
 			if (km) km.textContent = grouped(f.km);
+
 			if (lt) lt.textContent = light(f.lightSeconds);
 		};
 
 		const watch = (now: number, gap: number) => {
 			if (degraded || !coarse.matches || !stage || glDpr <= 1.5) return false;
+
 			if (!firstFrame || now - firstFrame < 2000) return false;
+
 			gaps.push(gap);
+
 			if (gaps.length < 60) return false;
+
 			const sorted = [...gaps].sort((a, b) => a - b);
+
 			gaps.length = 0;
 			degraded = sorted[Math.floor(sorted.length * 0.9)] > 20;
+
 			return degraded;
 		};
 
@@ -448,34 +496,46 @@ export function Hero() {
 
 		const point = (view: View, part: PartId, now: number) => {
 			if (!stage || !pointLine || !pointRing) return;
+
 			let [ax, ay] = stage.anchor(part, view);
+
 			if (pointFrom) {
 				const t = (now - pointT0) / POINT_MS;
+
 				if (t >= 1) pointFrom = null;
 				else {
 					const k = smoother(t);
+
 					ax = pointFrom[0] + (ax - pointFrom[0]) * k;
 					ay = pointFrom[1] + (ay - pointFrom[1]) * k;
 				}
 			}
+
 			pointAt = [ax, ay];
+
 			if (mode === "tall") {
 				const x = clamp(ax, 6, w - 6);
 				const y = clamp(ay, NAV + 8, h - 12);
+
 				pointLine.setAttribute(
 					"d",
 					`M${Math.round(x) + 0.5} ${(y + 5).toFixed(1)}V${h}`,
 				);
+
 				pointRing.setAttribute("cx", x.toFixed(1));
 				pointRing.setAttribute("cy", y.toFixed(1));
+
 				return;
 			}
+
 			const y = Math.round(line) + 0.5;
 			const knee = Math.min(ax, Math.max(gate + 16, fits[2].inside.l));
+
 			pointLine.setAttribute(
 				"d",
 				`M${gate.toFixed(1)} ${y}H${knee.toFixed(1)}L${ax.toFixed(1)} ${ay.toFixed(1)}`,
 			);
+
 			pointRing.setAttribute("cx", ax.toFixed(1));
 			pointRing.setAttribute("cy", ay.toFixed(1));
 			pointGate?.setAttribute("cx", gate.toFixed(1));
@@ -484,42 +544,56 @@ export function Hero() {
 
 		const dims = (view: View) => {
 			if (!stage) return;
+
 			const s0 = stage;
 			const [rx, ry] = s0.project(MAG_ROOT, view);
 			const [tx, ty] = s0.project(MAG_TIP, view);
 			let dx = tx - rx;
 			let dy = ty - ry;
 			const len = Math.hypot(dx, dy) || 1;
+
 			dx /= len;
 			dy /= len;
+
 			let nx = -dy;
 			let ny = dx;
+
 			if (nx < 0) {
 				nx = -nx;
 				ny = -ny;
 			}
+
 			const lift = 20;
 			const a = [rx + nx * lift, ry + ny * lift];
 			const b = [tx + nx * lift, ty + ny * lift];
 			const tick = (p: number[]) =>
 				`M${(p[0] - nx * 5).toFixed(1)} ${(p[1] - ny * 5).toFixed(1)}L${(p[0] + nx * 5).toFixed(1)} ${(p[1] + ny * 5).toFixed(1)}`;
 			const boom = `M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}${tick(a)}${tick(b)}`;
+
 			dimLines[0]?.setAttribute("d", boom);
+
 			const mid = [(a[0] + b[0]) / 2 + nx * 4, (a[1] + b[1]) / 2 + ny * 4];
+
 			if (dimTags[0])
 				dimTags[0].style.translate = `${mid[0].toFixed(1)}px ${mid[1].toFixed(1)}px`;
+
 			if (dimTags[1]) dimTags[1].hidden = mode === "tall";
+
 			if (mode === "tall") {
 				dimLines[1]?.setAttribute("d", "");
+
 				return;
 			}
+
 			let lx = Number.POSITIVE_INFINITY;
 			let ly = 0;
 			let hx = Number.NEGATIVE_INFINITY;
 			let hy = 0;
 			let topY = Number.POSITIVE_INFINITY;
+
 			for (let k = 0; k < RIM_STEPS; k++) {
 				const t = (k / RIM_STEPS) * Math.PI * 2;
+
 				const [px, py] = s0.project(
 					[
 						RIM[0] + RIM_RADIUS * Math.cos(t),
@@ -528,101 +602,138 @@ export function Hero() {
 					],
 					view,
 				);
+
 				if (px < lx) {
 					lx = px;
 					ly = py;
 				}
+
 				if (px > hx) {
 					hx = px;
 					hy = py;
 				}
+
 				topY = Math.min(topY, py);
 			}
+
 			const [, feedY] = s0.project([RIM[0], RIM[1] + 0.9, RIM[2]], view);
 			const y = Math.min(topY, feedY) - 16;
 			const yy = Math.round(y) + 0.5;
 			const dish = `M${lx.toFixed(1)} ${yy}H${hx.toFixed(1)}M${lx.toFixed(1)} ${(yy - 5).toFixed(1)}V${(ly - 6).toFixed(1)}M${hx.toFixed(1)} ${(yy - 5).toFixed(1)}V${(hy - 6).toFixed(1)}`;
+
 			dimLines[1]?.setAttribute("d", dish);
+
 			if (dimTags[1])
 				dimTags[1].style.translate = `${((lx + hx) / 2).toFixed(1)}px ${(yy - 12).toFixed(1)}px`;
 		};
 
 		const draw = (now: number) => {
 			frame = 0;
+
 			const gap = now - last;
 			const dt = Math.min(0.05, gap / 1000);
+
 			last = now;
+
 			const at = -section.getBoundingClientRect().top;
 			const scrolled = Math.abs(at - u) > 1e-3;
+
 			u = at;
+
 			const goal = along(u, rail, 0);
+
 			if (!seeded || still.matches) {
 				progress = goal;
 				seeded = true;
 			} else {
 				const cap = dt / SWING;
+
 				progress += clamp(
 					(goal - progress) * (1 - Math.exp(-dt / TAU_SCROLL)),
 					-cap,
 					cap,
 				);
 			}
+
 			if (Math.abs(goal - progress) < SETTLE) progress = goal;
+
 			const settled = progress === goal;
+
 			s = settled ? u : along(progress, rail, 1);
 			beat = beatAt(u, beats, beat);
 			setState(cue, beat === "title" && u < CUE_PX);
+
 			const measured = s >= measure[0] && s <= measure[1];
 			const shown = measured && !measuring;
+
 			measuring = measured;
 			setState(lifeInk, measuring);
 			setState(dimsLayer, measuring);
 
 			if (arrival) {
 				const t = clamp((now - arrival.t0) / ARRIVAL_MS);
+
 				if (scrolled || pointer || t >= 1) {
 					spin += arrival.amount * (1 - t) ** 3;
 					arrival = null;
 				}
 			}
+
 			if (!pointer) {
 				if (still.matches) velocity = 0;
+
 				spin += velocity * dt;
 				velocity *= 0.92 ** (dt * 60);
+
 				if (Math.abs(velocity) < 0.002) velocity = 0;
+
 				if (scrolled || !settled) {
 					velocity = 0;
 					spin *= Math.exp(-dt / TAU_RETURN);
 				}
 			}
+
 			const take = track(s, beats, shots, still.matches);
 			const range = take.hold >= 0 ? ranges[take.hold] : null;
 			let extra = spin;
+
 			if (arrival) {
 				const t = clamp((now - arrival.t0) / ARRIVAL_MS);
+
 				extra += arrival.amount * (1 - t) ** 3;
 			}
+
 			if (range) spin = clamp(spin, range[0] - 0.3, range[1] + 0.3);
+
 			const limited = range ? soften(extra, range[0], range[1]) : extra;
+
 			if (Math.abs(spin) < 1e-4 && !pointer) spin = 0;
+
 			const pose: Pose = { ...take.pose, yaw: take.pose.yaw + limited };
 			const view = viewOf(pose, take.cam.scale, take.cam.cx, take.cam.cy);
 
 			let index = -1;
+
 			if (beat === "parts" && u < done)
 				for (let k = 0; k < marks.length; k++) if (u >= marks[k]) index = k;
+
 			if (index !== active) {
 				active = index;
 				mark(active);
 			}
+
 			const focus = index >= 0 ? TAGS[index].part : null;
 			const turned = focus !== pointPart;
+
 			if (turned) {
 				pointFrom = focus && pointAt && !still.matches ? pointAt : null;
+
 				if (!focus) pointAt = null;
+
 				pointT0 = now;
 				pointPart = focus;
 			}
+
 			setState(pointInk, focus !== null);
 
 			const signature = [
@@ -637,21 +748,29 @@ export function Hero() {
 				glDpr,
 				stage ? 1 : 0,
 			].join(" ");
+
 			const fresh = signature !== drawn;
+
 			if (stage && fresh) {
 				if (watch(now, gap)) size();
+
 				drawn = signature;
 				stage.draw(view);
+
 				if (!cv.dataset.ready) {
 					cv.dataset.ready = "";
 					firstFrame = now;
+
 					if (!arrived && !still.matches && beat === "title" && u < CUE_PX) {
 						arrival = { t0: now, amount: ARRIVE };
 					}
+
 					arrived = true;
 				}
 			} else gaps.length = 0;
+
 			if (stage && measuring && (fresh || shown)) dims(view);
+
 			if (stage && focus && (fresh || turned || pointFrom))
 				point(view, focus, now);
 
@@ -662,6 +781,7 @@ export function Hero() {
 				arrival !== null ||
 				velocity !== 0 ||
 				(spin !== 0 && scrolled);
+
 			if (visible && (moving || scrolled)) frame = requestAnimationFrame(draw);
 		};
 
@@ -674,29 +794,40 @@ export function Hero() {
 
 		const down = (e: PointerEvent) => {
 			if (e.button !== 0) return;
+
 			pointer = { id: e.pointerId, x: e.clientX, t: performance.now() };
 			velocity = 0;
 			kick();
 		};
+
 		const move = (e: PointerEvent) => {
 			if (!pointer || e.pointerId !== pointer.id) return;
+
 			const now = performance.now();
 			const dx = e.clientX - pointer.x;
 			const turn = (dx / Math.max(360, w)) * Math.PI * 1.2;
+
 			spin += turn;
+
 			const inst = turn / Math.max(0.008, (now - pointer.t) / 1000);
+
 			velocity = velocity * 0.4 + inst * 0.6;
 			pointer = { id: e.pointerId, x: e.clientX, t: now };
 			kick();
 		};
+
 		const up = (e: PointerEvent) => {
 			if (!pointer || e.pointerId !== pointer.id) return;
+
 			if (performance.now() - pointer.t > 80) velocity = 0;
+
 			pointer = null;
 			kick();
 		};
+
 		const cancel = (e: PointerEvent) => {
 			if (!pointer || e.pointerId !== pointer.id) return;
+
 			pointer = null;
 			velocity = 0;
 			kick();
@@ -718,43 +849,54 @@ export function Hero() {
 			seeded = false;
 			repaint();
 		});
+
 		const ro = new ResizeObserver(() => {
 			const tall = tallQuery.matches;
 			const changed = (tall ? "tall" : "wide") !== mode;
+
 			mode = tall ? "tall" : "wide";
 			size();
+
 			if (changed) {
 				beat = null;
 				seeded = false;
 			}
+
 			redraw();
 		});
+
 		io.observe(section);
 		ro.observe(stick);
 		ro.observe(head);
 		ro.observe(flow);
 		size();
 		tick();
+
 		const odometer = window.setInterval(() => {
 			if (visible && beat === "title" && document.visibilityState === "visible")
 				tick();
 		}, 100);
+
 		cv.addEventListener("pointerdown", down);
 		cv.addEventListener("webglcontextrestored", repaint);
 		window.addEventListener("pointermove", move);
 		window.addEventListener("pointerup", up);
 		window.addEventListener("pointercancel", cancel);
 		window.addEventListener("scroll", kick, { passive: true });
+
 		document.fonts?.ready.then(() => {
 			if (cancelled) return;
+
 			plan();
 			kick();
 		});
+
 		kick();
 
 		import("./stage")
 			.then(({ createStage }) => {
 				if (cancelled) return null;
+
 				return createStage(cv, {
 					shadow: coarse.matches ? 1024 : 2048,
 					signal: abort.signal,
@@ -762,10 +904,13 @@ export function Hero() {
 			})
 			.then((made) => {
 				if (!made) return;
+
 				if (cancelled) {
 					made.dispose();
+
 					return;
 				}
+
 				stage = made;
 				stage.resize(w, h, glDpr);
 				drawn = "";
@@ -778,7 +923,9 @@ export function Hero() {
 			abort.abort();
 			cancelAnimationFrame(frame);
 			window.clearInterval(odometer);
+
 			for (const t of timers.values()) window.clearTimeout(t);
+
 			io.disconnect();
 			ro.disconnect();
 			cv.removeEventListener("pointerdown", down);

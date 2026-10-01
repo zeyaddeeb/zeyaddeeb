@@ -20,6 +20,7 @@ pub struct Room {
 impl Room {
     fn new() -> Self {
         let (tx, _) = broadcast::channel(BROADCAST_CAPACITY);
+
         Room {
             tx,
             peers: Arc::new(AtomicUsize::new(0)),
@@ -32,11 +33,13 @@ impl Room {
     pub fn join(&self) -> (u32, usize) {
         let id = self.next_peer.fetch_add(1, Ordering::Relaxed);
         let count = self.peers.fetch_add(1, Ordering::Relaxed) + 1;
+
         (id, count)
     }
 
     pub fn leave(&self) -> usize {
         *self.idle.lock().unwrap_or_else(|e| e.into_inner()) = Instant::now();
+
         self.peers.fetch_sub(1, Ordering::Relaxed).saturating_sub(1)
     }
 
@@ -69,6 +72,7 @@ impl AppState {
 
     pub fn next_op_seq(&self) -> u64 {
         self.ops_seen.fetch_add(1, Ordering::Relaxed);
+
         self.next_seq.fetch_add(1, Ordering::Relaxed)
     }
 
@@ -82,23 +86,29 @@ impl AppState {
 
     pub async fn join_room(&self, doc_id: &str) -> Option<(Room, u32, usize)> {
         let _admission = self.admission.lock().await;
+
         if !self.rooms.contains_key(doc_id) && self.rooms.len() >= 32 {
             return None;
         }
+
         let room = self
             .rooms
             .entry(doc_id.to_owned())
             .or_insert_with(Room::new)
             .clone();
+
         if room.peer_count() >= 16 {
             return None;
         }
+
         let (peer, peers) = room.join();
+
         Some((room, peer, peers))
     }
 
     pub async fn sweep(&self) {
         let _admission = self.admission.lock().await;
+
         let expired: Vec<String> = self
             .rooms
             .iter()
@@ -113,6 +123,7 @@ impl AppState {
             })
             .map(|room| room.key().clone())
             .collect();
+
         for id in expired {
             if crate::db::delete_ops(&self.db, &id).await.is_ok() {
                 self.rooms.remove(&id);
@@ -129,17 +140,23 @@ mod tests {
     async fn admission_caps_and_expiration_reclaim_rooms() {
         let state = AppState::new(crate::db::connect().await.unwrap());
         let (room, _, _) = state.join_room("first").await.unwrap();
+
         for _ in 1..16 {
             assert!(state.join_room("first").await.is_some());
         }
+
         assert!(state.join_room("first").await.is_none());
+
         for i in 1..32 {
             assert!(state.join_room(&format!("room-{i}")).await.is_some());
         }
+
         assert!(state.join_room("overflow").await.is_none());
+
         for _ in 0..16 {
             room.leave();
         }
+
         *room.idle.lock().unwrap() = Instant::now() - Duration::from_secs(601);
         state.sweep().await;
         assert!(!state.rooms.contains_key("first"));

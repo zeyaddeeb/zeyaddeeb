@@ -40,22 +40,28 @@ pub fn proposition(statement: &str) -> Option<(String, String)> {
         .trim_end_matches(":= by")
         .trim_end_matches(":=")
         .trim();
+
     let mut words = text.splitn(3, char::is_whitespace);
+
     if !matches!(words.next()?, "theorem" | "lemma") {
         return None;
     }
+
     let name = words.next()?.to_string();
     let rest = words.next()?.trim().to_string();
+
     rest.contains(':').then_some((name, rest))
 }
 
 pub fn reduction(target: &str, name: &str, hypotheses: &[String]) -> Option<String> {
     let (_, rest) = proposition(target)?;
+
     let binders: Vec<String> = hypotheses
         .iter()
         .enumerate()
         .map(|(at, hypothesis)| format!("(ob{} : {hypothesis})", at + 1))
         .collect();
+
     Some(format!("theorem {name} {} {rest}", binders.join(" ")))
 }
 
@@ -65,6 +71,7 @@ pub fn obligation(name: &str, at: usize, hypothesis: &str) -> String {
 
 pub fn assembly(target: &str, lemma: &str, proofs: &[String]) -> String {
     let arguments = proofs.join(" ");
+
     format!(
         "{} := by\n  first\n  | exact {lemma} {arguments}\n  | (apply {lemma} {arguments} <;> assumption)",
         target.trim().trim_end_matches(":= by").trim_end_matches(":=").trim()
@@ -73,6 +80,7 @@ pub fn assembly(target: &str, lemma: &str, proofs: &[String]) -> String {
 
 pub fn conclusion(rest: &str) -> &str {
     let mut depth = 0i32;
+
     for (at, c) in rest.char_indices() {
         match c {
             '(' | '[' | '{' | '⦃' => depth += 1,
@@ -83,6 +91,7 @@ pub fn conclusion(rest: &str) -> &str {
             _ => {}
         }
     }
+
     rest.trim()
 }
 
@@ -90,8 +99,10 @@ pub fn restates(target: &str, hypothesis: &str) -> bool {
     let Some((name, rest)) = proposition(target) else {
         return false;
     };
+
     let squeeze = |text: &str| text.split_whitespace().collect::<String>();
     let wanted = squeeze(conclusion(&rest));
+
     squeeze(hypothesis).contains(&wanted)
         || signature(&format!("theorem x : {hypothesis}")) == signature(target)
         || hypothesis.contains(&name)
@@ -109,12 +120,16 @@ pub fn rows(nodes: &[Node], links: &[Link], reductions: &[Reduction]) -> Vec<Row
     let mut seen: Vec<String> = Vec::new();
     let mut stack: Vec<(String, usize, Via, Option<String>)> =
         vec![(ROOT.to_string(), 0, Via::Root, None)];
+
     while let Some((key, depth, via, lemma)) = stack.pop() {
         if rows.len() >= ROWS || seen.contains(&key) {
             continue;
         }
+
         let Some(node) = find(&key) else { continue };
+
         seen.push(key.clone());
+
         rows.push(Row {
             key: key.clone(),
             depth,
@@ -125,10 +140,13 @@ pub fn rows(nodes: &[Node], links: &[Link], reductions: &[Reduction]) -> Vec<Row
             lean: node.lean.clone(),
             number: None,
         });
+
         if depth >= DEPTH {
             continue;
         }
+
         let mut children: Vec<(String, Via, Option<String>)> = Vec::new();
+
         for reduction in reductions.iter().filter(|r| r.target == key) {
             for obligation in &reduction.obligations {
                 children.push((
@@ -138,6 +156,7 @@ pub fn rows(nodes: &[Node], links: &[Link], reductions: &[Reduction]) -> Vec<Row
                 ));
             }
         }
+
         for link in links {
             let child = match link.relation {
                 Relation::Uses if link.from == key => &link.to,
@@ -146,22 +165,27 @@ pub fn rows(nodes: &[Node], links: &[Link], reductions: &[Reduction]) -> Vec<Row
                 }
                 _ => continue,
             };
+
             let formal = find(child).is_some_and(|node| {
                 node.lean.is_some() || matches!(node.trust, Trust::Mathlib | Trust::Verified)
             });
+
             if formal && !children.iter().any(|(k, _, _)| k == child) {
                 let via = match link.relation {
                     Relation::Uses => Via::Uses,
                     Relation::Supports => Via::Supports,
                     _ => Via::Implies,
                 };
+
                 children.push((child.clone(), via, None));
             }
         }
+
         for (child, via, lemma) in children.into_iter().rev() {
             stack.push((child, depth + 1, via, lemma));
         }
     }
+
     rows
 }
 
@@ -196,8 +220,11 @@ impl Numbers {
         let mut numbers = Numbers {
             numbers: HashMap::new(),
         };
+
         let mut visiting = Vec::new();
+
         numbers.number(ROOT, nodes, links, reductions, &mut visiting);
+
         numbers
     }
 
@@ -212,25 +239,33 @@ impl Numbers {
         if let Some((number, _)) = self.numbers.get(key) {
             return *number;
         }
+
         let Some(node) = nodes.iter().find(|node| node.key == key) else {
             return f64::INFINITY;
         };
+
         if settled(node.trust) {
             self.numbers.insert(key.to_string(), (0.0, Choice::Settled));
+
             return 0.0;
         }
+
         if node.trust == Trust::Refuted
             || visiting.iter().any(|seen| seen == key)
             || visiting.len() > DEPTH * 2
         {
             return f64::INFINITY;
         }
+
         visiting.push(key.to_string());
+
         let routes: Vec<&Reduction> = reductions
             .iter()
             .filter(|r| r.target == key && !r.closed)
             .collect();
+
         let mut best = (f64::INFINITY, Choice::Direct(Vec::new()));
+
         if node.lean.is_some() {
             let needs: Vec<String> = links
                 .iter()
@@ -238,31 +273,40 @@ impl Numbers {
                 .map(|link| link.to.clone())
                 .filter(|to| !routes.iter().any(|r| r.obligations.contains(to)))
                 .collect();
+
             let base = if open_problem(node) {
                 OPEN_PROBLEM
             } else {
                 1.0 + FAILURE * failures(node) as f64
             };
+
             let cost = base
                 + needs
                     .iter()
                     .map(|need| self.number(need, nodes, links, reductions, visiting))
                     .sum::<f64>();
+
             best = (cost, Choice::Direct(needs));
         }
+
         for route in routes {
             let cost: f64 = route
                 .obligations
                 .iter()
                 .map(|ob| self.number(ob, nodes, links, reductions, visiting))
                 .sum();
+
             if cost < best.0 {
                 best = (cost, Choice::Route(route.obligations.clone()));
             }
         }
+
         visiting.pop();
+
         let number = best.0;
+
         self.numbers.insert(key.to_string(), best);
+
         number
     }
 
@@ -275,8 +319,10 @@ impl Numbers {
 
     pub fn focus(&self) -> Option<String> {
         let mut key = ROOT.to_string();
+
         for _ in 0..DEPTH * 2 {
             let (_, choice) = self.numbers.get(&key)?;
+
             let next = match choice {
                 Choice::Settled => return None,
                 Choice::Direct(needs) => needs
@@ -288,11 +334,13 @@ impl Numbers {
                     .filter(|ob| self.of(ob).is_some_and(|n| n > 0.0))
                     .min_by(|a, b| self.of(a).partial_cmp(&self.of(b)).unwrap()),
             };
+
             match next {
                 Some(next) => key = next.clone(),
                 None => return Some(key),
             }
         }
+
         Some(key)
     }
 }
@@ -301,6 +349,7 @@ pub fn numbered(mut rows: Vec<Row>, numbers: &Numbers) -> Vec<Row> {
     for row in &mut rows {
         row.number = numbers.of(&row.key);
     }
+
     rows
 }
 
@@ -333,10 +382,12 @@ pub fn outline(rows: &[Row]) -> Vec<String> {
                 Trust::Refuted => "refuted",
                 _ => "open",
             };
+
             let number = match row.number {
                 Some(n) if n > 0.0 && n < OPEN_PROBLEM => format!(" [proof number {n:.1}]"),
                 _ => String::new(),
             };
+
             let via = match (&row.via, &row.lemma) {
                 (Via::Reduction, Some(lemma)) => format!(" (by {lemma})"),
                 (Via::Uses, _) => " (needed)".to_string(),
@@ -344,10 +395,12 @@ pub fn outline(rows: &[Row]) -> Vec<String> {
                 (Via::Supports, _) => " (supports it)".to_string(),
                 _ => String::new(),
             };
+
             let lean = match (&row.lean, mark) {
                 (Some(lean), "open") => format!(" Lean: {lean}"),
                 _ => String::new(),
             };
+
             format!(
                 "{}[{}] {mark}{via}{number}: {}.{lean}",
                 "  ".repeat(row.depth),
@@ -366,10 +419,12 @@ mod tests {
     #[test]
     fn reductions_put_the_obligations_before_the_target_binders() {
         let target = "theorem zero_mirror (s : ℂ) (h0 : 0 < s.re) : riemannZeta (1 - s) = 0";
+
         assert_eq!(
             reduction(target, "zero_mirror_from_e3_1", &["P".into(), "Q".into()]).unwrap(),
             "theorem zero_mirror_from_e3_1 (ob1 : P) (ob2 : Q) (s : ℂ) (h0 : 0 < s.re) : riemannZeta (1 - s) = 0"
         );
+
         assert_eq!(
             reduction(
                 "theorem riemann_hypothesis : RiemannHypothesis",
@@ -379,11 +434,14 @@ mod tests {
             .unwrap(),
             "theorem rh_from_e1_1 (ob1 : P) : RiemannHypothesis"
         );
+
         assert!(reduction("RiemannHypothesis", "x", &[]).is_none());
+
         assert_eq!(
             obligation("rh_from_e1_1", 0, "P"),
             "theorem rh_from_e1_1_h1 : P"
         );
+
         assert!(assembly("theorem t : Q", "red", &["a".into(), "b".into()])
             .contains("| exact red a b\n  | (apply red a b <;> assumption)"));
     }
@@ -391,18 +449,22 @@ mod tests {
     #[test]
     fn the_conclusion_follows_the_first_top_level_colon() {
         assert_eq!(conclusion(": RiemannHypothesis"), "RiemannHypothesis");
+
         assert_eq!(
             conclusion("(s : ℂ) (h : s.re < 1) : riemannZeta (1 - s) = 0"),
             "riemannZeta (1 - s) = 0"
         );
+
         assert_eq!(conclusion("(x : ℕ) : ∃ n : ℕ, x = n"), "∃ n : ℕ, x = n");
     }
 
     #[test]
     fn restating_the_target_is_not_a_reduction() {
         let rh = "theorem riemann_hypothesis : RiemannHypothesis";
+
         assert!(restates(rh, "RiemannHypothesis ∧ True"));
         assert!(restates(rh, "riemann_hypothesis"));
+
         assert!(!restates(
             rh,
             "∀ s : ℂ, riemannZeta s = 0 → 1 / 2 < s.re → s.re < 1 → False"
@@ -412,6 +474,7 @@ mod tests {
     #[test]
     fn the_tree_starts_at_the_hypothesis_and_follows_reductions() {
         let mut nodes = seed::nodes();
+
         let mut core = Node::new(
             "ob-2-1",
             Kind::Target,
@@ -419,8 +482,10 @@ mod tests {
             "Nothing right of the line",
             "P",
         );
+
         core.lean = Some("theorem rh_from_e2_1_h1 : P".into());
         nodes.push(core);
+
         let reductions = vec![Reduction {
             lemma: "rh_from_e2_1".into(),
             target: "rh".into(),
@@ -428,21 +493,28 @@ mod tests {
             episode: 2,
             closed: false,
         }];
+
         let rows = rows(&nodes, &seed::links(), &reductions);
+
         assert_eq!(rows[0].key, "rh");
         assert_eq!(rows[1].key, "ob-2-1");
         assert_eq!(rows[1].via, Via::Reduction);
         assert!(rows.iter().any(|row| row.key == "strip" && row.depth == 1));
+
         assert!(rows
             .iter()
             .any(|row| row.key == "no-zero-right" && row.depth == 2 && row.via == Via::Uses));
+
         let leaves: Vec<&str> = open_leaves(&rows)
             .iter()
             .map(|row| row.key.as_str())
             .collect();
+
         assert!(leaves.contains(&"ob-2-1") && leaves.contains(&"no-zero-right"));
         assert!(!leaves.contains(&"rh") && !leaves.contains(&"strip"));
+
         let text = outline(&rows).join("\n");
+
         assert!(text.contains("  [ob-2-1] open (by rh_from_e2_1)"), "{text}");
     }
 
@@ -451,12 +523,16 @@ mod tests {
         let mut nodes = seed::nodes();
         let links = seed::links();
         let numbers = Numbers::new(&nodes, &links, &[]);
+
         assert_eq!(numbers.of("rh"), Some(OPEN_PROBLEM));
         assert_eq!(numbers.focus().as_deref(), Some("rh"));
+
         let obligation = |key: &str, failed: usize| {
             let mut node = Node::new(key, Kind::Target, Trust::Open, key, "P");
+
             node.lean = Some(format!("theorem {key} : P"));
             node.source = Some("Obligation of r".into());
+
             for _ in 0..failed {
                 node.evidence.push(crate::agent::memory::Evidence {
                     episode: 1,
@@ -465,11 +541,14 @@ mod tests {
                     held: Some(false),
                 });
             }
+
             node
         };
+
         nodes.push(obligation("a", 4));
         nodes.push(obligation("b", 0));
         nodes.push(obligation("c", 1));
+
         let reductions = vec![
             Reduction {
                 lemma: "r1".into(),
@@ -486,15 +565,21 @@ mod tests {
                 closed: false,
             },
         ];
+
         let numbers = Numbers::new(&nodes, &links, &reductions);
+
         assert_eq!(numbers.of("rh"), Some(1.5));
         assert_eq!(numbers.focus().as_deref(), Some("c"));
         nodes.iter_mut().find(|n| n.key == "c").unwrap().trust = Trust::Refuted;
+
         let numbers = Numbers::new(&nodes, &links, &reductions);
+
         assert_eq!(numbers.of("rh"), Some(4.0));
         assert_eq!(numbers.focus().as_deref(), Some("b"));
         nodes.iter_mut().find(|n| n.key == "b").unwrap().trust = Trust::Verified;
+
         let numbers = Numbers::new(&nodes, &links, &reductions);
+
         assert_eq!(numbers.focus().as_deref(), Some("a"));
     }
 }

@@ -333,6 +333,7 @@ export function Toolbar({ editor }: ToolbarProps) {
 					onClick={() => {
 						const { from, to } = editor.state.selection;
 						const selectedText = editor.state.doc.textBetween(from, to);
+
 						if (selectedText) {
 							editor.chain().focus().insertContent(`$${selectedText}$`).run();
 						} else {
@@ -349,6 +350,7 @@ export function Toolbar({ editor }: ToolbarProps) {
 					onClick={() => {
 						const { from, to } = editor.state.selection;
 						const selectedText = editor.state.doc.textBetween(from, to);
+
 						if (selectedText) {
 							editor
 								.chain()

@@ -14,9 +14,11 @@ describe("public metadata", () => {
 			description: "Collaborative editing in Rust.",
 			path: "/experiments/crdt",
 		});
+
 		expect(metadata.title).toEqual({ absolute: "CRDT Editor | Zeyad Deeb" });
 		expect(metadata.openGraph?.title).toBe("CRDT Editor | Zeyad Deeb");
 		expect(metadata.twitter?.title).toBe(metadata.openGraph?.title);
+
 		expect(metadata.alternates?.canonical).toBe(
 			"https://www.zeyaddeeb.com/experiments/crdt",
 		);
@@ -29,9 +31,11 @@ describe("public metadata", () => {
 			path: "/blog/library",
 			page: "2",
 		});
+
 		expect(metadata.alternates?.canonical).toBe(
 			"https://www.zeyaddeeb.com/blog/library?page=2",
 		);
+
 		expect(metadata.robots).toMatchObject({ index: true, follow: true });
 	});
 
@@ -43,7 +47,9 @@ describe("public metadata", () => {
 			page: "3",
 			filters: { q: " rust & wasm ", type: "book" },
 		});
+
 		const url = new URL(String(metadata.alternates?.canonical));
+
 		expect(url.pathname).toBe("/blog/library");
 		expect(url.searchParams.get("q")).toBe("rust & wasm");
 		expect(url.searchParams.get("page")).toBe("3");
@@ -54,6 +60,7 @@ describe("public metadata", () => {
 		for (const value of [undefined, "-1", "0", "1.5", "NaN", "Infinity"]) {
 			expect(pageNumber(value)).toBe(1);
 		}
+
 		const metadata = listingMetadata({
 			title: "Blog",
 			description: "Articles.",
@@ -61,6 +68,7 @@ describe("public metadata", () => {
 			page: "1",
 			filters: { search: " " },
 		});
+
 		expect(metadata.alternates?.canonical).toBe(siteUrl("/blog/posts"));
 		expect(metadata.robots).toMatchObject({ index: true });
 	});
@@ -72,6 +80,7 @@ describe("public metadata", () => {
 			path: "/blog/library/a-book",
 			image: "https://example.com/portrait.jpg",
 		});
+
 		expect(metadata.openGraph?.images).toEqual([
 			{ url: "https://example.com/portrait.jpg", alt: "A book" },
 		]);
@@ -80,6 +89,7 @@ describe("public metadata", () => {
 	it("escapes script delimiters in structured data without losing content", () => {
 		const data = { headline: '</script><script>alert("test")</script>' };
 		const serialized = serializeJsonLd(data);
+
 		expect(serialized).not.toContain("<");
 		expect(JSON.parse(serialized)).toEqual(data);
 	});

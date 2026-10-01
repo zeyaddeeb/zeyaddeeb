@@ -71,12 +71,16 @@ function reduce(state: LabState, action: Action): LabState {
 			replaced: action.replaced ?? state.replaced,
 		};
 	}
+
 	if (action.kind === "error") return { ...state, error: action.message };
+
 	if (action.kind === "asking") return { ...state, spoken: [], error: null };
 
 	const event = action.event;
+
 	if (event.type === "snapshot") {
 		const session = event.session;
+
 		return {
 			...state,
 			connection: "live",
@@ -94,15 +98,19 @@ function reduce(state: LabState, action: Action): LabState {
 				: {}),
 		};
 	}
+
 	if (!state.session || event.generation !== state.session.generation) {
 		return state;
 	}
+
 	switch (event.type) {
 		case "lifecycle": {
 			const last = state.journal.at(-1);
+
 			const changed =
 				last?.operationId !== event.operation.operationId ||
 				last.state !== event.operation.state;
+
 			return {
 				...state,
 				operation: event.operation,
@@ -121,17 +129,20 @@ function reduce(state: LabState, action: Action): LabState {
 		}
 		case "step": {
 			const first = event.step + 1 - event.losses.length;
+
 			const points = event.losses.map((loss, i) => ({
 				step: first + i,
 				phase: event.phase,
 				loss,
 			}));
+
 			const session = {
 				...state.session,
 				step: event.phase === "distill" ? state.session.step : event.step,
 				revision: event.revision,
 				phaseSteps: event.phaseSteps,
 			};
+
 			if (event.phase === "distill") {
 				return {
 					...state,
@@ -142,6 +153,7 @@ function reduce(state: LabState, action: Action): LabState {
 					),
 				};
 			}
+
 			return {
 				...state,
 				session,
@@ -215,15 +227,21 @@ export function useLab() {
 
 		const open = (id: string, fresh: boolean) => {
 			if (closed) return;
+
 			const openedAt = Date.now();
+
 			source = new EventSource(`/experiments/deepseek/events?session=${id}`);
+
 			source.onmessage = (message) => {
 				dispatch({ kind: "event", event: JSON.parse(message.data) });
 			};
+
 			source.onerror = () => {
 				if (source?.readyState !== EventSource.CLOSED || closed) return;
+
 				source.close();
 				window.sessionStorage.removeItem(STORAGE);
+
 				if (fresh && Date.now() - openedAt < 5000)
 					dispatch({ kind: "connection", connection: "down" });
 				else void create(true);
@@ -232,20 +250,27 @@ export function useLab() {
 
 		const create = async (replaced: boolean) => {
 			dispatch({ kind: "connection", connection: "connecting", replaced });
+
 			creating ??= createSession().finally(() => {
 				creating = null;
 			});
+
 			const created = await creating;
+
 			if (closed || run !== attempt.current) return;
+
 			if (!created.ok) {
 				dispatch({ kind: "connection", connection: created.reason });
+
 				return;
 			}
+
 			window.sessionStorage.setItem(STORAGE, created.session.id);
 			open(created.session.id, true);
 		};
 
 		const remembered = window.sessionStorage.getItem(STORAGE);
+
 		if (remembered) open(remembered, false);
 		else void create(false);
 
@@ -259,22 +284,27 @@ export function useLab() {
 
 	const retry = useCallback(() => {
 		attempt.current += 1;
+
 		return connect();
 	}, [connect]);
 
 	const send = useCallback(async (command: Command) => {
 		const target = live.current;
+
 		if (!target) return;
+
 		dispatch(
 			command.type === "ask"
 				? { kind: "asking" }
 				: { kind: "error", message: null },
 		);
+
 		const delivered = await sendCommand(target.id, {
 			...command,
 			commandId: crypto.randomUUID(),
 			generation: target.generation,
 		});
+
 		if (!delivered) {
 			dispatch({
 				kind: "error",

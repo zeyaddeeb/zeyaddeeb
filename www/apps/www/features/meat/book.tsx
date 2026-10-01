@@ -19,8 +19,10 @@ export function Book({ pages }: { pages: Page[] }) {
 
 	const show = (i: number | null) => {
 		setOpen(i);
+
 		const { pathname, search } = window.location;
 		const hash = i === null ? "" : `#${pages[i].slug}`;
+
 		window.history.replaceState(
 			window.history.state,
 			"",
@@ -30,37 +32,50 @@ export function Book({ pages }: { pages: Page[] }) {
 
 	useEffect(() => {
 		const i = pages.findIndex((p) => `#${p.slug}` === window.location.hash);
+
 		if (i >= 0) setOpen(i);
 	}, [pages]);
 
 	useEffect(() => {
 		const d = sheet.current;
+
 		if (!d) return;
+
 		if (open === null) {
 			if (d.open) d.close();
+
 			return;
 		}
+
 		if (!d.open) d.showModal();
+
 		d.scrollTo({ top: 0 });
 	}, [open]);
 
 	useEffect(() => {
 		const d = sheet.current;
+
 		if (!d) return;
+
 		const closed = () => {
 			setOpen(null);
+
 			const { pathname, search } = window.location;
+
 			window.history.replaceState(
 				window.history.state,
 				"",
 				`${pathname}${search}`,
 			);
 		};
+
 		const backdrop = (e: MouseEvent) => {
 			if (e.target === d) d.close();
 		};
+
 		d.addEventListener("close", closed);
 		d.addEventListener("click", backdrop);
+
 		return () => {
 			d.removeEventListener("close", closed);
 			d.removeEventListener("click", backdrop);

@@ -30,15 +30,18 @@ export default function GameOfLifeLab() {
 	const [drawMode, setDrawMode] = useState<"draw" | "erase">("draw");
 	const [showGrid, setShowGrid] = useState(false);
 	const [trails, setTrails] = useState(true);
+
 	const [stats, setStats] = useState<(LifeStats & { fps: number }) | null>(
 		null,
 	);
+
 	const [hasWasm, setHasWasm] = useState<boolean | null>(null);
 
 	const onStats = useCallback(
 		(s: LifeStats & { fps: number }) => setStats(s),
 		[],
 	);
+
 	const onReady = useCallback((w: boolean) => setHasWasm(w), []);
 
 	const { cols, rows } = SIZES[size];

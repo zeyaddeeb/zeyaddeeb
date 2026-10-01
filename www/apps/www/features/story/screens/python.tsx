@@ -64,11 +64,15 @@ export function PythonScreen() {
 
 		const next = () => {
 			if (cancelled) return;
+
 			const s = SESSION[step];
+
 			if (!s) {
 				setDone(true);
+
 				return;
 			}
+
 			if ("pause" in s) {
 				step++;
 				timer = window.setTimeout(next, s.pause);
@@ -82,26 +86,35 @@ export function PythonScreen() {
 					setPartial(s.at);
 					col = -1;
 					timer = window.setTimeout(next, s.wait ?? 320);
+
 					return;
 				}
+
 				col = Math.max(0, col) + 1;
 				setPartial(s.at + s.typed.slice(0, col));
+
 				if (col >= s.typed.length) {
 					const finished = s.at + s.typed;
+
 					step++;
 					col = 0;
+
 					const last = step >= SESSION.length;
+
 					if (!last) {
 						setLines((prev) => [...prev, finished]);
 						setPartial("");
 					}
+
 					timer = window.setTimeout(next, last ? 0 : 260);
 				} else {
 					timer = window.setTimeout(next, KEY_MS + Math.random() * 40);
 				}
 			}
 		};
+
 		timer = window.setTimeout(next, 400);
+
 		return () => {
 			cancelled = true;
 			clearTimeout(timer);
@@ -110,6 +123,7 @@ export function PythonScreen() {
 
 	useEffect(() => {
 		const log = logRef.current;
+
 		if (log) log.scrollTop = log.scrollHeight;
 	}, [lines, partial]);
 

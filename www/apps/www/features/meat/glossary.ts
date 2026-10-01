@@ -228,13 +228,18 @@ export interface Segment {
 export function segments(markup: string): Segment[] {
 	const out: Segment[] = [];
 	let last = 0;
+
 	for (const m of markup.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)) {
 		const at = m.index ?? 0;
+
 		if (at > last) out.push({ text: markup.slice(last, at) });
+
 		out.push({ text: m[1], id: m[2] });
 		last = at + m[0].length;
 	}
+
 	if (last < markup.length) out.push({ text: markup.slice(last) });
+
 	return out;
 }
 
@@ -294,6 +299,7 @@ function spread(
 ) {
 	const fresh = ids.filter((id) => !nodes[id]);
 	const step = (to - from) / Math.max(1, fresh.length);
+
 	fresh.forEach((id, i) => {
 		nodes[id] = {
 			id,
@@ -302,8 +308,10 @@ function spread(
 			from: from + i * step,
 			to: from + (i + 1) * step,
 		};
+
 		order.push(id);
 	});
+
 	return fresh;
 }
 
@@ -311,18 +319,25 @@ export function start(markup: string): Reaction {
 	const seed = [
 		...new Set(segments(markup).flatMap((s) => (s.id ? [s.id] : []))),
 	];
+
 	const nodes: Record<string, Node> = {};
 	const order: string[] = [];
+
 	spread(nodes, order, seed, null, 1, -Math.PI / 2, (Math.PI * 3) / 2);
+
 	return { seed, nodes, order, opened: [] };
 }
 
 export function open(reaction: Reaction, id: string): Reaction {
 	const node = reaction.nodes[id];
+
 	if (!node || reaction.opened.includes(id)) return reaction;
+
 	const nodes = { ...reaction.nodes };
 	const order = [...reaction.order];
+
 	spread(nodes, order, children(id), id, node.depth + 1, node.from, node.to);
+
 	return { ...reaction, nodes, order, opened: [...reaction.opened, id] };
 }
 
@@ -333,12 +348,15 @@ export function measure(reaction: Reaction) {
 	const k = lookups ? found / lookups : null;
 	const expected =
 		k === null ? null : k >= 1 ? Infinity : reaction.seed.length / (1 - k);
+
 	return { lookups, found, pending, k, expected };
 }
 
 export function closure(markup: string) {
 	let reaction = start(markup);
+
 	for (let i = 0; i < reaction.order.length; i++)
 		reaction = open(reaction, reaction.order[i]);
+
 	return reaction;
 }

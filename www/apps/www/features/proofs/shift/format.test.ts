@@ -12,6 +12,7 @@ suite("shift copy", () => {
 	it("describes instrument calls in plain terms", () => {
 		expect(describe("line", {})).toBe("extend the verified stretch");
 		expect(describe("line", { from: 1000, to: 1200 })).toBe("t 1,000 → 1,200");
+
 		expect(
 			describe("contour", {
 				sigma_from: 0.6,
@@ -20,6 +21,7 @@ suite("shift copy", () => {
 				t_to: 140,
 			}),
 		).toBe("σ 0.6–0.9 · t 100–140");
+
 		expect(describe("hasse", { a: -1, b: 1 })).toBe("y² = x³ − 1x + 1");
 		expect(describe("robin", { epsilon: "0.001" })).toBe("ε = 0.001");
 	});
@@ -30,8 +32,10 @@ suite("shift copy", () => {
 				statement: "theorem zero_mirror_4 (s : ℂ) : True",
 			}),
 		).toBe("Lean · zero_mirror_4");
+
 		expect(chip("line", { from: 1000, to: 1060 })).toBe("Line · 1000–1060");
 		expect(chip("plan", {})).toBe("Plan");
+
 		expect(chip("conjecture", { title: "A very long claim title here" })).toBe(
 			"Claim · A very long claim…",
 		);
@@ -41,7 +45,9 @@ suite("shift copy", () => {
 		expect(
 			prediction({ expect: { field: "missing", op: "=", value: 0 } }),
 		).toBe("missing = 0");
+
 		expect(prediction({})).toBeNull();
+
 		expect(
 			verdict({
 				field: "distance_gue",
@@ -51,6 +57,7 @@ suite("shift copy", () => {
 				held: false,
 			}),
 		).toBe("Broke: distance gue was 0.02340");
+
 		expect(
 			verdict({
 				field: "worst_ratio",

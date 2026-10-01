@@ -48,6 +48,7 @@ const FALLBACK: Shape = {
 const clamp = (t: number) => Math.min(1, Math.max(0, t));
 const smooth = (t: number) => {
 	const c = clamp(t);
+
 	return c * c * (3 - 2 * c);
 };
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -62,6 +63,7 @@ const triple = (a: unknown): V3 | null =>
 const along = (from: V3, to: V3, n: number): V3[] =>
 	Array.from({ length: n + 1 }, (_, i) => {
 		const t = i / n;
+
 		return [
 			from[0] + (to[0] - from[0]) * t,
 			from[1] + (to[1] - from[1]) * t,
@@ -72,34 +74,49 @@ const along = (from: V3, to: V3, n: number): V3[] =>
 function describe(json: unknown): Shape | null {
 	const nodes = (json as { nodes?: { extras?: Record<string, unknown> }[] })
 		?.nodes;
+
 	if (!Array.isArray(nodes)) return null;
+
 	const root = nodes.find((n) => n.extras?.directions)?.extras;
+
 	if (!root) return null;
+
 	const dirs = root.directions as Record<string, unknown>;
 	const science = triple((dirs.science as { dir?: unknown })?.dir);
+
 	if (!science) return null;
+
 	const dish = typeof root.dish === "number" ? root.dish : FALLBACK.dish;
 	const points: V3[] = [];
 	let center: V3 = FALLBACK.center;
+
 	for (const n of nodes) {
 		const e = n.extras;
 		const c = triple(e?.center);
 		const s = triple(e?.size);
+
 		if (!e || typeof e.part !== "string" || !c || !s) continue;
+
 		if (e.part === "mag" || e.part === "pws") continue;
+
 		if (e.part === "hga") {
 			center = c;
+
 			for (let k = 0; k < 24; k++) {
 				const a = (k / 24) * Math.PI * 2;
+
 				points.push([
 					c[0] + Math.cos(a) * (dish / 2),
 					c[1],
 					c[2] + Math.sin(a) * (dish / 2),
 				]);
 			}
+
 			points.push([c[0], c[1] + s[1] / 2, c[2]]);
+
 			continue;
 		}
+
 		for (let k = 0; k < 8; k++) {
 			points.push([
 				c[0] + (k & 1 ? 0.5 : -0.5) * s[0],
@@ -108,43 +125,60 @@ function describe(json: unknown): Shape | null {
 			]);
 		}
 	}
+
 	const mag = dirs.mag as { root?: unknown; tip?: unknown } | undefined;
 	const magRoot = triple(mag?.root);
 	const magTip = triple(mag?.tip);
+
 	if (magRoot && magTip) points.push(...along(magRoot, magTip, 16));
+
 	if (Array.isArray(dirs.pws)) {
 		for (const whip of dirs.pws as { root?: unknown; tip?: unknown }[]) {
 			const from = triple(whip?.root);
 			const to = triple(whip?.tip);
+
 			if (from && to) points.push(...along(from, to, 8));
 		}
 	}
+
 	return { dish, center, science, points };
 }
 
 async function header(url: string): Promise<unknown> {
 	const res = await fetch(url);
+
 	if (!res.ok || !res.body) return null;
+
 	const reader = res.body.getReader();
 	let bytes = new Uint8Array(0);
 	let need = 20;
 	let size = -1;
+
 	while (bytes.byteLength < need) {
 		const { done, value } = await reader.read();
+
 		if (done || !value) break;
+
 		const next = new Uint8Array(bytes.byteLength + value.byteLength);
+
 		next.set(bytes);
 		next.set(value, bytes.byteLength);
 		bytes = next;
+
 		if (size < 0 && bytes.byteLength >= 20) {
 			const head = new DataView(bytes.buffer);
+
 			if (head.getUint32(0, true) !== 0x46546c67) break;
+
 			size = head.getUint32(12, true);
 			need = 20 + size;
 		}
 	}
+
 	reader.cancel().catch(() => {});
+
 	if (size < 0 || bytes.byteLength < 20 + size) return null;
+
 	return JSON.parse(new TextDecoder().decode(bytes.subarray(20, 20 + size)));
 }
 
@@ -154,19 +188,25 @@ function loadShape() {
 	shaped ??= header(MODEL)
 		.then((json) => describe(json) ?? FALLBACK)
 		.catch(() => FALLBACK);
+
 	return shaped;
 }
 
 function light(ms: number) {
 	const d = duration(fix(ms).lightSeconds);
+
 	return [pad(d.h), pad(d.m), pad(d.s)] as const;
 }
 
 function remaining(sent: Sent | null, now: number) {
 	if (!sent) return null;
+
 	const left = sent.at + sent.light * 1000 - now;
+
 	if (left <= 0) return null;
+
 	const d = duration(left / 1000);
+
 	return `${d.h}\u202fh ${pad(d.m)}\u202fm`;
 }
 
@@ -178,11 +218,13 @@ function within(node: HTMLElement, base: HTMLElement): Box {
 	let x = 0;
 	let y = 0;
 	let n: HTMLElement | null = node;
+
 	while (n && n !== base) {
 		x += n.offsetLeft;
 		y += n.offsetTop;
 		n = n.offsetParent as HTMLElement | null;
 	}
+
 	return {
 		left: x,
 		top: y,
@@ -213,7 +255,9 @@ export function Finale() {
 		const el = root.current;
 		const box = stick.current;
 		const into = host.current;
+
 		if (!el || !box || !into) return;
+
 		const still = window.matchMedia("(prefers-reduced-motion: reduce)");
 		const coarse = window.matchMedia("(pointer: coarse)");
 		let stage: Stage | null = null;
@@ -256,8 +300,10 @@ export function Finale() {
 
 		const aim = (s: Stage, view: View) => {
 			const [px, py] = s.project(shape.center, view);
+
 			view.cx += tx - px;
 			view.cy += ty - py;
+
 			return view;
 		};
 
@@ -265,85 +311,116 @@ export function Finale() {
 			w = box.offsetWidth;
 			h = box.offsetHeight;
 			span = Math.max(1, el.offsetHeight - h - 1);
+
 			const device = window.devicePixelRatio || 1;
+
 			dpr = coarse.matches ? 1.5 : Math.min(2, Math.max(1.5, device));
 			dirty = true;
+
 			const s = stage;
+
 			if (!s || !copy.current || !rect.current || !time.current) return;
+
 			const c = within(copy.current, box);
 			const m = within(rect.current, box);
 			const n = within(time.current, box);
+
 			s.resize(w, h, dpr);
+
 			const side = m.left >= c.right - 1;
+
 			const zone: Box = {
 				left: c.left - MARGIN,
 				top: c.top - MARGIN,
 				right: c.right + MARGIN,
 				bottom: c.bottom + MARGIN,
 			};
+
 			const mw = m.right - m.left;
 			const mh = m.bottom - m.top;
+
 			const target = side
 				? Math.min(0.6 * (h - m.top), 0.8 * mw)
 				: Math.min(0.6 * w, 0.62 * mh);
+
 			tx = m.left + mw / 2;
+
 			ty = side
 				? Math.min(
 						Math.max((n.top + n.bottom) / 2, m.top + target / 2 + 12),
 						h - target / 2 - 12,
 					)
 				: m.top + mh / 2;
+
 			s1 = DOT / shape.dish;
 			s0 = target / shape.dish;
+
 			const [sx, , sz] = shape.science;
 			const up = -Math.atan2(sx, -sz);
 			const primary = side ? up : up - Math.PI / 2;
+
 			const rim = [0, 1, 2, 3].map((k): V3 => {
 				const a = (k / 2) * Math.PI;
+
 				return [
 					shape.center[0] + Math.cos(a) * (shape.dish / 2),
 					shape.center[1],
 					shape.center[2] + Math.sin(a) * (shape.dish / 2),
 				];
 			});
+
 			const across = (view: View) => {
 				let most = 0;
+
 				for (let k = 0; k < 2; k++) {
 					const [ax, ay] = s.project(rim[k], view);
 					const [bx, by] = s.project(rim[k + 2], view);
+
 					most = Math.max(most, Math.hypot(ax - bx, ay - by));
 				}
+
 				return most;
 			};
+
 			for (let k = 0; k < 2; k++) {
 				const got = across(aim(s, viewAt(0, primary)));
+
 				if (got > 0) s0 *= target / got;
 			}
+
 			let best = primary;
 			let score = Number.POSITIVE_INFINITY;
+
 			for (const flip of [0, Math.PI]) {
 				for (let o = -SWEEP; o <= SWEEP + 1e-6; o += STEP) {
 					const turn = primary + flip + o;
 					let hits = 0;
+
 					for (const t of TRIALS) {
 						const view = aim(s, viewAt(smooth(t), turn));
+
 						for (const pt of shape.points) {
 							const [x, y] = s.project(pt, view);
+
 							if (inside(x, y, zone)) hits++;
 						}
 					}
+
 					const cost = hits * 100 + Math.abs(o) + flip * 0.2;
+
 					if (cost < score) {
 						score = cost;
 						best = turn;
 					}
 				}
 			}
+
 			yaw = best;
 		};
 
 		const progress = () => {
 			if (still.matches) return 1;
+
 			return clamp(-el.getBoundingClientRect().top / span);
 		};
 
@@ -351,17 +428,26 @@ export function Finale() {
 			const now = Date.now();
 			const [hh, mm, ss] = light(now);
 			const next = `${hh}${mm}${ss}`;
+
 			if (next !== stamp) {
 				stamp = next;
+
 				const [a, b, c] = parts.current;
+
 				if (a) a.textContent = hh;
+
 				if (b) b.textContent = mm;
+
 				if (c) c.textContent = ss;
 			}
+
 			const rest = remaining(current.current, now);
+
 			if (left.current && rest && left.current.textContent !== rest)
 				left.current.textContent = rest;
+
 			const on = rest !== null;
+
 			if (on !== fly) {
 				fly = on;
 				setFlying(on);
@@ -370,34 +456,49 @@ export function Finale() {
 
 		const paint = () => {
 			const s = stage;
+
 			if (!s || (!dirty && q === drawn)) return;
+
 			dirty = false;
 			drawn = q;
 			s.draw(aim(s, viewAt(smooth((q - FROM) / (TO - FROM)))));
+
 			if (shown || !canvas) return;
+
 			shown = true;
+
 			canvas.style.transition = still.matches
 				? ""
 				: "opacity 240ms cubic-bezier(0.22, 0.61, 0.36, 1)";
+
 			canvas.style.opacity = "1";
 		};
 
 		const warm = () => {
 			pending = 0;
+
 			if (frame) return;
+
 			q = progress();
 			paint();
 		};
 
 		const draw = (now: number) => {
 			frame = 0;
+
 			const dt = Math.min(0.1, Math.max(0, (now - last) / 1000));
+
 			last = now;
+
 			const p = progress();
+
 			if (q < 0 || still.matches) q = p;
 			else q += (p - q) * (1 - Math.exp(-dt / TAU));
+
 			if (Math.abs(p - q) < 1e-4) q = p;
+
 			paint();
+
 			if (visible && q !== p) {
 				frame = requestAnimationFrame(draw);
 			}
@@ -405,6 +506,7 @@ export function Finale() {
 
 		const kick = () => {
 			if (frame || !visible) return;
+
 			last = performance.now();
 			frame = requestAnimationFrame(draw);
 		};
@@ -413,6 +515,7 @@ export function Finale() {
 			typeof window.requestIdleCallback === "function"
 				? window.requestIdleCallback(fn, { timeout: 700 })
 				: window.setTimeout(fn, 60);
+
 		const cancelIdle = (id: number) => {
 			if (typeof window.cancelIdleCallback === "function")
 				window.cancelIdleCallback(id);
@@ -421,8 +524,11 @@ export function Finale() {
 
 		const drop = () => {
 			if (pending) cancelIdle(pending);
+
 			pending = 0;
+
 			const cv = canvas;
+
 			canvas = null;
 			cv?.remove();
 			abort?.abort();
@@ -434,22 +540,30 @@ export function Finale() {
 
 		const lost = (e: Event) => {
 			if (e.target !== canvas) return;
+
 			drop();
+
 			if (near) schedule();
 		};
 
 		const build = () => {
 			pending = 0;
+
 			if (canvas || !near) return;
+
 			const cv = document.createElement("canvas");
+
 			cv.className = "vg-finale__canvas";
 			cv.setAttribute("aria-hidden", "true");
 			cv.style.opacity = "0";
 			cv.addEventListener("webglcontextlost", lost);
 			into.append(cv);
 			canvas = cv;
+
 			const ctl = new AbortController();
+
 			abort = ctl;
+
 			Promise.all([
 				import("./stage").then(({ createStage }) =>
 					createStage(cv, {
@@ -462,17 +576,21 @@ export function Finale() {
 				.then(([made, found]) => {
 					if (ctl.signal.aborted || canvas !== cv) {
 						made.dispose();
+
 						return;
 					}
+
 					shape = found;
 					stage = made;
 					measure();
 					q = -1;
+
 					if (visible) kick();
 					else pending = idle(warm);
 				})
 				.catch(() => {
 					if (canvas !== cv) return;
+
 					canvas = null;
 					cv.remove();
 				});
@@ -480,29 +598,35 @@ export function Finale() {
 
 		const schedule = () => {
 			if (canvas || pending) return;
+
 			pending = idle(build);
 		};
 
 		const approach = new IntersectionObserver(
 			([entry]) => {
 				if (!entry.isIntersecting) return;
+
 				near = true;
 				schedule();
 			},
 			{ rootMargin: "100% 0px" },
 		);
+
 		const leave = new IntersectionObserver(
 			([entry]) => {
 				if (entry.isIntersecting) return;
+
 				near = false;
 				drop();
 			},
 			{ rootMargin: "200% 0px" },
 		);
+
 		const seen = new IntersectionObserver(([entry]) => {
 			visible = entry.isIntersecting;
 			window.clearInterval(timer);
 			timer = 0;
+
 			if (visible) {
 				q = -1;
 				tick();
@@ -510,11 +634,14 @@ export function Finale() {
 				kick();
 			}
 		});
+
 		const ro = new ResizeObserver(() => {
 			measure();
 			kick();
 		});
+
 		const scrolled = () => kick();
+
 		const motion = () => {
 			q = -1;
 			dirty = true;

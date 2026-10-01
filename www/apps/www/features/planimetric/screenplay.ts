@@ -223,40 +223,55 @@ export function compile(source: string): {
 	const shots: Shot[] = [];
 	let heading = "";
 	let mode: "action" | "dialogue" = "action";
+
 	const fail = (error: string) => ({
 		screenplay: { heading, shots: [] },
 		error,
 	});
+
 	const lines = source.split("\n");
+
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i].trim();
 		const n = i + 1;
+
 		if (!line) {
 			mode = "action";
+
 			continue;
 		}
+
 		const shot = shots.at(-1);
+
 		if (HEADING.test(line)) {
 			if (!heading) heading = line.toUpperCase();
 			else if (shot) shot.action += `${shot.action ? " " : ""}${line}`;
+
 			continue;
 		}
+
 		if (line.startsWith("[[")) {
 			const cue = line.match(CUE);
 			const name = cue?.[1] as SetupName | undefined;
+
 			if (!cue || !name || !(name in setups))
 				return fail(
 					`Line ${n}: a camera cue looks like [[WIDE 4]]. Setups: ${SETUP_NAMES.join(", ")}.`,
 				);
+
 			const duration = cue[2] ? Number(cue[2]) : setups[name].seconds;
+
 			if (duration < 1 || duration > 12)
 				return fail(`Line ${n}: a shot lasts between 1 and 12 seconds.`);
+
 			if (shots.length >= MAX_SHOTS)
 				return fail(`This reel holds at most ${MAX_SHOTS} shots.`);
+
 			if (shot?.character && !shot.dialogue)
 				return fail(
 					`Line ${shot.line}: ${shot.character} needs a line of dialogue beneath the name.`,
 				);
+
 			shots.push({
 				setup: name,
 				duration,
@@ -266,44 +281,60 @@ export function compile(source: string): {
 				dialogue: "",
 				line: n,
 			});
+
 			mode = "action";
+
 			continue;
 		}
+
 		if (!shot)
 			return fail(`Line ${n}: begin with a camera cue, such as [[WIDE 4]].`);
+
 		if (mode === "dialogue") {
 			if (/^\(.+\)$/.test(line) && !shot.dialogue) {
 				shot.parenthetical = line.slice(1, -1);
 			} else shot.dialogue += `${shot.dialogue ? " " : ""}${line}`;
+
 			continue;
 		}
+
 		if (shot.setup !== "CARD" && CHARACTER.test(line) && /[A-Z]/.test(line)) {
 			if (shot.character)
 				return fail(
 					`Line ${n}: one speaker per shot. Add a camera cue before ${line}.`,
 				);
+
 			shot.character = line;
 			shot.line = n;
 			mode = "dialogue";
+
 			continue;
 		}
+
 		shot.action += `${shot.action ? " " : ""}${line}`;
 	}
+
 	const last = shots.at(-1);
+
 	if (last?.character && !last.dialogue)
 		return fail(
 			`Line ${last.line}: ${last.character} needs a line of dialogue beneath the name.`,
 		);
+
 	if (!shots.length)
 		return fail("Add a camera cue to begin, such as [[WIDE 4]].");
+
 	return { screenplay: { heading, shots }, error: null };
 }
 
 export function schedule(shots: Shot[]): Cue[] {
 	let start = 0;
+
 	return shots.map((shot, index) => {
 		const cue = { shot, index, start, end: start + shot.duration };
+
 		start = cue.end;
+
 		return cue;
 	});
 }
@@ -316,11 +347,13 @@ export function durationOf(cues: Cue[]) {
 
 export function locate(cues: Cue[], time: number): Cue {
 	for (const cue of cues) if (time < cue.end) return cue;
+
 	return cues[cues.length - 1];
 }
 
 export function frameRect(frame: string) {
 	const [x, y, w, h] = frame.split(" ").map(Number);
+
 	return { x, y, w, h };
 }
 
@@ -334,31 +367,42 @@ export function drawingFrame(shot: Shot) {
 	const height = (bottom - top) * 1.16;
 	const w = Math.max(width, height * (4 / 3));
 	const h = w * (3 / 4);
+
 	return `${(left + right - w) / 2} ${(top + bottom - h) / 2} ${w} ${h}`;
 }
 
 export function framesFor(shot: Shot, tall = false) {
 	const setup = setups[shot.setup];
+
 	return tall ? setup.tall : setup.frames;
 }
 
 export function arrival(shot: Shot, tall = false) {
 	const frames = framesFor(shot, tall);
+
 	return frames[frames.length - 1];
 }
 
 export function format(screenplay: Screenplay) {
 	const out: string[] = [];
+
 	if (screenplay.heading) out.push(screenplay.heading, "");
+
 	for (const shot of screenplay.shots) {
 		out.push(`[[${shot.setup} ${shot.duration}]]`);
+
 		if (shot.action) out.push(shot.action);
+
 		if (shot.character) {
 			out.push("", shot.character);
+
 			if (shot.parenthetical) out.push(`(${shot.parenthetical})`);
+
 			out.push(shot.dialogue);
 		}
+
 		out.push("");
 	}
+
 	return out.join("\n").trimEnd();
 }

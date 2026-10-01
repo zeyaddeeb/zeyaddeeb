@@ -70,6 +70,7 @@ function Scale() {
 	const ratio = MODEL_BYTES / MEMORY_BYTES;
 	const whole = Math.floor(ratio);
 	const part = ratio - whole;
+
 	return (
 		<figcaption className="vg-mem__scale" data-reveal="">
 			<p className="vg-mem__compare">
@@ -110,6 +111,7 @@ function Scale() {
 export function Chips() {
 	const columns = units.map((u) => `${u.bytes}fr`).join(" ");
 	const pairs = computers.map((c) => `${bytesOf(c) * 2}fr`).join(" ");
+
 	const label = `Memory to scale. ${computers
 		.map((c) => `${c.id} 1 and 2, ${fmt(bytesOf(c))} bytes each`)
 		.join("; ")}. Chip ${DEAD} of ${CHIPS} in an FDS failed in November 2023.`;
@@ -189,6 +191,7 @@ export function Chips() {
 
 export function Rescue({ watts }: { watts: number }) {
 	const light = fix(Date.UTC(2024, 3, 18)).lightSeconds / 3600;
+
 	return <ChipRescue watts={watts} light={light} />;
 }
 

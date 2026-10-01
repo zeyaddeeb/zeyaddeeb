@@ -36,7 +36,9 @@ const deepest = Math.max(
 );
 const early = (() => {
 	let r = start(sources[0].markup);
+
 	for (const id of r.seed) r = open(r, id);
+
 	return measure(r).k ?? 0;
 })();
 const counted = ["no", "one", "two", "three", "four", "five"];

@@ -31,6 +31,7 @@ const THEMES = {
 		motif: (layer: number, parity: number) => {
 			const dim = ["#0f766e", "#b45309", "#b91c1c", "#0369a1"];
 			const lit = ["#2dd4bf", "#fbbf24", "#f87171", "#38bdf8"];
+
 			return (parity === 0 ? lit : dim)[layer % 4];
 		},
 	},
@@ -42,6 +43,7 @@ const THEMES = {
 			parity === 0 ? "#140a26" : "#0a0614",
 		motif: (layer: number, parity: number) => {
 			const hue = 292 - Math.min(layer, 16) * 8;
+
 			return `hsl(${hue}, 72%, ${parity === 0 ? 64 : 44}%)`;
 		},
 	},
@@ -62,6 +64,7 @@ const THEMES = {
 			parity === 0 ? "#1a1109" : "#0e0a08",
 		motif: (layer: number, parity: number) => {
 			const hue = Math.max(6, 48 - layer * 4);
+
 			return `hsl(${hue}, 92%, ${parity === 0 ? 58 : 40}%)`;
 		},
 	},
@@ -193,8 +196,11 @@ const identity = (): Mobius => ({ ar: 1, ai: 0, br: 0, bi: 0 });
 
 function normalize(m: Mobius): Mobius {
 	const n2 = m.ar * m.ar + m.ai * m.ai - m.br * m.br - m.bi * m.bi;
+
 	if (n2 < 1e-9) return identity();
+
 	const n = Math.sqrt(n2);
+
 	return { ar: m.ar / n, ai: m.ai / n, br: m.br / n, bi: m.bi / n };
 }
 
@@ -224,10 +230,12 @@ function buildColors(meta: Uint32Array, theme: Theme): TileColors {
 	const n = meta.length / 2;
 	const background = new Array<string>(n);
 	const motif = new Array<string>(n);
+
 	for (let i = 0; i < n; i++) {
 		background[i] = theme.background(meta[i * 2], meta[i * 2 + 1]);
 		motif[i] = theme.motif(meta[i * 2], meta[i * 2 + 1]);
 	}
+
 	return { background, motif };
 }
 
@@ -283,8 +291,10 @@ export function drawTiling(
 
 	const { stride, boundary, bladePts, sides, count } = layout;
 	const half = (boundary >> 1) * 2;
+
 	ctx.strokeStyle = theme.stroke;
 	ctx.lineWidth = Math.max(0.5, 0.6 * weight);
+
 	const cull = 1.4 * weight;
 	const motifCull = 7 * weight;
 
@@ -295,13 +305,16 @@ export function drawTiling(
 		const xm = c + verts[o + half] * rz;
 		const ym = c - verts[o + half + 1] * rz;
 		const extent = Math.abs(x0 - xm) + Math.abs(y0 - ym);
+
 		if (extent < cull) continue;
 
 		ctx.beginPath();
 		ctx.moveTo(x0, y0);
+
 		for (let j = 1; j < boundary; j++) {
 			ctx.lineTo(c + verts[o + j * 2] * rz, c - verts[o + j * 2 + 1] * rz);
 		}
+
 		ctx.closePath();
 		ctx.fillStyle = colors.background[ti];
 		ctx.fill();
@@ -310,19 +323,24 @@ export function drawTiling(
 		if (extent < motifCull) continue;
 
 		ctx.fillStyle = colors.motif[ti];
+
 		for (let b = 0; b < sides; b++) {
 			const bo = o + (boundary + b * bladePts) * 2;
+
 			ctx.beginPath();
 			ctx.moveTo(c + verts[bo] * rz, c - verts[bo + 1] * rz);
+
 			for (let j = 1; j < bladePts; j++) {
 				ctx.lineTo(c + verts[bo + j * 2] * rz, c - verts[bo + j * 2 + 1] * rz);
 			}
+
 			ctx.closePath();
 			ctx.fill();
 		}
 	}
 
 	const vignette = ctx.createRadialGradient(c, c, radius * 0.55, c, c, radius);
+
 	vignette.addColorStop(0, "rgba(0, 0, 0, 0)");
 	vignette.addColorStop(1, "rgba(0, 0, 0, 0.45)");
 	ctx.fillStyle = vignette;
@@ -334,11 +352,14 @@ export function drawTiling(
 	ctx.arc(c, c, radius, 0, Math.PI * 2);
 	ctx.strokeStyle = theme.rim;
 	ctx.lineWidth = 1.2 * weight;
+
 	if (rimGlow) {
 		const pulse = 0.5 + 0.5 * Math.sin(time * 1.7);
+
 		ctx.shadowColor = theme.rim;
 		ctx.shadowBlur = (11 + pulse * 11) * weight;
 	}
+
 	ctx.stroke();
 	ctx.restore();
 }
@@ -357,6 +378,7 @@ export function useTiling(
 	onBuilt?: (id: string, tileCount: number) => void,
 ) {
 	const { wasm } = useWasm();
+
 	const handlesRef = useRef<TilingHandles>({
 		tiling: null,
 		layout: { stride: 0, boundary: 0, bladePts: 0, sides: 0, count: 0 },
@@ -374,7 +396,9 @@ export function useTiling(
 				maxTiles,
 				minSize,
 			);
+
 			handlesRef.current.tiling?.free?.();
+
 			handlesRef.current = {
 				tiling,
 				layout: {
@@ -387,6 +411,7 @@ export function useTiling(
 				colors: buildColors(tiling.get_meta(), THEMES[variant.theme]),
 				theme: THEMES[variant.theme],
 			};
+
 			onBuilt?.(variant.id, tiling.tile_count());
 		} catch (err) {
 			console.error("Failed to build hyperbolic tiling:", err);

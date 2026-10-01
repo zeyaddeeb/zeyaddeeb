@@ -11,6 +11,7 @@ const HOUR = 60 * 60;
 
 function bar(pct: number) {
 	const filled = Math.round((pct / 100) * BAR);
+
 	return `${"█".repeat(filled)}${"░".repeat(BAR - filled)}`;
 }
 
@@ -22,35 +23,49 @@ export function FloppyScreen() {
 
 	useEffect(() => {
 		if (phase !== "disk1" && phase !== "disk2") return;
+
 		const limit = phase === "disk1" ? SWAP_AT : 100;
+
 		const id = setInterval(() => {
 			seek.current = (seek.current + 1) % 5;
+
 			if (seek.current === 0) return;
+
 			setPct((v) => {
 				const next = Math.min(limit, v + 1 + Math.floor(Math.random() * 2));
+
 				if (next === limit) setPhase(phase === "disk1" ? "swap" : "title");
+
 				return next;
 			});
 		}, 90);
+
 		return () => clearInterval(id);
 	}, [phase]);
 
 	useEffect(() => {
 		if (phase !== "swap") return;
+
 		const go = () => setPhase("disk2");
+
 		window.addEventListener("keydown", go, { once: true });
+
 		return () => window.removeEventListener("keydown", go);
 	}, [phase]);
 
 	useEffect(() => {
 		if (phase !== "title") return;
+
 		const id = setTimeout(() => setPhase("game"), 1800);
+
 		return () => clearTimeout(id);
 	}, [phase]);
 
 	useEffect(() => {
 		if (phase !== "game") return;
+
 		const id = setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000);
+
 		return () => clearInterval(id);
 	}, [phase]);
 

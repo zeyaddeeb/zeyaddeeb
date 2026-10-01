@@ -108,13 +108,17 @@ export function initial(overview: Overview): Live {
 		rules: lineage(overview),
 		tree: overview.tree ?? null,
 	};
+
 	return overview.backlog.reduce(reduce, start);
 }
 
 function turn(turns: TurnView[], index: number): [TurnView[], TurnView] {
 	const found = turns.find((t) => t.index === index);
+
 	if (found) return [turns, found];
+
 	const created: TurnView = { index, think: "", say: "", calls: [] };
+
 	return [[...turns, created].sort((a, b) => a.index - b.index), created];
 }
 
@@ -124,7 +128,9 @@ function replace(turns: TurnView[], next: TurnView): TurnView[] {
 
 function scanOf(tool: string, data: unknown): Scan | null {
 	const d = data as Record<string, unknown> | null;
+
 	if (!d) return null;
+
 	if (tool === "line" && typeof d.from === "number" && typeof d.to === "number")
 		return {
 			kind: "line",
@@ -134,6 +140,7 @@ function scanOf(tool: string, data: unknown): Scan | null {
 			zeros: Array.isArray(d.zeros) ? (d.zeros as number[]) : [],
 			found: null,
 		};
+
 	if (tool === "contour" && Array.isArray(d.t) && Array.isArray(d.sigma))
 		return {
 			kind: "contour",
@@ -143,12 +150,15 @@ function scanOf(tool: string, data: unknown): Scan | null {
 			zeros: [],
 			found: typeof d.zeros === "number" ? d.zeros : null,
 		};
+
 	return null;
 }
 
 export function reduce(live: Live, envelope: Envelope): Live {
 	if (envelope.seq <= live.seq) return live;
+
 	const next = { ...live, seq: envelope.seq };
+
 	switch (envelope.type) {
 		case "wake":
 			return {
@@ -209,21 +219,26 @@ export function reduce(live: Live, envelope: Envelope): Live {
 			};
 		case "delta": {
 			const [turns, found] = turn(next.turns, envelope.turn);
+
 			const updated =
 				envelope.channel === "think"
 					? { ...found, think: found.think + envelope.text }
 					: { ...found, say: found.say + envelope.text };
+
 			return { ...next, turns: replace(turns, updated), phase: null };
 		}
 		case "call": {
 			const [turns, found] = turn(next.turns, envelope.turn);
+
 			if (found.calls.some((c) => c.id === envelope.id)) return next;
+
 			const call: CallView = {
 				id: envelope.id,
 				tool: envelope.tool,
 				args: envelope.args,
 				outcome: null,
 			};
+
 			return {
 				...next,
 				turns: replace(turns, { ...found, calls: [...found.calls, call] }),
@@ -231,19 +246,23 @@ export function reduce(live: Live, envelope: Envelope): Live {
 		}
 		case "outcome": {
 			const [turns, found] = turn(next.turns, envelope.turn);
+
 			const outcome: Outcome = {
 				ok: envelope.ok,
 				summary: envelope.summary,
 				verdict: envelope.verdict,
 				data: envelope.data,
 			};
+
 			const calls = found.calls.some((c) => c.id === envelope.id)
 				? found.calls.map((c) => (c.id === envelope.id ? { ...c, outcome } : c))
 				: [
 						...found.calls,
 						{ id: envelope.id, tool: envelope.tool, args: {}, outcome },
 					];
+
 			const scan = envelope.ok ? scanOf(envelope.tool, envelope.data) : null;
+
 			return {
 				...next,
 				turns: replace(turns, { ...found, calls }),
@@ -257,9 +276,11 @@ export function reduce(live: Live, envelope: Envelope): Live {
 			};
 		case "link": {
 			const { from, to, relation } = envelope.link;
+
 			const known = next.links.some(
 				(l) => l.from === from && l.to === to && l.relation === relation,
 			);
+
 			return known ? next : { ...next, links: [...next.links, envelope.link] };
 		}
 		case "search":

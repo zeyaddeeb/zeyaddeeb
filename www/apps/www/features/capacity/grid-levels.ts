@@ -62,22 +62,32 @@ export interface GridCopy {
 
 export function gridNames(grid: GridWorld): GridNames {
 	const lines = [...grid.lines, ...grid.candidates];
+
 	const buses = new Map<string, string>([
 		...grid.hubs.map((h) => [h.id, h.name] as const),
 		...grid.substations.map((s) => [s.id, s.name] as const),
 	]);
+
 	const campuses = new Map(
 		grid.levels.flatMap((l) => l.campuses).map((c) => [c.id, c.mw]),
 	);
+
 	const line = (id: string) => lines.find((l) => l.id === id);
+
 	const name = (id: string): string => {
 		const bus = buses.get(id);
+
 		if (bus) return bus;
+
 		const campus = campuses.get(id);
+
 		if (campus !== undefined) return `the ${mw(campus)} campus`;
+
 		const l = line(id);
+
 		return l ? `${name(l.a)}–${name(l.b)}` : id;
 	};
+
 	return { name, line };
 }
 
@@ -90,8 +100,11 @@ export function darkness(solved: GridFlow, { name }: GridNames): string {
 	const out = Object.entries(solved.shed)
 		.sort((a, b) => b[1] - a[1])
 		.map(([s, amount]) => `${name(s)} loses ${mw(Math.round(amount))}`);
+
 	const full = solved.binding.map(name);
+
 	if (!out.length) return "";
+
 	return `${listing(out)}${full.length ? `: ${listing(full)} is full` : ""}.`;
 }
 
@@ -101,6 +114,7 @@ function delta(
 	line: string,
 ): number {
 	if (!shown || !today) return 0;
+
 	return Math.round(
 		Math.abs(shown.flows[line] ?? 0) - Math.abs(today.flows[line] ?? 0),
 	);
@@ -116,6 +130,7 @@ function wherePlaced({ level, solved, name }: GridContext): string {
 
 function limitOf(names: GridNames, id: string): string {
 	const l = names.line(id);
+
 	return l ? mw(l.limit) : "";
 }
 
@@ -135,6 +150,7 @@ export const gridCopies: GridCopy[] = [
 				text: ({ grid, today }) => {
 					const [north, south] = grid.hubs;
 					const spare = south.capacity - (today?.supply[south.id] ?? 0);
+
 					return `${north.name} sells power at $${north.price}/MWh, but it’s running flat out. ${south.name}, 20 km south, charges $${south.price} and has ${mw(spare)} to spare.`;
 				},
 				action: "Add a campus",

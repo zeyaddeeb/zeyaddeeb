@@ -139,6 +139,7 @@ pub struct Hub {
 impl Hub {
     pub fn new() -> Arc<Self> {
         let (sender, _) = broadcast::channel(1024);
+
         Arc::new(Hub {
             sender,
             inner: Mutex::new(Inner {
@@ -166,15 +167,20 @@ impl Hub {
     pub fn emit(&self, event: Event) {
         let envelope = {
             let mut inner = self.inner.lock().expect("hub lock");
+
             inner.seq += 1;
+
             let envelope = Envelope {
                 seq: inner.seq,
                 at: super::now(),
                 event,
             };
+
             inner.keep(&envelope);
+
             envelope
         };
+
         let _ = self.sender.send(envelope);
     }
 
@@ -189,7 +195,9 @@ impl Hub {
     pub fn backlog(&self) -> Vec<Envelope> {
         let inner = self.inner.lock().expect("hub lock");
         let mut kept: Vec<Envelope> = inner.stats.iter().chain(&inner.backlog).cloned().collect();
+
         kept.sort_by_key(|envelope| envelope.seq);
+
         kept
     }
 }
@@ -203,6 +211,7 @@ impl Inner {
                 self.backlog.retain(
                     |kept| !matches!(&kept.event, Event::Delta { turn: t, .. } if t == turn),
                 );
+
                 self.backlog.push(envelope.clone());
             }
             Event::Delta {
@@ -225,15 +234,19 @@ impl Inner {
                         if last_text.len() < DELTA_CHARS {
                             last_text.push_str(text);
                         }
+
                         *seq = envelope.seq;
                         *at = envelope.at;
+
                         return;
                     }
                 }
+
                 self.backlog.push(envelope.clone());
             }
             _ => self.backlog.push(envelope.clone()),
         }
+
         if self.backlog.len() > BACKLOG {
             self.backlog.drain(1..self.backlog.len() - BACKLOG + 1);
         }
@@ -247,30 +260,40 @@ mod tests {
     #[test]
     fn replays_in_order_so_a_late_viewer_sees_the_wake() {
         let hub = Hub::new();
+
         hub.emit(Event::Wake {
             episode: 1,
             front: "line".into(),
             arms: Vec::new(),
             rules: 1,
         });
+
         hub.emit(Event::Stats {
             state: AgentState::default(),
         });
+
         hub.emit(delta(0, Channel::Think, "go"));
+
         let seqs: Vec<u64> = hub.backlog().iter().map(|e| e.seq).collect();
+
         assert_eq!(seqs, vec![1, 2, 3]);
     }
 
     #[tokio::test]
     async fn closing_wakes_whoever_waits_for_it() {
         let hub = Hub::new();
+
         assert!(!hub.closing());
+
         let waiter = {
             let hub = hub.clone();
+
             tokio::spawn(async move { hub.closed().await })
         };
+
         hub.close();
         assert!(hub.closing());
+
         tokio::time::timeout(std::time::Duration::from_secs(1), waiter)
             .await
             .unwrap()
@@ -288,39 +311,50 @@ mod tests {
     #[test]
     fn deltas_merge_into_one_entry_per_turn_and_channel() {
         let hub = Hub::new();
+
         hub.emit(Event::Wake {
             episode: 1,
             front: "line".into(),
             arms: Vec::new(),
             rules: 1,
         });
+
         hub.emit(delta(0, Channel::Think, "The zeros "));
         hub.emit(delta(0, Channel::Think, "repel."));
         hub.emit(delta(0, Channel::Say, "Plan:"));
         hub.emit(delta(1, Channel::Think, "Next."));
+
         let backlog = hub.backlog();
+
         assert_eq!(backlog.len(), 4);
+
         match &backlog[1].event {
             Event::Delta { text, .. } => assert_eq!(text, "The zeros repel."),
             other => panic!("{other:?}"),
         }
+
         assert_eq!(backlog[1].seq, 3);
     }
 
     #[test]
     fn a_new_episode_clears_the_backlog_but_keeps_stats() {
         let hub = Hub::new();
+
         hub.emit(Event::Stats {
             state: AgentState::default(),
         });
+
         hub.emit(delta(0, Channel::Think, "old"));
+
         hub.emit(Event::Wake {
             episode: 2,
             front: "divisors".into(),
             arms: Vec::new(),
             rules: 1,
         });
+
         let backlog = hub.backlog();
+
         assert_eq!(backlog.len(), 2);
         assert!(matches!(backlog[0].event, Event::Stats { .. }));
         assert!(matches!(backlog[1].event, Event::Wake { .. }));
@@ -329,10 +363,13 @@ mod tests {
     #[test]
     fn a_retry_retracts_the_turn_it_names() {
         let hub = Hub::new();
+
         hub.emit(delta(0, Channel::Think, "kept"));
         hub.emit(delta(1, Channel::Think, "half a tho"));
         hub.emit(Event::Retry { turn: 1 });
+
         let backlog = hub.backlog();
+
         assert_eq!(backlog.len(), 2);
         assert!(matches!(backlog[1].event, Event::Retry { turn: 1 }));
     }
@@ -344,7 +381,9 @@ mod tests {
             at: 1,
             event: delta(2, Channel::Say, "hi"),
         };
+
         let json = serde_json::to_value(&envelope).unwrap();
+
         assert_eq!(json["type"], "delta");
         assert_eq!(json["channel"], "say");
         assert_eq!(json["seq"], 7);

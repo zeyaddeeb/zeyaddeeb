@@ -92,6 +92,7 @@ pub type TorqueWriteQuery<'w, 's> = Query<
 pub fn apply_torques(query: &mut TorqueWriteQuery, torques: &ComputedTorques) {
     // Motors act about their parent's hinge axis, including when the robot tilts.
     let mut axes = [Vec3::Z; 9];
+
     for (
         _,
         rotation,
@@ -131,10 +132,12 @@ pub fn apply_torques(query: &mut TorqueWriteQuery, torques: &ComputedTorques) {
         } else {
             None
         };
+
         if let Some(index) = index {
             axes[index] = rotation.0 * Vec3::Z;
         }
     }
+
     let assist = axes[0] * torques.torso.z;
     let shoulder = axes[0] * torques.shoulder;
     let elbow = axes[1] * torques.elbow;
@@ -148,6 +151,7 @@ pub fn apply_torques(query: &mut TorqueWriteQuery, torques: &ComputedTorques) {
     let right_hip = axes[0] * torques.right_hip;
     let right_knee = axes[7] * torques.right_knee;
     let right_ankle = axes[8] * torques.right_ankle;
+
     for (
         mut torque,
         _,
@@ -195,6 +199,7 @@ pub fn apply_torques(query: &mut TorqueWriteQuery, torques: &ComputedTorques) {
         } else {
             Vec3::ZERO
         };
+
         *torque = ConstantTorque(value);
     }
 }

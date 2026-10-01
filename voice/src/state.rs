@@ -45,8 +45,10 @@ impl AppState {
         self.sessions.retain(|_, session| {
             session.connected_clients > 0 || session.created.elapsed() < Duration::from_secs(60)
         });
+
         let slot = self.slots.clone().try_acquire_owned().ok()?;
         let id = Uuid::new_v4();
+
         self.sessions.insert(
             id,
             SessionState {
@@ -64,6 +66,7 @@ impl AppState {
 
     pub fn session_info(&self, id: Uuid, host: &str) -> Option<SessionInfo> {
         let session = self.sessions.get(&id)?;
+
         Some(SessionInfo {
             id,
             signaling_url: format!("ws://{host}/ws/{id}"),
@@ -86,13 +89,17 @@ mod tests {
     #[test]
     fn session_capacity_is_reclaimed_after_expiration() {
         let state = AppState::new().unwrap();
+
         for _ in 0..32 {
             assert!(state.create_session("localhost").is_some());
         }
+
         assert!(state.create_session("localhost").is_none());
+
         for mut session in state.sessions.iter_mut() {
             session.created = Instant::now() - Duration::from_secs(61);
         }
+
         assert!(state.create_session("localhost").is_some());
         assert_eq!(state.sessions.len(), 1);
     }

@@ -36,6 +36,7 @@ impl PolicyNet {
         let x = self.fc1.forward(&x)?.relu()?;
         let mean = self.mean.forward(&x)?;
         let log_std = self.log_std.forward(&x)?;
+
         Ok((mean, log_std))
     }
 }
@@ -52,6 +53,7 @@ impl ActorNet {
     pub fn forward(&self, x: &Tensor) -> CResult<Tensor> {
         let x = self.fc0.forward(x)?.relu()?;
         let x = self.fc1.forward(&x)?.relu()?;
+
         self.fc2.forward(&x)?.tanh()
     }
 }
@@ -65,6 +67,7 @@ pub struct CriticNet {
 impl CriticNet {
     pub fn new(vb: &VarBuilder) -> CResult<Self> {
         let input_dim = OBS_DIM + ACT_DIM;
+
         Ok(Self {
             fc0: linear(input_dim, HIDDEN_DIM, vb.pp("fc0"))?,
             fc1: linear(HIDDEN_DIM, HIDDEN_DIM, vb.pp("fc1"))?,
@@ -75,6 +78,7 @@ impl CriticNet {
     pub fn forward(&self, x: &Tensor) -> CResult<Tensor> {
         let x = self.fc0.forward(x)?.relu()?;
         let x = self.fc1.forward(&x)?.relu()?;
+
         self.fc2.forward(&x)
     }
 }

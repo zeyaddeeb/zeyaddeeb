@@ -95,53 +95,72 @@ const LIT = "data-lit";
 
 function useStill() {
 	const [still, setStill] = useState(false);
+
 	useEffect(() => {
 		const q = window.matchMedia("(prefers-reduced-motion: reduce)");
 		const set = () => setStill(q.matches);
+
 		set();
 		q.addEventListener("change", set);
+
 		return () => q.removeEventListener("change", set);
 	}, []);
+
 	return still;
 }
 
 function useSwap<T>(value: T, still: boolean): [T, boolean] {
 	const [shown, setShown] = useState(value);
 	const [out, setOut] = useState(false);
+
 	useEffect(() => {
 		if (value === shown) {
 			setOut(false);
+
 			return;
 		}
+
 		if (still) {
 			setShown(value);
+
 			return;
 		}
+
 		setOut(true);
+
 		const id = window.setTimeout(() => {
 			setShown(value);
 			setOut(false);
 		}, OUT_MS);
+
 		return () => window.clearTimeout(id);
 	}, [value, shown, still]);
+
 	return [shown, out];
 }
 
 function useStuck(ref: RefObject<HTMLDivElement | null>) {
 	const [stuck, setStuck] = useState(false);
+
 	useEffect(() => {
 		const el = ref.current;
+
 		if (!el) return;
+
 		const io = new IntersectionObserver(
 			([e]) => {
 				const top = e.rootBounds?.top ?? 0;
+
 				setStuck(!e.isIntersecting && e.boundingClientRect.top < top + 1);
 			},
 			{ rootMargin: "-52px 0px 0px 0px" },
 		);
+
 		io.observe(el);
+
 		return () => io.disconnect();
 	}, [ref]);
+
 	return stuck;
 }
 
@@ -154,80 +173,108 @@ function useReader(root: RefObject<HTMLDivElement | null>, on: boolean) {
 		const el = root.current;
 		const group = el?.querySelector<SVGGElement>(".vg-spin");
 		const cover = el?.querySelector<SVGSVGElement>(".vg-cover");
+
 		if (!el || !group || !cover) return;
+
 		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
 			spin.current?.cancel();
 			spin.current = null;
+
 			return;
 		}
+
 		let anim = spin.current;
+
 		if (!on) {
 			if (!anim || anim.playState === "finished" || anim.playState === "idle")
 				return;
+
 			const t = Number(anim.currentTime ?? 0);
+
 			anim.effect?.updateTiming({ iterations: Math.floor(t / TURN_MS) + 1 });
+
 			const a = anim;
+
 			const io = new IntersectionObserver(([e]) => {
 				if (e.isIntersecting) a.play();
 				else a.pause();
 			});
+
 			io.observe(cover);
+
 			return () => io.disconnect();
 		}
+
 		if (!anim || anim.playState === "finished" || anim.playState === "idle") {
 			anim = group.animate(
 				[{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }],
 				{ duration: TURN_MS, iterations: Number.POSITIVE_INFINITY },
 			);
+
 			anim.pause();
 			spin.current = anim;
 		} else {
 			anim.effect?.updateTiming({ iterations: Number.POSITIVE_INFINITY });
 		}
+
 		const a = anim;
 		const bits = el.querySelectorAll<SVGPathElement>(".vg-bit");
 		let lit = -1;
 		let raf = 0;
+
 		const light = (i: number, on: boolean) => {
 			const glyph = el.querySelector(
 				`.vg-glyphs[data-read] i:nth-child(${i + 1})`,
 			);
+
 			for (const n of [bits[i], glyph]) {
 				if (!n) continue;
+
 				if (on) n.setAttribute(LIT, "");
 				else n.removeAttribute(LIT);
 			}
 		};
+
 		const tick = () => {
 			const t = Number(a.currentTime ?? 0);
 			const deg = ((t % TURN_MS) / TURN_MS) * 360;
 			const u = ((((deg + 90 + RING.start) % 360) + 360) % 360) / RING.step;
 			const i = Math.floor(u);
 			const next = i < RING.bits.length ? i : -1;
+
 			if (next !== lit) {
 				if (lit >= 0) light(lit, false);
+
 				if (next >= 0) light(next, true);
+
 				lit = next;
 			}
+
 			raf = requestAnimationFrame(tick);
 		};
+
 		const stop = () => {
 			cancelAnimationFrame(raf);
 			raf = 0;
 		};
+
 		const io = new IntersectionObserver(([e]) => {
 			if (e.isIntersecting) {
 				a.play();
+
 				if (!raf) raf = requestAnimationFrame(tick);
 			} else {
 				a.pause();
 				stop();
 			}
 		});
+
 		io.observe(cover);
+
 		return () => {
 			io.disconnect();
 			stop();
+
 			if (lit >= 0) light(lit, false);
 		};
 	}, [root, on]);
@@ -240,31 +287,46 @@ function useLanding(
 	sentinel: RefObject<HTMLDivElement | null>,
 ) {
 	const last = useRef(shown);
+
 	useLayoutEffect(() => {
 		if (last.current === shown) return;
+
 		last.current = shown;
+
 		const b = body.current;
 		const t = bar.current;
 		const s = sentinel.current;
+
 		if (!b || !t || !s) return;
+
 		const css = getComputedStyle(t);
 		const top = b.getBoundingClientRect().top;
+
 		if (css.position === "sticky") {
 			const edge = t.getBoundingClientRect().bottom;
+
 			if (top >= edge) return;
+
 			const pin = Number.parseFloat(css.top) || 0;
+
 			window.scrollBy({
 				top: s.getBoundingClientRect().top - pin + 1,
 				behavior: "instant",
 			});
+
 			return;
 		}
+
 		const nav = Number.parseFloat(css.getPropertyValue("--vg-nav")) || 0;
+
 		if (top >= nav) return;
+
 		const stage = t.closest(".vg-record")?.querySelector(".vg-record__stage");
+
 		const land = stage
 			? Number.parseFloat(getComputedStyle(stage).top) || nav
 			: nav;
+
 		window.scrollBy({
 			top: s.getBoundingClientRect().top - land,
 			behavior: "instant",
@@ -312,6 +374,7 @@ const ns = (HYDROGEN_S * 1e9).toFixed(3);
 
 function Train({ t }: { t: number }) {
 	const n = Math.floor(1 / t);
+
 	return (
 		<svg
 			className="vg-train"
@@ -322,6 +385,7 @@ function Train({ t }: { t: number }) {
 			<path className="vg-train__axis" d="M0 27.5 H300" />
 			{Array.from({ length: n + 1 }, (_, i) => {
 				const x = Math.min(299.5, Math.round(i * t * 300 * 10) / 10 + 0.5);
+
 				return <path key={`p${x}`} d={`M${x} 2 V24`} />;
 			})}
 		</svg>
@@ -341,6 +405,7 @@ function Panel({
 }) {
 	if (active === "speed") {
 		const s = seconds(rotation);
+
 		return (
 			<Steps>
 				{[
@@ -369,8 +434,10 @@ function Panel({
 			</Steps>
 		);
 	}
+
 	if (active === "length") {
 		const s = seconds(side);
+
 		return (
 			<Steps>
 				{[
@@ -394,6 +461,7 @@ function Panel({
 			</Steps>
 		);
 	}
+
 	if (active === "picture") {
 		return (
 			<>
@@ -423,9 +491,11 @@ function Panel({
 			</>
 		);
 	}
+
 	if (active === "pulsars") {
 		const p = pulsars.find((x) => x.id === picked) ?? pulsars[0];
 		const t = period(p);
+
 		return (
 			<>
 				<Steps>
@@ -486,6 +556,7 @@ function Panel({
 			</>
 		);
 	}
+
 	return (
 		<Steps>
 			{[
@@ -520,18 +591,22 @@ export function Record() {
 	const still = useStill();
 	const [shown, out] = useSwap(active, still);
 	const stuck = useStuck(sentinel);
+
 	useLanding(shown, bar, body, sentinel);
 	useReader(root, active === "speed" && !flipped && !still);
 
 	const index = spots.findIndex((s) => s.id === active);
+
 	const choose = (id: Diagram) => {
 		setActive(id);
 		setFlipped(false);
 	};
+
 	const flip = () => setFlipped((f) => !f);
 
 	const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
 		const last = spots.length - 1;
+
 		const next =
 			e.key === "ArrowRight"
 				? index === last
@@ -546,7 +621,9 @@ export function Record() {
 						: e.key === "End"
 							? last
 							: -1;
+
 		if (next < 0) return;
+
 		e.preventDefault();
 		choose(spots[next].id);
 		tabs.current[next]?.focus({ preventScroll: true });
@@ -554,21 +631,29 @@ export function Record() {
 
 	const onMap = (e: MouseEvent<HTMLButtonElement>) => {
 		setActive("pulsars");
+
 		const box = e.currentTarget.parentElement?.getBoundingClientRect();
+
 		if (!box) return;
+
 		const x = ((e.clientX - box.left) / box.width) * 1000 - MAP.x;
 		const y = ((e.clientY - box.top) / box.height) * 1000 - MAP.y;
+
 		if (Math.hypot(x, y) < 20) return;
+
 		const a = (Math.atan2(y, x) * 180) / Math.PI;
 		let best = pulsars[0];
 		let gap = 999;
+
 		for (const p of pulsars) {
 			const d = Math.abs(((p.angle - a + 540) % 360) - 180);
+
 			if (d < gap) {
 				gap = d;
 				best = p;
 			}
 		}
+
 		if (gap < 12) setPicked(best.id);
 	};
 

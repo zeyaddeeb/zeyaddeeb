@@ -78,6 +78,7 @@ async function load<T>(path: string): Promise<T | null> {
 			cache: "no-store",
 			signal: AbortSignal.timeout(5000),
 		});
+
 		return response.ok ? await response.json() : null;
 	} catch {
 		return null;
@@ -94,6 +95,7 @@ export async function loadWorld(): Promise<Loaded> {
 		load<GridWorld>("/grid"),
 		load<PlansWorld>("/plans"),
 	]);
+
 	return world && grid && plans
 		? { ok: true, world, grid, plans }
 		: { ok: false };
@@ -111,8 +113,11 @@ async function post<T>(
 			headers: { "content-type": "application/json" },
 			body: JSON.stringify(body),
 		});
+
 		if (response.status === 422) return { ok: false, reason: "invalid" };
+
 		if (!response.ok) return { ok: false, reason: "down" };
+
 		return { ok: true, value: await response.json() };
 	} catch {
 		return { ok: false, reason: "down" };
@@ -129,8 +134,11 @@ export async function solveLevel(
 	optimizeBuild = false,
 ): Promise<SolveResult> {
 	const parsed = solveSchema.safeParse({ level, edits, optimizeBuild });
+
 	if (!parsed.success) return { ok: false, reason: "invalid" };
+
 	const result = await post<Solved>("/solve", parsed.data);
+
 	return result.ok ? { ok: true, solved: result.value } : result;
 }
 
@@ -149,8 +157,11 @@ export async function solveGrid(
 		edits,
 		optimize: choice === null,
 	});
+
 	if (!parsed.success) return { ok: false, reason: "invalid" };
+
 	const result = await post<GridSolved>("/grid/solve", parsed.data);
+
 	return result.ok ? { ok: true, solved: result.value } : result;
 }
 
@@ -163,7 +174,10 @@ export async function solvePlan(
 	schedule: Schedule | null,
 ): Promise<PlanSolveResult> {
 	const parsed = planSolveSchema.safeParse({ level, schedule });
+
 	if (!parsed.success) return { ok: false, reason: "invalid" };
+
 	const result = await post<PlanSolved>("/plan/solve", parsed.data);
+
 	return result.ok ? { ok: true, solved: result.value } : result;
 }

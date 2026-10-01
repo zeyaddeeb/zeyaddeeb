@@ -35,6 +35,7 @@ export function ceiling(value: number): number {
 
 export function ticks(top: number): number[] {
 	const decades = Math.round(Math.log10(top / FLOOR));
+
 	return Array.from({ length: decades + 1 }, (_, i) => FLOOR * 10 ** i);
 }
 
@@ -54,18 +55,22 @@ export function boxKey(box: Box): string {
 
 function unique(boxes: Box[]): Box[] {
 	const merged = new Map<string, Box>();
+
 	for (const box of boxes) {
 		const known = merged.get(boxKey(box));
+
 		merged.set(
 			boxKey(box),
 			known ? { ...known, live: known.live || box.live } : box,
 		);
 	}
+
 	return [...merged.values()];
 }
 
 export function figure(strip: Strip, frontier: number, scans: Scan[]): Figure {
 	const liveZeros = scans.flatMap((s) => s.zeros);
+
 	const reach = Math.max(
 		frontier,
 		strip.frontier,
@@ -73,11 +78,14 @@ export function figure(strip: Strip, frontier: number, scans: Scan[]): Figure {
 		...strip.probes.map((p) => p.tTo),
 		...scans.map((s) => s.to),
 	);
+
 	const top = ceiling(reach);
+
 	const heaviest = Math.max(
 		...strip.bins.map((b) => b.zeros / Math.max(b.to - b.from, 1e-9)),
 		1e-9,
 	);
+
 	const bands = strip.bins
 		.filter((b) => b.zeros > 0)
 		.map((b) => ({
@@ -85,9 +93,11 @@ export function figure(strip: Strip, frontier: number, scans: Scan[]): Figure {
 			to: b.to,
 			weight: b.zeros / Math.max(b.to - b.from, 1e-9) / heaviest,
 		}));
+
 	const zeros = [...new Set([...strip.recent, ...liveZeros])].sort(
 		(a, b) => a - b,
 	);
+
 	const boxes = unique([
 		...strip.probes.map(probeBox),
 		...scans
@@ -100,7 +110,9 @@ export function figure(strip: Strip, frontier: number, scans: Scan[]): Figure {
 				live: true,
 			})),
 	]);
+
 	const line = scans.filter((s) => s.kind === "line").at(-1);
+
 	return {
 		top,
 		ticks: ticks(top),
@@ -115,5 +127,6 @@ export function figure(strip: Strip, frontier: number, scans: Scan[]): Figure {
 
 export function along(t: number, top: number): number {
 	if (t <= FLOOR) return 0;
+
 	return Math.min(Math.log(t / FLOOR) / Math.log(top / FLOOR), 1);
 }

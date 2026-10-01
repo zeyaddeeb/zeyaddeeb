@@ -40,9 +40,11 @@ export function ProofsTabs() {
 
 	useEffect(() => {
 		let current = true;
+
 		loadMode().then((loaded) => {
 			if (current) setWorking(loaded.ok && loaded.value.mode !== "off");
 		});
+
 		return () => {
 			current = false;
 		};
@@ -50,8 +52,10 @@ export function ProofsTabs() {
 
 	useEffect(() => {
 		const sync = () => setActive(fromHash(window.location.hash));
+
 		sync();
 		window.addEventListener("hashchange", sync);
+
 		return () => window.removeEventListener("hashchange", sync);
 	}, []);
 

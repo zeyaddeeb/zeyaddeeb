@@ -19,8 +19,11 @@ async function get<T>(path: string): Promise<Loaded<T>> {
 			cache: "no-store",
 			signal: AbortSignal.timeout(8000),
 		});
+
 		if (response.status === 404) return { ok: false, missing: true };
+
 		if (!response.ok) return { ok: false };
+
 		return { ok: true, value: await response.json() };
 	} catch {
 		return { ok: false };
@@ -37,13 +40,17 @@ export async function loadShift(): Promise<Loaded<Overview>> {
 
 export async function loadEpisode(number: number): Promise<Loaded<Transcript>> {
 	const parsed = episodeSchema.safeParse(number);
+
 	if (!parsed.success) return { ok: false };
+
 	return get<Transcript>(`/agent/episodes/${parsed.data}`);
 }
 
 export async function loadEpisodes(before: number): Promise<Loaded<Episode[]>> {
 	const parsed = episodeSchema.safeParse(before);
+
 	if (!parsed.success) return { ok: false };
+
 	return get<Episode[]>(`/agent/episodes?before=${parsed.data}`);
 }
 
@@ -53,6 +60,8 @@ export async function searchEpisodes(
 	query: string,
 ): Promise<Loaded<Episode[]>> {
 	const parsed = querySchema.safeParse(query);
+
 	if (!parsed.success) return { ok: false };
+
 	return get<Episode[]>(`/agent/search?q=${encodeURIComponent(parsed.data)}`);
 }

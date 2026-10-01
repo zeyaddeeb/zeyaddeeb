@@ -18,7 +18,9 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
 	const { slug } = await params;
 	const item = await getItem(slug);
+
 	if (!item) notFound();
+
 	return pageMetadata({
 		title: item.title,
 		path: `/blog/library/${encodeURIComponent(item.slug)}`,

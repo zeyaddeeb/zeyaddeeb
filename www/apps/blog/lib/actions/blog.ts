@@ -36,6 +36,7 @@ export async function getPosts(
 	params: GetPostsParams = {},
 ): Promise<PaginatedResult<Post>> {
 	const parsed = postsQuery.safeParse(params);
+
 	const { page, pageSize, search } = parsed.success
 		? parsed.data
 		: postsQuery.parse({});
@@ -75,6 +76,7 @@ export async function getPosts(
 		return paginatedResult(items, totalCount, page, pageSize);
 	} catch (error) {
 		console.error("Failed to fetch posts:", error);
+
 		return emptyPage(page, pageSize);
 	}
 }
@@ -90,6 +92,7 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
 		return item ?? null;
 	} catch (error) {
 		console.error("Failed to fetch post by slug:", error);
+
 		return null;
 	}
 }
@@ -104,6 +107,7 @@ export async function getRecentPosts(limit = 5): Promise<Post[]> {
 			.limit(resultLimit.parse(limit));
 	} catch (error) {
 		console.error("Failed to fetch recent posts:", error);
+
 		return [];
 	}
 }

@@ -24,6 +24,7 @@ function rect(
 	const a1 = along(t[1], top) * LENGTH;
 	const b0 = across(sigma[0]);
 	const b1 = across(sigma[1]);
+
 	return o === "tall"
 		? { x: b0, y: LENGTH - a1, width: b1 - b0, height: Math.max(a1 - a0, 0.8) }
 		: {
@@ -41,6 +42,7 @@ function segment(
 	top: number,
 ) {
 	const a = along(t, top) * LENGTH;
+
 	return o === "tall"
 		? {
 				x1: across(sigma[0]),
@@ -60,6 +62,7 @@ function Drawing({ figure, o }: { figure: Figure; o: Orientation }) {
 	const { top } = figure;
 	const size =
 		o === "tall" ? `0 0 ${BREADTH} ${LENGTH}` : `0 0 ${LENGTH} ${BREADTH}`;
+
 	return (
 		<svg
 			className={`ns-strip-svg ns-strip-svg--${o}`}
@@ -137,6 +140,7 @@ function Drawing({ figure, o }: { figure: Figure; o: Orientation }) {
 function segmentAlong(o: Orientation, sigma: number, top: number) {
 	const b = across(sigma);
 	const a = along(top, top) * LENGTH;
+
 	return o === "tall"
 		? { x1: b, x2: b, y1: LENGTH, y2: LENGTH - a }
 		: { y1: BREADTH - b, y2: BREADTH - b, x1: 0, x2: a };
@@ -150,10 +154,12 @@ export function StripView({
 	zeros: number;
 }) {
 	const searched = figure.boxes.filter((b) => !b.live).length;
+
 	const summary =
 		zeros > 0
 			? `${count(zeros)} zeros located, every one on the critical line up to t = ${count(figure.frontier)}. ${searched} rectangles searched off the line.`
 			: "No zeros located yet.";
+
 	return (
 		<figure className="ns-strip">
 			<div className="ns-strip-plot" role="img" aria-label={summary}>

@@ -25,35 +25,47 @@ function fit(c: HTMLCanvasElement) {
 	const d = Math.min(2, window.devicePixelRatio || 1);
 	const w = Math.max(1, Math.round(r.width * d));
 	const h = Math.max(1, Math.round(r.height * d));
+
 	if (c.width !== w) c.width = w;
+
 	if (c.height !== h) c.height = h;
+
 	return d;
 }
 
 function trace(c: HTMLCanvasElement, d: number, t: Trace | null) {
 	const sc = c.getContext("2d");
+
 	if (!sc) return;
+
 	const w = c.width;
 	const h = c.height;
+
 	sc.clearRect(0, 0, w, h);
 	sc.lineWidth = 1.5 * d;
 	sc.lineJoin = "round";
 	sc.beginPath();
+
 	if (!t) {
 		sc.strokeStyle = "rgba(245, 242, 233, 0.34)";
 		sc.moveTo(0, h / 2);
 		sc.lineTo(w, h / 2);
 		sc.stroke();
+
 		return;
 	}
+
 	sc.strokeStyle = "#e8b355";
+
 	for (let k = 0; k < t.per; k++) {
 		const v = t.samples[t.row * t.per + k];
 		const px = (k / (t.per - 1)) * w;
 		const py = h / 2 - v * (h / 2 - 3 * d);
+
 		if (k) sc.lineTo(px, py);
 		else sc.moveTo(px, py);
 	}
+
 	sc.stroke();
 }
 
@@ -61,19 +73,25 @@ export function encode(pixels: Uint8ClampedArray, rate: number) {
 	const per = Math.round(rate * LINE_S);
 	const sync = Math.round(per * SYNC);
 	const out = new Float32Array(per * LINES);
+
 	for (let x = 0; x < LINES; x++) {
 		const col = Math.floor((x / LINES) * W);
+
 		for (let k = 0; k < per; k++) {
 			let v: number;
+
 			if (k < sync) v = -0.9;
 			else {
 				const y = Math.min(H - 1, Math.floor(((k - sync) / (per - sync)) * H));
 				const i = (y * W + col) * 4;
+
 				v = -0.35 + (pixels[i] / 255) * 1.1;
 			}
+
 			out[x * per + k] = v;
 		}
 	}
+
 	return { samples: out, per, sync };
 }
 
@@ -124,7 +142,9 @@ export function PictureSound() {
 
 	const halt = () => {
 		cancelAnimationFrame(raf.current);
+
 		const node = playing.current;
+
 		playing.current = null;
 		node?.stop();
 	};
@@ -142,16 +162,24 @@ export function PictureSound() {
 
 	useEffect(() => {
 		const ctx = source.current?.getContext("2d");
+
 		if (ctx) calibration(ctx);
+
 		const c = scope.current;
+
 		if (c) ratio.current = fit(c);
+
 		blank();
+
 		const ro = new ResizeObserver(() => {
 			if (!c) return;
+
 			ratio.current = fit(c);
 			trace(c, ratio.current, wave.current);
 		});
+
 		if (c) ro.observe(c);
+
 		return () => {
 			ro.disconnect();
 			halt();
@@ -161,6 +189,7 @@ export function PictureSound() {
 
 	const point = (e: PointerEvent<HTMLCanvasElement>) => {
 		const r = e.currentTarget.getBoundingClientRect();
+
 		return {
 			x: ((e.clientX - r.left) / r.width) * W,
 			y: ((e.clientY - r.top) / r.height) * H,
@@ -169,18 +198,23 @@ export function PictureSound() {
 
 	const down = (e: PointerEvent<HTMLCanvasElement>) => {
 		if (e.pointerType === "touch" && !armed) return;
+
 		const ctx = source.current?.getContext("2d");
+
 		if (!ctx) return;
+
 		if (!drawn) {
 			ctx.fillStyle = "#000";
 			ctx.fillRect(0, 0, W, H);
 			setDrawn(true);
 		}
+
 		if (state !== "idle") {
 			halt();
 			blank();
 			setState("idle");
 		}
+
 		e.currentTarget.setPointerCapture(e.pointerId);
 		pen.current = point(e);
 		ctx.fillStyle = "#fff";
@@ -191,8 +225,11 @@ export function PictureSound() {
 
 	const move = (e: PointerEvent<HTMLCanvasElement>) => {
 		const ctx = source.current?.getContext("2d");
+
 		if (!ctx || !pen.current) return;
+
 		const p = point(e);
+
 		ctx.strokeStyle = "#fff";
 		ctx.lineWidth = 14;
 		ctx.lineCap = "round";
@@ -206,13 +243,17 @@ export function PictureSound() {
 	const up = (e: PointerEvent<HTMLCanvasElement>) => {
 		if (e.pointerType === "touch" && !armed && e.type === "pointerup")
 			setArmed(true);
+
 		pen.current = null;
 	};
 
 	const reset = () => {
 		halt();
+
 		const ctx = source.current?.getContext("2d");
+
 		if (ctx) calibration(ctx);
+
 		blank();
 		setDrawn(false);
 		setArmed(false);
@@ -227,63 +268,87 @@ export function PictureSound() {
 	const play = async () => {
 		const src = source.current?.getContext("2d");
 		const out = screen.current?.getContext("2d");
+
 		if (!src || !out) return;
+
 		setArmed(false);
 		audio.current ??= new AudioContext();
+
 		const ac = audio.current;
+
 		await ac.resume();
 		halt();
+
 		const { samples, per, sync } = encode(
 			src.getImageData(0, 0, W, H).data,
 			ac.sampleRate,
 		);
+
 		const buffer = ac.createBuffer(1, samples.length, ac.sampleRate);
+
 		buffer.copyToChannel(samples, 0);
+
 		const node = ac.createBufferSource();
+
 		node.buffer = buffer;
+
 		const gain = ac.createGain();
+
 		gain.gain.value = 0.18;
 		node.connect(gain).connect(ac.destination);
 		out.fillStyle = "#0c0c0b";
 		out.fillRect(0, 0, W, H);
+
 		const start = ac.currentTime + 0.05;
+
 		node.start(start);
 		playing.current = node;
 		setState("playing");
+
 		let drawnLines = 0;
 		let shown = -1;
 		let stamp = 0;
 		const colW = W / LINES;
+
 		const frame = (now: number) => {
 			if (playing.current !== node) return;
+
 			const t = ac.currentTime - start;
 			const upto = Math.min(LINES, Math.max(0, Math.floor(t / LINE_S)));
+
 			for (let x = drawnLines; x < upto; x++) {
 				for (let y = 0; y < H; y += 2) {
 					const k = sync + Math.floor((y / H) * (per - sync));
 					const v = samples[x * per + k];
 					const b = Math.max(0, Math.min(255, ((v + 0.35) / 1.1) * 255));
+
 					out.fillStyle = `rgb(${b},${Math.round(b * 0.93)},${Math.round(b * 0.8)})`;
 					out.fillRect(x * colW, y, colW + 0.5, 2);
 				}
 			}
+
 			drawnLines = upto;
+
 			const cur = Math.min(LINES - 1, upto);
+
 			if (cur !== shown) {
 				shown = cur;
 				wave.current = { samples, per, row: cur };
 				paint();
 			}
+
 			if (now - stamp > 100 || upto >= LINES) {
 				stamp = now;
 				setCount(Math.min(LINES, upto));
 			}
+
 			if (upto < LINES) raf.current = requestAnimationFrame(frame);
 			else {
 				playing.current = null;
 				setState("done");
 			}
 		};
+
 		raf.current = requestAnimationFrame(frame);
 	};
 

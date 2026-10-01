@@ -10,9 +10,11 @@ interface EditPostPageProps {
 export default async function EditPostPage({ params }: EditPostPageProps) {
 	const { id } = await params;
 	const user = await requireAdminPage();
+
 	if (!user) return <AccessDenied />;
 
 	const result = await getPostForEdit(id);
+
 	if (!result.success) {
 		return <WriteNotice title="Post Not Found" message={result.error} />;
 	}

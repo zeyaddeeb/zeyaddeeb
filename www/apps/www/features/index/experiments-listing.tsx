@@ -64,9 +64,12 @@ function Pager({
 			event.altKey
 		)
 			return;
+
 		event.preventDefault();
+
 		if (next !== page) onTurn(next);
 	};
+
 	const step = (
 		next: number,
 		rel: "prev" | "next",
@@ -90,6 +93,7 @@ function Pager({
 				{children}
 			</Link>
 		);
+
 	return (
 		<nav className="container pager" aria-label="Pages">
 			<p className="pager__range">
@@ -147,20 +151,24 @@ export function ExperimentsListing() {
 
 	useEffect(() => {
 		if (url.search.trim() === written.current) return;
+
 		written.current = url.search.trim();
 		setSearch(url.search);
 	}, [url.search]);
 
 	useEffect(() => {
 		if (search.trim() === written.current) return;
+
 		const id = window.setTimeout(() => {
 			written.current = search.trim();
+
 			window.history.replaceState(
 				null,
 				"",
 				experimentListingHref({ search, topic, sort }),
 			);
 		}, 300);
+
 		return () => window.clearTimeout(id);
 	}, [search, topic, sort]);
 
@@ -168,19 +176,24 @@ export function ExperimentsListing() {
 		const onKey = (event: KeyboardEvent) => {
 			if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey)
 				return;
+
 			if (
 				event.target instanceof Element &&
 				event.target.closest("input, textarea, select, [contenteditable]")
 			)
 				return;
+
 			event.preventDefault();
 			input.current?.focus();
 		};
+
 		window.addEventListener("keydown", onKey);
+
 		return () => window.removeEventListener("keydown", onKey);
 	}, []);
 
 	const typing = search.trim() !== url.search.trim();
+
 	const { items, total, page, pages, from, to, found, counts } = useMemo(
 		() => listExperiments({ search, topic, sort, page: typing ? 1 : url.page }),
 		[search, topic, sort, typing, url.page],
@@ -188,8 +201,11 @@ export function ExperimentsListing() {
 
 	const go = (next: Partial<ExperimentQuery>) => {
 		const query = { search, topic, sort, page: 1, ...next };
+
 		written.current = query.search.trim();
+
 		if (next.search !== undefined) setSearch(next.search);
+
 		window.history.replaceState(null, "", experimentListingHref(query));
 	};
 
@@ -199,8 +215,11 @@ export function ExperimentsListing() {
 			"",
 			experimentListingHref({ search, topic, sort, page: next }),
 		);
+
 		const status = top.current;
+
 		if (!status || status.getBoundingClientRect().top >= 0) return;
+
 		status.scrollIntoView({
 			block: "start",
 			behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -210,6 +229,7 @@ export function ExperimentsListing() {
 	};
 
 	const filtered = Boolean(search.trim() || topic);
+
 	const plates: { value: Topic | ""; label: string; count: number }[] = [
 		{ value: "", label: "All", count: found },
 		...topics.map((t) => ({ ...t, count: counts[t.value] })),
@@ -236,6 +256,7 @@ export function ExperimentsListing() {
 							onChange={(event) => setSearch(event.target.value)}
 							onKeyDown={(event) => {
 								if (event.key !== "Escape") return;
+
 								if (search) {
 									event.preventDefault();
 									go({ search: "" });

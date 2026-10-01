@@ -52,6 +52,7 @@ function clipped(text: string): string {
 
 export function chip(tool: string, args: Record<string, unknown>): string {
 	const name = short(tool);
+
 	const detail = (() => {
 		switch (tool) {
 			case "formalize":
@@ -64,16 +65,19 @@ export function chip(tool: string, args: Record<string, unknown>): string {
 			case "line": {
 				const from = num(args, "from");
 				const to = num(args, "to");
+
 				return from === null
 					? ""
 					: `${Math.round(from)}–${Math.round(to ?? from + 60)}`;
 			}
 			case "contour": {
 				const from = num(args, "t_from");
+
 				return from === null ? "" : `t ${Math.round(from)}`;
 			}
 			case "robin": {
 				const n = num(args, "n");
+
 				return n === null
 					? `ε ${num(args, "epsilon") ?? 0.01}`
 					: `n ${count(n)}`;
@@ -87,12 +91,14 @@ export function chip(tool: string, args: Record<string, unknown>): string {
 			case "revise": {
 				const change = text(args, "change");
 				const rule = num(args, "rule");
+
 				return rule === null ? change : `${change} ${rule}`;
 			}
 			default:
 				return "";
 		}
 	})();
+
 	return detail ? `${name} · ${clipped(detail)}` : name;
 }
 
@@ -124,31 +130,39 @@ export function duration(ms: number): string {
 	const minutes = Math.max(0, Math.floor(ms / 60_000));
 	const days = Math.floor(minutes / 1440);
 	const hours = Math.floor((minutes % 1440) / 60);
+
 	if (days > 0) return `${unit(days, "day")} ${unit(hours, "hour")}`;
+
 	if (hours > 0)
 		return `${unit(hours, "hour")} ${unit(minutes % 60, "minute")}`;
+
 	return unit(minutes, "minute");
 }
 
 export function clock(seconds: number): string {
 	const s = Math.max(0, Math.round(seconds));
+
 	return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
 function num(args: Record<string, unknown>, key: string): number | null {
 	const value = args[key];
+
 	if (typeof value === "number") return value;
+
 	if (
 		typeof value === "string" &&
 		value.trim() !== "" &&
 		!Number.isNaN(Number(value))
 	)
 		return Number(value);
+
 	return null;
 }
 
 function text(args: Record<string, unknown>, key: string): string {
 	const value = args[key];
+
 	return typeof value === "string" ? value : "";
 }
 
@@ -157,6 +171,7 @@ export function describe(tool: string, args: Record<string, unknown>): string {
 		case "line": {
 			const from = num(args, "from");
 			const to = num(args, "to");
+
 			return from === null && to === null
 				? "extend the verified stretch"
 				: `t ${count(from ?? 0)} → ${count(to ?? (from ?? 0) + 60)}`;
@@ -166,12 +181,14 @@ export function describe(tool: string, args: Record<string, unknown>): string {
 		case "spacing": {
 			const from = num(args, "from");
 			const to = num(args, "to");
+
 			return from === null && to === null
 				? "every located zero"
 				: `t ${count(from ?? 0)} → ${to === null ? "top" : count(to)}`;
 		}
 		case "robin": {
 			const n = num(args, "n");
+
 			return n === null
 				? `ε = ${num(args, "epsilon") ?? 0.01}`
 				: `n = ${count(n)}`;
@@ -182,6 +199,7 @@ export function describe(tool: string, args: Record<string, unknown>): string {
 			const a = num(args, "a") ?? 0;
 			const b = num(args, "b") ?? 0;
 			const sign = (v: number) => (v < 0 ? "−" : "+");
+
 			return `y² = x³ ${sign(a)} ${Math.abs(a)}x ${sign(b)} ${Math.abs(b)}`;
 		}
 		case "zeta":
@@ -203,6 +221,7 @@ export function describe(tool: string, args: Record<string, unknown>): string {
 			return text(args, "text");
 		case "reduce": {
 			const from = statements(args);
+
 			return `${text(args, "target")} from ${from.length} ${from.length === 1 ? "statement" : "statements"}`;
 		}
 		case "revise":
@@ -214,8 +233,10 @@ export function describe(tool: string, args: Record<string, unknown>): string {
 
 export function statements(args: Record<string, unknown>): string[] {
 	const from = args.from;
+
 	if (Array.isArray(from))
 		return from.filter((item): item is string => typeof item === "string");
+
 	return typeof from === "string" && from.trim() ? [from] : [];
 }
 
@@ -230,11 +251,15 @@ export const MOVES: Record<string, string> = {
 
 export function prediction(args: Record<string, unknown>): string | null {
 	const expect = args.expect as Record<string, unknown> | undefined;
+
 	if (!expect || typeof expect !== "object") return null;
+
 	const field = typeof expect.field === "string" ? expect.field : "";
 	const op = typeof expect.op === "string" ? expect.op : "";
 	const value = num(expect, "value");
+
 	if (!field || !op || value === null) return null;
+
 	return `${field.replaceAll("_", " ")} ${op} ${value}`;
 }
 
@@ -242,9 +267,12 @@ export function verdict(v: Verdict): string {
 	const observed = Number.isInteger(v.observed)
 		? count(v.observed)
 		: v.observed.toPrecision(4);
+
 	const measured = `${v.field.replaceAll("_", " ")} was ${observed}`;
+
 	if (v.known && v.held)
 		return `Known in advance (${v.known}): ${measured}. It earns nothing.`;
+
 	return `${v.held ? "Held" : "Broke"}: ${measured}`;
 }
 

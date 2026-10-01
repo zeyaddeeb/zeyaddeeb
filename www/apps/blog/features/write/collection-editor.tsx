@@ -63,6 +63,7 @@ interface CollectionEditorProps {
 
 export function CollectionEditor({ user, item }: CollectionEditorProps) {
 	const [showPreview, setShowPreview] = useState(false);
+
 	const [formData, setFormData] = useState<CollectionItemInput>(() =>
 		item ? toInput(item) : EMPTY_ITEM,
 	);

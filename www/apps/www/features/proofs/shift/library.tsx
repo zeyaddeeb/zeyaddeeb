@@ -25,13 +25,16 @@ export function Library({ lemmas }: { lemmas: Lemma[] }) {
 	const [shelf, setShelf] = useState<Shelf>("proved");
 	const [page, setPage] = useState(0);
 	const [picked, setPicked] = useState<string | null>(null);
+
 	const sorted = [...lemmas].sort(
 		(a, b) => b.episode - a.episode || a.name.localeCompare(b.name),
 	);
+
 	const shelves: Record<Shelf, Lemma[]> = {
 		proved: sorted.filter((l) => !l.routine),
 		routine: sorted.filter((l) => l.routine),
 	};
+
 	const kept = shelves[shelf];
 	const pages = Math.max(1, Math.ceil(kept.length / PER_PAGE));
 	const at = Math.min(page, pages - 1);
@@ -70,6 +73,7 @@ export function Library({ lemmas }: { lemmas: Lemma[] }) {
 					<ol className="ns-shelf-list">
 						{Array.from({ length: PER_PAGE }, (_, row) => {
 							const lemma = shown[row];
+
 							return (
 								<li key={lemma?.name ?? `empty-${row}`}>
 									{lemma ? (

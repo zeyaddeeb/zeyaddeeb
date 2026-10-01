@@ -5,7 +5,9 @@ import { isAdmin } from "@/lib/session";
 
 function buildRedirectUrl(path: string, request: NextRequest): URL {
 	const url = new URL(request.url);
+
 	url.pathname = getFullPath(path);
+
 	return url;
 }
 
@@ -32,6 +34,7 @@ export async function proxy(request: NextRequest) {
 				buildRedirectUrl("/write/dashboard", request),
 			);
 		}
+
 		return NextResponse.next();
 	}
 

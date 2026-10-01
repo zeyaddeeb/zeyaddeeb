@@ -8,6 +8,7 @@ import { DashboardClient } from "./client";
 
 export default async function DashboardPage() {
 	const user = await requireAdminPage();
+
 	if (!user) return <AccessDenied />;
 
 	const [postsResult, collectionsResult] = await Promise.all([

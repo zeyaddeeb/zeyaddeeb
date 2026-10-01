@@ -25,7 +25,9 @@ async fn main() -> anyhow::Result<()> {
                 .unwrap_or_else(|_| "deepseek_lab=info,tower_http=info".into()),
         )
         .init();
+
     let state = AppState::new(Limits::from_env());
+
     let app = Router::new()
         .route("/health", get(|| async { "ok" }))
         .route("/ready", get(ready))
@@ -38,8 +40,10 @@ async fn main() -> anyhow::Result<()> {
         .with_state(state.clone());
 
     let sweeper = state.clone();
+
     tokio::spawn(async move {
         let mut tick = tokio::time::interval(Duration::from_secs(10));
+
         loop {
             tick.tick().await;
             sweeper.sweep().await;
@@ -48,22 +52,28 @@ async fn main() -> anyhow::Result<()> {
 
     let host = std::env::var("DEEPSEEK_BIND").unwrap_or_else(|_| "127.0.0.1".into());
     let addr: SocketAddr = format!("{host}:3004").parse()?;
+
     tracing::info!(%addr, workers = state.limits.workers, "deepseek lab backend listening");
+
     let listener = tokio::net::TcpListener::bind(addr).await?;
     let closing = state.clone();
+
     axum::serve(listener, app)
         .with_graceful_shutdown(async move {
             let mut terminate =
                 tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
                     .expect("SIGTERM handler");
+
             tokio::select! {
                 _ = tokio::signal::ctrl_c() => {}
                 _ = terminate.recv() => {}
             }
+
             tracing::info!("shutting down: canceling sessions and waiting for cleanup");
             closing.shutdown().await;
         })
         .await?;
+
     Ok(())
 }
 
@@ -77,9 +87,11 @@ async fn ready(State(state): State<AppState>) -> impl IntoResponse {
 
 async fn stats(State(state): State<AppState>) -> impl IntoResponse {
     use std::sync::atomic::Ordering::Relaxed;
+
     let s = &state.stats;
     let steps = s.steps.load(Relaxed).max(1);
     let cancellations = s.cancellations.load(Relaxed);
+
     Json(serde_json::json!({
         "sessions": state.session_count(),
         "sessionLimit": state.limits.sessions,
@@ -100,17 +112,21 @@ fn find(
     headers: &HeaderMap,
 ) -> Result<Arc<Session>, (StatusCode, &'static str)> {
     let id = Uuid::from_str(id).map_err(|_| (StatusCode::BAD_REQUEST, "invalid session id"))?;
+
     let session = state
         .session(id)
         .ok_or((StatusCode::NOT_FOUND, "session not found"))?;
+
     let token = headers
         .get(header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.strip_prefix("Bearer "))
         .unwrap_or("");
+
     if !session.authorized(token) {
         return Err((StatusCode::FORBIDDEN, "invalid session capability"));
     }
+
     Ok(session)
 }
 
@@ -118,6 +134,7 @@ async fn create_session(State(state): State<AppState>) -> impl IntoResponse {
     match state.create_session().await {
         Ok(view) => {
             let token = state.session(view.id).expect("new session").access_token();
+
             (
                 StatusCode::CREATED,
                 [("x-session-token", token)],
@@ -156,6 +173,7 @@ async fn delete_session(
     match find(&state, &id, &headers) {
         Ok(session) => {
             tokio::spawn(async move { state.close(session.id, "session deleted").await });
+
             StatusCode::ACCEPTED.into_response()
         }
         Err(error) => error.into_response(),
@@ -171,6 +189,7 @@ async fn command(
     match find(&state, &id, &headers) {
         Ok(session) => {
             state.dispatch(session, command).await;
+
             StatusCode::ACCEPTED.into_response()
         }
         Err(error) => error.into_response(),
@@ -196,29 +215,38 @@ async fn events(
         Ok(session) => session,
         Err(error) => return error.into_response(),
     };
+
     if !state.connected(&session) {
         return (StatusCode::TOO_MANY_REQUESTS, "too many readers").into_response();
     }
+
     let (snapshot, mut receiver) = state.subscribe(&session);
+
     let reader = Reader {
         state: state.clone(),
         session: session.clone(),
     };
+
     let stream = async_stream(move |mut yield_event| async move {
         let _reader = reader;
         let mut floor = snapshot.seq;
+
         yield_event(snapshot).await;
+
         loop {
             let received = tokio::select! {
                 received = receiver.recv() => received,
                 _ = session.closed() => break,
             };
+
             match received {
                 Ok(envelope) if envelope.seq > floor => yield_event(envelope).await,
                 Ok(_) => {}
                 Err(RecvError::Lagged(skipped)) => {
                     tracing::debug!(skipped, "reader lagged; resending snapshot");
+
                     let snapshot = state.snapshot_envelope(&session);
+
                     floor = snapshot.seq;
                     yield_event(snapshot).await;
                 }
@@ -226,6 +254,7 @@ async fn events(
             }
         }
     });
+
     (
         [
             (header::CACHE_CONTROL, "no-cache, no-transform"),
@@ -252,21 +281,26 @@ where
 {
     let (tx, rx) = tokio::sync::mpsc::channel::<Event>(64);
     let sender_tx = tx.clone();
+
     let sender = move |envelope: deepseek_lab::protocol::Envelope| -> futures_util::future::BoxFuture<'static, ()> {
         let tx = sender_tx.clone();
+
         Box::pin(async move {
             if let Ok(data) = serde_json::to_string(&envelope) {
                 let _ = tx.send(Event::default().id(envelope.seq.to_string()).data(data)).await;
             }
         })
     };
+
     let disconnected = tx.clone();
+
     tokio::spawn(async move {
         tokio::select! {
             _ = disconnected.closed() => {},
             _ = body(Box::new(sender)) => {},
         }
     });
+
     futures_util::stream::unfold(rx, |mut rx| async move {
         rx.recv().await.map(|event| (Ok(event), rx))
     })

@@ -45,6 +45,7 @@ export async function getCollectionItems(
 	params: GetCollectionItemsParams = {},
 ): Promise<PaginatedResult<CollectionItem>> {
 	const parsed = collectionQuery.safeParse(params);
+
 	const { page, pageSize, type, tags, search, featured } = parsed.success
 		? parsed.data
 		: collectionQuery.parse({});
@@ -68,6 +69,7 @@ export async function getCollectionItems(
 
 		if (search.trim()) {
 			const searchTerm = `%${search.trim().toLowerCase()}%`;
+
 			conditions.push(
 				sql`(LOWER(${collectionItem.title}) LIKE ${searchTerm} OR LOWER(${collectionItem.description}) LIKE ${searchTerm})`,
 			);
@@ -97,6 +99,7 @@ export async function getCollectionItems(
 		return paginatedResult(items, totalCount, page, pageSize);
 	} catch (error) {
 		console.error("Failed to fetch collection items:", error);
+
 		return emptyPage(page, pageSize);
 	}
 }
@@ -116,6 +119,7 @@ export async function getCollectionItemBySlug(
 		return item ?? null;
 	} catch (error) {
 		console.error("Failed to fetch collection item by slug:", error);
+
 		return null;
 	}
 }
@@ -130,6 +134,7 @@ export async function getAllCollectionTypes(): Promise<CollectionItemType[]> {
 		return result.map((r) => r.type);
 	} catch (error) {
 		console.error("Failed to fetch collection types:", error);
+
 		return [];
 	}
 }
@@ -149,6 +154,7 @@ export async function getTopCollectionItems(
 			.limit(resultLimit.parse(limit));
 	} catch (error) {
 		console.error("Failed to fetch top collection items:", error);
+
 		return [];
 	}
 }

@@ -16,6 +16,7 @@ pub type Db = Surreal<surrealdb::engine::local::Db>;
 
 pub async fn connect() -> Result<Db> {
     let db = Surreal::new::<Mem>(()).await?;
+
     db.use_ns("crdt").use_db("collab").await?;
 
     db.query(
@@ -35,6 +36,7 @@ pub async fn append_op(db: &Db, doc_id: &str, seq: u64, op: &CrdtOp) -> Result<(
             op: op.clone(),
         })
         .await?;
+
     Ok(())
 }
 
@@ -45,7 +47,9 @@ pub async fn load_ops(db: &Db, doc_id: &str) -> Result<Vec<CrdtOp>> {
         .await?;
 
     let mut records: Vec<OpRecord> = result.take(0)?;
+
     records.sort_by_key(|record| record.seq.unwrap_or(0));
+
     Ok(records.into_iter().map(|r| r.op).collect())
 }
 
@@ -54,5 +58,6 @@ pub async fn delete_ops(db: &Db, doc_id: &str) -> Result<()> {
         .bind(("doc_id", doc_id.to_owned()))
         .await?
         .check()?;
+
     Ok(())
 }

@@ -31,7 +31,9 @@ describe("the strip figure", () => {
 			100,
 			[],
 		);
+
 		const [low, high] = result.bands.map((b) => b.weight);
+
 		expect(low).toBeCloseTo(0.45);
 		expect(high).toBe(1);
 	});
@@ -55,11 +57,14 @@ describe("the strip figure", () => {
 				found: 0,
 			},
 		]);
+
 		expect(result.zeros).toEqual([14.13, 21.02, 25.01]);
 		expect(result.scanning).toEqual({ from: 20, to: 40 });
+
 		expect(result.boxes).toEqual([
 			{ sigma: [0.6, 0.9], from: 30, to: 60, found: 0, live: true },
 		]);
+
 		expect(result.top).toBe(100);
 		expect(result.ticks).toEqual([10, 100]);
 	});
@@ -73,6 +78,7 @@ describe("the strip figure", () => {
 			zeros: 0,
 			episode: 1,
 		};
+
 		const result = figure(
 			{ ...empty, probes: [probe, { ...probe, episode: 2 }] },
 			0,
@@ -87,6 +93,7 @@ describe("the strip figure", () => {
 				},
 			],
 		);
+
 		expect(result.boxes).toHaveLength(1);
 		expect(result.boxes[0].live).toBe(true);
 	});

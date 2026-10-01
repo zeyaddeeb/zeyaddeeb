@@ -60,6 +60,7 @@ impl Config {
             "watched" => Mode::Watched,
             _ => return None,
         };
+
         Some(Config {
             mode,
             llm_url: var(

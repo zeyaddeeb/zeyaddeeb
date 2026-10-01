@@ -159,13 +159,16 @@ impl Params {
     fn push(&mut self, name: String, data: Vec<f32>, shape: &[usize]) -> Result<Tensor> {
         let var = Var::from_tensor(&Tensor::from_vec(data, shape, &self.device)?)?;
         let tensor = var.as_tensor().clone();
+
         self.vars.push((name, var));
+
         Ok(tensor)
     }
 
     fn normal(&mut self, name: String, shape: &[usize], std: f32) -> Result<Tensor> {
         let count = shape.iter().product();
         let data = (0..count).map(|_| self.rng.normal() * std).collect();
+
         self.push(name, data, shape)
     }
 
@@ -182,7 +185,9 @@ fn lin(x: &Tensor, w: &Tensor) -> Result<Tensor> {
     let mut shape = x.dims().to_vec();
     let input = shape.pop().unwrap_or(1);
     let rows: usize = shape.iter().product();
+
     shape.push(w.dim(0)?);
+
     Ok(x.reshape((rows, input))?.matmul(&w.t()?)?.reshape(shape)?)
 }
 
@@ -209,13 +214,16 @@ impl Rope {
         let half = dim / 2;
         let mut cos = Vec::with_capacity(max * half);
         let mut sin = Vec::with_capacity(max * half);
+
         for position in 0..max {
             for i in 0..half {
                 let angle = position as f32 / 10000f32.powf(i as f32 / half as f32);
+
                 cos.push(angle.cos());
                 sin.push(angle.sin());
             }
         }
+
         Ok(Self {
             cos: Tensor::from_vec(cos, (max, half), device)?,
             sin: Tensor::from_vec(sin, (max, half), device)?,
@@ -234,6 +242,7 @@ impl Rope {
         let b = x.narrow(D::Minus1, width - half, half)?;
         let rotated_a = (a.broadcast_mul(&cos)? - b.broadcast_mul(&sin)?)?;
         let rotated_b = (a.broadcast_mul(&sin)? + b.broadcast_mul(&cos)?)?;
+
         Ok(Tensor::cat(&[&keep, &rotated_a, &rotated_b], D::Minus1)?)
     }
 }
@@ -250,18 +259,24 @@ impl Compressor {
         let (batch, seq, _) = x.dims3()?;
         let blocks = seq / self.ratio;
         let kv = lin(x, &self.wkv)?;
+
         let Some(wgate) = &self.wgate else {
             return rms_norm(&kv, &self.norm);
         };
+
         let width = kv.dim(2)?;
         let used = blocks * self.ratio;
+
         let kv = kv
             .narrow(1, 0, used)?
             .reshape((batch, blocks, self.ratio, width))?;
+
         let score = lin(x, wgate)?
             .narrow(1, 0, used)?
             .reshape((batch, blocks, self.ratio, width))?;
+
         let pooled = (kv * softmax(&score, 2)?)?.sum(2)?;
+
         rms_norm(&pooled, &self.norm)
     }
 }
@@ -294,6 +309,7 @@ impl Expert {
     fn forward(&self, x: &Tensor) -> Result<Tensor> {
         let gate = lin(x, &self.w1)?.clamp(-1e4f32, 10f32)?;
         let up = lin(x, &self.w3)?.clamp(-10f32, 10f32)?;
+
         lin(&(gate.silu()? * up)?, &self.w2)
     }
 }
@@ -410,23 +426,29 @@ impl Model {
             cfg.engram_layers.iter().all(|&l| l < cfg.encoder_layers),
             "Engram belongs to the encoder half"
         );
+
         let mut p = Params::new(seed);
         let (d, n) = (cfg.hidden, cfg.streams);
         let embedding = p.normal("embedding".into(), &[cfg.vocab, d], 0.5)?;
         let mut blocks = Vec::new();
         let mut compressing_since_full = false;
+
         for layer in 0..cfg.layers() {
             let mode = cfg.schedule[layer];
             let name = |part: &str| format!("layer{layer}.{part}");
             let is_full = mode == Mode::Full;
+
             if is_full {
                 compressing_since_full = true;
             }
+
             anyhow::ensure!(
                 mode == Mode::Swa || compressing_since_full,
                 "layer {layer} reuses a cache no earlier layer owns"
             );
+
             let ratio = cfg.ratio(layer);
+
             let attention = Attention {
                 mode,
                 wq: p.linear(name("attention.wq"), cfg.heads * cfg.head_dim, d)?,
@@ -471,6 +493,7 @@ impl Model {
                     None
                 },
             };
+
             let expert = |p: &mut Params, part: String| -> Result<Expert> {
                 Ok(Expert {
                     w1: p.linear(format!("{part}.w1"), cfg.expert_width, d)?,
@@ -482,6 +505,7 @@ impl Model {
                     w3: p.linear(format!("{part}.w3"), cfg.expert_width, d)?,
                 })
             };
+
             let moe = Moe {
                 router: p.linear(name("moe.router"), cfg.experts, d)?,
                 experts: (0..cfg.experts)
@@ -489,28 +513,35 @@ impl Model {
                     .collect::<Result<_>>()?,
                 shared: expert(&mut p, name("moe.shared"))?,
             };
+
             let hyper = |p: &mut Params, part: &str| -> Result<HyperConnection> {
                 let mut base = vec![0f32; (2 + n) * n];
+
                 for i in 0..n {
                     base[2 * n + i * n + i] = 4.0;
                 }
+
                 Ok(HyperConnection {
                     project: p.normal(name(&format!("{part}.fn")), &[(2 + n) * n, n * d], 0.02)?,
                     base: p.push(name(&format!("{part}.base")), base, &[(2 + n) * n])?,
                     scale: p.constant(name(&format!("{part}.scale")), &[3], 0.01)?,
                 })
             };
+
             let hc_attn = hyper(&mut p, "mhc.attention")?;
             let hc_ffn = hyper(&mut p, "mhc.experts")?;
+
             let engram = if cfg.engram_layers.contains(&layer) {
                 let lookups = cfg.engram_orders.len() * cfg.engram_heads;
                 let mut hash_rng = Rng::new(10007 * (layer as u64 + 1));
                 let mut offsets = Vec::new();
                 let mut total = 0;
+
                 for i in 0..lookups {
                     offsets.push(total);
                     total += cfg.engram_primes[i % cfg.engram_primes.len()];
                 }
+
                 Some(Engram {
                     table: p.normal(name("engram.table"), &[total, cfg.engram_dim], 0.1)?,
                     wkv: p.normal(
@@ -528,6 +559,7 @@ impl Model {
             } else {
                 None
             };
+
             blocks.push(Block {
                 attn_norm: p.constant(name("attention.norm"), &[d], 1.0)?,
                 ffn_norm: p.constant(name("moe.norm"), &[d], 1.0)?,
@@ -538,15 +570,19 @@ impl Model {
                 engram,
             });
         }
+
         let final_norm = p.constant("head.norm".into(), &[d], 1.0)?;
+
         let head = p.normal(
             "head.weight".into(),
             &[cfg.vocab, d],
             0.5 / (d as f32).sqrt(),
         )?;
+
         let rope = Rope::new(cfg.rope_dim, cfg.max_positions, &p.device)?;
         let index_rope = Rope::new(cfg.index_dim, cfg.max_positions, &p.device)?;
         let router_bias = vec![vec![0.0; cfg.experts]; cfg.layers()];
+
         Ok(Self {
             cfg,
             params: p,
@@ -578,29 +614,37 @@ impl Model {
 
     pub fn frozen_copy(&self) -> Result<Self> {
         let copy = Self::new(self.cfg.clone(), 1)?;
+
         for ((_, target), (_, source)) in copy.params.vars.iter().zip(&self.params.vars) {
             target.set(&source.as_tensor().copy()?)?;
         }
+
         let mut copy = copy;
+
         copy.router_bias = self.router_bias.clone();
+
         Ok(copy)
     }
 
     pub fn groups(&self) -> Result<Vec<(String, Vec<f32>)>> {
         let mut groups: Vec<(String, Vec<f32>)> = Vec::new();
+
         for (name, var) in &self.params.vars {
             let group = group_of(name).to_owned();
             let data = var.as_tensor().flatten_all()?.to_vec1::<f32>()?;
+
             match groups.iter_mut().find(|(g, _)| *g == group) {
                 Some((_, values)) => values.extend(data),
                 None => groups.push((group, data)),
             }
         }
+
         Ok(groups)
     }
 
     pub fn rebalance(&mut self, load: &[Vec<f32>]) {
         let target = self.cfg.active_experts as f32 / self.cfg.experts as f32;
+
         for (bias, load) in self.router_bias.iter_mut().zip(load) {
             for (b, l) in bias.iter_mut().zip(load) {
                 *b += self.cfg.bias_speed * (target - l).signum();
@@ -619,27 +663,34 @@ impl Model {
         let device = self.device();
         let batch = ids.len();
         let seq = ids[0].len();
+
         anyhow::ensure!(
             seq >= cfg.encoder_ratio && seq <= cfg.max_positions,
             "sequence length {seq} is outside the supported range"
         );
+
         let flat: Vec<u32> = ids.iter().flatten().copied().collect();
         let tokens = Tensor::from_vec(flat, (batch, seq), device)?;
+
         let x = self
             .embedding
             .index_select(&tokens.flatten_all()?, 0)?
             .reshape((batch, seq, 1, cfg.hidden))?;
+
         let mut h = x
             .broadcast_as((batch, seq, cfg.streams, cfg.hidden))?
             .contiguous()?;
 
         let mut pre = {
             let mut one_hot = vec![0f32; cfg.streams];
+
             one_hot[0] = 1.0;
+
             Tensor::from_vec(one_hot, (1, 1, cfg.streams), device)?
                 .broadcast_as((batch, seq, cfg.streams))?
                 .contiguous()?
         };
+
         let mut start = 0;
         let mut shared: Option<Shared> = None;
         let mut indexer_loss = Tensor::zeros((), DType::F32, device)?;
@@ -648,20 +699,25 @@ impl Model {
 
         for (layer, block) in self.blocks.iter().enumerate() {
             check(&format!("forward · block {}", layer + 1))?;
+
             let mut source = None;
+
             if layer == cfg.encoder_layers && decoder_from > 0 {
                 source = Some(rms_norm(&read(&h, &pre)?, &block.attn_norm)?);
                 start = decoder_from.min(seq - 1);
                 h = h.narrow(1, start, seq - start)?.contiguous()?;
                 pre = pre.narrow(1, start, seq - start)?.contiguous()?;
             }
+
             let mut layer_record = LayerRecord::default();
+
             if let Some(engram) = &block.engram {
                 h = self.engram(engram, layer, ids, &h, start, trace, record.as_mut())?;
             }
 
             let mix = self.mix(&block.hc_attn, &h)?;
             let x = rms_norm(&read(&h, &pre)?, &block.attn_norm)?;
+
             let (out, aux) = self.attention(
                 layer,
                 &block.attention,
@@ -672,9 +728,11 @@ impl Model {
                 trace,
                 &mut layer_record,
             )?;
+
             if let Some(aux) = aux {
                 indexer_loss = (indexer_loss + aux)?;
             }
+
             h = write(&h, &out, &mix)?;
             record_mix(&mix, trace, start, &mut layer_record)?;
 
@@ -682,16 +740,21 @@ impl Model {
             let x = rms_norm(&read(&h, &mix.pre)?, &block.ffn_norm)?;
             let (out, layer_load) =
                 self.moe(layer, &block.moe, &x, trace, start, &mut layer_record)?;
+
             load.push(layer_load);
             h = write(&h, &out, &next)?;
             record_mix(&next, trace, start, &mut layer_record)?;
             pre = next.pre;
+
             if let Some(record) = record.as_mut() {
                 record.layers.push(layer_record);
             }
         }
+
         check("forward · head")?;
+
         let logits = lin(&rms_norm(&read(&h, &pre)?, &self.final_norm)?, &self.head)?;
+
         Ok(Output {
             logits,
             indexer_loss,
@@ -703,25 +766,32 @@ impl Model {
     fn mix(&self, hc: &HyperConnection, h: &Tensor) -> Result<Mix> {
         let (batch, seq, n, d) = h.dims4()?;
         let flat = h.reshape((batch, seq, n * d))?;
+
         let scale = (flat.sqr()?.mean_keepdim(D::Minus1)? + EPS)?
             .sqrt()?
             .recip()?;
+
         let mixes = lin(&flat, &hc.project)?.broadcast_mul(&scale)?;
+
         let part = |from: usize, len: usize, gate: usize| -> Result<Tensor> {
             Ok(mixes
                 .narrow(2, from, len)?
                 .broadcast_mul(&hc.scale.narrow(0, gate, 1)?)?
                 .broadcast_add(&hc.base.narrow(0, from, len)?)?)
         };
+
         let pre = (sigmoid(&part(0, n, 0)?)? + EPS)?;
         let post = (sigmoid(&part(n, n, 1)?)? * 2.0)?;
         let logits = part(2 * n, n * n, 2)?.reshape((batch, seq, n, n))?;
         let mut comb = (softmax(&logits, D::Minus1)? + EPS)?;
+
         comb = comb.broadcast_div(&(comb.sum_keepdim(2)? + EPS)?)?;
+
         for _ in 1..self.cfg.sinkhorn_iterations {
             comb = comb.broadcast_div(&(comb.sum_keepdim(3)? + EPS)?)?;
             comb = comb.broadcast_div(&(comb.sum_keepdim(2)? + EPS)?)?;
         }
+
         Ok(Mix { pre, post, comb })
     }
 
@@ -740,45 +810,57 @@ impl Model {
         let cfg = &self.cfg;
         let device = self.device();
         let (batch, seq, _) = x.dims3()?;
+
         let positions = Tensor::from_vec(
             (start as u32..(start + seq) as u32).collect::<Vec<_>>(),
             seq,
             device,
         )?;
+
         let q = lin(x, &attn.wq)?
             .reshape((batch, seq, cfg.heads, cfg.head_dim))?
             .transpose(1, 2)?
             .contiguous()?;
+
         let q = self.rope.apply(&q, &positions, false)?;
+
         let window_kv = self.rope.apply(
             &rms_norm(&lin(x, &attn.wkv)?, &attn.kv_norm)?,
             &positions,
             false,
         )?;
+
         let scale = 1.0 / (cfg.head_dim as f64).sqrt();
 
         let mut window_mask = vec![MASKED; seq * seq];
+
         for i in 0..seq {
             for j in i.saturating_sub(cfg.window - 1)..=i {
                 window_mask[i * seq + j] = 0.0;
             }
         }
+
         let window_mask = Tensor::from_vec(window_mask, (1, 1, seq, seq), device)?;
+
         let window_scores = (q.broadcast_matmul(&window_kv.unsqueeze(1)?.transpose(2, 3)?)?
             * scale)?
             .broadcast_add(&window_mask)?;
 
         let mut aux = None;
+
         if attn.mode != Mode::Swa {
             let ratio = cfg.ratio(layer);
+
             if let Some(compressor) = &attn.compressor {
                 let latent = compressor.forward(source)?;
                 let entries = latent.dim(1)?;
+
                 let entry_positions = Tensor::from_vec(
                     (0..entries).map(|j| (j * ratio) as u32).collect::<Vec<_>>(),
                     entries,
                     device,
                 )?;
+
                 let index_k = self.index_rope.apply(
                     &rms_norm(
                         &lin(&latent.detach(), attn.index_wk.as_ref().unwrap())?,
@@ -787,6 +869,7 @@ impl Model {
                     &entry_positions,
                     false,
                 )?;
+
                 *shared = Some(Shared {
                     kv: self.rope.apply(&latent, &entry_positions, false)?,
                     index_k,
@@ -797,39 +880,49 @@ impl Model {
                     candidates: None,
                 });
             }
+
             let state = shared.as_mut().expect("schedule validated in Model::new");
             let entries = state.kv.dim(1)?;
             let ratio = state.ratio;
             let visible = |i: usize, j: usize| (j + 1) * ratio <= start + i + 1;
 
             let mut index_scores = None;
+
             if let Some(indexer) = &attn.indexer {
                 let detached = x.detach();
+
                 let iq = lin(&detached, &indexer.wq)?
                     .reshape((batch, seq, cfg.index_heads, cfg.index_dim))?
                     .transpose(1, 2)?
                     .contiguous()?;
+
                 let iq = self.index_rope.apply(&iq, &positions, false)?;
+
                 let weights = (lin(&detached, &indexer.weights)?
                     * (1.0 / ((cfg.index_dim * cfg.index_heads) as f64).sqrt()))?
                 .transpose(1, 2)?
                 .unsqueeze(3)?;
+
                 let scores = iq
                     .broadcast_matmul(&state.index_k.unsqueeze(1)?.transpose(2, 3)?)?
                     .relu()?
                     .broadcast_mul(&weights)?
                     .sum(1)?;
+
                 let values = scores.flatten_all()?.to_vec1::<f32>()?;
                 let top = cfg.top(layer);
                 let mut chosen = vec![false; batch * seq * entries];
+
                 let mut candidates = attn
                     .compressor
                     .is_some()
                     .then(|| vec![false; batch * seq * entries])
                     .filter(|_| layer >= cfg.encoder_layers);
+
                 for row in 0..batch * seq {
                     let i = row % seq;
                     let base = row * entries;
+
                     let mut order: Vec<usize> = (0..entries)
                         .filter(|&j| {
                             visible(i, j)
@@ -841,24 +934,31 @@ impl Model {
                                     .unwrap_or(true)
                         })
                         .collect();
+
                     order.sort_by(|&a, &b| values[base + b].total_cmp(&values[base + a]));
+
                     for &j in order.iter().take(top) {
                         chosen[base + j] = true;
                     }
+
                     if let Some(candidates) = candidates.as_mut() {
                         let size = cfg.candidate_block;
                         let newest = (start + i) / size;
+
                         let mut blocks: Vec<(usize, f32)> = (0..entries.div_ceil(size))
                             .map(|b| {
                                 let best = (b * size..((b + 1) * size).min(entries))
                                     .filter(|&j| visible(i, j))
                                     .map(|j| values[base + j])
                                     .fold(f32::NEG_INFINITY, f32::max);
+
                                 (b, if b == newest { f32::INFINITY } else { best })
                             })
                             .filter(|(_, score)| *score > f32::NEG_INFINITY)
                             .collect();
+
                         blocks.sort_by(|a, b| b.1.total_cmp(&a.1));
+
                         for (b, _) in blocks.into_iter().take(cfg.candidate_top) {
                             for j in b * size..((b + 1) * size).min(entries) {
                                 candidates[base + j] = visible(i, j);
@@ -866,27 +966,34 @@ impl Model {
                         }
                     }
                 }
+
                 let mask: Vec<f32> = chosen
                     .iter()
                     .map(|&keep| if keep { 0.0 } else { MASKED })
                     .collect();
+
                 state.selected = Tensor::from_vec(mask, (batch, 1, seq, entries), device)?;
                 state.chosen = chosen;
                 state.scores = values;
+
                 if candidates.is_some() {
                     state.candidates = candidates;
                 }
+
                 index_scores = Some(scores);
             }
 
             let compressed_scores =
                 (q.broadcast_matmul(&state.kv.unsqueeze(1)?.transpose(2, 3)?)? * scale)?
                     .broadcast_add(&state.selected)?;
+
             let sink = attn.sink.broadcast_as((batch, cfg.heads, seq, 1))?;
+
             let weights = softmax(
                 &Tensor::cat(&[&sink, &window_scores, &compressed_scores], 3)?,
                 3,
             )?;
+
             let window_weights = weights.narrow(3, 1, seq)?;
             let compressed_weights = weights.narrow(3, 1 + seq, entries)?;
             let out = (window_weights.broadcast_matmul(&window_kv.unsqueeze(1)?)?
@@ -897,6 +1004,7 @@ impl Model {
                 let target = mass.broadcast_div(&(mass.sum_keepdim(2)? + EPS)?)?;
                 let predicted =
                     log_softmax(&scores.broadcast_add(&state.selected.squeeze(1)?)?, 2)?;
+
                 aux = Some(
                     (target * predicted)?
                         .sum_all()?
@@ -904,18 +1012,22 @@ impl Model {
                         .affine(1.0 / (batch * seq) as f64, 0.0)?,
                 );
             }
+
             if let Some(request) = trace.filter(|t| t.position >= start) {
                 let i = request.position - start;
                 let row = request.row * seq + i;
                 let window = window_weights.mean(1)?.flatten_all()?.to_vec1::<f32>()?;
+
                 let compressed = compressed_weights
                     .mean(1)?
                     .flatten_all()?
                     .to_vec1::<f32>()?;
+
                 record.tokens = vec![0.0; start]
                     .into_iter()
                     .chain(window[row * seq..row * seq + i + 1].iter().copied())
                     .collect();
+
                 record.blocks = (0..entries)
                     .map(|j| BlockRecord {
                         start: j * state.ratio,
@@ -931,31 +1043,38 @@ impl Model {
                     })
                     .collect();
             }
+
             return Ok((self.project_out(attn, &out, &positions)?, aux));
         }
 
         let sink = attn.sink.broadcast_as((batch, cfg.heads, seq, 1))?;
         let weights = softmax(&Tensor::cat(&[&sink, &window_scores], 3)?, 3)?.narrow(3, 1, seq)?;
+
         if let Some(request) = trace.filter(|t| t.position >= start) {
             let i = request.position - start;
             let row = request.row * seq + i;
             let window = weights.mean(1)?.flatten_all()?.to_vec1::<f32>()?;
+
             record.tokens = vec![0.0; start]
                 .into_iter()
                 .chain(window[row * seq..row * seq + i + 1].iter().copied())
                 .collect();
         }
+
         let out = weights.broadcast_matmul(&window_kv.unsqueeze(1)?)?;
+
         Ok((self.project_out(attn, &out, &positions)?, aux))
     }
 
     fn project_out(&self, attn: &Attention, out: &Tensor, positions: &Tensor) -> Result<Tensor> {
         let (batch, heads, seq, width) = out.dims4()?;
+
         let out = self
             .rope
             .apply(out, positions, true)?
             .transpose(1, 2)?
             .reshape((batch, seq, heads * width))?;
+
         lin(&out, &attn.wo)
     }
 
@@ -979,48 +1098,63 @@ impl Model {
         let k = cfg.active_experts;
         let mut picks = vec![0u32; rows * k];
         let mut members: Vec<Vec<(u32, u32)>> = vec![Vec::new(); cfg.experts];
+
         for (row, scores) in values.iter().enumerate() {
             let mut order: Vec<usize> = (0..cfg.experts).collect();
+
             order.sort_by(|&a, &b| (scores[b] + bias[b]).total_cmp(&(scores[a] + bias[a])));
+
             for (slot, &expert) in order.iter().take(k).enumerate() {
                 picks[row * k + slot] = expert as u32;
                 members[expert].push((row as u32, (row * k + slot) as u32));
             }
         }
+
         let picked = scores.gather(&Tensor::from_vec(picks.clone(), (rows, k), device)?, 1)?;
+
         let weights = picked
             .broadcast_div(&(picked.sum_keepdim(1)? + 1e-20)?)?
             .flatten_all()?;
+
         let mut out = moe.shared.forward(&flat)?;
+
         for (expert, members) in moe.experts.iter().zip(&members) {
             if members.is_empty() {
                 continue;
             }
+
             let rows_index = Tensor::from_vec(
                 members.iter().map(|m| m.0).collect::<Vec<_>>(),
                 members.len(),
                 device,
             )?;
+
             let slots = Tensor::from_vec(
                 members.iter().map(|m| m.1).collect::<Vec<_>>(),
                 members.len(),
                 device,
             )?;
+
             let routed = expert
                 .forward(&flat.index_select(&rows_index, 0)?)?
                 .broadcast_mul(&weights.index_select(&slots, 0)?.unsqueeze(1)?)?;
+
             out = out.index_add(&rows_index, &routed, 0)?;
         }
+
         let load = members
             .iter()
             .map(|m| m.len() as f32 / (rows * k) as f32 * k as f32)
             .collect();
+
         if let Some(request) = trace.filter(|t| t.position >= start) {
             let row = request.row * seq + request.position - start;
             let weights = weights.to_vec1::<f32>()?;
+
             record.experts = (0..cfg.experts)
                 .map(|e| {
                     let slot = (0..k).find(|&s| picks[row * k + s] == e as u32);
+
                     (
                         values[row][e],
                         slot.map(|s| weights[row * k + s]).unwrap_or(0.0),
@@ -1029,6 +1163,7 @@ impl Model {
                 })
                 .collect();
         }
+
         Ok((out.reshape((batch, seq, d))?, load))
     }
 
@@ -1048,38 +1183,47 @@ impl Model {
         let (batch, seq, n, d) = h.dims4()?;
         let lookups = cfg.engram_orders.len() * cfg.engram_heads;
         let mut rows = Vec::with_capacity(batch * seq * lookups);
+
         for sequence in ids {
             for t in start..start + seq {
                 for (o, &order) in cfg.engram_orders.iter().enumerate() {
                     for head in 0..cfg.engram_heads {
                         let lookup = o * cfg.engram_heads + head;
+
                         rows.push(engram.bucket(cfg, sequence, t, order, lookup) as u32);
                     }
                 }
             }
         }
+
         let embedded = engram
             .table
             .index_select(&Tensor::from_vec(rows.clone(), rows.len(), device)?, 0)?
             .reshape((batch, seq, lookups * cfg.engram_dim))?;
+
         let kv = lin(&embedded, &engram.wkv)?;
         let key = kv.narrow(2, 0, n * d)?.reshape((batch, seq, n, d))?;
         let value = kv.narrow(2, n * d, d)?.unsqueeze(2)?;
         let norm = (rms_scale(h)? * rms_scale(&key)?)?;
+
         let dot = ((h.broadcast_mul(&(&engram.q_weight * &engram.k_weight)?)? * key)?
             .sum_keepdim(D::Minus1)?
             * norm)?
             .affine(1.0 / (d as f64).sqrt(), 0.0)?;
+
         let sign = ((dot.ge(0.0)?.to_dtype(DType::F32)? * 2.0)? - 1.0)?;
         let gate = sigmoid(&(dot.abs()?.clamp(1e-6f32, f32::MAX)?.sqrt()? * sign)?)?;
+
         if let (Some(request), Some(record)) = (trace.filter(|t| t.position >= start), record) {
             let gates = gate.mean(2)?.flatten_all()?.to_vec1::<f32>()?;
             let at = request.row * seq + request.position - start;
+
             for (o, &order) in cfg.engram_orders.iter().enumerate() {
                 for head in 0..cfg.engram_heads {
                     let lookup = o * cfg.engram_heads + head;
                     let sequence = &ids[request.row];
                     let from = (request.position + 1).saturating_sub(order);
+
                     record.engram.push(EngramRecord {
                         layer,
                         order,
@@ -1091,12 +1235,14 @@ impl Model {
                 }
             }
         }
+
         Ok(h.broadcast_add(&gate.broadcast_mul(&value)?)?)
     }
 
     pub fn engram_bucket(&self, layer: usize, tokens: &[u32], lookup: usize) -> Option<usize> {
         let engram = self.blocks.get(layer)?.engram.as_ref()?;
         let order = tokens.len();
+
         Some(engram.bucket(&self.cfg, tokens, order - 1, order, lookup) - engram.offsets[lookup])
     }
 }
@@ -1111,15 +1257,19 @@ impl Engram {
         lookup: usize,
     ) -> usize {
         let mut rolling = 0u64;
+
         for back in 0..order {
             let token = if t >= back {
                 sequence[t - back] as u64
             } else {
                 0
             };
+
             rolling ^= (token + 1).wrapping_mul(self.multipliers[lookup * 3 + back]);
         }
+
         let prime = cfg.engram_primes[lookup % cfg.engram_primes.len()];
+
         self.offsets[lookup] + (rolling % prime as u64) as usize
     }
 }
@@ -1134,6 +1284,7 @@ fn read(h: &Tensor, pre: &Tensor) -> Result<Tensor> {
 
 fn write(h: &Tensor, out: &Tensor, mix: &Mix) -> Result<Tensor> {
     let carried = mix.comb.matmul(h)?;
+
     Ok((carried + out.unsqueeze(2)?.broadcast_mul(&mix.post.unsqueeze(3)?)?)?)
 }
 
@@ -1147,8 +1298,10 @@ fn record_mix(
         let (_, seq, n, _) = mix.comb.dims4()?;
         let all = mix.comb.flatten_all()?.to_vec1::<f32>()?;
         let at = (request.row * seq + request.position - start) * n * n;
+
         record.mixing.push(all[at..at + n * n].to_vec());
     }
+
     Ok(())
 }
 
@@ -1182,6 +1335,7 @@ mod tests {
 
     fn sequence(len: usize, seed: u64) -> Vec<u32> {
         let mut rng = Rng::new(seed);
+
         (0..len).map(|_| rng.below(40) as u32).collect()
     }
 
@@ -1189,9 +1343,12 @@ mod tests {
     fn nothing_reads_the_future() {
         let model = model();
         let a = sequence(24, 3);
+
         for changed in [5, 12, 23] {
             let mut b = a.clone();
+
             b[changed] = (b[changed] + 1) % 40;
+
             let run = |ids: &Vec<u32>| {
                 model
                     .forward(std::slice::from_ref(ids), 0, None, &mut unchecked)
@@ -1202,12 +1359,15 @@ mod tests {
                     .to_vec2::<f32>()
                     .unwrap()
             };
+
             let (left, right) = (run(&a), run(&b));
+
             for t in 0..changed {
                 for (x, y) in left[t].iter().zip(&right[t]) {
                     assert!((x - y).abs() < 1e-5, "position {t} saw position {changed}");
                 }
             }
+
             assert!(left[changed]
                 .iter()
                 .zip(&right[changed])
@@ -1218,6 +1378,7 @@ mod tests {
     #[test]
     fn stream_mixing_is_doubly_stochastic() {
         let model = model();
+
         let trace = model
             .forward(
                 &[sequence(12, 5)],
@@ -1231,28 +1392,37 @@ mod tests {
             .unwrap()
             .trace
             .unwrap();
+
         assert_eq!(trace.layers.len(), 8);
+
         for layer in &trace.layers {
             assert_eq!(layer.mixing.len(), 2);
+
             for matrix in &layer.mixing {
                 for i in 0..4 {
                     let row: f32 = (0..4).map(|j| matrix[i * 4 + j]).sum();
                     let column: f32 = (0..4).map(|j| matrix[j * 4 + i]).sum();
+
                     assert!((row - 1.0).abs() < 1e-2 && (column - 1.0).abs() < 1e-2);
                 }
             }
+
             let attended: f32 = layer.tokens.iter().sum::<f32>()
                 + layer.blocks.iter().map(|b| b.weight).sum::<f32>();
+
             assert!(
                 attended > 0.0 && attended <= 1.0 + 1e-4,
                 "sink keeps the rest"
             );
+
             assert_eq!(layer.experts.iter().filter(|e| e.2).count(), 2);
+
             for block in &layer.blocks {
                 assert!(!block.selected || block.visible);
                 assert!(block.selected || block.weight < 1e-6);
             }
         }
+
         assert_eq!(trace.engram.len(), 8);
     }
 
@@ -1263,8 +1433,10 @@ mod tests {
         let out = model.forward(&ids, 0, None, &mut unchecked).unwrap();
         let loss = (out.logits.sqr().unwrap().mean_all().unwrap() + out.indexer_loss).unwrap();
         let grads = loss.backward().unwrap();
+
         for (name, var) in &model.params.vars {
             let grad = grads.get(var.as_tensor());
+
             let norm = grad
                 .map(|g| {
                     g.sqr()
@@ -1275,6 +1447,7 @@ mod tests {
                         .unwrap()
                 })
                 .unwrap_or(0.0);
+
             assert!(
                 norm.is_finite() && norm > 0.0,
                 "{name} received no gradient"
@@ -1288,7 +1461,9 @@ mod tests {
         let ids = vec![sequence(20, 4)];
         let full = model.forward(&ids, 0, None, &mut unchecked).unwrap().logits;
         let replay = model.forward(&ids, 8, None, &mut unchecked).unwrap().logits;
+
         assert_eq!(replay.dim(1).unwrap(), 12);
+
         let full = full
             .narrow(1, 19, 1)
             .unwrap()
@@ -1296,6 +1471,7 @@ mod tests {
             .unwrap()
             .to_vec1::<f32>()
             .unwrap();
+
         let replay = replay
             .narrow(1, 11, 1)
             .unwrap()
@@ -1303,11 +1479,13 @@ mod tests {
             .unwrap()
             .to_vec1::<f32>()
             .unwrap();
+
         let drift = full
             .iter()
             .zip(&replay)
             .map(|(a, b)| (a - b).abs())
             .fold(0.0, f32::max);
+
         assert!(drift.is_finite());
         eprintln!("bounded replay drift at the last position: {drift:.4}");
     }

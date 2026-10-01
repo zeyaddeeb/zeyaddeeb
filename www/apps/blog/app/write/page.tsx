@@ -4,6 +4,8 @@ import { requireAdminPage } from "@/lib/session";
 
 export default async function WritePage() {
 	const user = await requireAdminPage();
+
 	if (!user) return <AccessDenied />;
+
 	redirect("/write/dashboard");
 }

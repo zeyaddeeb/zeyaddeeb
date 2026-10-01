@@ -180,6 +180,7 @@ export function isOn(c: Calls, id: CallId): boolean {
 
 export function call(c: Calls, id: CallId): Calls {
 	const on = !isOn(c, id);
+
 	switch (id) {
 		case "swing":
 			return { ...c, swing: on };
@@ -211,14 +212,20 @@ function wrap(bar: string) {
 
 export function serialize(bars: Bars): string {
 	if (bars.every((b) => b === bars[0])) return bars[0];
+
 	const items: string[] = [];
+
 	for (let i = 0; i < bars.length; ) {
 		let j = i;
+
 		while (j + 1 < bars.length && bars[j + 1] === bars[i]) j++;
+
 		const n = j - i + 1;
+
 		items.push(`${wrap(bars[i])}${n > 1 ? `!${n}` : ""}`);
 		i = j + 1;
 	}
+
 	return `<${items.join(" ")}>`;
 }
 
@@ -245,30 +252,42 @@ export const ticks = 48;
 export function itemsOf(node: Node | null, bar: number): Item[] {
 	const items: Item[] = [];
 	let at = 0;
+
 	for (const hap of node ? cycle(node, bar) : []) {
 		const from = Math.round((hap.begin - bar) * ticks);
 		const to = Math.round((hap.end - bar) * ticks);
+
 		if (from < at || to <= from) continue;
+
 		if (from > at) items.push({ text: "~", size: from - at, begin: at });
+
 		items.push({ text: hap.value, size: to - from, begin: from });
 		at = to;
 	}
+
 	if (at < ticks) items.push({ text: "~", size: ticks - at, begin: at });
+
 	return items;
 }
 
 export function formatBar(items: { text: string; size: number }[]): string {
 	const merged: { text: string; size: number }[] = [];
+
 	for (const item of items) {
 		const last = merged.at(-1);
+
 		if (last && last.text === "~" && item.text === "~") last.size += item.size;
 		else merged.push({ ...item });
 	}
+
 	if (merged.every((i) => i.text === "~")) return "~";
+
 	const unit = merged.reduce((g, i) => gcd(g, i.size), ticks);
+
 	const words = merged.map((i) =>
 		i.size === unit ? i.text : `${i.text}@${i.size / unit}`,
 	);
+
 	return words.length === 1 ? words[0] : `[${words.join(" ")}]`;
 }
 
@@ -317,8 +336,10 @@ export function arrange(c: Calls, trading?: Trading): Score {
 	let cornet = head.map((bar, i) =>
 		c.blue && bends.includes(i) ? bar.replace("d5", "db5>d5") : bar,
 	);
+
 	let clarinet = all("~");
 	let trombone = all("~");
+
 	if (c.lineup === "everybody") {
 		clarinet = [...obbligato];
 		trombone = [...tailgate];
@@ -331,25 +352,33 @@ export function arrange(c: Calls, trading?: Trading): Score {
 	} else if (c.lineup === "trade") {
 		cornet = all("~");
 	}
+
 	const horns = { cornet, clarinet, trombone };
+
 	if (c.lineup === "trade" && trading)
 		horns[trading.voice] = [...trading.answer];
+
 	const pattern = {
 		four: ["x x x x", "1 x 5 x"],
 		two: ["x ~ x ~", "1 ~ 5 ~"],
 		stop: ["x ~ ~ ~", "x ~ ~ ~"],
 	}[c.rhythm];
+
 	const banjo = all(pattern[0]);
 	const piano = all(pattern[1]);
+
 	if (c.break)
 		for (const lane of [banjo, piano]) {
 			lane[10] = "x ~ ~ ~";
 			lane[11] = "~";
 		}
+
 	if (c.break && c.lineup !== "trade") {
 		const soloist = c.lineup === "clarinet" ? "clarinet" : "cornet";
+
 		trombone[10] = trombone[10] === "~" ? "~" : "[bb2 ~ ~ ~]";
 		trombone[11] = "~";
+
 		if (soloist === "cornet") {
 			clarinet[10] = clarinet[10] === "~" ? "~" : "[d5 ~ ~ ~]";
 			clarinet[11] = "~";
@@ -358,6 +387,7 @@ export function arrange(c: Calls, trading?: Trading): Score {
 			[clarinet[10], clarinet[11]] = breakRunHigh;
 		}
 	}
+
 	return {
 		tempo: tempos[c.tempo],
 		swing: c.swing ? swings[c.tempo] : 1,
@@ -421,28 +451,36 @@ export const welcome: Caption = {
 function middle(score: Score, lane: LaneId) {
 	const compiled = compileAll(score);
 	const keys: number[] = [];
+
 	for (let bar = 0; bar < chorus; bar++)
 		for (const n of notes(compiled, lane, bar, 1)) keys.push(...n.keys);
+
 	keys.sort((a, b) => a - b);
+
 	return noteName(keys[Math.floor(keys.length / 2)] ?? 60);
 }
 
 export function caption(c: Calls, id: CallId): Caption {
 	const on = isOn(c, id);
 	const shout = calls.find((x) => x.id === id)?.shout ?? null;
+
 	const say = (text: string, record: RecordId | null = null): Caption => ({
 		shout: on ? shout : null,
 		text,
 		record,
 	});
+
 	const score = arrange(c);
+
 	switch (id) {
 		case "swing": {
 			if (!on)
 				return say(
 					"Straight again: every eighth note the same length, like a march.",
 				);
+
 			const late = Math.round((score.swing / (1 + score.swing)) * 100);
+
 			return say(
 				`The second eighth of every beat now waits until ${late}% of the beat has gone. Same notes, same tempo. That wait is swing.`,
 			);
@@ -450,12 +488,14 @@ export function caption(c: Calls, id: CallId): Caption {
 		case "drag":
 		case "stomp": {
 			if (!on) return say("Back to 120 beats a minute, a medium bounce.");
+
 			if (id === "drag")
 				return say(
 					c.swing
 						? "Tempo 76. Slow bands swing harder: the long eighth stretches to three times the short one."
 						: "Tempo 76, a slow drag. Swing it and hear how far a slow band stretches the long eighth.",
 				);
+
 			return say(
 				c.swing
 					? "Tempo 184. Fast bands swing lighter: at this speed the eighths even out to 3:2."
@@ -464,28 +504,33 @@ export function caption(c: Calls, id: CallId): Caption {
 		}
 		case "everybody":
 			if (!on) return say("The cornet leads alone again.");
+
 			return say(
 				`Three horns at once, each in its own lane: cornet in the middle around ${middle(score, "cornet")}, clarinet above around ${middle(score, "clarinet")}, trombone below around ${middle(score, "trombone")}.`,
 				"oliver",
 			);
 		case "clarinet":
 			if (!on) return say("The cornet leads again.");
+
 			return say(
 				"The cornet sits out and the clarinet takes the chorus. Solos in turn caught on with Armstrong’s Hot Five records.",
 			);
 		case "answer":
 			if (!on) return say("The cornet plays the whole tune again.");
+
 			return say(
 				"The cornet calls for two bars and the clarinet answers in the gap. In 1925 Bessie Smith sang the calls and Armstrong answered.",
 				"bessie",
 			);
 		case "two":
 			if (!on) return say("Four to the bar: the banjo strums every beat.");
+
 			return say(
 				"The banjo strums on 1 and 3 only, the older two-beat. Four to the bar sounds smoother; two-beat bounces.",
 			);
 		case "stop":
 			if (!on) return say("The rhythm section plays through the bar again.");
+
 			return say(
 				"Stop time: the band hits once a bar and leaves the rest empty, so the horn has the room to itself.",
 			);
@@ -494,11 +539,13 @@ export function caption(c: Calls, id: CallId): Caption {
 				return say(
 					"Plain thirds again: d, not a bend. Sweeter, and less like the blues.",
 				);
+
 			return say(
 				`The cornet bends ${bends.length} of its thirds up from db to d. The blues lives between those two notes; a piano can’t bend, so pianists play both.`,
 			);
 		case "break":
 			if (!on) return say("No break: the band plays straight through bar 12.");
+
 			return say(
 				`Bars 11 and 12: the band stops and the ${c.lineup === "clarinet" ? "clarinet" : "cornet"} plays alone. That’s a break. On a 1923 record someone shouts this line during one.`,
 				"oliver",

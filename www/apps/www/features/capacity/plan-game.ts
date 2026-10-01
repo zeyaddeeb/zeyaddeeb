@@ -83,6 +83,7 @@ export function nextPlanStep(
 	view?: string,
 ): PlanGame {
 	const moved = view ? { ...game, view } : game;
+
 	return game.step + 1 < script.steps
 		? { ...moved, step: game.step + 1 }
 		: { ...moved, phase: afterGuide(script) };
@@ -107,17 +108,22 @@ export function cycleStart(
 	project: string,
 ): PlanGame {
 	if (game.phase !== "plan") return game;
+
 	const current = game.starts[project]?.period ?? -1;
 	const free = (t: number) => crewUsed(game, t, project) < level.crews;
+
 	const next = Array.from(
 		{ length: level.periods },
 		(_, i) => current + 1 + i,
 	).find((t) => t < level.periods && free(t));
+
 	const { [project]: _, ...rest } = game.starts;
+
 	const starts =
 		next === undefined
 			? rest
 			: { ...rest, [project]: { period: next, count: 1 } };
+
 	return {
 		...game,
 		starts,
@@ -131,8 +137,10 @@ export function setSize(
 	count: number,
 ): PlanGame {
 	if (game.phase !== "plan") return game;
+
 	const clamped = Math.max(0, Math.min(size(project), count));
 	const { [project.id]: _, ...rest } = game.starts;
+
 	return {
 		...game,
 		starts: clamped
@@ -149,9 +157,11 @@ export function setRental(
 	blocks: number,
 ): PlanGame {
 	if (game.phase !== "plan") return game;
+
 	const clamped = Math.max(0, Math.min(project.blocks, blocks));
 	const key = slot(project.id, caseId);
 	const { [key]: _, ...rest } = game.rentals;
+
 	return {
 		...game,
 		rentals: clamped ? { ...rest, [key]: clamped } : rest,
@@ -171,8 +181,10 @@ export function toggleOpen(
 	existing: boolean,
 ): PlanGame {
 	if (game.phase !== "plan" || !level.switching || !existing) return game;
+
 	const key = slot(line, game.view);
 	const had = game.opened.includes(key);
+
 	return {
 		...game,
 		opened: had ? game.opened.filter((k) => k !== key) : [...game.opened, key],
@@ -197,10 +209,12 @@ export function scheduleOf(game: PlanGame, level: PlanLevel): Schedule {
 			? []
 			: Object.entries(game.rentals).map(([key, blocks]) => {
 					const [project, caseId] = key.split("|");
+
 					return { project, case: caseId, blocks };
 				}),
 		opened: game.opened.map((key) => {
 			const [line, caseId] = key.split("|");
+
 			return { line, case: caseId };
 		}),
 	};
@@ -216,6 +230,7 @@ export function thinkPlan(game: PlanGame): PlanGame {
 
 export function advancePlan(game: PlanGame, frames: number): PlanGame {
 	if (game.phase !== "thinking") return game;
+
 	return game.frame + 1 < frames
 		? { ...game, frame: game.frame + 1 }
 		: revealPlan(game);
@@ -244,18 +259,23 @@ export function shownPlan(
 	solutions: PlanSolutions,
 ): { solved: PlanSolved | null; cases: CaseResult[]; solver: boolean } {
 	const { best, yours } = solutions;
+
 	if (game.phase === "thinking") {
 		const step = best?.trace[game.frame];
+
 		return {
 			solved: best,
 			cases: step?.cases ?? best?.cases ?? [],
 			solver: true,
 		};
 	}
+
 	if (game.phase === "solved" && game.show === "solver")
 		return { solved: best, cases: best?.cases ?? [], solver: true };
+
 	if (game.phase === "told")
 		return { solved: best, cases: best?.cases ?? [], solver: true };
+
 	return { solved: yours, cases: yours?.cases ?? [], solver: false };
 }
 
@@ -286,36 +306,49 @@ export function mapView(
 	caseId: string,
 ): MapView {
 	const planCase = level.cases.find((c) => c.id === caseId) ?? level.cases[0];
+
 	const campuses = planCase.campuses.map(([sub, mw], i) => ({
 		id: `${sub}${i}`,
 		mw,
 		sub,
 	}));
+
 	const project = (id: string) => plans.projects.find((p) => p.id === id);
 	const projects = level.projects.map(project).filter((p): p is Project => !!p);
 	const hubCapacity: Record<string, number> = {};
 	const limits: Record<string, number> = {};
 	const generators: Record<string, number> = {};
+
 	const add = (sub: string, mw: number) => {
 		generators[sub] = (generators[sub] ?? 0) + mw;
 	};
+
 	for (const p of projects) {
 		const active = activeIn(schedule, p, planCase.period);
+
 		if (!active) continue;
+
 		if (p.kind === "hub") {
 			const base = grid.hubs.find((h) => h.id === p.target)?.capacity ?? 0;
+
 			hubCapacity[p.target] = base + p.mw * active;
 		}
+
 		if (p.kind === "upgrade") {
 			const base = grid.lines.find((l) => l.id === p.target)?.limit ?? 0;
+
 			limits[p.target] = base + p.mw * active;
 		}
+
 		if (p.kind === "plant") add(p.target, p.mw * active);
 	}
+
 	for (const [rid, blocks] of Object.entries(result?.rentals ?? {})) {
 		const r = project(rid);
+
 		if (r) add(r.target, r.mw * blocks);
 	}
+
 	return {
 		level: {
 			id: level.id,

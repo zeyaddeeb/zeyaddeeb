@@ -14,14 +14,17 @@ const at = (d: number, h: number, m: number) => d * day + h * hour + m * minute;
 
 const weekday = (t: number) => {
 	const d = Math.floor(t / day) % 7;
+
 	return d < 5;
 };
 
 function next(t: number, times: [number, number][]) {
 	for (let d = Math.floor(t / day); ; d++) {
 		if (!weekday(d * day)) continue;
+
 		for (const [h, m] of times) {
 			const c = at(d, h, m);
+
 			if (c >= t) return c;
 		}
 	}
@@ -43,13 +46,16 @@ export const habits = {
 export function relay() {
 	const out: number[] = [];
 	let comment = at(3, 15, 30) + habits.writing[0] * minute;
+
 	for (let i = 1; i <= 4; i++) {
 		const seen = next(comment, habits.you);
 		const pushed = seen + habits.agent;
 		const reply = next(pushed, habits.reviewer) + habits.writing[i] * minute;
+
 		out.push(reply - comment);
 		comment = reply;
 	}
+
 	return out;
 }
 
@@ -78,7 +84,9 @@ export function human(ms: number) {
 	const m = Math.round(ms / minute);
 	const h = Math.floor(m / 60);
 	const r = m % 60;
+
 	if (!h) return `${m} min`;
+
 	return r ? `${h} h ${r} min` : `${h} h`;
 }
 
@@ -88,6 +96,7 @@ function trace(command: string, times: number[], note: string): Line[] {
 	const min = Math.min(...times);
 	const max = Math.max(...times);
 	const avg = times.reduce((a, b) => a + b, 0) / times.length;
+
 	return [
 		{ text: `$ ${command}`, note },
 		{ text: "PING claude-code: 56 data bytes", dim: true },
@@ -115,8 +124,10 @@ export function lines(route: Route): Line[] {
 					? { ...l, note: `avg ${human(5222806.6)}` }
 					: l,
 		);
+
 	if (route === "direct")
 		return trace("ping -c 4 claude-code", direct, "the reviewer, typing");
+
 	return trace(
 		"ping -c 4 claude-code --via you",
 		relay(),

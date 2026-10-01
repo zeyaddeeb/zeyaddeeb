@@ -103,10 +103,12 @@ export function useShift() {
 		const later = () => {
 			disconnect();
 			failures += 1;
+
 			dispatch({
 				kind: "connection",
 				connection: failures > GIVE_UP_AFTER ? "off" : "reconnecting",
 			});
+
 			retry = setTimeout(
 				connect,
 				Math.min(RETRY_FIRST_MS * 2 ** (failures - 1), RETRY_MAX_MS),
@@ -115,19 +117,26 @@ export function useShift() {
 
 		const connect = () => {
 			disconnect();
+
 			const current = ++round;
 			const opened = new EventSource("/experiments/proofs/shift");
+
 			source = opened;
 			dispatch({ kind: "syncing" });
 			opened.onopen = () =>
 				dispatch({ kind: "connection", connection: "live" });
+
 			opened.onerror = () => {
 				if (closed || source !== opened) return;
+
 				later();
 			};
+
 			opened.onmessage = (message) => {
 				const envelope = JSON.parse(message.data) as Envelope;
+
 				dispatch({ kind: "event", envelope });
+
 				if (envelope.type === "concluded") {
 					loadShift().then((loaded) => {
 						if (!closed && loaded.ok)
@@ -135,11 +144,14 @@ export function useShift() {
 					});
 				}
 			};
+
 			loadShift().then((loaded) => {
 				if (closed || current !== round) return;
+
 				if (loaded.ok) {
 					failures = 0;
 					dispatch({ kind: "loaded", overview: loaded.value });
+
 					if (loaded.value.about.mode === "off") {
 						disconnect();
 						dispatch({ kind: "connection", connection: "closed" });
@@ -156,6 +168,7 @@ export function useShift() {
 		const visibility = () => {
 			if (document.hidden) {
 				if (!source && retry === undefined) return;
+
 				disconnect();
 				retry = undefined;
 				dispatch({ kind: "connection", connection: "paused" });
@@ -167,6 +180,7 @@ export function useShift() {
 
 		connect();
 		document.addEventListener("visibilitychange", visibility);
+
 		return () => {
 			closed = true;
 			disconnect();
@@ -179,10 +193,14 @@ export function useShift() {
 
 export function useNow(interval = 1000): number {
 	const [now, setNow] = useState(0);
+
 	useEffect(() => {
 		setNow(Date.now());
+
 		const timer = window.setInterval(() => setNow(Date.now()), interval);
+
 		return () => window.clearInterval(timer);
 	}, [interval]);
+
 	return now;
 }

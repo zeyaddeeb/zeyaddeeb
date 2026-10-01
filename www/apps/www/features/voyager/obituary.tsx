@@ -14,6 +14,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
 
 const light = (ms: number) => {
 	const d = duration(fix(ms).lightSeconds);
+
 	return `${d.h} h ${pad(d.m)} m ${pad(d.s)} s`;
 };
 
@@ -21,33 +22,44 @@ const Stop = () => <span className="vg-stop">.</span>;
 
 function Light() {
 	const out = useRef<HTMLSpanElement>(null);
+
 	useEffect(() => {
 		const el = out.current;
+
 		if (!el) return;
+
 		let id = 0;
 		let seen = false;
+
 		const tick = () => {
 			el.textContent = light(Date.now());
 		};
+
 		const run = () => {
 			window.clearInterval(id);
 			id = 0;
+
 			if (!seen || document.visibilityState === "hidden") return;
+
 			tick();
 			id = window.setInterval(tick, 1000);
 		};
+
 		const io = new IntersectionObserver(([e]) => {
 			seen = e?.isIntersecting ?? false;
 			run();
 		});
+
 		io.observe(el);
 		document.addEventListener("visibilitychange", run);
+
 		return () => {
 			io.disconnect();
 			document.removeEventListener("visibilitychange", run);
 			window.clearInterval(id);
 		};
 	}, []);
+
 	return (
 		<span ref={out} className="vg-obit__light" aria-live="off">
 			{light(SEED)}

@@ -125,24 +125,31 @@ pub fn router(hub: Arc<Hub>, store: Store, about: About) -> Router {
 
 async fn overview(State(shared): State<Shared>) -> Result<Json<Overview>, StatusCode> {
     let store = &shared.store;
+
     let failed = |error: anyhow::Error| {
         tracing::error!(%error, "agent overview");
+
         StatusCode::SERVICE_UNAVAILABLE
     };
+
     let stretches = store.stretches().await.map_err(failed)?;
     let mut probes = store.probes().await.map_err(failed)?;
     let keep = probes.len().saturating_sub(200);
+
     probes.drain(..keep);
+
     let state = store.state().await.map_err(failed)?.unwrap_or_default();
     let nodes = store.nodes().await.map_err(failed)?;
     let links = store.links().await.map_err(failed)?;
     let reductions = store.reductions().await.map_err(failed)?;
     let numbers = Numbers::new(&nodes, &links, &reductions);
+
     let tree = Tree {
         rows: tree::numbered(tree::rows(&nodes, &links, &reductions), &numbers),
         focus: numbers.focus(),
         reductions: reductions.len(),
     };
+
     Ok(Json(Overview {
         about: shared.about.clone(),
         strip: strip(state.frontier, &stretches, probes),
@@ -176,17 +183,22 @@ async fn events(State(shared): State<Shared>) -> impl IntoResponse {
     let Ok(seat) = shared.seats.clone().try_acquire_owned() else {
         return StatusCode::SERVICE_UNAVAILABLE.into_response();
     };
+
     let hub = shared.hub.clone();
+
     let stream = BroadcastStream::new(shared.hub.subscribe())
         .filter_map(move |item| {
             let _seat = &seat;
+
             async move {
                 let envelope = item.ok()?;
                 let data = serde_json::to_string(&envelope).ok()?;
+
                 Some(Ok::<_, Infallible>(SseEvent::default().data(data)))
             }
         })
         .take_until(async move { hub.closed().await });
+
     Sse::new(stream)
         .keep_alive(KeepAlive::new().interval(Duration::from_secs(20)))
         .into_response()
@@ -209,9 +221,11 @@ async fn search(
     Query(search): Query<Search>,
 ) -> Result<Json<Vec<Episode>>, StatusCode> {
     let query: String = search.q.chars().take(100).collect();
+
     if query.trim().is_empty() {
         return Ok(Json(Vec::new()));
     }
+
     shared
         .store
         .search(&query, 12)
@@ -225,15 +239,18 @@ async fn transcript(
     Path(number): Path<u64>,
 ) -> Result<Json<Transcript>, StatusCode> {
     let store = &shared.store;
+
     let episode = store
         .episode(number)
         .await
         .map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?
         .ok_or(StatusCode::NOT_FOUND)?;
+
     let turns = store
         .turns(number)
         .await
         .map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+
     Ok(Json(Transcript { episode, turns }))
 }
 
@@ -242,18 +259,23 @@ fn strip(frontier: f64, stretches: &[Stretch], probes: Vec<Probe>) -> Strip {
         .iter()
         .flat_map(|s| s.zeros.iter().copied())
         .collect();
+
     crate::math::line::distinct(&mut zeros);
+
     let top = zeros
         .last()
         .copied()
         .unwrap_or(frontier)
         .max(frontier)
         .max(10.0);
+
     let width = (top - 10.0) / BINS as f64;
+
     let bins = (0..BINS)
         .map(|i| {
             let from = 10.0 + width * i as f64;
             let to = from + width;
+
             Bin {
                 from,
                 to,
@@ -262,10 +284,13 @@ fn strip(frontier: f64, stretches: &[Stretch], probes: Vec<Probe>) -> Strip {
         })
         .filter(|_| width > 0.0)
         .collect();
+
     let mut pairs: Vec<(f64, f64)> = zeros.windows(2).map(|w| (w[0], w[1])).collect();
     let normalized = |(a, b): &(f64, f64)| (b - a) * (a / (2.0 * PI)).ln() / (2.0 * PI);
+
     pairs.sort_by(|x, y| normalized(x).total_cmp(&normalized(y)));
     pairs.truncate(8);
+
     Strip {
         frontier,
         bins,

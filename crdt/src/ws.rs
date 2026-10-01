@@ -21,10 +21,12 @@ struct PeerGuard {
 impl Drop for PeerGuard {
     fn drop(&mut self) {
         let peers = self.room.leave();
+
         let _ = self
             .room
             .tx
             .send(json(&ServerMsg::Leave { peer: self.peer }));
+
         let _ = self.room.tx.send(json(&ServerMsg::Presence { peers }));
     }
 }
@@ -37,27 +39,34 @@ pub async fn handle(socket: WebSocket, doc_id: String, state: AppState) {
     let (mut sink, mut stream) = socket.split();
 
     let joined = tokio::time::timeout(Duration::from_secs(5), stream.next()).await;
+
     if !matches!(joined, Ok(Some(Ok(Message::Text(ref text)))) if matches!(serde_json::from_str::<ClientMsg>(text), Ok(ClientMsg::Join)))
     {
         return;
     }
+
     let Some((room, peer, peers)) = state.join_room(&doc_id).await else {
         return;
     };
+
     let _guard = PeerGuard {
         room: room.clone(),
         peer,
     };
+
     let mut rx: broadcast::Receiver<String> = room.tx.subscribe();
 
     let ops = match db::load_ops(&state.db, &doc_id).await {
         Ok(ops) => ops,
         Err(e) => {
             error!("db error loading ops for {doc_id}: {e}");
+
             let msg = json(&ServerMsg::Error {
                 message: "failed to load document".into(),
             });
+
             let _ = sink.send(Message::Text(msg.into())).await;
+
             return;
         }
     };
@@ -67,6 +76,7 @@ pub async fn handle(socket: WebSocket, doc_id: String, state: AppState) {
         peer,
         peers,
     });
+
     if !matches!(
         tokio::time::timeout(
             Duration::from_secs(5),
@@ -77,6 +87,7 @@ pub async fn handle(socket: WebSocket, doc_id: String, state: AppState) {
     ) {
         return;
     }
+
     let _ = room.tx.send(json(&ServerMsg::Presence { peers }));
 
     let mut outbound = tokio::spawn(async move {
@@ -105,6 +116,7 @@ pub async fn handle(socket: WebSocket, doc_id: String, state: AppState) {
     let mut last_cursor = Instant::now() - CURSOR_MIN_INTERVAL;
     let mut rate = (Instant::now(), 0u32);
     let lifetime = tokio::time::sleep(Duration::from_secs(3600));
+
     tokio::pin!(lifetime);
 
     loop {
@@ -145,6 +157,7 @@ async fn handle_client_msg(
         Ok(msg) => msg,
         Err(e) => {
             warn!("invalid message from client: {e}");
+
             return;
         }
     };
@@ -153,13 +166,17 @@ async fn handle_client_msg(
         ClientMsg::Join => {}
         ClientMsg::Cursor { x, y } => {
             let now = Instant::now();
+
             if now.duration_since(*last_cursor) < CURSOR_MIN_INTERVAL {
                 return;
             }
+
             if !(x.is_finite() && y.is_finite()) {
                 return;
             }
+
             *last_cursor = now;
+
             let _ = room.tx.send(json(&ServerMsg::Cursor {
                 peer,
                 x: x.clamp(0.0, 1.0),
@@ -176,19 +193,27 @@ async fn persist_and_broadcast(op: CrdtOp, doc_id: &str, state: &AppState, room:
             return;
         }
     }
+
     let mut count = room.history.lock().await;
+
     if *count >= 4096 {
         let _ = room.tx.send(json(&ServerMsg::Error {
             message: "Document operation limit reached. Open a new document.".into(),
         }));
+
         return;
     }
+
     let seq = state.next_op_seq();
+
     if let Err(e) = db::append_op(&state.db, doc_id, seq, &op).await {
         error!("db write error: {e}");
+
         return;
     }
+
     *count += 1;
+
     let _ = room.tx.send(json(&ServerMsg::Op { op: &op }));
 }
 
@@ -201,6 +226,7 @@ mod tests {
     async fn invalid_or_over_quota_operations_are_not_persisted() {
         let state = AppState::new(db::connect().await.unwrap());
         let (room, _, _) = state.join_room("quota").await.unwrap();
+
         let insert = |value: &str| {
             CrdtOp::Insert(InsertOp {
                 id: CharId { site: 1, clock: 1 },
@@ -208,6 +234,7 @@ mod tests {
                 value: value.into(),
             })
         };
+
         persist_and_broadcast(insert("too long"), "quota", &state, &room).await;
         assert!(db::load_ops(&state.db, "quota").await.unwrap().is_empty());
         persist_and_broadcast(insert("a"), "quota", &state, &room).await;

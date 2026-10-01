@@ -20,11 +20,14 @@ export function PromptScreen() {
 	const router = useRouter();
 	const { peers, status } = usePresence();
 	const here = useRef(0);
+
 	here.current = status === "online" && peers !== null ? peers : 0;
 
 	const run = (input: string): ShellResult => {
 		const trimmed = input.trim();
+
 		if (!trimmed) return {};
+
 		const [cmd = "", ...rest] = trimmed.split(/\s+/);
 		const arg = rest.join(" ");
 		const name = cmd.toLowerCase();
@@ -32,13 +35,17 @@ export function PromptScreen() {
 		const open = (place: string) => {
 			const key = place.replace(/^\//, "").replace(/\/$/, "").toLowerCase();
 			const href = PLACES[key || "home"];
+
 			if (!href) return { lines: [`cd: no such place: ${place}`, ""] };
+
 			if (href === "/story") return { lines: ["You are here.", ""] };
+
 			if (href.startsWith("http://") || href.startsWith("https://")) {
 				window.location.assign(href);
 			} else {
 				router.push(href);
 			}
+
 			return { lines: [`opening ${href}…`] };
 		};
 
@@ -70,6 +77,7 @@ export function PromptScreen() {
 				return open(arg || "home");
 			case "whoami": {
 				const others = Math.max(here.current - 1, 0);
+
 				return {
 					lines: [
 						others === 0
@@ -91,6 +99,7 @@ export function PromptScreen() {
 				return { lines: ["That was thirty years ago. Try ls.", ""] };
 			default:
 				if (PLACES[name]) return open(name);
+
 				return { lines: [`sh: command not found: ${cmd}. Try help.`, ""] };
 		}
 	};

@@ -17,6 +17,7 @@ export function useQueryNav(basePath: string) {
 					params.delete(key);
 				}
 			}
+
 			params.delete("page");
 
 			startTransition(() => {

@@ -24,53 +24,70 @@ pub fn mertens(x: u64) -> Mertens {
     let mut mu = vec![1i8; block];
     let mut rest = vec![0u64; block];
     let mut low = 1u64;
+
     while low <= x {
         let high = (low + block as u64 - 1).min(x);
         let size = (high - low + 1) as usize;
+
         for i in 0..size {
             mu[i] = 1;
             rest[i] = low + i as u64;
         }
+
         for &p in &primes {
             let p = p as u64;
+
             if p * p > high && p > high {
                 break;
             }
+
             let mut m = low.div_ceil(p) * p;
+
             while m <= high {
                 let i = (m - low) as usize;
+
                 mu[i] = -mu[i];
                 rest[i] /= p;
                 m += p;
             }
+
             let square = p * p;
             let mut m = low.div_ceil(square) * square;
+
             while m <= high {
                 mu[(m - low) as usize] = 0;
                 m += square;
             }
         }
+
         for i in 0..size {
             let n = low + i as u64;
             let mut value = mu[i] as i64;
+
             if value != 0 && rest[i] > 1 {
                 value = -value;
             }
+
             total += value;
+
             if n >= 100 {
                 let ratio = total.unsigned_abs() as f64 / (n as f64).sqrt();
+
                 if ratio > worst_ratio {
                     worst_ratio = ratio;
                     worst_at = n;
                 }
             }
+
             if n as f64 >= next_sample || n == x {
                 samples.push((n, total));
                 next_sample = (next_sample * 1.25).max(n as f64 + 1.0);
             }
         }
+
         low = high + 1;
     }
+
     Mertens {
         x,
         value: total,

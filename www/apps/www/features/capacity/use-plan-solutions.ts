@@ -8,8 +8,10 @@ import type { PlanLevel, PlanSolved, Schedule } from "./protocol";
 
 function useLatest() {
 	const ticket = useRef(0);
+
 	return useCallback(() => {
 		const mine = ++ticket.current;
+
 		return () => mine === ticket.current;
 	}, []);
 }
@@ -25,9 +27,12 @@ export function usePlanSolutions(level: PlanLevel, game: PlanGame) {
 	const request = useCallback(
 		async (schedule: Schedule | null) => {
 			setPending((n) => n + 1);
+
 			const result = await solvePlan(level.id, schedule);
+
 			setPending((n) => n - 1);
 			setFailed(!result.ok);
+
 			return result.ok ? result.solved : null;
 		},
 		[level.id],
@@ -35,20 +40,25 @@ export function usePlanSolutions(level: PlanLevel, game: PlanGame) {
 
 	useEffect(() => {
 		const current = bestTicket();
+
 		setBest(null);
+
 		request(null).then((solved) => {
 			if (current()) setBest(solved);
 		});
 	}, [request, bestTicket]);
 
 	const schedule = JSON.stringify(scheduleOf(game, level));
+
 	useEffect(() => {
 		const current = yoursTicket();
+
 		request(JSON.parse(schedule)).then((solved) => {
 			if (current() && solved) setYours(solved);
 		});
 	}, [schedule, request, yoursTicket]);
 
 	const solutions: PlanSolutions = { best, yours };
+
 	return { solutions, pending: pending > 0, failed };
 }

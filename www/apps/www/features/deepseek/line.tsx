@@ -15,11 +15,14 @@ import type { LayerTrace, ModelInfo, ProbeView } from "./protocol";
 function looks(layer: LayerTrace, length: number) {
 	const near = Array.from({ length }, (_, i) => layer.tokens[i] ?? 0);
 	const far = new Array<number>(length).fill(0);
+
 	for (const block of layer.blocks) {
 		const share = block.weight / (block.end - block.start + 1);
+
 		for (let i = block.start; i <= block.end && i < length; i++)
 			far[i] += share;
 	}
+
 	return { near, far };
 }
 
@@ -28,13 +31,16 @@ function attention(layers: LayerTrace[], layer: number | null, length: number) {
 		layer === null ? layers : layers.filter((l) => l.layer === layer);
 	const near = new Array<number>(length).fill(0);
 	const far = new Array<number>(length).fill(0);
+
 	for (const trace of chosen) {
 		const one = looks(trace, length);
+
 		for (let i = 0; i < length; i++) {
 			near[i] += one.near[i] / chosen.length;
 			far[i] += one.far[i] / chosen.length;
 		}
 	}
+
 	return { near, far };
 }
 
@@ -53,48 +59,64 @@ export function ExamplePicker({
 		from: string;
 		to: string;
 	} | null>(null);
+
 	const [timedOut, setTimedOut] = useState<string | null>(null);
 	const strip = useRef<HTMLOListElement>(null);
 	const { examples, line } = probe;
 	const lineKey = JSON.stringify([line.code, line.question]);
+
 	const current = examples.findIndex(
 		(example) =>
 			example.code === line.code && example.question === line.question,
 	);
+
 	const pending =
 		requested !== null && requested.from === lineKey && !error && !disabled;
+
 	useEffect(() => {
 		if (requested && !pending) setRequested(null);
 	}, [requested, pending]);
+
 	useEffect(() => {
 		if (!pending) return;
+
 		const timer = window.setTimeout(() => {
 			setRequested(null);
 			setTimedOut(lineKey);
 		}, 15000);
+
 		return () => window.clearTimeout(timer);
 	}, [pending, lineKey]);
+
 	useEffect(() => {
 		strip.current
 			?.querySelector<HTMLElement>('[data-current="true"]')
 			?.scrollIntoView({ block: "nearest", inline: "center" });
 	}, [lineKey]);
+
 	const choose = (index: number) => {
 		if (disabled || pending) return;
+
 		const example = examples[index];
+
 		if (
 			!example ||
 			(example.code === line.code && example.question === line.question)
 		)
 			return;
+
 		setTimedOut(null);
+
 		setRequested({
 			from: lineKey,
 			to: JSON.stringify([example.code, example.question]),
 		});
+
 		onShow(example.code, example.question);
 	};
+
 	if (!examples.length) return null;
+
 	return (
 		<nav
 			className="ds-example-picker"
@@ -115,6 +137,7 @@ export function ExamplePicker({
 				{examples.map((example, index) => {
 					const key = JSON.stringify([example.code, example.question]);
 					const loading = pending && requested?.to === key;
+
 					return (
 						<li key={key}>
 							<button
@@ -176,10 +199,12 @@ export function Line({
 	const { line, focus } = probe;
 	const tokens = line.tokens;
 	const traced = focus.position + 1 === selected;
+
 	const look = useMemo(
 		() => attention(focus.layers, layer, tokens.length),
 		[focus.layers, layer, tokens.length],
 	);
+
 	const answer = line.answer[0];
 	const markerIndex = tokens.findIndex((token) => token.role === "marker");
 	const correct = line.truth !== null && answer?.text === line.truth;
@@ -191,7 +216,9 @@ export function Line({
 		const weights = tokens.map((_, i) =>
 			i < selected ? look.near[i] + look.far[i] : 0,
 		);
+
 		const strongest = Math.max(0.05, ...weights);
+
 		return weights.map((weight, i) => ({
 			strength: weight / strongest,
 			via: (look.far[i] > look.near[i] ? "memory" : "window") as
@@ -199,50 +226,67 @@ export function Line({
 				| "window",
 		}));
 	}, [tokens, selected, look]);
+
 	const lit = rays && traced;
 
 	useLayoutEffect(() => {
 		const root = frame.current;
+
 		if (!root || !lit) {
 			setDrawn([]);
+
 			return;
 		}
+
 		const measure = () => {
 			const box = root.getBoundingClientRect();
+
 			const source = root
 				.querySelector('[data-slot="true"]')
 				?.getBoundingClientRect();
+
 			if (!source) return setDrawn([]);
+
 			const sx = source.left + source.width / 2 - box.left;
 			const middle = (rect: DOMRect) => rect.top + rect.height / 2;
+
 			const targets = [...root.querySelectorAll<HTMLElement>("[data-index]")]
 				.map((node) => ({
 					index: Number(node.dataset.index),
 					rect: node.getBoundingClientRect(),
 				}))
 				.filter(({ index }) => (seen[index]?.strength ?? 0) >= 0.1);
+
 			const beside = targets.filter(
 				({ rect }) =>
 					Math.abs(middle(rect) - middle(source)) < source.height / 2,
 			);
+
 			const above = targets.filter(
 				({ rect }) => rect.bottom <= source.top + source.height / 2,
 			);
+
 			const onRow = beside.length > 0 && beside.length >= above.length;
 			const floor = Math.max(0, ...above.map(({ rect }) => rect.bottom));
+
 			const reached = onRow
 				? beside
 				: above.filter(({ rect }) => floor - rect.bottom < rect.height / 2);
+
 			if (!reached.length) return setDrawn([]);
+
 			const rail = onRow
 				? Math.min(source.top, ...reached.map(({ rect }) => rect.top)) -
 					box.top -
 					16
 				: (floor + 8 + source.top) / 2 - box.top;
+
 			const xs = reached.map(
 				({ rect }) => rect.left + rect.width / 2 - box.left,
 			);
+
 			const from = source.top - box.top - 3;
+
 			const next: Wire[] = [
 				{
 					key: "rail",
@@ -257,8 +301,10 @@ export function Line({
 					via: "rail",
 				},
 			];
+
 			reached.forEach(({ index, rect }, i) => {
 				const to = onRow ? rect.top - box.top - 3 : rect.bottom - box.top + 9;
+
 				next.push({
 					key: `stub-${index}`,
 					path: `M${xs[i].toFixed(1)} ${rail.toFixed(1)} V${to.toFixed(1)}`,
@@ -266,11 +312,16 @@ export function Line({
 					via: seen[index].via,
 				});
 			});
+
 			setDrawn(next);
 		};
+
 		measure();
+
 		const observer = new ResizeObserver(measure);
+
 		observer.observe(root);
+
 		return () => observer.disconnect();
 	}, [lit, seen, lineKey, codeOnly]);
 
@@ -294,11 +345,15 @@ export function Line({
 			>
 				{tokens.map((token, index) => {
 					if (token.role === "start") return null;
+
 					if (token.role === "marker") return null;
+
 					if (codeOnly && token.role !== "code") return null;
+
 					const given = token.role !== "code";
 					const first = given && tokens[index - 1]?.role === "code";
 					const hidden = covered && selected === index;
+
 					return (
 						<Fragment key={`${index}-${token.id}`}>
 							{first ? <li className="ds-break" aria-hidden="true" /> : null}
@@ -404,32 +459,41 @@ const MODES: Record<string, string> = {
 
 export function Inside({ probe, model, layer, onLayer }: InsideProps) {
 	const { focus } = probe;
+
 	const chosen =
 		layer === null
 			? focus.layers
 			: focus.layers.filter((l) => l.layer === layer);
+
 	const mixing = useMemo(() => {
 		const sum = new Array<number>(16).fill(0);
 		let n = 0;
+
 		for (const trace of chosen) {
 			for (const matrix of trace.mixing) {
 				matrix.forEach((v, i) => {
 					sum[i] += v;
 				});
+
 				n += 1;
 			}
 		}
+
 		return sum.map((v) => v / Math.max(n, 1));
 	}, [chosen]);
+
 	const kept = chosen.length
 		? chosen.reduce((total, trace) => {
 				const seen =
 					trace.tokens.reduce((a, b) => a + b, 0) +
 					trace.blocks.reduce((a, b) => a + b.weight, 0);
+
 				return total + Math.max(0, 1 - seen);
 			}, 0) / chosen.length
 		: 0;
+
 	const info = layer === null ? null : model.schedule[layer];
+
 	const memory = focus.engram.filter(
 		(e) => layer === null || e.layer === layer,
 	);

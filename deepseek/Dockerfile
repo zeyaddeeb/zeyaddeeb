@@ -13,12 +13,9 @@ WORKDIR /app
 
 COPY . .
 
-
 RUN cargo build --locked --release
 
-
 FROM debian:bookworm-slim AS base
-
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     libomp-dev \
@@ -27,7 +24,6 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     curl \
     zstd \
     && rm -rf /var/lib/apt/lists/*
-
 
 WORKDIR /app
 

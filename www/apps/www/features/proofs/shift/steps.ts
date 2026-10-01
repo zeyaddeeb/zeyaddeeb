@@ -21,15 +21,22 @@ export interface Step {
 
 function status(call: CallView): StepStatus {
 	const { outcome } = call;
+
 	if (!outcome) return "running";
+
 	if (!outcome.ok) return "refused";
+
 	if (call.tool === "formalize")
 		return (outcome.data as { routine?: boolean } | null)?.routine
 			? "routine"
 			: "proved";
+
 	if (call.tool === "reduce") return "proved";
+
 	if (outcome.verdict?.known && outcome.verdict.held) return "known";
+
 	if (outcome.verdict) return outcome.verdict.held ? "held" : "broke";
+
 	return "done";
 }
 
@@ -48,5 +55,6 @@ export function steps(turns: TurnView[]): Step[] {
 
 export function thinking(turns: TurnView[]): TurnView | null {
 	const last = turns.at(-1);
+
 	return last && last.calls.length === 0 ? last : null;
 }

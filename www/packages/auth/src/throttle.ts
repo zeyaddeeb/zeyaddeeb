@@ -10,5 +10,6 @@ export async function consumeLoginAttempt(): Promise<boolean> {
  expires_at = CASE WHEN auth_throttle.expires_at <= now() THEN now() + interval '1 minute' ELSE auth_throttle.expires_at END
  WHERE auth_throttle.expires_at <= now() OR auth_throttle.attempts < 10
  RETURNING key`);
+
 	return result.rows.length === 1;
 }

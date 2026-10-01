@@ -170,10 +170,12 @@ const hm = (hours: number) =>
 
 function edges(b: Board, dpr: number) {
 	const step = b.chip + b.gap;
+
 	const line = (k: number) =>
 		Array.from({ length: 17 }, (_, i) =>
 			Math.round((k * step + i * b.cell) * dpr),
 		);
+
 	return {
 		xs: Array.from({ length: COLS }, (_, c) => line(c)),
 		ys: Array.from({ length: ROWS }, (_, r) => line(r)),
@@ -190,6 +192,7 @@ function hatch(
 	const y0 = y[0];
 	const w = x[16] - x0;
 	const h = y[16] - y0;
+
 	ctx.fillStyle = DEAD_BG;
 	ctx.fillRect(x0, y0, w, h);
 	ctx.save();
@@ -197,16 +200,21 @@ function hatch(
 	ctx.rect(x0, y0, w, h);
 	ctx.clip();
 	ctx.beginPath();
+
 	const gap = Math.round(6 * dpr);
+
 	for (let k = -h; k < w; k += gap) {
 		ctx.moveTo(x0 + k, y0 + h);
 		ctx.lineTo(x0 + k + h, y0);
 	}
+
 	ctx.strokeStyle = HATCH;
 	ctx.lineWidth = Math.max(1, Math.round(dpr));
 	ctx.stroke();
 	ctx.restore();
+
 	const f = Math.round(2 * dpr);
+
 	ctx.strokeStyle = RED;
 	ctx.lineWidth = f;
 	ctx.strokeRect(x0 + f / 2, y0 + f / 2, w - f, h - f);
@@ -215,28 +223,43 @@ function hatch(
 function paint(ctx: CanvasRenderingContext2D, b: Board, dpr: number, s: Scene) {
 	const { xs, ys } = edges(b, dpr);
 	const lit = new Uint8Array(WORDS);
+
 	for (const g of s.fit) lit.fill(1, g.base, g.base + g.len);
+
 	if (s.ghost) lit.fill(2, s.ghost.base, s.ghost.base + s.ghost.len);
+
 	const key = (w: number) => (lit[w] ? -lit[w] : s.owners[w]);
+
 	const colorOf = (w: number) => {
 		if (lit[w] === 2) return INK;
+
 		if (lit[w] === 1) return LIT;
+
 		const own = s.owners[w];
+
 		if (own === FREE) return EMPTY;
+
 		if (STRANDED.includes(own)) return own === s.focus ? GOLD : INK;
+
 		return USED;
 	};
+
 	const mesh = b.cell * dpr >= 4 ? 1 : 0;
 	const sep = Math.max(1, Math.round(dpr));
+
 	ctx.setTransform(1, 0, 0, 1, 0, 0);
 	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
 	for (let c = 0; c < CHIPS; c++) {
 		const x = xs[c % COLS];
 		const y = ys[Math.floor(c / COLS)];
+
 		if (c === s.dead) {
 			hatch(ctx, x, y, dpr);
+
 			continue;
 		}
+
 		for (let o = 0; o < CHIP; o++) {
 			const w = c * CHIP + o;
 			const color = colorOf(w);
@@ -247,7 +270,9 @@ function paint(ctx: CanvasRenderingContext2D, b: Board, dpr: number, s: Scene) {
 				color === USED || color === EMPTY || color === LIT ? mesh : 0;
 			const right = i < 15 ? (key(w + 1) !== k ? sep : soft) : 0;
 			const below = j < 15 ? (key(w + 16) !== k ? sep : soft) : 0;
+
 			ctx.fillStyle = color;
+
 			ctx.fillRect(
 				x[i],
 				y[j],
@@ -260,11 +285,15 @@ function paint(ctx: CanvasRenderingContext2D, b: Board, dpr: number, s: Scene) {
 
 function useSeen(ref: RefObject<HTMLElement | null>) {
 	const [seen, setSeen] = useState(false);
+
 	useEffect(() => {
 		const el = ref.current;
+
 		if (!el) return;
+
 		let near = false;
 		const sync = () => setSeen(near && document.visibilityState === "visible");
+
 		const io = new IntersectionObserver(
 			([e]) => {
 				near = e.isIntersecting;
@@ -272,13 +301,16 @@ function useSeen(ref: RefObject<HTMLElement | null>) {
 			},
 			{ rootMargin: "50% 0px" },
 		);
+
 		io.observe(el);
 		document.addEventListener("visibilitychange", sync);
+
 		return () => {
 			io.disconnect();
 			document.removeEventListener("visibilitychange", sync);
 		};
 	}, [ref]);
+
 	return seen;
 }
 
@@ -298,6 +330,7 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 	const fade = useRef(0);
 	const geo = useRef<Board | null>(null);
 	const sceneRef = useRef<Scene | null>(null);
+
 	const layers = useRef<{
 		next: HTMLCanvasElement | null;
 		prev: HTMLCanvasElement | null;
@@ -305,6 +338,7 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 		next: null,
 		prev: null,
 	});
+
 	const pointer = useRef<"mouse" | "touch">("mouse");
 	const actions = useRef<HTMLDivElement>(null);
 	const refocus = useRef(false);
@@ -329,18 +363,23 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 		() => (wasm ? STRANDED.map((r) => wasm.routine_name(r)) : NAMES),
 		[wasm],
 	);
+
 	const lens = useMemo(
 		() => (wasm ? STRANDED.map((r) => wasm.routine_len(r)) : LENS),
 		[wasm],
 	);
+
 	const lenOf = useCallback(
 		(r: number) => lens[STRANDED.indexOf(r)] ?? 0,
 		[lens],
 	);
+
 	const nameOf = useCallback(
 		(r: number) => {
 			const i = STRANDED.indexOf(r);
+
 			if (i >= 0) return names[i];
+
 			return wasm ? wasm.routine_name(r) : `routine ${r}`;
 		},
 		[names, wasm],
@@ -349,9 +388,13 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 	const build = useCallback(
 		(fail: boolean, list: Move[]) => {
 			if (!wasm) return null;
+
 			const f = new wasm.Fds();
+
 			if (fail) f.fail();
+
 			for (const m of list) f.relocate(m.routine, m.base);
+
 			return f;
 		},
 		[wasm],
@@ -372,34 +415,49 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 
 	const tick = useCallback(() => {
 		const c = craft.current;
+
 		if (!c) return;
+
 		const words = Array.from(c.frame(wattsRef.current, FIELD_NT)).slice(0, 6);
+
 		serial.current += 1;
+
 		const id = serial.current;
+
 		setFrames((prev) => [{ id, words }, ...prev].slice(0, 6));
+
 		const bad = words[0] === STUCK;
+
 		if (!bad && stageRef.current === "fixed") setScience(true);
+
 		if (performance.now() > hold.current)
 			setHot((h) => ({ line: bad ? LINES.stuck : LINES.sync, n: h.n + 1 }));
 	}, []);
 
 	useEffect(() => {
 		if (!wasm) return;
+
 		ground.current = build(false, []);
 		craft.current = build(false, []);
 		setOwners(ground.current?.owners() ?? null);
+
 		const c = craft.current;
+
 		if (c) {
 			const seed: Frame[] = [];
+
 			for (let i = 0; i < 6; i++) {
 				serial.current += 1;
+
 				seed.unshift({
 					id: serial.current,
 					words: Array.from(c.frame(wattsRef.current, FIELD_NT)).slice(0, 6),
 				});
 			}
+
 			setFrames(seed);
 		}
+
 		return () => {
 			cancelAnimationFrame(flight.current);
 			ground.current?.free();
@@ -411,15 +469,19 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 
 	useEffect(() => {
 		if (!seen || !owners) return;
+
 		const id = window.setInterval(tick, 900);
+
 		return () => window.clearInterval(id);
 	}, [seen, owners, tick]);
 
 	useEffect(() => {
 		const mq = window.matchMedia("(pointer: coarse)");
 		const sync = () => setCoarse(mq.matches);
+
 		sync();
 		mq.addEventListener("change", sync);
+
 		return () => mq.removeEventListener("change", sync);
 	}, []);
 
@@ -427,10 +489,12 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 	const chip = known ? dead : null;
 	const placed = useMemo(() => new Set(moves.map((m) => m.routine)), [moves]);
 	const left = useMemo(() => STRANDED.filter((r) => !placed.has(r)), [placed]);
+
 	const gaps = useMemo(
 		() => (owners ? gapsOf(owners, chip) : []),
 		[owners, chip],
 	);
+
 	const feasible = useMemo(
 		() =>
 			stage !== "failed" ||
@@ -440,9 +504,11 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 			) !== null,
 		[stage, gaps, left, lenOf],
 	);
+
 	const ready = stage === "failed" && left.length === 0;
 	const picking = stage === "failed" && picked !== null;
 	const pickLen = picking && picked !== null ? lenOf(picked) : 0;
+
 	const fit = useMemo(
 		() => (pickLen ? gaps.filter((g) => g.len >= pickLen) : []),
 		[gaps, pickLen],
@@ -466,74 +532,104 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 	const draw = useCallback((animate: boolean) => {
 		const cv = canvas.current;
 		const s = sceneRef.current;
+
 		if (!cv || !s) return;
+
 		const w = cv.clientWidth;
 		const h = cv.clientHeight;
+
 		if (!w || !h) return;
+
 		const dpr = Math.min(2, window.devicePixelRatio || 1);
 		const W = Math.round(w * dpr);
 		const H = Math.round(h * dpr);
+
 		const gap =
 			Number.parseFloat(getComputedStyle(cv).getPropertyValue("--fds-gap")) ||
 			8;
+
 		const b = measure(w, gap);
+
 		geo.current = b;
+
 		const l = layers.current;
+
 		l.next ??= document.createElement("canvas");
 		l.prev ??= document.createElement("canvas");
+
 		const sized = cv.width === W && cv.height === H;
+
 		if (l.next.width !== W || l.next.height !== H) {
 			l.next.width = W;
 			l.next.height = H;
 		}
+
 		const nctx = l.next.getContext("2d");
 		const ctx = cv.getContext("2d");
+
 		if (!nctx || !ctx) return;
+
 		paint(nctx, b, dpr, s);
 		cancelAnimationFrame(fade.current);
+
 		const still =
 			!animate ||
 			!sized ||
 			window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 		if (still) {
 			if (!sized) {
 				cv.width = W;
 				cv.height = H;
 			}
+
 			ctx.clearRect(0, 0, W, H);
 			ctx.drawImage(l.next, 0, 0);
+
 			return;
 		}
+
 		const prev = l.prev;
+
 		prev.width = W;
 		prev.height = H;
 		prev.getContext("2d")?.drawImage(cv, 0, 0);
+
 		const next = l.next;
 		const start = performance.now();
+
 		const step = (now: number) => {
 			const t = Math.min(1, (now - start) / FADE_MS);
+
 			ctx.globalAlpha = 1;
 			ctx.clearRect(0, 0, W, H);
 			ctx.drawImage(next, 0, 0);
 			ctx.globalAlpha = 1 - t * (2 - t);
 			ctx.drawImage(prev, 0, 0);
 			ctx.globalAlpha = 1;
+
 			if (t < 1) fade.current = requestAnimationFrame(step);
 		};
+
 		fade.current = requestAnimationFrame(step);
 	}, []);
 
 	useEffect(() => {
 		const first = sceneRef.current === null;
+
 		sceneRef.current = scene;
 		draw(!first);
 	}, [scene, draw]);
 
 	useEffect(() => {
 		const cv = canvas.current;
+
 		if (!cv) return;
+
 		const ro = new ResizeObserver(() => draw(false));
+
 		ro.observe(cv);
+
 		return () => {
 			ro.disconnect();
 			cancelAnimationFrame(fade.current);
@@ -544,21 +640,27 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 		const el = root.current;
 		const start = performance.now();
 		let last = 0;
+
 		cancelAnimationFrame(flight.current);
 		el?.style.setProperty("--p", "0");
+
 		const step = (now: number) => {
 			const t = Math.min(1, (now - start) / ms);
+
 			el?.style.setProperty("--p", t.toFixed(4));
+
 			if (clock.current && (now - last > 100 || t === 1)) {
 				last = now;
 				clock.current.textContent = hm(t * light * 2);
 			}
+
 			if (t < 1) flight.current = requestAnimationFrame(step);
 			else {
 				flight.current = 0;
 				done();
 			}
 		};
+
 		flight.current = requestAnimationFrame(step);
 	};
 
@@ -577,16 +679,23 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 
 	const readout = () => {
 		const c = craft.current;
+
 		if (!c || !wasm) return;
+
 		const copy = new wasm.Fds();
 		const wrong = new Array<number>(CHIPS).fill(0);
+
 		for (let w = 0; w < WORDS; w++)
 			if (c.peek(w) !== copy.peek(w)) wrong[chipOf(w)]++;
+
 		copy.free();
+
 		const most = Math.max(...wrong);
 		const found = most > 0 ? wrong.indexOf(most) : DEAD;
+
 		setDead(found);
 		go("failed");
+
 		setNote(
 			`Chip ${found} reads back as noise: ${most} of ${CHIP} words wrong.`,
 		);
@@ -599,14 +708,18 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 
 	const place = (routine: number, base: number) => {
 		const f = ground.current;
+
 		if (!f) return;
+
 		try {
 			const patched = f.relocate(routine, base);
+
 			setMoves((m) => [...m, { routine, base }]);
 			setOwners(f.owners());
 			setPicked(null);
 			setGhost(null);
 			flash(LINES.patch);
+
 			setNote(
 				`${nameOf(routine)} moved to ${hex(base)}. ${patched} ${patched === 1 ? "address" : "addresses"} patched.`,
 			);
@@ -622,6 +735,7 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 		} catch {
 			flash(LINES.refuse);
 		}
+
 		setNote(
 			`That gap holds ${gap.len} words. ${nameOf(routine)} needs ${lenOf(routine)}.`,
 		);
@@ -629,6 +743,7 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 
 	const undo = () => {
 		const next = moves.slice(0, -1);
+
 		ground.current?.free();
 		ground.current = build(true, next);
 		setMoves(next);
@@ -643,11 +758,15 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 			gaps,
 			left.map((id) => ({ id, len: lenOf(id) })),
 		);
+
 		if (!found) {
 			setNote("Best fit can’t finish from here. Undo a move first.");
+
 			return;
 		}
+
 		const list = [...moves, ...found];
+
 		ground.current?.free();
 		ground.current = build(true, list);
 		setMoves(list);
@@ -660,6 +779,7 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 
 	const send = () => {
 		go("sending");
+
 		fly(PATCH_MS, () => {
 			craft.current?.free();
 			craft.current = build(true, moves);
@@ -688,6 +808,7 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 
 	const local = (e: { clientX: number; clientY: number }) => {
 		const r = canvas.current?.getBoundingClientRect();
+
 		return r
 			? { x: e.clientX - r.left, y: e.clientY - r.top }
 			: { x: -1, y: -1 };
@@ -699,93 +820,128 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 
 	const onPointerMove = (e: PointerEvent<HTMLCanvasElement>) => {
 		if (e.pointerType !== "mouse" || !picking || !geo.current) return;
+
 		const { x, y } = local(e);
 		const w = wordAt(geo.current, x, y);
 		const g = w < 0 ? undefined : gapAt(gaps, w);
 		const base = g && g.len >= pickLen ? edge(g, pickLen, w, w + 1) : null;
+
 		setGhost(base);
 	};
 
 	const aim = (b: Board, x: number, y: number) => {
 		const lit = (c: number) => snap(gaps, c, pickLen, chip).kind === "fit";
 		const near = chipAt(b, x, y, true);
+
 		if (lit(near)) return near;
+
 		let best = near;
 		let reach = SLOP;
+
 		for (let c = 0; c < CHIPS; c++) {
 			const o = origin(b, c);
+
 			const d = Math.hypot(
 				Math.max(0, o.x - x, x - o.x - b.chip),
 				Math.max(0, o.y - y, y - o.y - b.chip),
 			);
+
 			if (d <= reach && lit(c)) {
 				best = c;
 				reach = d;
 			}
 		}
+
 		return best;
 	};
 
 	const onBoard = (e: MouseEvent<HTMLCanvasElement>) => {
 		if (!picking || picked === null || !geo.current || !owners) return;
+
 		const { x, y } = local(e);
+
 		if (pointer.current === "touch") {
 			const c = aim(geo.current, x, y);
 			const s = snap(gaps, c, pickLen, chip);
+
 			if (s.kind === "fit") place(picked, s.base);
 			else if (s.kind === "small") refuse(picked, s.gap);
 			else if (s.kind === "dead")
 				setNote(`Chip ${c} is dead. Tap a chip with a lit gap.`);
 			else setNote(`Chip ${c} has no free words. Tap a chip with a lit gap.`);
+
 			return;
 		}
+
 		const w = wordAt(geo.current, x, y);
+
 		if (w < 0) return;
+
 		if (chipOf(w) === chip) {
 			setNote(`Chip ${chip} is dead. Nothing can live there now.`);
+
 			return;
 		}
+
 		const g = gapAt(gaps, w);
+
 		if (!g) {
 			setNote(`${hex(w)} belongs to ${nameOf(owners[w])}. Click a lit gap.`);
+
 			return;
 		}
+
 		if (g.len < pickLen) refuse(picked, g);
 		else place(picked, edge(g, pickLen, w, w + 1));
 	};
 
 	const onBoardKey = (e: KeyboardEvent<HTMLCanvasElement>) => {
 		if (!picking || picked === null) return;
+
 		if (e.key === "Escape") {
 			e.preventDefault();
+
 			const i = STRANDED.indexOf(picked);
+
 			setPicked(null);
 			setGhost(null);
 			tray.current[i]?.focus({ preventScroll: true });
+
 			return;
 		}
+
 		if ((e.key === "Enter" || e.key === " ") && ghost !== null) {
 			e.preventDefault();
 			place(picked, ghost);
+
 			const next = left.find((r) => r !== picked);
+
 			if (next !== undefined)
 				tray.current[STRANDED.indexOf(next)]?.focus({ preventScroll: true });
+
 			return;
 		}
+
 		const d =
 			e.key === "ArrowRight" || e.key === "ArrowDown"
 				? 1
 				: e.key === "ArrowLeft" || e.key === "ArrowUp"
 					? -1
 					: 0;
+
 		if (!d || !fit.length) return;
+
 		e.preventDefault();
+
 		const i = fit.findIndex(
 			(g) => ghost !== null && ghost >= g.base && ghost < g.base + g.len,
 		);
+
 		const n =
 			i < 0 ? (d > 0 ? 0 : fit.length - 1) : (i + d + fit.length) % fit.length;
+
 		setGhost(fit[n].base);
+
 		setNote(
 			`Gap ${n + 1} of ${fit.length}: ${fit[n].len} words at ${hex(fit[n].base)}. Enter places it.`,
 		);
@@ -793,14 +949,19 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 
 	const pick = (r: number, keyboard: boolean) => {
 		if (stage !== "failed" || placed.has(r)) return;
+
 		const next = picked === r ? null : r;
+
 		setPicked(next);
 		setGhost(null);
 		setNote("");
+
 		if (next !== null && keyboard) {
 			const len = lenOf(next);
 			const first = gaps.find((g) => g.len >= len);
+
 			if (first) setGhost(first.base);
+
 			canvas.current?.focus({ preventScroll: true });
 		}
 	};
@@ -818,7 +979,9 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 
 	const statusText: ReactNode = (() => {
 		if (stage === "healthy") return "FDS healthy. Telemetry decoding.";
+
 		if (stage === "stuck") return "Stuck on AAAA. Ask the FDS what it holds.";
+
 		if (stage === "poking" || stage === "sending")
 			return (
 				<>
@@ -828,30 +991,42 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 					</span>
 				</>
 			);
+
 		if (stage === "fixed")
 			return science
 				? "Patched. Science data is back."
 				: "Patched. Engineering data reads again.";
+
 		if (ready) return "Every routine moved. Send the patch.";
+
 		if (!feasible) return "Stranded: the rest can’t all fit. Undo a move.";
+
 		if (left.length === 4)
 			return `Chip ${dead ?? DEAD} is dead. Move its four routines.`;
+
 		return `${LEFT[left.length]} left to move.`;
 	})();
 
 	const hint = (() => {
 		if (stage === "healthy")
 			return `Chip ${DEAD} holds the four routines that build every frame.`;
+
 		if (stage === "stuck")
 			return "Nothing on the ground says which part failed.";
+
 		if (stage === "poking")
 			return `The poke asks the FDS to read back all ${WORDS.toLocaleString("en-US")} words.`;
+
 		if (stage === "sending") return "The patch goes up at 16 bits per second.";
+
 		if (stage === "fixed")
 			return science ? "Frames decode again." : "Waiting for the next frame.";
+
 		if (ready) return `Nothing is left in chip ${dead ?? DEAD}.`;
+
 		if (picked !== null)
 			return `${nameOf(picked)} needs ${lenOf(picked)} words. ${coarse ? "Tap a chip with a lit gap." : "Click a lit gap."}`;
+
 		return coarse
 			? "Pick a routine, then tap a chip with a lit gap."
 			: "Pick a routine, then click a lit gap.";
@@ -859,6 +1034,7 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 
 	const newest = frames[0]?.words;
 	const bad = newest?.[0] === STUCK;
+
 	const decode = (
 		newest
 			? bad
@@ -879,25 +1055,35 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 				: stage === "fixed"
 					? "reset"
 					: "fix";
+
 	const flying = stage === "poking" || stage === "sending";
 
 	useEffect(() => {
 		const box = actions.current;
+
 		if (!refocus.current || !box || !set) return;
+
 		const id = requestAnimationFrame(() => {
 			const shown = box.querySelectorAll<HTMLButtonElement>(
 				".vg-fds__set[data-on] button:not(:disabled)",
 			);
+
 			const el = document.activeElement;
+
 			if ([...shown].some((b) => b === el)) {
 				refocus.current = false;
+
 				return;
 			}
+
 			const next = shown[shown.length - 1];
+
 			if (!next) return;
+
 			next.focus({ preventScroll: true });
 			refocus.current = false;
 		});
+
 		return () => cancelAnimationFrame(id);
 	}, [set, ready, flying]);
 
@@ -1038,6 +1224,7 @@ export function ChipRescue({ watts, light }: { watts: number; light: number }) {
 							{STRANDED.map((r, i) => {
 								const at = moves.find((m) => m.routine === r);
 								const off = stage !== "failed" || !!at;
+
 								return (
 									<button
 										key={r}

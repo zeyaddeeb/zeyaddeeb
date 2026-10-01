@@ -15,6 +15,7 @@ export function RustScreen() {
 	const running = useShouldRun(wrapRef);
 	const { loading, error } = useWasm();
 	const [stats, setStats] = useState<LifeStats | null>(null);
+
 	const onStats = useCallback((s: LifeStats & { fps: number }) => {
 		setStats(s);
 	}, []);

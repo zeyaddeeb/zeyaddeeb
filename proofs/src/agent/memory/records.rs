@@ -61,7 +61,9 @@ impl Node {
             text: String::new(),
             updated: 0,
         };
+
         node.refresh();
+
         node
     }
 
@@ -74,9 +76,11 @@ impl Node {
             "[{}] ({:?}) {}: {}",
             self.key, self.trust, self.title, self.body
         );
+
         if let Some(lean) = &self.lean {
             line.push_str(&format!(" Lean: {lean}"));
         }
+
         line
     }
 }

@@ -15,6 +15,7 @@ pub async fn handle(socket: WebSocket, session_id: Uuid, state: AppState, host: 
         if session.connected_clients != 0 {
             return false;
         }
+
         session.connected_clients += 1;
     } else {
         return false;
@@ -28,6 +29,7 @@ pub async fn handle(socket: WebSocket, session_id: Uuid, state: AppState, host: 
     }
 
     let mut rate = (std::time::Instant::now(), 0u32);
+
     loop {
         tokio::select! {
             _ = tokio::time::sleep(std::time::Duration::from_secs(60)) => break,
@@ -64,6 +66,7 @@ pub async fn handle(socket: WebSocket, session_id: Uuid, state: AppState, host: 
     }
 
     rtc::close_session(&state, session_id).await;
+
     true
 }
 
@@ -124,6 +127,7 @@ fn analyze_frame(
             message: "Invalid audio frame".into(),
         });
     }
+
     let processed_ms = state
         .sessions
         .get(&session_id)
@@ -144,6 +148,7 @@ fn analyze_frame(
                 session.processed_ms = result.processed_ms;
                 session.active_speakers = result.speakers.len();
             }
+
             Some(ServerMessage::Diarization { result })
         }
         Err(error) => Some(ServerMessage::Error {

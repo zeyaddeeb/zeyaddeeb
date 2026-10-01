@@ -56,6 +56,7 @@ function scales(f: Frame) {
 	const samples = Array.from({ length: 41 }, (_, i) => 10 ** (i / 10));
 	const line = (pick: (n: number) => number) =>
 		samples.map((n) => `${X(n)},${Y(pick(n))}`).join(" ");
+
 	return {
 		X,
 		Y,
@@ -86,6 +87,7 @@ function Graph({ f, readers }: { f: Frame; readers: number }) {
 	const cy = Y(bill(even, answerWords).paste);
 	const tagP = 1400;
 	const tagD = 900;
+
 	return (
 		<svg
 			viewBox={`0 0 ${f.w} ${f.h}`}

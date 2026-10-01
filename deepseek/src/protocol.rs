@@ -555,6 +555,7 @@ mod tests {
             (OperationState::Canceled, "canceled"),
             (OperationState::Failed, "failed"),
         ];
+
         for (state, name) in expected {
             assert_eq!(wire(state), name);
             assert_eq!(state.as_str(), name);
@@ -589,6 +590,7 @@ mod tests {
             mode: Mode::Swa,
             engram: true,
         };
+
         assert_eq!(
             serde_json::to_string(&info).unwrap(),
             r#"{"layer":2,"stack":"decoder","mode":"SWA","engram":true}"#

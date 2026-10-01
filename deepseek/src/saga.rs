@@ -45,6 +45,7 @@ impl OperationState {
 
     fn may_become(self, next: Self) -> bool {
         use OperationState::*;
+
         matches!(
             (self, next),
             (Queued, Running | CancelRequested)
@@ -119,7 +120,9 @@ impl Operation {
             }),
             listener,
         });
+
         operation.announce();
+
         operation
     }
 
@@ -155,36 +158,44 @@ impl Operation {
 
     fn announce(&self) {
         let inner = self.lock();
+
         (self.listener)(self.view_of(&inner));
     }
 
     fn transition(&self, next: OperationState, stage: &str) -> bool {
         let mut inner = self.lock();
+
         if !inner.state.may_become(next) {
             return false;
         }
+
         if next == OperationState::Running {
             inner.running_since = Some(Instant::now());
         } else if let Some(since) = inner.running_since.take() {
             inner.running_for += since.elapsed();
         }
+
         inner.state = next;
         inner.stage = stage.into();
         (self.listener)(self.view_of(&inner));
+
         true
     }
 
     pub fn begin(&self) -> bool {
         {
             let mut inner = self.lock();
+
             inner.pause_requested = false;
         }
+
         self.transition(OperationState::Running, "forward")
     }
 
     pub fn request_cancel(&self, reason: &str) -> bool {
         {
             let mut inner = self.lock();
+
             if inner.state.terminal()
                 || matches!(
                     inner.state,
@@ -193,15 +204,20 @@ impl Operation {
             {
                 return false;
             }
+
             let unattended = inner.state == OperationState::Paused;
+
             inner.state = OperationState::CancelRequested;
             inner.stage = reason.into();
             inner.cancel_requested_at = Some(Instant::now());
+
             if let Some(since) = inner.running_since.take() {
                 inner.running_for += since.elapsed();
             }
+
             self.cancel.cancel();
             (self.listener)(self.view_of(&inner));
+
             unattended
         }
     }
@@ -209,7 +225,9 @@ impl Operation {
     pub fn request_pause(&self) -> bool {
         let mut inner = self.lock();
         let running = inner.state == OperationState::Running;
+
         inner.pause_requested |= running;
+
         running
     }
 
@@ -231,6 +249,7 @@ impl Operation {
 
     pub fn canceled(&self) -> Option<Duration> {
         let requested = self.lock().cancel_requested_at;
+
         self.transition(OperationState::Canceled, "cleanup complete")
             .then(|| requested.map(|at| at.elapsed()))
             .flatten()
@@ -238,9 +257,11 @@ impl Operation {
 
     pub fn failed(&self, error: String) {
         let mut inner = self.lock();
+
         if inner.state.terminal() {
             return;
         }
+
         inner.running_since = None;
         inner.state = OperationState::Failed;
         inner.stage = "cleanup complete".into();
@@ -258,6 +279,7 @@ impl Operation {
 
     pub fn stop_reason(&self) -> Stop {
         let inner = self.lock();
+
         if self.cancel.is_cancelled() || inner.state == OperationState::CancelRequested {
             Stop::Cancel
         } else {
@@ -274,6 +296,7 @@ impl Control for Worker<'_> {
     fn check(&mut self, stage: &str) -> Result<()> {
         let operation = self.operation;
         let mut inner = operation.lock();
+
         if let Some(since) = inner.running_since {
             if inner.running_for + since.elapsed() > operation.budget
                 && !operation.cancel.is_cancelled()
@@ -287,24 +310,30 @@ impl Control for Worker<'_> {
                 (operation.listener)(operation.view_of(&inner));
             }
         }
+
         if operation.cancel.is_cancelled() || inner.pause_requested {
             return Err(Interrupted.into());
         }
+
         if inner.stage != stage {
             inner.stage.clear();
             inner.stage.push_str(stage);
         }
+
         Ok(())
     }
 
     fn commit(&mut self, apply: &mut dyn FnMut() -> Result<(u64, u64)>) -> Result<bool> {
         let operation = self.operation;
         let mut inner = operation.lock();
+
         if operation.cancel.is_cancelled() {
             return Ok(false);
         }
+
         inner.stage = "optimizer commit".into();
         (inner.retained_step, inner.retained_revision) = apply()?;
+
         Ok(true)
     }
 }
@@ -317,6 +346,7 @@ mod tests {
     fn operation(budget: Duration) -> (Arc<Operation>, Arc<Mutex<Vec<String>>>) {
         let journal = Arc::new(Mutex::new(Vec::new()));
         let sink = journal.clone();
+
         let operation = Operation::new(
             Uuid::new_v4(),
             Phase::Pretrain,
@@ -326,25 +356,31 @@ mod tests {
             (0, 0),
             Box::new(move |view| sink.lock().unwrap().push(view.state.as_str().to_string())),
         );
+
         (operation, journal)
     }
 
     #[test]
     fn a_full_run_walks_the_happy_path() {
         let (op, journal) = operation(Duration::from_secs(60));
+
         assert!(op.begin());
         assert!(op.request_pause());
+
         let mut worker = Worker { operation: &op };
+
         assert!(worker.check("forward").is_err());
         assert_eq!(op.stop_reason(), Stop::Pause);
         assert!(op.paused());
         assert!(op.requeue() && op.begin());
         assert!(worker.check("forward").is_ok());
         assert!(op.compensating("release buffers") && op.completed());
+
         assert!(
             !op.begin() && !op.requeue(),
             "terminal states cannot resume"
         );
+
         assert_eq!(
             *journal.lock().unwrap(),
             [
@@ -362,10 +398,13 @@ mod tests {
     #[test]
     fn cancellation_is_idempotent_and_ordered() {
         let (op, journal) = operation(Duration::from_secs(60));
+
         op.begin();
         assert!(!op.request_cancel("cancel requested"), "a worker holds it");
         assert!(!op.request_cancel("cancel requested"));
+
         let mut worker = Worker { operation: &op };
+
         assert!(worker.check("backward").is_err());
         assert_eq!(op.stop_reason(), Stop::Cancel);
         assert!(!worker.commit(&mut || panic!("must not publish")).unwrap());
@@ -373,6 +412,7 @@ mod tests {
         assert!(op.compensating("drop unfinished graph"));
         assert!(op.canceled().is_some());
         assert!(op.canceled().is_none());
+
         assert_eq!(
             *journal.lock().unwrap(),
             [
@@ -388,14 +428,17 @@ mod tests {
     #[test]
     fn cancel_while_queued_or_paused() {
         let (op, _) = operation(Duration::from_secs(60));
+
         assert!(!op.request_cancel("cancel requested"));
         assert!(!op.begin(), "the queue lost the race");
         assert!(op.compensating("release reservation") && op.canceled().is_some());
 
         let (op, _) = operation(Duration::from_secs(60));
+
         op.begin();
         op.request_pause();
         op.paused();
+
         assert!(
             op.request_cancel("cancel requested"),
             "nobody holds a paused operation"
@@ -405,18 +448,24 @@ mod tests {
     #[test]
     fn a_committed_update_survives_a_late_cancel() {
         let (op, _) = operation(Duration::from_secs(60));
+
         op.begin();
+
         let applied = AtomicUsize::new(0);
         let mut worker = Worker { operation: &op };
+
         assert!(worker
             .commit(&mut || {
                 applied.fetch_add(1, Ordering::SeqCst);
                 Ok((11, 11))
             })
             .unwrap());
+
         op.request_cancel("cancel requested");
         assert!(!worker.commit(&mut || panic!("must not publish")).unwrap());
+
         let view = op.view();
+
         assert_eq!((view.retained_step, view.retained_revision), (11, 11));
         assert_eq!(applied.load(Ordering::SeqCst), 1);
     }
@@ -425,17 +474,21 @@ mod tests {
     fn commit_and_cancel_never_interleave() {
         for _ in 0..200 {
             let (op, _) = operation(Duration::from_secs(60));
+
             op.begin();
+
             let canceller = op.clone();
             let thread = std::thread::spawn(move || canceller.request_cancel("cancel requested"));
             let mut worker = Worker { operation: &op };
             let mut published = 0;
+
             while worker
                 .commit(&mut || Ok((published + 1, published + 1)))
                 .unwrap()
             {
                 published += 1;
             }
+
             thread.join().unwrap();
             assert_eq!(op.view().retained_revision, published);
         }
@@ -444,9 +497,12 @@ mod tests {
     #[test]
     fn a_spent_budget_cancels_through_the_same_path() {
         let (op, _) = operation(Duration::ZERO);
+
         op.begin();
         std::thread::sleep(Duration::from_millis(2));
+
         let mut worker = Worker { operation: &op };
+
         assert!(worker.check("forward").is_err());
         assert_eq!(op.state(), OperationState::CancelRequested);
         assert_eq!(op.stop_reason(), Stop::Cancel);

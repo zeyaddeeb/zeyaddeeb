@@ -197,14 +197,17 @@ LEVELS: dict[str, Level] = {
 
 def distance_km(a: Site | City, b: Site | City) -> float:
     lat1, lon1, lat2, lon2 = map(radians, (a.lat, a.lon, b.lat, b.lon))
+
     h = (
         sin((lat2 - lat1) / 2) ** 2
         + cos(lat1) * cos(lat2) * sin((lon2 - lon1) / 2) ** 2
     )
+
     return 2 * EARTH_RADIUS_KM * asin(sqrt(h))
 
 
 @cache
 def rtt_ms(city: str, site: str) -> float:
     km = distance_km(CITIES[city], SITES[site])
+
     return round(SWITCHING_MS + 2 * km * PATH_STRETCH / FIBER_KM_PER_MS)

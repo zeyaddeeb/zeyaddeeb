@@ -66,17 +66,21 @@ export function MarkdownEditor({
 			},
 			handlePaste(_view, event) {
 				const plainText = event.clipboardData?.getData("text/plain") || "";
+
 				if (!plainText || !isLikelyMarkdown(plainText)) {
 					return false;
 				}
 
 				event.preventDefault();
+
 				const html = convertMarkdownPasteToHtml(plainText);
+
 				editor
 					?.chain()
 					.focus()
 					.insertContent(html, { parseOptions: { preserveWhitespace: "full" } })
 					.run();
+
 				return true;
 			},
 		},

@@ -126,19 +126,25 @@ export function Selection({
 }) {
 	const kind = kindOf(level, selected);
 	const isSite = kind === "site";
+
 	const rows: RouteRow[] = Object.entries(routes)
 		.map(([key, amount]) => {
 			const [demand, site] = split(key);
+
 			return { demand, site, mw: amount };
 		})
 		.filter((r) => (isSite ? r.site : r.demand) === selected);
+
 	const used = rows.reduce((sum, r) => sum + r.mw, 0);
+
 	const limit = isSite
 		? (scene.capacity[selected] ?? 0)
 		: kind === "training"
 			? scene.training
 			: (scene.demand[selected] ?? 0);
+
 	const site = siteOf(world, selected);
+
 	return (
 		<div className="cc-selection">
 			<p className="cc-selection-title">
@@ -182,8 +188,11 @@ export function Blocks({
 	onChange: (blocks: Record<string, number>) => void;
 }) {
 	const build = level.build;
+
 	if (!build) return null;
+
 	const placed = totalBlocks(blocks);
+
 	return (
 		<div className="cc-selection">
 			<p className="cc-selection-title">

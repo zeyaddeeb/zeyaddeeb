@@ -15,6 +15,7 @@ pub fn start_zenoh(mut commands: Commands) {
 
     thread::spawn(move || {
         zenoh::init_log_from_env_or("error");
+
         let config = Config::default();
         let session = zenoh::open(config).wait().expect("zenoh open");
 
@@ -27,6 +28,7 @@ pub fn start_zenoh(mut commands: Commands) {
             .declare_subscriber(keyexpr::new(ACT_KEY).expect("action key"))
             .callback(move |sample| {
                 let payload = sample.payload().to_bytes();
+
                 if let Ok(msg) = serde_json::from_slice::<ActionMsg>(payload.as_ref()) {
                     let _ = action_tx.send(msg);
                 }

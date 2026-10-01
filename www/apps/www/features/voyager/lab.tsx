@@ -84,25 +84,33 @@ function Sub({
 function useRise(root: RefObject<HTMLDivElement | null>) {
 	useEffect(() => {
 		const el = root.current;
+
 		if (!el) return;
+
 		if (!window.matchMedia("(prefers-reduced-motion: no-preference)").matches)
 			return;
+
 		const io = new IntersectionObserver(
 			(entries) => {
 				for (const e of entries) {
 					if (!e.isIntersecting) continue;
+
 					(e.target as HTMLElement).dataset.rise = "in";
 					io.unobserve(e.target);
 				}
 			},
 			{ rootMargin: "100000px 0px -15% 0px" },
 		);
+
 		for (const n of el.querySelectorAll<HTMLElement>("[data-reveal]")) {
 			if (n.dataset.rise === "in") continue;
+
 			if (n.getBoundingClientRect().top < window.innerHeight) continue;
+
 			n.dataset.rise = "wait";
 			io.observe(n);
 		}
+
 		return () => io.disconnect();
 	}, [root]);
 }
@@ -113,7 +121,9 @@ export function VoyagerLab({ now: rendered = REFERENCE }: { now?: number }) {
 
 	useEffect(() => {
 		setNow(Date.now());
+
 		const id = window.setInterval(() => setNow(Date.now()), 60_000);
+
 		return () => window.clearInterval(id);
 	}, []);
 

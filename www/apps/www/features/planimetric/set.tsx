@@ -32,12 +32,14 @@ function craneTiming(cue: Cue) {
 
 export function Camera({ cues, reduced, tall = false }: Timing) {
 	const smooth = reduced ? "discrete" : "linear";
+
 	return (
 		<>
 			{cues.map((cue) => {
 				const setup = setups[cue.shot.setup];
 				const [a, b, c] = framesFor(cue.shot, tall);
 				const key = `${cue.index}-${cue.start}`;
+
 				const hold = (
 					<set
 						attributeName="viewBox"
@@ -46,6 +48,7 @@ export function Camera({ cues, reduced, tall = false }: Timing) {
 						fill="freeze"
 					/>
 				);
+
 				switch (setup.move) {
 					case "dolly":
 						return (
@@ -94,6 +97,7 @@ export function Camera({ cues, reduced, tall = false }: Timing) {
 						);
 					case "crane": {
 						const t = craneTiming(cue);
+
 						return (
 							<Fragment key={key}>
 								{hold}
@@ -160,23 +164,29 @@ const VISIBLE: Record<Placement, Record<string, boolean>> = {
 
 function wrapTitle(title: string, max = 14) {
 	const lines: string[] = [];
+
 	for (const word of title.split(/\s+/).filter(Boolean)) {
 		const last = lines[lines.length - 1];
+
 		if (last !== undefined && `${last} ${word}`.length <= max)
 			lines[lines.length - 1] = `${last} ${word}`;
 		else lines.push(word);
 	}
+
 	return lines.length ? lines : [title];
 }
 
 export function Drawing({ cues, reduced }: Timing) {
 	const first = cues[0] ? setups[cues[0].shot.setup].placement : "lobby";
 	const vis = (group: string) => (VISIBLE[first][group] ? "visible" : "hidden");
+
 	const placementSets = (group: string) =>
 		cues.map((cue, i) => {
 			const placement = setups[cue.shot.setup].placement;
 			const previous = i ? setups[cues[i - 1].shot.setup].placement : first;
+
 			if (i && placement === previous) return null;
+
 			return (
 				<set
 					key={`${group}-${cue.index}`}
@@ -187,6 +197,7 @@ export function Drawing({ cues, reduced }: Timing) {
 				/>
 			);
 		});
+
 	const dolly = cues.filter((cue) => cue.shot.setup === "DOLLY");
 	const cranes = cues.filter((cue) => cue.shot.setup === "TABLEAU");
 	const overheads = cues.filter((cue) => cue.shot.setup === "OVERHEAD");
@@ -431,6 +442,7 @@ export function Drawing({ cues, reduced }: Timing) {
 			{Array.from({ length: 18 }, (_, i) => {
 				const col = i % 6;
 				const row = Math.floor(i / 6);
+
 				return (
 					<g key={`${col}-${row}`}>
 						<rect
@@ -592,6 +604,7 @@ export function Drawing({ cues, reduced }: Timing) {
 				>
 					{cranes.map((cue) => {
 						const t = craneTiming(cue);
+
 						return (
 							<animateTransform
 								key={cue.index}
@@ -611,6 +624,7 @@ export function Drawing({ cues, reduced }: Timing) {
 			<g>
 				{cranes.map((cue) => {
 					const t = craneTiming(cue);
+
 					return (
 						<animateTransform
 							key={cue.index}
@@ -768,10 +782,12 @@ export function Drawing({ cues, reduced }: Timing) {
 					const [eyebrow, ...rest] = cue.shot.action.includes(":")
 						? cue.shot.action.split(":")
 						: ["", cue.shot.action];
+
 					const lines = wrapTitle(rest.join(":").trim().toUpperCase());
 					const size = lines.some((line) => line.length > 12) ? 84 : 100;
 					const lead = size * 1.1;
 					const top = 2560 - ((lines.length - 1) * lead) / 2;
+
 					return (
 						<g key={cue.index} visibility={i ? "hidden" : "visible"}>
 							{cards.map((other, j) => (

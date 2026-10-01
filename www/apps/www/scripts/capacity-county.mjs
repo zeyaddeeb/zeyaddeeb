@@ -45,9 +45,11 @@ async function overpass() {
 				body: new URLSearchParams({ data: query }),
 				signal: AbortSignal.timeout(180_000),
 			});
+
 			if (response.ok) return await response.json();
 		} catch {}
 	}
+
 	throw new Error("every Overpass mirror failed");
 }
 
@@ -55,21 +57,27 @@ function perpendicular([x, y], [x0, y0], [x1, y1]) {
 	const dx = x1 - x0;
 	const dy = y1 - y0;
 	const length = Math.hypot(dx, dy) || 1;
+
 	return Math.abs(dy * x - dx * y + x1 * y0 - y1 * x0) / length;
 }
 
 function simplify(points) {
 	if (points.length < 3) return points;
+
 	let worst = 0;
 	let at = 0;
+
 	for (let i = 1; i < points.length - 1; i++) {
 		const d = perpendicular(points[i], points[0], points.at(-1));
+
 		if (d > worst) {
 			worst = d;
 			at = i;
 		}
 	}
+
 	if (worst <= TOLERANCE) return [points[0], points.at(-1)];
+
 	return [
 		...simplify(points.slice(0, at + 1)).slice(0, -1),
 		...simplify(points.slice(at)),
@@ -90,13 +98,17 @@ const reach = (chain) =>
 function chains(parts) {
 	const open = parts.map((p) => [...p]);
 	const done = [];
+
 	while (open.length) {
 		let chain = open.pop();
 		let grew = true;
+
 		while (grew) {
 			grew = false;
+
 			for (let i = 0; i < open.length; i++) {
 				const next = open[i];
+
 				if (same(chain.at(-1), next[0])) chain = [...chain, ...next.slice(1)];
 				else if (same(chain.at(-1), next.at(-1)))
 					chain = [...chain, ...next.toReversed().slice(1)];
@@ -105,13 +117,17 @@ function chains(parts) {
 				else if (same(chain[0], next[0]))
 					chain = [...next.toReversed(), ...chain.slice(1)];
 				else continue;
+
 				open.splice(i, 1);
 				grew = true;
+
 				break;
 			}
 		}
+
 		done.push(chain);
 	}
+
 	return done;
 }
 
@@ -126,6 +142,7 @@ function isOutbound(way) {
 	const [first, last] = [way.geometry[0], way.geometry.at(-1)];
 	const dx = last.lon - first.lon;
 	const dy = last.lat - first.lat;
+
 	return Math.abs(dx) > Math.abs(dy) ? dx > 0 : dy > 0;
 }
 
@@ -152,6 +169,7 @@ const data = {
 		const node = elements.find(
 			(e) => e.type === "node" && e.tags?.name === name,
 		);
+
 		return node ? [{ name, lon: round(node.lon), lat: round(node.lat) }] : [];
 	}),
 };

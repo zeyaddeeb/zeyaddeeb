@@ -10,6 +10,7 @@ export function socialImageUrl(
 	section = "Software engineering",
 ) {
 	const query = new URLSearchParams({ title, section });
+
 	return siteUrl(`/og?${query}`);
 }
 
@@ -40,8 +41,10 @@ export function pageMetadata({
 		title === SITE_NAME
 			? `${SITE_NAME} | Software Engineer`
 			: `${title} | ${SITE_NAME}`;
+
 	const url = siteUrl(path);
 	const imageUrl = image ? siteUrl(image) : socialImageUrl(title, section);
+
 	const images = [
 		{
 			url: imageUrl,
@@ -91,6 +94,7 @@ export function pageMetadata({
 
 export function pageNumber(value?: string) {
 	const page = Number(value);
+
 	return Number.isSafeInteger(page) && page > 0 ? page : 1;
 }
 
@@ -104,11 +108,15 @@ export function listingMetadata({
 }) {
 	const number = pageNumber(page);
 	const query = new URLSearchParams();
+
 	for (const [key, value] of Object.entries(filters)) {
 		if (value?.trim()) query.set(key, value.trim());
 	}
+
 	const noIndex = query.size > 0;
+
 	if (number > 1) query.set("page", String(number));
+
 	return pageMetadata({
 		...options,
 		title: number > 1 ? `${options.title} — Page ${number}` : options.title,

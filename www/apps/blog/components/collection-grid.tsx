@@ -28,8 +28,11 @@ export function CollectionGrid({
 }: CollectionGridProps) {
 	const getGridSize = (size: string | null, index: number) => {
 		if (columns) return "medium";
+
 		if (size && size !== "medium") return size;
+
 		const pattern = ["medium", "medium", "tall", "wide", "medium"];
+
 		return pattern[index % pattern.length];
 	};
 
@@ -37,12 +40,15 @@ export function CollectionGrid({
 		if (columns === 2) {
 			return "library-grid grid grid-cols-1 gap-4 sm:grid-cols-2";
 		}
+
 		if (columns === 3) {
 			return "library-grid grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3";
 		}
+
 		if (columns === 4) {
 			return "library-grid grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
 		}
+
 		return "library-grid grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 md:gap-5 lg:grid-cols-4 lg:gap-6 xl:grid-cols-5";
 	};
 

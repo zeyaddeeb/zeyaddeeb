@@ -29,9 +29,11 @@ export function Header({
 	className = "",
 }: HeaderProps) {
 	const pathname = usePathname();
+
 	const [openPath, setOpenPath] = useState<string | null | undefined>(
 		undefined,
 	);
+
 	const menuOpen = openPath !== undefined && openPath === pathname;
 	const menuId = useId();
 	const headerRef = useRef<HTMLElement>(null);
@@ -39,18 +41,23 @@ export function Header({
 
 	useEffect(() => {
 		if (!menuOpen) return;
+
 		const closeOnEscape = (event: KeyboardEvent) => {
 			if (event.key !== "Escape") return;
+
 			setOpenPath(undefined);
 			toggleRef.current?.focus();
 		};
+
 		const closeOutside = (event: PointerEvent) => {
 			if (!headerRef.current?.contains(event.target as Node)) {
 				setOpenPath(undefined);
 			}
 		};
+
 		document.addEventListener("keydown", closeOnEscape);
 		document.addEventListener("pointerdown", closeOutside);
+
 		return () => {
 			document.removeEventListener("keydown", closeOnEscape);
 			document.removeEventListener("pointerdown", closeOutside);
@@ -116,6 +123,7 @@ export function Header({
 							!item.external &&
 							(pathname === item.href ||
 								(item.href !== "/" && pathname?.startsWith(`${item.href}/`)));
+
 						return (
 							<li key={item.href}>
 								<Link

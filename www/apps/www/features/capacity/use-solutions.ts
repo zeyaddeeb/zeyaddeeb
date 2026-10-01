@@ -9,8 +9,10 @@ const LIVE_DEBOUNCE_MS = 140;
 
 function useLatest() {
 	const ticket = useRef(0);
+
 	return useCallback(() => {
 		const mine = ++ticket.current;
+
 		return () => mine === ticket.current;
 	}, []);
 }
@@ -28,9 +30,12 @@ export function useSolutions(level: Level, game: Game) {
 	const request = useCallback(
 		async (edits: Edits, optimize = false) => {
 			setPending((n) => n + 1);
+
 			const result = await solveLevel(level.id, edits, optimize);
+
 			setPending((n) => n - 1);
 			setFailed(!result.ok);
+
 			return result.ok ? result.solved : null;
 		},
 		[level.id],
@@ -38,9 +43,11 @@ export function useSolutions(level: Level, game: Game) {
 
 	useEffect(() => {
 		const current = bestTicket();
+
 		setBest(null);
 		setBuilt(null);
 		setLive(null);
+
 		request({}, !!level.build).then((solved) => {
 			if (current()) setBest(solved);
 		});
@@ -48,7 +55,9 @@ export function useSolutions(level: Level, game: Game) {
 
 	useEffect(() => {
 		if (!level.build) return;
+
 		const current = builtTicket();
+
 		request({ build: game.blocks }).then((solved) => {
 			if (current()) setBuilt(solved);
 		});
@@ -57,14 +66,18 @@ export function useSolutions(level: Level, game: Game) {
 	useEffect(() => {
 		if (game.phase !== "play") {
 			setLive(null);
+
 			return;
 		}
+
 		const current = liveTicket();
+
 		const timer = setTimeout(() => {
 			request(game.play, !!level.build).then((solved) => {
 				if (current() && solved) setLive(solved);
 			});
 		}, LIVE_DEBOUNCE_MS);
+
 		return () => clearTimeout(timer);
 	}, [game.phase, game.play, level.build, request, liveTicket]);
 
@@ -73,5 +86,6 @@ export function useSolutions(level: Level, game: Game) {
 		built,
 		live: live ?? (game.phase === "play" ? best : null),
 	};
+
 	return { solutions, pending: pending > 0, failed };
 }

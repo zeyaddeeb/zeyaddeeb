@@ -15,17 +15,23 @@ fn wasm_ws_url() -> String {
     let Some(window) = web_sys::window() else {
         return "ws://localhost:9001".to_string();
     };
+
     let location = window.location();
+
     let protocol = location
         .protocol()
         .ok()
         .unwrap_or_else(|| "http:".to_string());
+
     let scheme = if protocol == "https:" { "wss" } else { "ws" };
+
     let host = location
         .hostname()
         .ok()
         .unwrap_or_else(|| "localhost".to_string());
+
     let _port = location.port().ok().unwrap_or_default();
+
     if host == "localhost" || host == "127.0.0.1" {
         format!("{}://{}:{}", scheme, host, "9001")
     } else {
@@ -47,6 +53,7 @@ pub fn setup(
         },
         Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.8, 0.4, 0.0)),
     ));
+
     commands.spawn(AmbientLight {
         color: Color::WHITE,
         brightness: 800.0,
@@ -83,6 +90,7 @@ pub fn setup(
         metallic: 0.8,
         ..default()
     });
+
     commands.spawn((
         Hoop,
         Mesh3d(meshes.add(Torus::new(
@@ -97,6 +105,7 @@ pub fn setup(
         base_color: Color::srgb(0.9, 0.9, 0.92),
         ..default()
     });
+
     commands.spawn((
         Mesh3d(meshes.add(Cuboid::new(0.05, 1.0, 1.2))),
         MeshMaterial3d(backboard_mat),
@@ -111,6 +120,7 @@ pub fn setup(
         metallic: 0.9,
         ..default()
     });
+
     commands.spawn((
         Mesh3d(meshes.add(Cylinder::new(0.05, HOOP_POS.y + 0.8))),
         MeshMaterial3d(pole_mat),
@@ -123,7 +133,9 @@ pub fn setup(
             Some(shared) => (shared.trainer.clone(), shared.headless),
             None => (std::sync::Arc::new(SacAsyncTrainer::new()), false),
         };
+
         let progress = sac_trainer.progress();
+
         commands.insert_resource(TrainingState {
             sac_trainer,
             headless,
@@ -164,6 +176,7 @@ pub fn setup(
     #[cfg(feature = "wasm")]
     {
         use super::resources::{CurriculumStage, SimulationState};
+
         use super::wasm_bridge::WsBridge;
 
         commands.insert_resource(SimulationState {
@@ -193,6 +206,7 @@ pub fn setup(
         });
 
         let ws_url = wasm_ws_url();
+
         commands.insert_resource(WsBridge::new(&ws_url));
     }
 }
@@ -250,10 +264,12 @@ pub(super) fn spawn_ball(
             ))
             .id()
     });
+
     commands.insert_resource(BallGrip {
         joints,
         released: false,
         dropped: false,
     });
+
     ball
 }

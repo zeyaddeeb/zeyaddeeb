@@ -36,11 +36,13 @@ function Band({
 	running: boolean;
 }) {
 	const { loading, error } = useWasm();
+
 	if (
 		(experiment.live === "life" || experiment.live === "tiling") &&
 		(loading || error)
 	)
 		return null;
+
 	switch (experiment.live) {
 		case "life":
 			return (
@@ -87,10 +89,13 @@ function Row({
 	const shouldRun = useShouldRun(ref);
 	const live = LIVE.has(experiment.live ?? "");
 	const [touched, setTouched] = useState(false);
+
 	useEffect(() => {
 		if (active) setTouched(true);
 	}, [active]);
+
 	const running = active && live && shouldRun;
+
 	return (
 		<li
 			className="row"
@@ -144,50 +149,69 @@ function Row({
 export function ExperimentsIndex({ items }: { items: Experiment[] }) {
 	const [active, setActive] = useState<string | null>(null);
 	const listRef = useRef<HTMLOListElement>(null);
+
 	useEffect(() => {
 		if (window.matchMedia("(hover: hover)").matches) return;
+
 		const list = listRef.current;
+
 		if (!list) return;
+
 		let frame = 0;
+
 		const update = () => {
 			frame = 0;
+
 			const mid = window.innerHeight / 2;
 			const bounds = list.getBoundingClientRect();
+
 			if (bounds.top > mid || bounds.bottom < mid) {
 				setActive(null);
+
 				return;
 			}
+
 			let best: HTMLElement | null = null;
 			let bestDistance = Number.POSITIVE_INFINITY;
+
 			for (const row of list.querySelectorAll<HTMLElement>("li[data-id]")) {
 				const rect = row.getBoundingClientRect();
+
 				if (rect.top <= mid && rect.bottom >= mid) {
 					best = row;
+
 					break;
 				}
+
 				const distance = Math.min(
 					Math.abs(rect.top - mid),
 					Math.abs(rect.bottom - mid),
 				);
+
 				if (distance < bestDistance) {
 					bestDistance = distance;
 					best = row;
 				}
 			}
+
 			setActive(best?.getAttribute("data-id") ?? null);
 		};
+
 		const schedule = () => {
 			if (!frame) frame = requestAnimationFrame(update);
 		};
+
 		update();
 		window.addEventListener("scroll", schedule, { passive: true });
 		window.addEventListener("resize", schedule);
+
 		return () => {
 			cancelAnimationFrame(frame);
 			window.removeEventListener("scroll", schedule);
 			window.removeEventListener("resize", schedule);
 		};
 	}, [items]);
+
 	return (
 		<ol className="rows container" ref={listRef}>
 			{items.map((experiment) => (

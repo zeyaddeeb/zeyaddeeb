@@ -76,6 +76,7 @@ pub fn find(id: &str) -> Option<&'static Level> {
 
 pub fn source(level: &Level, steps: &[String]) -> String {
     let mut text = format!("{} := by\n", level.statement);
+
     for step in steps {
         for line in step.lines() {
             text.push_str("  ");
@@ -83,5 +84,6 @@ pub fn source(level: &Level, steps: &[String]) -> String {
             text.push('\n');
         }
     }
+
     text
 }

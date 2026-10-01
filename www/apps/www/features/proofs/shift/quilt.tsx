@@ -8,8 +8,11 @@ export type Outcome = "proved" | "broke" | "held" | "quiet";
 
 export function outcome(episode: Episode): Outcome {
 	if (episode.verified > 0) return "proved";
+
 	if (episode.broken > 0) return "broke";
+
 	if (episode.held > 0) return "held";
+
 	return "quiet";
 }
 
@@ -45,16 +48,21 @@ export function Quilt({
 
 	useEffect(() => {
 		const words = query.trim();
+
 		if (!words) {
 			setResults(null);
+
 			return;
 		}
+
 		let current = true;
+
 		const timer = window.setTimeout(() => {
 			searchEpisodes(words).then((found) => {
 				if (current) setResults(found.ok ? found.value : []);
 			});
 		}, PAUSE);
+
 		return () => {
 			current = false;
 			window.clearTimeout(timer);
@@ -64,21 +72,27 @@ export function Quilt({
 	useEffect(() => {
 		if (before === null) {
 			setOlder(null);
+
 			return;
 		}
+
 		let current = true;
+
 		loadEpisodes(before).then((loaded) => {
 			if (current) setOlder(loaded.ok ? loaded.value : []);
 		});
+
 		return () => {
 			current = false;
 		};
 	}, [before]);
 
 	const live = before === null && running ? 1 : 0;
+
 	const page = (before === null ? latest : (older ?? []))
 		.slice(0, SLOTS - live)
 		.reverse();
+
 	const first = page[0]?.number ?? 0;
 	const last = page.at(-1)?.number ?? 0;
 	const title = (id: string) => fronts.find((f) => f.id === id)?.title ?? id;

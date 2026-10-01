@@ -31,11 +31,14 @@ function Chart({
 		values.length < 2 ? 0 : (i / (values.length - 1)) * width;
 	const y = (v: number) =>
 		height - (Math.min(v, ceiling) / ceiling) * (height - 8) - 4;
+
 	const points = values
 		.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`)
 		.join(" ");
+
 	const scrub = useScrub(values.length, "points");
 	const read = scrub.index ?? values.length - 1;
+
 	return (
 		<figure className="ds-chart" data-tone={tone}>
 			{values.length ? (
@@ -132,15 +135,23 @@ function DreamLine({
 }) {
 	const code = useRef<HTMLElement>(null);
 	const [clipped, setClipped] = useState(false);
+
 	useEffect(() => {
 		const node = code.current;
+
 		if (!node || open) return;
+
 		const measure = () => setClipped(node.scrollWidth > node.clientWidth + 1);
+
 		measure();
+
 		const observer = new ResizeObserver(measure);
+
 		observer.observe(node);
+
 		return () => observer.disconnect();
 	}, [text, open]);
+
 	return (
 		<button
 			type="button"
@@ -157,22 +168,28 @@ function DreamLine({
 
 export function Reading({ state }: { state: LabState }) {
 	const model = state.session?.model;
+
 	const curve = state.curve.filter(
 		(p) => p.phase === "pretrain" || p.phase === "sft",
 	);
+
 	const first = curve[0]?.step ?? 0;
+
 	const marks = state.evaluations
 		.filter((e) => e.phase === "pretrain" && e.step >= first)
 		.map((e) => ({
 			at: Math.min(curve.length - 1, e.step - first),
 			value: e.heldOutLoss,
 		}));
+
 	const dreams = state.dreams.slice(-DREAM_ROWS);
 	const [opened, setOpened] = useState<number | null>(null);
+
 	const rows = [
 		...dreams,
 		...Array.from({ length: DREAM_ROWS - dreams.length }, () => null),
 	];
+
 	return (
 		<div className="ds-reading">
 			<section className="ds-dreams">
@@ -264,23 +281,28 @@ function TrainingRows({ rows, phase }: { rows: string[]; phase: Phase }) {
 	const sft = phase === "sft";
 	const lines = rows.length ? rows : ["", "", "", ""];
 	const batch = useRef<HTMLOListElement>(null);
+
 	useEffect(() => {
 		for (const row of batch.current?.children ?? [])
 			row.scrollLeft = sft && rows.length ? row.scrollWidth : 0;
 	}, [rows, sft]);
+
 	return (
 		<div className="ds-input">
 			<ol className="ds-batch" ref={batch}>
 				{lines.map((text, i) => {
 					const words = text ? text.split(" ") : [];
 					const arrow = words.indexOf("→");
+
 					return (
 						<li key={i}>
 							{words.map((word, at) => {
 								const marker = word in MARKERS;
+
 								const scored = sft
 									? arrow >= 0 && at > arrow && word !== "end"
 									: at > 0 && word !== "end";
+
 								return (
 									<span
 										key={at}
@@ -316,7 +338,9 @@ export function Cards({
 	onShow: (code: string, question: string) => void;
 }) {
 	const probe = state.probe;
+
 	if (!probe) return null;
+
 	return (
 		<div className="ds-cards-lens">
 			<ul className="ds-cards">
@@ -375,6 +399,7 @@ export function Cards({
 
 export function Rollouts({ state }: { state: LabState }) {
 	const rollout = state.rollout;
+
 	return (
 		<div className="ds-rollouts">
 			<section>
@@ -440,6 +465,7 @@ export function Rollouts({ state }: { state: LabState }) {
 function smooth(values: number[], window: number) {
 	return values.map((_, i) => {
 		const slice = values.slice(Math.max(0, i - window + 1), i + 1);
+
 		return slice.reduce((a, b) => a + b, 0) / slice.length;
 	});
 }
@@ -465,16 +491,20 @@ export function Yours({ state, busy, onAsk }: YoursProps) {
 	const id = useId();
 	const question =
 		kind === "value" ? `value of ${binding} ?` : "valid reassignment ?";
+
 	const submit = (event: SubmitEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		onAsk(code, question);
 	};
+
 	const said = state.spoken.filter((t) => t.text !== "end");
 	const last = state.spoken.at(-1);
 	const distill = state.distill;
+
 	const teaching =
 		state.operation?.phase === "distill" &&
 		!["completed", "canceled", "failed"].includes(state.operation.state);
+
 	const school = distill ? (
 		<section className="ds-distill">
 			<h3 className="ds-eyebrow">Teacher and student: held-out accuracy</h3>
@@ -512,6 +542,7 @@ export function Yours({ state, busy, onAsk }: YoursProps) {
 			/>
 		</section>
 	) : null;
+
 	if (teaching) {
 		return (
 			<div className="ds-yours">
@@ -607,9 +638,13 @@ export function Yours({ state, busy, onAsk }: YoursProps) {
 								disabled={busy}
 								onClick={() => {
 									setCode(example.code);
+
 									const words = example.question.split(" ");
+
 									setKind(words[0] === "value" ? "value" : "valid");
+
 									if (words[0] === "value") setBinding(words[2]);
+
 									onAsk(example.code, example.question);
 								}}
 							>

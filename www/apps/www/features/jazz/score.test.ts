@@ -38,6 +38,7 @@ describe("music", () => {
 
 	it("voices chords above a floor", () => {
 		const bb7 = chord("Bb7");
+
 		expect(bb7?.root).toBe(10);
 		expect(bb7 && voicing(bb7, 57)).toEqual([58, 62, 65, 68]);
 		expect(chord("Hm")).toBeNull();
@@ -64,7 +65,9 @@ describe("score", () => {
 		const compiled = compileAll(
 			score({ chords: "<Bb7 Eb7>", banjo: "x", piano: "1 x" }),
 		);
+
 		expect(notes(compiled, "banjo", 1, 1)[0].keys).toEqual([55, 58, 61, 63]);
+
 		expect(notes(compiled, "piano", 0, 1).map((n) => n.keys)).toEqual([
 			[46],
 			[58, 62, 65, 68],
@@ -74,6 +77,7 @@ describe("score", () => {
 	it("moves off-beats late when it swings", () => {
 		const compiled = compileAll(score({ cornet: "c5 d5 e5 f5 g5 a5 b5 c6" }));
 		const [, second] = notes(compiled, "cornet", 0, 2);
+
 		expect(second.onset).toBeCloseTo(1 / 6);
 		expect(second.begin).toBeCloseTo(1 / 8);
 	});

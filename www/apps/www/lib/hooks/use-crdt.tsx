@@ -58,7 +58,9 @@ export function useCrdt(docId: string, wsBase?: string) {
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const mountedRef = useRef(false);
 	const docIdRef = useRef(docId);
+
 	docIdRef.current = docId;
+
 	const siteIdRef = useRef(0);
 
 	const [text, setText] = useState("");
@@ -75,8 +77,11 @@ export function useCrdt(docId: string, wsBase?: string) {
 
 	const syncState = useCallback(() => {
 		const doc = docRef.current;
+
 		if (!doc) return;
+
 		setText(doc.text());
+
 		try {
 			setSequence(JSON.parse(doc.inspect()) as RgaEntry[]);
 		} catch {}
@@ -97,12 +102,14 @@ export function useCrdt(docId: string, wsBase?: string) {
 
 	const flushPending = useCallback((ws: WebSocket) => {
 		for (const msg of pendingRef.current) ws.send(msg);
+
 		pendingRef.current = [];
 		setPendingCount(0);
 	}, []);
 
 	useEffect(() => {
 		mountedRef.current = true;
+
 		if (loading || !wasm) return;
 
 		siteIdRef.current = Math.floor(Math.random() * 0xffffffff);
@@ -113,32 +120,40 @@ export function useCrdt(docId: string, wsBase?: string) {
 
 		function scheduleReconnect() {
 			if (!mountedRef.current) return;
+
 			const delay =
 				BACKOFF[Math.min(retryRef.current, BACKOFF.length - 1)] ?? 15_000;
+
 			retryRef.current++;
 			timerRef.current = setTimeout(openSocket, delay);
 		}
 
 		function openSocket() {
 			if (!mountedRef.current) return;
+
 			if (timerRef.current) clearTimeout(timerRef.current);
 
 			const wsUrl = `${baseUrl}/ws/${encodeURIComponent(docIdRef.current)}`;
 			const ws = new WebSocket(wsUrl);
+
 			wsRef.current = ws;
 			setStatus("connecting");
 
 			ws.onopen = () => {
 				if (!mountedRef.current || wsRef.current !== ws) {
 					ws.close();
+
 					return;
 				}
+
 				ws.send(JSON.stringify({ type: "join" }));
 			};
 
 			ws.onmessage = (e: MessageEvent) => {
 				const doc = docRef.current;
+
 				if (!doc || !mountedRef.current || wsRef.current !== ws) return;
+
 				try {
 					const msg = JSON.parse(e.data as string) as ServerMsg;
 
@@ -149,13 +164,18 @@ export function useCrdt(docId: string, wsBase?: string) {
 						flushPending(ws);
 						syncState();
 						setReplayedOps(msg.ops.length);
+
 						if (typeof msg.peer === "number") setPeer(msg.peer);
+
 						if (typeof msg.peers === "number") setPeers(msg.peers);
+
 						pushLog("remote", `init — ${msg.ops.length} ops`);
 					} else if (msg.type === "op") {
 						doc.apply_remote(JSON.stringify(msg.op));
 						syncState();
+
 						const o = msg.op;
+
 						pushLog(
 							"remote",
 							o.type === "insert" ? `insert '${o.value}'` : "delete",
@@ -164,19 +184,23 @@ export function useCrdt(docId: string, wsBase?: string) {
 						if (typeof msg.peers === "number") setPeers(msg.peers);
 					} else if (msg.type === "cursor") {
 						const { peer: p, x, y } = msg;
+
 						if (
 							typeof p !== "number" ||
 							typeof x !== "number" ||
 							typeof y !== "number"
 						)
 							return;
+
 						const now = Date.now();
+
 						setCursors((prev) => [
 							...prev.filter((c) => c.peer !== p && now - c.at < CURSOR_TTL),
 							{ peer: p, x, y, at: now },
 						]);
 					} else if (msg.type === "leave") {
 						const p = msg.peer;
+
 						setCursors((prev) => prev.filter((c) => c.peer !== p));
 					}
 				} catch {}
@@ -191,6 +215,7 @@ export function useCrdt(docId: string, wsBase?: string) {
 
 			ws.onclose = () => {
 				if (!mountedRef.current || wsRef.current !== ws) return;
+
 				setStatus("offline");
 				setPeers(null);
 				setCursors([]);
@@ -203,7 +228,9 @@ export function useCrdt(docId: string, wsBase?: string) {
 
 		return () => {
 			mountedRef.current = false;
+
 			if (timerRef.current) clearTimeout(timerRef.current);
+
 			wsRef.current?.close();
 			docRef.current?.free();
 			docRef.current = null;
@@ -213,19 +240,26 @@ export function useCrdt(docId: string, wsBase?: string) {
 	useEffect(() => {
 		const id = setInterval(() => {
 			const now = Date.now();
+
 			setCursors((prev) => {
 				const next = prev.filter((c) => now - c.at < CURSOR_TTL);
+
 				return next.length === prev.length ? prev : next;
 			});
 		}, 2_000);
+
 		return () => clearInterval(id);
 	}, []);
 
 	const sendCursor = useCallback((x: number, y: number) => {
 		const ws = wsRef.current;
+
 		if (ws?.readyState !== WebSocket.OPEN) return;
+
 		const now = performance.now();
+
 		if (now - lastCursorSentRef.current < 50) return;
+
 		lastCursorSentRef.current = now;
 		ws.send(JSON.stringify({ type: "cursor", x, y }));
 	}, []);
@@ -233,8 +267,11 @@ export function useCrdt(docId: string, wsBase?: string) {
 	const insert = useCallback(
 		(pos: number, char: string) => {
 			const doc = docRef.current;
+
 			if (!doc) return;
+
 			const opJson = doc.insert(pos, char);
+
 			enqueueOrSend(JSON.stringify({ type: "op", op: JSON.parse(opJson) }));
 			setTotalOps((n) => n + 1);
 			pushLog("local", `insert '${char}' @${pos}`);
@@ -246,9 +283,13 @@ export function useCrdt(docId: string, wsBase?: string) {
 	const del = useCallback(
 		(pos: number) => {
 			const doc = docRef.current;
+
 			if (!doc) return;
+
 			const opJson = doc.delete(pos);
+
 			if (!opJson) return;
+
 			enqueueOrSend(JSON.stringify({ type: "op", op: JSON.parse(opJson) }));
 			setTotalOps((n) => n + 1);
 			pushLog("local", `delete @${pos}`);

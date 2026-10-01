@@ -39,24 +39,29 @@ export function gridLayout(
 		...grid.hubs.map((h) => ({ ...h, kind: "site" as const })),
 		...grid.substations.map((s) => ({ ...s, kind: "city" as const })),
 	];
+
 	const compact = width < NARROW;
 	const room = compact ? LABEL_ROOM.compact : LABEL_ROOM.full;
+
 	const pad = {
 		top: inset.top + 10,
 		bottom: inset.bottom + room,
 		left: inset.left + 56,
 		right: inset.right + 56,
 	};
+
 	const lat0 = places.reduce((a, p) => a + p.lat, 0) / places.length;
 	const squeeze = Math.cos((lat0 * Math.PI) / 180);
 	const xs = places.map((p) => p.lon * squeeze);
 	const ys = places.map((p) => -p.lat);
+
 	const [x0, x1, y0, y1] = [
 		Math.min(...xs),
 		Math.max(...xs),
 		Math.min(...ys),
 		Math.max(...ys),
 	];
+
 	const innerW = width - pad.left - pad.right;
 	const innerH = height - pad.top - pad.bottom;
 	const fit = innerW / (x1 - x0);
@@ -64,24 +69,30 @@ export function gridLayout(
 	const wide = Math.min(fit, scale * STRETCH);
 	const cx = (x0 + x1) / 2;
 	const cy = (y0 + y1) / 2;
+
 	const project = (lon: number, lat: number): Point => ({
 		x: pad.left + innerW / 2 + (lon * squeeze - cx) * wide,
 		y: pad.top + innerH / 2 + (-lat - cy) * scale,
 	});
+
 	const nodes: MapNode[] = places.map((p) => ({
 		id: p.id,
 		kind: p.kind,
 		title: p.name,
 		...project(p.lon, p.lat),
 	}));
+
 	spread(nodes, SPREAD);
+
 	for (const n of nodes) {
 		n.x = Math.min(width - EDGE, Math.max(EDGE, n.x));
+
 		n.y = Math.min(
 			height - inset.bottom - EDGE,
 			Math.max(inset.top + EDGE, n.y),
 		);
 	}
+
 	return { nodes, project, compact };
 }
 
@@ -92,6 +103,7 @@ const polyline = (
 	points
 		.map(([lon, lat], i) => {
 			const { x, y } = project(lon, lat);
+
 			return `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`;
 		})
 		.join("");
@@ -120,11 +132,14 @@ export function gridTracks(
 	nodes: MapNode[],
 ): Map<string, Track> {
 	const at = new Map(nodes.map((n) => [n.id, n]));
+
 	const requests = [...grid.lines, ...grid.candidates].flatMap((line) => {
 		const a = at.get(line.a);
 		const b = at.get(line.b);
+
 		return a && b ? [{ key: line.id, a, b }] : [];
 	});
+
 	return planTracks(requests, nodes);
 }
 
@@ -133,13 +148,16 @@ export function labelBox(label: Label, detail: string): Box {
 		label.title.length * CHAR_WIDTH,
 		label.detail ? detail.length * DETAIL_WIDTH : 0,
 	);
+
 	const h = (label.detail ? 2 : 1) * LINE_HEIGHT;
+
 	const x0 =
 		label.anchor === "middle"
 			? label.lx - w / 2
 			: label.anchor === "start"
 				? label.lx
 				: label.lx - w;
+
 	return { x0, y0: label.ly - 11, x1: x0 + w, y1: label.ly - 11 + h };
 }
 
@@ -174,6 +192,7 @@ function spots(track: Track): Point[] {
 			([a, b], [c, d]) =>
 				Math.hypot(d.x - c.x, d.y - c.y) - Math.hypot(b.x - a.x, b.y - a.y),
 		);
+
 	return legs.flatMap(([a, b]) =>
 		FRACTIONS.map((f) => ({
 			x: a.x + (b.x - a.x) * f,
@@ -188,17 +207,22 @@ export function placeTags(
 ): Map<string, Point> {
 	const placed = new Map<string, Point>();
 	const busy = [...taken];
+
 	const longestFirst = [...requests].sort(
 		(a, b) => b.track.length - a.track.length,
 	);
+
 	for (const r of longestFirst) {
 		const spot = spots(r.track).find(
 			(p) => !busy.some((b) => overlaps(b, around(p, r.width, r.height))),
 		);
+
 		if (!spot) continue;
+
 		busy.push(around(spot, r.width, r.height));
 		placed.set(r.id, spot);
 	}
+
 	return placed;
 }
 
@@ -221,10 +245,12 @@ export function trackBoxes(tracks: Track[]): Box[] {
 	return tracks.flatMap((t) =>
 		t.points.slice(1).flatMap((b, i) => {
 			const a = t.points[i];
+
 			const steps = Math.max(
 				1,
 				Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / TRACK_STEP),
 			);
+
 			return Array.from({ length: steps + 1 }, (_, k) =>
 				around(
 					{

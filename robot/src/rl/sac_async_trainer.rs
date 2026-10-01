@@ -61,6 +61,7 @@ impl SacAsyncTrainer {
         ));
 
         let mut progress = TrainingProgress::default();
+
         if let Ok(a) = agent.lock() {
             buffer_len.store(a.replay_buffer.len(), Ordering::Relaxed);
             progress = a.progress.clone();
@@ -146,9 +147,13 @@ impl SacAsyncTrainer {
     pub fn get_inference_action(&self, obs: &[f32]) -> Vec<f32> {
         let mut agent = self.agent.lock().unwrap();
         let training = agent.is_training;
+
         agent.is_training = false;
+
         let result = agent.get_action(obs);
+
         agent.is_training = training;
+
         result.unwrap_or_else(|_| vec![0.0; super::config::ACT_DIM])
     }
 
@@ -174,11 +179,14 @@ impl SacAsyncTrainer {
         self.episodes.fetch_add(1, Ordering::Relaxed);
         self.curriculum_stage
             .store(curriculum_stage, Ordering::Relaxed);
+
         let mut recent = self
             .recent_rewards
             .lock()
             .unwrap_or_else(|e| e.into_inner());
+
         recent.push_back(reward);
+
         if recent.len() > 100 {
             recent.pop_front();
         }
@@ -189,6 +197,7 @@ impl SacAsyncTrainer {
             .recent_rewards
             .lock()
             .unwrap_or_else(|e| e.into_inner());
+
         TrainStats {
             buffer_len: self.buffer_len.load(Ordering::Relaxed),
             train_steps_done: self.train_steps.load(Ordering::Relaxed),
@@ -209,21 +218,28 @@ fn training_worker(
     budget: Option<TrainingBudget>,
 ) {
     println!("[SAC Training Worker] Started");
+
     let mut last_checkpoint_step = train_steps.load(Ordering::Relaxed);
     let mut training_attempted = false;
+
     const CHECKPOINT_INTERVAL: usize = 5000;
+
     const MAX_PENDING_UPDATES: usize = 512;
+
     const DRAIN_LIMIT: usize = 64;
+
     let mut pending_updates: usize = 0;
 
     loop {
         let mut incoming = Vec::new();
+
         if pending_updates == 0 {
             match transition_rx.recv() {
                 Ok(t) => incoming.push(t),
                 Err(_) => return,
             }
         }
+
         // Apply backpressure instead of dropping updates when training falls behind.
         while incoming.len() < DRAIN_LIMIT.min(MAX_PENDING_UPDATES - pending_updates) {
             match transition_rx.try_recv() {
@@ -235,16 +251,21 @@ fn training_worker(
 
         let buffer_len = {
             let Ok(mut agent) = agent.lock() else { return };
+
             pending_updates += incoming.len();
+
             for t in incoming {
                 agent.replay_buffer.push(t);
             }
+
             agent.replay_buffer.len()
         };
+
         buffer_len_counter.store(buffer_len, Ordering::Relaxed);
 
         if buffer_len < MIN_REPLAY_SIZE {
             pending_updates = 0;
+
             continue;
         }
 
@@ -253,15 +274,19 @@ fn training_worker(
                 "[SAC] Buffer ready ({} >= {}), starting training...",
                 buffer_len, MIN_REPLAY_SIZE
             );
+
             training_attempted = true;
         }
 
         let work_started = Instant::now();
+
         {
             let Ok(mut agent) = agent.lock() else { return };
+
             match agent.train_step() {
                 Ok(()) => {
                     pending_updates -= 1;
+
                     let steps = train_steps.fetch_add(1, Ordering::Relaxed) + 1;
 
                     if steps.is_multiple_of(1000) {
@@ -275,6 +300,7 @@ fn training_worker(
 
                     if steps >= last_checkpoint_step + CHECKPOINT_INTERVAL {
                         last_checkpoint_step = steps;
+
                         if let Err(e) = agent.save_checkpoint(SAC_CHECKPOINT_DIR) {
                             eprintln!("[SAC] Auto-checkpoint failed: {}", e);
                         }
@@ -286,6 +312,7 @@ fn training_worker(
                 }
             }
         }
+
         if let Some(budget) = budget {
             thread::sleep(budget.rest_after(work_started.elapsed()));
         }

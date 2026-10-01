@@ -17,13 +17,17 @@ const round = (v: number) => Math.round(v * 100) / 100;
 
 function status(m: ReturnType<typeof measure>) {
 	if (!m.lookups || m.k === null) return { k: "—", note: "Tap a red word" };
+
 	const k = m.k.toFixed(2);
+
 	if (!m.pending)
 		return {
 			k,
 			note: `Done in ${m.lookups} ${m.lookups === 1 ? "lookup" : "lookups"}`,
 		};
+
 	if (m.k >= 1) return { k, note: "Supercritical" };
+
 	return {
 		k,
 		note: `Subcritical, about ${Math.round(m.expected ?? 0)} in all`,
@@ -40,15 +44,20 @@ export function Reaction() {
 
 	useEffect(() => {
 		if (!auto) return;
+
 		const next = state.order.find((id) => !state.opened.includes(id));
+
 		if (!next) {
 			setAuto(false);
+
 			return;
 		}
+
 		const timer = window.setTimeout(() => {
 			setState((r) => open(r, next));
 			setFocus(next);
 		}, 110);
+
 		return () => window.clearTimeout(timer);
 	}, [auto, state]);
 
@@ -85,17 +94,23 @@ export function Reaction() {
 
 	const term = focus ? glossary[focus] : null;
 	const nodes = state.order.map((id) => state.nodes[id]);
+
 	const angle = (id: string) => {
 		const n = state.nodes[id];
+
 		return (n.from + n.to) / 2;
 	};
+
 	const place = (id: string | null, extra = 0): [number, number] => {
 		if (!id) return [0, 0];
+
 		const n = state.nodes[id];
 		const a = angle(id);
 		const r = radii[Math.min(n.depth, radii.length - 1)] + extra;
+
 		return [round(Math.cos(a) * r), round(Math.sin(a) * r)];
 	};
+
 	const hot = m.k !== null && m.k >= 1 && m.pending > 0;
 	const [fx, fy] = place(focus);
 
@@ -137,6 +152,7 @@ export function Reaction() {
 				{nodes.map((n) => {
 					const [x, y] = place(n.id);
 					const [px, py] = place(n.parent);
+
 					return (
 						<line
 							key={`l-${n.id}`}
@@ -152,6 +168,7 @@ export function Reaction() {
 				{nodes.map((n) => {
 					const [x, y] = place(n.id);
 					const done = state.opened.includes(n.id);
+
 					return (
 						<circle
 							key={n.id}
@@ -165,6 +182,7 @@ export function Reaction() {
 				{state.seed.map((id) => {
 					const [x, y] = place(id, 16);
 					const c = Math.cos(angle(id));
+
 					return (
 						<text
 							key={`t-${id}`}

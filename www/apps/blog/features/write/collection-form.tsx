@@ -38,10 +38,12 @@ export function CollectionFormFields({
 
 	const handleTagsChange = (value: string) => {
 		setTagsInput(value);
+
 		const tags = value
 			.split(",")
 			.map((tag) => tag.trim())
 			.filter(Boolean);
+
 		setFormData((prev) => ({ ...prev, tags }));
 	};
 
@@ -138,6 +140,7 @@ export function CollectionFormFields({
 				onChange={(value) => {
 					try {
 						const parsed = JSON.parse(value || "{}");
+
 						setFormData((prev) => ({ ...prev, metadata: parsed }));
 					} catch {
 						console.warn("Invalid JSON in metadata");

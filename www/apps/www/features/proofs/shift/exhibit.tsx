@@ -30,6 +30,7 @@ function firstLine(summary: string): string {
 	]
 		.map((marker) => summary.indexOf(marker))
 		.filter((at) => at !== -1);
+
 	return cuts.length ? summary.slice(0, Math.min(...cuts)) : summary;
 }
 
@@ -42,39 +43,54 @@ interface Turing {
 
 function turing(step: Step): Turing | null {
 	const data = step.outcome?.data as { turing?: Turing } | null;
+
 	return data?.turing ?? null;
 }
 
 export function provenance(step: Step): string | null {
 	const data = step.outcome?.data as Data | null;
+
 	if (!step.outcome?.ok || !data) return null;
+
 	const ms = num(data.millis);
+
 	if (ms === null) return null;
+
 	const took = `${count(ms)} ms`;
+
 	if (step.tool === "formalize" || step.tool === "reduce") {
 		const axioms = Array.isArray(data.axioms)
 			? (data.axioms as string[]).join(", ")
 			: "";
+
 		return `Lean checked it in ${took}${axioms ? ` · axioms ${axioms}` : ""}`;
 	}
+
 	const evaluations = num(data.evaluations);
+
 	if (step.tool === "line" && evaluations !== null)
 		return `${count(evaluations)} evaluations of Z(t) in ${took}`;
+
 	if (step.tool === "contour" && evaluations !== null)
 		return `${count(evaluations)} evaluations of ζ(s) in ${took}`;
+
 	return `Computed in Rust in ${took}`;
 }
 
 function Figure({ step }: { step: Step }) {
 	const data = (step.outcome?.data ?? {}) as Data;
+
 	switch (step.tool) {
 		case "line": {
 			const from = num(data.from);
 			const to = num(data.to);
+
 			if (from === null || to === null) return null;
+
 			const pair = Array.isArray(data.closestPair)
 				? (data.closestPair as [number, number])
 				: null;
+
 			return (
 				<Ticks
 					from={from}
@@ -87,7 +103,9 @@ function Figure({ step }: { step: Step }) {
 		}
 		case "contour": {
 			const sigma = numbers(data.sigma);
+
 			if (sigma.length !== 2) return null;
+
 			return (
 				<Rectangle
 					sigma={[sigma[0], sigma[1]]}
@@ -117,10 +135,12 @@ function Figure({ step }: { step: Step }) {
 			const samples = Array.isArray(data.samples)
 				? (data.samples as [number, number][])
 				: [];
+
 			return <Wander samples={samples} label="M(n)/√n as n grows" />;
 		}
 		case "robin": {
 			const ratio = num(data.ratio);
+
 			return ratio === null ? null : (
 				<Ratio ratio={ratio} label="σ(n) against Robin’s bound" />
 			);
@@ -164,7 +184,9 @@ const LEGENDS: Record<string, [string, string][]> = {
 
 export function SearchTree({ steps }: { steps: SearchStep[] }) {
 	const [root, ...moves] = steps;
+
 	if (!root) return null;
+
 	return (
 		<div className="ns-search">
 			<pre className="ns-search-goal">{root.goal}</pre>
@@ -196,6 +218,7 @@ function words(step: Step): React.ReactNode {
 	const args = step.args;
 	const text = (key: string) =>
 		typeof args[key] === "string" ? (args[key] as string) : "";
+
 	switch (step.tool) {
 		case "plan":
 			return (
@@ -244,6 +267,7 @@ function words(step: Step): React.ReactNode {
 		case "revise": {
 			const change = text("change");
 			const rule = args.rule;
+
 			return (
 				<dl className="ns-card">
 					<dt>
@@ -266,6 +290,7 @@ function words(step: Step): React.ReactNode {
 		}
 		case "reduce": {
 			if (step.status === "refused") return null;
+
 			return (
 				<dl className="ns-card">
 					<dt>{text("target")} follows from</dt>
@@ -296,10 +321,12 @@ export function Exhibit({
 			</div>
 		);
 	}
+
 	const running = step.status === "running";
 	const legend = LEGENDS[step.tool];
 	const certificate = turing(step);
 	const source = provenance(step);
+
 	return (
 		<div className="ns-exhibit" data-status={step.status}>
 			<p className="ns-exhibit-head">

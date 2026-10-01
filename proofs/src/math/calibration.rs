@@ -34,25 +34,31 @@ fn check(name: &'static str, expected: String, measured: String, passed: bool) -
 
 pub fn run() -> Vec<Check> {
     let first = line::scan(10.0, 34.0);
+
     let worst = first
         .zeros
         .iter()
         .zip(ODLYZKO)
         .map(|(got, want)| (got - want).abs())
         .fold(0.0, f64::max);
+
     let thousand = line::scan(10.0, 1000.0);
     let counted = thousand.zeros.iter().filter(|&&z| z <= 1000.0).count();
+
     let turing = thousand.certified.as_ref().is_some_and(|c| {
         thousand.zeros.iter().filter(|&&z| z <= c.height).count() as i64 == c.gram + 1
     });
+
     let siegel = (0..200)
         .map(|i| 400.0 + 13.37 * i as f64)
         .map(|t| (hardy_fast(t) - hardy_exact(t)).abs() / fast_error_bound(t))
         .fold(0.0, f64::max);
+
     let two = zeta(Complex64::new(2.0, 0.0));
     let basel = (two.re - PI * PI / 6.0).abs();
     let moebius = mertens::mertens(1_000_000).value;
     let robin = robin::robin_integer(5040).ratio;
+
     vec![
         check(
             "First five zeros against Odlyzko's table",
@@ -100,7 +106,9 @@ mod tests {
     #[test]
     fn every_calibration_passes() {
         let checks = run();
+
         assert_eq!(checks.len(), 6);
+
         for check in checks {
             assert!(check.passed, "{check:?}");
         }

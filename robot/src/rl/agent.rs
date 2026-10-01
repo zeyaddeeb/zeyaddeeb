@@ -16,6 +16,7 @@ const TARGET_CRITIC_CHECKPOINT: &str = "target_critic.safetensors";
 fn copy_varmap(src: &VarMap, dst: &VarMap) {
     let src_data = src.data().lock().unwrap();
     let mut dst_data = dst.data().lock().unwrap();
+
     for (name, src_var) in src_data.iter() {
         if let Some(dst_var) = dst_data.get_mut(name) {
             dst_var.set(&src_var.as_tensor().detach()).ok();
@@ -26,10 +27,12 @@ fn copy_varmap(src: &VarMap, dst: &VarMap) {
 fn soft_update_varmap(src: &VarMap, dst: &VarMap, tau: f64) {
     let src_data = src.data().lock().unwrap();
     let mut dst_data = dst.data().lock().unwrap();
+
     for (name, src_var) in src_data.iter() {
         if let Some(dst_var) = dst_data.get_mut(name) {
             let src_t = src_var.as_tensor();
             let dst_t = dst_var.as_tensor();
+
             if let Ok(blended) =
                 (tau * src_t).and_then(|a| ((1.0 - tau) * dst_t).and_then(|b| &a + &b))
             {
@@ -67,6 +70,7 @@ impl DDPGAgent {
 
     pub fn new_or_load(checkpoint_dir: &str) -> CResult<Self> {
         let checkpoint_path = Path::new(checkpoint_dir);
+
         if checkpoint_path.join(ACTOR_CHECKPOINT).exists() {
             Self::new_internal(Some(checkpoint_dir))
         } else {
@@ -95,6 +99,7 @@ impl DDPGAgent {
 
         if let Some(dir) = checkpoint_dir {
             let path = Path::new(dir);
+
             if path.join(ACTOR_CHECKPOINT).exists() {
                 println!("[DDPG] Loading checkpoint from {}", dir);
                 actor_varmap.load(path.join(ACTOR_CHECKPOINT))?;
@@ -148,10 +153,12 @@ impl DDPGAgent {
 
         if self.is_training {
             let noise = self.ou_noise.sample();
+
             for (a, n) in action_vec.iter_mut().zip(noise.iter()) {
                 *a = (*a + n).clamp(-1.0, 1.0);
             }
         }
+
         Ok(action_vec)
     }
 
@@ -170,6 +177,7 @@ impl DDPGAgent {
             .iter()
             .flat_map(|t| t.action.iter().copied())
             .collect();
+
         let actions = Tensor::from_vec(actions, (BATCH_SIZE, ACT_DIM), &dev)?;
 
         let rewards: Vec<f32> = batch.iter().map(|t| t.reward).collect();
@@ -179,12 +187,14 @@ impl DDPGAgent {
             .iter()
             .flat_map(|t| t.next_state.iter().copied())
             .collect();
+
         let next_states = Tensor::from_vec(next_states, (BATCH_SIZE, OBS_DIM), &dev)?;
 
         let dones: Vec<f32> = batch
             .iter()
             .map(|t| if t.done { 0.0 } else { 1.0 })
             .collect();
+
         let dones = Tensor::from_vec(dones, (BATCH_SIZE, 1), &dev)?;
 
         let target_actions = self.target_actor.forward(&next_states)?.detach();
@@ -195,11 +205,13 @@ impl DDPGAgent {
         let critic_input = Tensor::cat(&[&states, &actions], 1)?;
         let q = self.critic.forward(&critic_input)?;
         let critic_loss = (&y.detach() - &q)?.sqr()?.mean_all()?;
+
         self.critic_optim.backward_step(&critic_loss)?;
 
         let pred_actions = self.actor.forward(&states)?;
         let actor_input = Tensor::cat(&[&states.detach(), &pred_actions], 1)?;
         let actor_loss = self.critic.forward(&actor_input)?.mean_all()?.neg()?;
+
         self.actor_optim.backward_step(&actor_loss)?;
 
         soft_update_varmap(&self.actor_varmap, &self.target_actor_varmap, TAU);
@@ -210,6 +222,7 @@ impl DDPGAgent {
 
     pub fn save_checkpoint(&self, checkpoint_dir: &str) -> CResult<()> {
         let path = Path::new(checkpoint_dir);
+
         std::fs::create_dir_all(path).map_err(candle_core::Error::Io)?;
 
         self.actor_varmap.save(path.join(ACTOR_CHECKPOINT))?;

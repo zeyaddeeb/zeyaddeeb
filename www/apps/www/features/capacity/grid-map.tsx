@@ -65,9 +65,13 @@ function wireState(
 ): WireState | null {
 	const solved = board.solved;
 	const candidate = level.candidates.includes(line.id);
+
 	if (board.tripped.includes(line.id)) return "tripped";
+
 	if (candidate) return solved?.built.includes(line.id) ? "built" : "offer";
+
 	if (solved?.opened.includes(line.id)) return "open";
+
 	return "live";
 }
 
@@ -81,9 +85,13 @@ function describeLine(
 	limit: number,
 ): string {
 	if (state === "offer") return `${name}, new line on offer, ${line.km} km`;
+
 	if (state === "open") return `${name}, breaker open`;
+
 	if (state === "tripped") return `${name}, tripped`;
+
 	const full = Math.abs(flow) >= limit * FULL ? ", at its limit" : "";
+
 	return `${name}, ${Math.round(Math.abs(flow))} of ${limit} MW${full}`;
 }
 
@@ -102,14 +110,17 @@ export function GridMap({
 }: GridMapProps) {
 	const { ref, width, height } = useSize();
 	const inset = tabbed ? { ...INSET, top: TABBED_TOP } : INSET;
+
 	const { nodes, project, compact } = useMemo(
 		() => gridLayout(grid, width, height, inset),
 		[grid, width, height, inset.top],
 	);
+
 	const base = useMemo(() => basemap(project), [project]);
 
 	const tracks = useMemo(() => gridTracks(grid, nodes), [grid, nodes]);
 	const at = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+
 	const names = useMemo(
 		() =>
 			new Map([
@@ -125,10 +136,12 @@ export function GridMap({
 	const where = solverPlaced ? solved.placement : placement;
 	const campusesAt = (sub: string) =>
 		level.campuses.filter((c) => where[c.id] === sub);
+
 	const lines = [
 		...grid.lines,
 		...grid.candidates.filter((c) => level.candidates.includes(c.id)),
 	];
+
 	const lineName = (l: GridLine) =>
 		`${names.get(l.a) ?? l.a}–${names.get(l.b) ?? l.b}`;
 
@@ -152,10 +165,14 @@ export function GridMap({
 		)
 			? -1
 			: 1;
+
 	const tagBoxes = nodes.flatMap((n) => {
 		const count = campusesAt(n.id).length + (board.generators?.[n.id] ? 1 : 0);
+
 		if (!count) return [];
+
 		const left = tagSide(n) > 0 ? n.x + SUB + 4 : n.x - SUB - 12 - TAG_W;
+
 		return [
 			{
 				x0: left,
@@ -165,48 +182,67 @@ export function GridMap({
 			},
 		];
 	});
+
 	const placed = labels(nodes, false, width, height, inset, tagBoxes);
+
 	const detailOf = (id: string) => {
 		const h = hub(id);
 		const unit = compact ? "" : " MW";
+
 		if (h)
 			return `${Math.round(solved?.supply[id] ?? 0)}/${capacityOf(id)}${unit} · $${h.price}`;
+
 		const price = board.prices?.[id];
+
 		if (price !== undefined) return `${perMwh(price)}/MWh`;
+
 		return `${Math.round(served(id))}/${need(id)}${unit} · ${compact ? "" : "land "}$${sub(id)?.land}`;
 	};
+
 	const labelBoxes = placed.map((l) => labelBox(l, detailOf(l.id)));
 	const taken = [...labelBoxes, ...nodeBoxes(nodes), ...tagBoxes];
+
 	const tagOf = (line: GridLine) => {
 		const state = wireState(line, level, board);
 		const chip = board.candidates?.[line.id];
+
 		if (chip !== undefined)
 			return {
 				kind: "chip" as const,
 				text: `${chip > 0 ? "+" : "−"}${money(Math.abs(chip))}`,
 				bad: chip > 0,
 			};
+
 		if (state === "open" || state === "tripped")
 			return { kind: "breaker" as const, text: "", bad: state === "tripped" };
+
 		if (state !== "live" && state !== "built") return null;
+
 		const flow = Math.abs(solved?.flows[line.id] ?? 0);
+
 		return {
 			kind: "amount" as const,
 			text: `${Math.round(flow)}/${limitOf(line)}`,
 			bad: flow >= limitOf(line) * FULL,
 		};
 	};
+
 	const tags = lines.flatMap((line) => {
 		const track = tracks.get(line.id);
 		const tag = tagOf(line);
+
 		if (!track || !tag || track.length < LABELLED_TRACK) return [];
+
 		const [w, h] =
 			tag.kind === "breaker"
 				? [BREAKER, BREAKER]
 				: [tag.text.length * TAG_CHAR + 6, 14];
+
 		return [{ id: line.id, track, width: w, height: h, tag }];
 	});
+
 	const spots = placeTags(tags, taken);
+
 	const places = clearPlaces(
 		base.places.filter(
 			(p) => p.y > inset.top + 8 && !nodes.some((n) => n.title === p.name),
@@ -215,10 +251,12 @@ export function GridMap({
 	);
 
 	const keyNode = callout ? at.get(callout.target) : undefined;
+
 	const keyTrack: Track | null = callout
 		? (tracks.get(callout.target) ??
 			(keyNode ? { d: "", mid: keyNode, length: 0, points: [keyNode] } : null))
 		: null;
+
 	const calloutAt =
 		callout && keyTrack
 			? placeCallout(
@@ -252,10 +290,13 @@ export function GridMap({
 				{lines.map((line) => {
 					const t = tracks.get(line.id);
 					const state = wireState(line, level, board);
+
 					if (!t || !state) return null;
+
 					const flow = solved?.flows[line.id] ?? 0;
 					const carrying = state === "live" || state === "built";
 					const full = carrying && Math.abs(flow) >= limitOf(line) * FULL;
+
 					return (
 						<g
 							key={line.id}
@@ -284,7 +325,9 @@ export function GridMap({
 
 				{tags.map(({ id, tag }) => {
 					const at = spots.get(id);
+
 					if (!at) return null;
+
 					if (tag.kind === "breaker")
 						return (
 							<g
@@ -297,6 +340,7 @@ export function GridMap({
 								<path d="M-4 4L4 -4" />
 							</g>
 						);
+
 					return (
 						<text
 							key={`tag-${id}`}
@@ -317,10 +361,12 @@ export function GridMap({
 
 				{nodes.map((n) => {
 					const transform = `translate(${n.x} ${n.y})`;
+
 					if (n.kind === "site") {
 						const cap = capacityOf(n.id);
 						const fill = Math.min(1, (solved?.supply[n.id] ?? 0) / cap);
 						const inner = HUB - 8;
+
 						return (
 							<g key={n.id} className="cc-node cc-site" transform={transform}>
 								<rect
@@ -340,12 +386,15 @@ export function GridMap({
 							</g>
 						);
 					}
+
 					const share = need(n.id) > 0 ? served(n.id) / need(n.id) : 1;
 					const here = campusesAt(n.id);
+
 					const keyed =
 						(callout && keyNode?.id === n.id && !keyTrack?.d) ||
 						rings.includes(n.id) ||
 						undefined;
+
 					return (
 						<g
 							key={n.id}
@@ -387,6 +436,7 @@ export function GridMap({
 
 				{placed.map((n) => {
 					const detail = detailOf(n.id);
+
 					return (
 						<text
 							key={`label-${n.id}`}
@@ -439,7 +489,9 @@ export function GridMap({
 					? lines.map((line) => {
 							const t = tracks.get(line.id);
 							const state = wireState(line, level, board);
+
 							if (!t || !state) return null;
+
 							return (
 								<li
 									key={line.id}

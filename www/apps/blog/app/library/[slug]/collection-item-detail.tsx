@@ -140,9 +140,11 @@ export function CollectionItemDetail({ item }: CollectionItemDetailProps) {
 							<div className="grid gap-4 md:grid-cols-2">
 								{Object.entries(metadata).map(([key, value]) => {
 									if (!value) return null;
+
 									const label = key
 										.replace(/([A-Z])/g, " $1")
 										.replace(/^./, (str) => str.toUpperCase());
+
 									return (
 										<div key={key} className="rounded-none bg-white p-4">
 											<dt className="mb-1 text-xs uppercase tracking-wider text-dim">

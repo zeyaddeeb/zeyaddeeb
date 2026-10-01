@@ -49,6 +49,7 @@ const context = (solved: Solved) => ({
 describe("the finale", () => {
 	it("says the solver left customers short on purpose", () => {
 		const solved = result({ dropped: { london: 5 }, buildAllCost: 9350 });
+
 		expect(finale?.aha(context(solved))).toBe(
 			"It left london 5 MW short on purpose: the last block would cost $9,350 an hour more than the customers it wins back.",
 		);

@@ -25,17 +25,20 @@ function hermite(
 	const m1 = auPerDay(rates[i + 1]) * h;
 	const t2 = t * t;
 	const t3 = t2 * t;
+
 	const value =
 		(2 * t3 - 3 * t2 + 1) * p0 +
 		(t3 - 2 * t2 + t) * m0 +
 		(-2 * t3 + 3 * t2) * p1 +
 		(t3 - t2) * m1;
+
 	const slope =
 		((6 * t2 - 6 * t) * p0 +
 			(3 * t2 - 4 * t + 1) * m0 +
 			(-6 * t2 + 6 * t) * p1 +
 			(3 * t2 - 2 * t) * m1) /
 		h;
+
 	return [value, (slope * AU_KM) / DAY_S];
 }
 
@@ -51,6 +54,7 @@ export function fix(ms: number): Fix {
 	const [delta, deldot] = hermite(weekly.delta, weekly.deldot, ms);
 	const [r, rdot] = hermite(weekly.r, weekly.rdot, ms);
 	const km = delta * AU_KM;
+
 	return {
 		km,
 		kmPerS: deldot,
@@ -63,45 +67,59 @@ export function fix(ms: number): Fix {
 export function lightDay(): number {
 	const target = DAY_S * C_KM_S;
 	const n = weekly.delta.length;
+
 	for (let i = 0; i < n - 1; i++) {
 		const a = start + i * stepMs;
+
 		if (fix(a).km <= target && fix(a + stepMs).km > target) {
 			let lo = a;
 			let hi = a + stepMs;
+
 			for (let k = 0; k < 40; k++) {
 				const mid = (lo + hi) / 2;
+
 				if (fix(mid).km < target) lo = mid;
 				else hi = mid;
 			}
+
 			return Math.round(hi);
 		}
 	}
+
 	return Number.NaN;
 }
 
 export function sunAt(year: number): number {
 	const ms =
 		Date.UTC(Math.floor(year), 0, 1) + (year % 1) * 365.25 * DAY_S * 1000;
+
 	const points = yearly.map((y) => ({
 		t: Date.parse(`${y.date}T00:00:00Z`),
 		r: y.r,
 	}));
+
 	if (ms <= LAUNCH) return 1;
+
 	if (ms < points[0].t) {
 		const f = (ms - LAUNCH) / (points[0].t - LAUNCH);
+
 		return 1 + (points[0].r - 1) * f;
 	}
+
 	for (let i = 0; i < points.length - 1; i++) {
 		if (ms <= points[i + 1].t) {
 			const f = (ms - points[i].t) / (points[i + 1].t - points[i].t);
+
 			return points[i].r + (points[i + 1].r - points[i].r) * f;
 		}
 	}
+
 	return points[points.length - 1].r;
 }
 
 export function duration(seconds: number) {
 	const s = Math.max(0, Math.floor(seconds));
+
 	return {
 		h: Math.floor(s / 3600),
 		m: Math.floor((s % 3600) / 60),

@@ -214,12 +214,15 @@ export const experiments: Experiment[] = [
 
 export function getExperiment(id: string): Experiment {
 	const found = experiments.find((e) => e.id === id);
+
 	if (!found) throw new Error(`Unknown experiment: ${id}`);
+
 	return found;
 }
 
 export function experimentMetadata(id: string, description: string) {
 	const { href, title } = getExperiment(id);
+
 	return pageMetadata({
 		path: href,
 		section: "Experiments",
@@ -234,8 +237,11 @@ export function neighbors(id: string) {
 	const local = experiments
 		.filter((e) => !e.external)
 		.sort((a, b) => a.number - b.number);
+
 	const li = local.findIndex((e) => e.id === id);
+
 	if (li < 0) return null;
+
 	return {
 		prev: local[(li - 1 + local.length) % local.length],
 		next: local[(li + 1) % local.length],

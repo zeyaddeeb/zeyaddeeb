@@ -18,6 +18,7 @@ export function paginatedResult<T>(
 	pageSize: number,
 ): PaginatedResult<T> {
 	const totalPages = Math.ceil(total / pageSize);
+
 	return {
 		items,
 		total,

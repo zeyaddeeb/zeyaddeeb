@@ -9,14 +9,17 @@ fn should_reset(training: Option<Res<robot::TrainingState>>) -> bool {
 fn main() {
     if std::env::var("HEADLESS").is_ok() {
         println!("=== Basketball Robot Training (headless) ===");
+
         robot::run_headless(
             std::sync::Arc::new(::robot::rl::SacAsyncTrainer::new()),
             None,
         );
+
         return;
     }
 
     println!("=== Basketball Robot Training ===");
+
     App::new()
         .add_plugins((DefaultPlugins, PhysicsPlugins::default()))
         .add_plugins(robot::BallGripPlugin)

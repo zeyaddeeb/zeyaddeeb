@@ -41,10 +41,12 @@ export function TilingView({
 	const clockRef = useRef({ theta: phaseSeed * 1.31, phase: phaseSeed * 2.17 });
 	const dirtyRef = useRef(true);
 	const dprRef = useRef(1);
+
 	useCanvasWheel(
 		canvasRef,
 		(delta) => {
 			const zoom = zoomRef.current;
+
 			zoom.target = clamp(zoom.target * Math.exp(-delta * 0.0015), 1, 6);
 			dirtyRef.current = true;
 		},
@@ -54,11 +56,14 @@ export function TilingView({
 	useEffect(() => {
 		const wrap = wrapRef.current;
 		const canvas = canvasRef.current;
+
 		if (!wrap || !canvas) return;
 
 		const resize = () => {
 			const size = Math.min(wrap.clientWidth, wrap.clientHeight);
+
 			if (size <= 0) return;
+
 			dprRef.current = fitCanvas(canvas, size, size);
 			canvas.style.width = `${size}px`;
 			canvas.style.height = `${size}px`;
@@ -66,8 +71,11 @@ export function TilingView({
 		};
 
 		resize();
+
 		const ro = new ResizeObserver(resize);
+
 		ro.observe(wrap);
+
 		return () => {
 			ro.disconnect();
 		};
@@ -80,34 +88,49 @@ export function TilingView({
 
 		const loop = (now: number) => {
 			raf = requestAnimationFrame(loop);
+
 			const dt = Math.min(0.1, (now - last) / 1000);
+
 			last = now;
 			frame++;
+
 			if (halfRate && frame % 2 !== 0) return;
+
 			if (!animate && !dirtyRef.current) return;
 
 			const canvas = canvasRef.current;
 			const { tiling, layout, colors, theme } = handlesRef.current;
+
 			if (!canvas || !tiling || canvas.width === 0) return;
+
 			if (canvas.clientWidth === 0) return;
+
 			const ctx = canvas.getContext("2d");
+
 			if (!ctx) return;
 
 			const clock = clockRef.current;
+
 			if (animate) {
 				clock.theta += dt * 0.012;
 				clock.phase += dt * 0.016;
 			}
+
 			const view = glide(clock);
+
 			const verts = tiling.transform_vertices(
 				view.ar,
 				view.ai,
 				view.br,
 				view.bi,
 			);
+
 			const zoom = zoomRef.current;
+
 			zoom.cur += (zoom.target - zoom.cur) * Math.min(1, dt * 6);
+
 			const dpr = dprRef.current;
+
 			drawTiling(
 				ctx,
 				canvas.width,
@@ -120,10 +143,12 @@ export function TilingView({
 				now / 1000 + phaseSeed * 1.7,
 				zoom.cur,
 			);
+
 			dirtyRef.current = Math.abs(zoom.target - zoom.cur) > 0.001;
 		};
 
 		raf = requestAnimationFrame(loop);
+
 		return () => cancelAnimationFrame(raf);
 	}, [handlesRef, animate, halfRate, rimGlow, phaseSeed]);
 

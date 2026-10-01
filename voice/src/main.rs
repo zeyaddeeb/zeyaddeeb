@@ -32,16 +32,20 @@ async fn main() -> anyhow::Result<()> {
 
     let state = AppState::new()?;
     let sweeper = state.clone();
+
     tokio::spawn(async move {
         let mut tick = tokio::time::interval(std::time::Duration::from_secs(30));
+
         loop {
             tick.tick().await;
+
             sweeper.sessions.retain(|_, session| {
                 session.connected_clients > 0
                     || session.created.elapsed() < std::time::Duration::from_secs(60)
             });
         }
     });
+
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods(Any)
@@ -57,9 +61,11 @@ async fn main() -> anyhow::Result<()> {
         .with_state(state);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3003));
+
     info!("diarization backend listening on {addr}");
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
+
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
@@ -79,6 +85,7 @@ async fn create_session(
     headers: HeaderMap,
 ) -> impl IntoResponse {
     let host = request_host(&headers).unwrap_or_else(|| addr.to_string());
+
     match state.create_session(&host) {
         Some(session) => Json(session).into_response(),
         None => (StatusCode::TOO_MANY_REQUESTS, "session capacity reached").into_response(),
@@ -96,6 +103,7 @@ async fn get_session(
     };
 
     let host = request_host(&headers).unwrap_or_else(|| addr.to_string());
+
     match state.session_info(session_id, &host) {
         Some(session) => Json(session).into_response(),
         None => (StatusCode::NOT_FOUND, "session not found").into_response(),
@@ -118,6 +126,7 @@ async fn ws_upgrade(
     }
 
     let host = request_host(&headers).unwrap_or_else(|| addr.to_string());
+
     ws.max_message_size(256 * 1024)
         .max_frame_size(256 * 1024)
         .on_upgrade(move |socket| async move {
@@ -126,9 +135,11 @@ async fn ws_upgrade(
                 ws::handle(socket, session_id, state.clone(), host),
             )
             .await;
+
             if matches!(handled, Ok(false)) {
                 return;
             }
+
             rtc::close_session(&state, session_id).await;
             state.sessions.remove(&session_id);
         })

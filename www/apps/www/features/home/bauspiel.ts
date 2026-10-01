@@ -119,11 +119,17 @@ export function size(piece: Piece, rot = 0) {
 
 export function fits(index: number, place: Place) {
 	const piece = pieceAt(index);
+
 	if (!piece) return false;
+
 	if (place.cell < 0 || place.cell >= COLS * ROWS) return false;
+
 	if (place.rot < 0 || place.rot > 3) return false;
+
 	if (!piece.turns && place.rot !== 0) return false;
+
 	const { w, h } = size(piece, place.rot);
+
 	return (
 		(place.cell % COLS) + w <= COLS && Math.floor(place.cell / COLS) + h <= ROWS
 	);
@@ -131,10 +137,13 @@ export function fits(index: number, place: Place) {
 
 export function snap(index: number, col: number, row: number, rot: number) {
 	const piece = pieceAt(index);
+
 	if (!piece) return null;
+
 	const { w, h } = size(piece, rot);
 	const c = Math.max(0, Math.min(COLS - w, Math.round(col)));
 	const r = Math.max(0, Math.min(ROWS - h, Math.round(row)));
+
 	return { cell: r * COLS + c, rot };
 }
 
@@ -147,21 +156,29 @@ export function encode(index: number, place: Place) {
 export function fold(log: string) {
 	let layout = initial.map((place) => ({ ...place }));
 	let order = kit.map((_, index) => index);
+
 	for (const char of log) {
 		const code = (char.codePointAt(0) ?? 0) - BASE;
+
 		if (code < 0 || code > RESET) continue;
+
 		if (code === RESET) {
 			layout = initial.map((place) => ({ ...place }));
 			order = kit.map((_, index) => index);
+
 			continue;
 		}
+
 		const index = Math.floor(code / STRIDE);
 		const rest = code % STRIDE;
 		const place = { cell: rest >> 2, rot: rest & 3 };
+
 		if (index >= kit.length || !fits(index, place)) continue;
+
 		layout[index] = place;
 		order = [...order.filter((item) => item !== index), index];
 	}
+
 	return { layout, order };
 }
 
@@ -175,17 +192,21 @@ export function isInitial(layout: Place[]) {
 export function boxOf(index: number, col: number, row: number, rot = 0) {
 	const piece = pieceAt(index);
 	const { w, h } = piece ? size(piece, rot) : { w: 1, h: 1 };
+
 	return { col, row, w, h };
 }
 
 export function turned(index: number, place: Place) {
 	const piece = pieceAt(index);
+
 	if (!piece?.turns) return null;
+
 	const rot = (place.rot + 1) % 4;
 	const from = size(piece, place.rot);
 	const to = size(piece, rot);
 	const col = (place.cell % COLS) + (from.w - to.w) / 2;
 	const row = Math.floor(place.cell / COLS) + (from.h - to.h) / 2;
+
 	return snap(index, col, row, rot);
 }
 
@@ -220,15 +241,20 @@ export function fromPort(x: number, y: number) {
 
 export function forms(index: number, box: Box, spin: number) {
 	const piece = pieceAt(index);
+
 	if (!piece) return null;
+
 	const skin = { c: piece.c, k: piece.k, r: piece.turns ? spin * 90 : 0 };
+
 	const body = {
 		col: box.col + (box.w - piece.w) / 2,
 		row: box.row + (box.h - piece.h) / 2,
 		w: piece.w,
 		h: piece.h,
 	};
+
 	const land: Form = { ...toLand(body), ...skin };
 	const port: Form = { ...toPort(body), ...skin };
+
 	return { land, port };
 }

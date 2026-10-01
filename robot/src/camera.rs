@@ -16,6 +16,7 @@ impl Default for OrbitCamera {
     fn default() -> Self {
         let focus = Vec3::new(0.0, 1.2, 0.0);
         let offset = Vec3::new(-3.0, 4.0, 8.0) - focus;
+
         Self {
             focus,
             radius: offset.length(),
@@ -32,12 +33,14 @@ impl OrbitCamera {
             self.pitch.sin(),
             self.yaw.sin() * self.pitch.cos(),
         ) * self.radius;
+
         Transform::from_translation(self.focus + offset).looking_at(self.focus, Vec3::Y)
     }
 }
 
 pub fn spawn_camera(mut commands: Commands) {
     let orbit = OrbitCamera::default();
+
     commands.spawn((Camera3d::default(), orbit.transform(), orbit));
 }
 
@@ -70,22 +73,29 @@ mod tests {
     #[test]
     fn first_orbit_update_preserves_the_side_view() {
         let mut app = App::new();
+
         app.init_resource::<ButtonInput<MouseButton>>()
             .init_resource::<AccumulatedMouseMotion>()
             .init_resource::<AccumulatedMouseScroll>()
             .add_systems(Startup, spawn_camera)
             .add_systems(Update, orbit_camera);
+
         app.update();
+
         let mut query = app.world_mut().query::<(&Transform, &OrbitCamera)>();
         let (transform, orbit) = query.single(app.world()).unwrap();
+
         assert!(transform
             .translation
             .abs_diff_eq(Vec3::new(-3.0, 4.0, 8.0), 1e-5));
+
         let screen_right = transform.rotation * Vec3::X;
+
         assert!(
             screen_right.dot(Vec3::X) > 0.9,
             "hoop must appear to the right"
         );
+
         assert!(orbit.radius > 8.0);
     }
 }

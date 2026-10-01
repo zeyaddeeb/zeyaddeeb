@@ -36,6 +36,7 @@ describe("mini-notation", () => {
 
 	it("advances nested alternation only when chosen", () => {
 		const firsts = [0, 1, 2, 3].map((bar) => at("<a <b c>>", bar)[0][0]);
+
 		expect(firsts).toEqual(["a", "b", "a", "c"]);
 	});
 
@@ -45,10 +46,12 @@ describe("mini-notation", () => {
 			["a", 0.25, 0.5],
 			["b", 0.5, 1],
 		]);
+
 		expect(at("a@3 b")).toEqual([
 			["a", 0, 0.75],
 			["b", 0.75, 1],
 		]);
+
 		expect(at("a _ _ b")).toEqual(at("a@3 b"));
 	});
 
@@ -73,11 +76,13 @@ describe("mini-notation", () => {
 
 	it("gives each event its source span", () => {
 		const [, second] = cycle(parse("c4 [eb4 g4]"), 0);
+
 		expect(second.span).toEqual([4, 7]);
 	});
 
 	it("reports where it broke", () => {
 		expect(() => parse("a [b c")).toThrow(PatternError);
+
 		try {
 			parse("a ] b");
 		} catch (error) {

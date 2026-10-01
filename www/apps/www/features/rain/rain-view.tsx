@@ -24,6 +24,7 @@ type RainColumn = {
 
 function seeded(index: number, salt: number) {
 	const value = Math.sin(index * salt) * 10000;
+
 	return value - Math.floor(value);
 }
 
@@ -45,10 +46,13 @@ function columnStyle(column: RainColumn): CSSProperties {
 function buildRawColumn(index: number) {
 	const length = 22 + Math.floor(seeded(index, 17.53) * 38);
 	let text = "";
+
 	for (let i = 0; i < length; i++) {
 		text += pickGlyph(seeded(index * 31 + i, 23.71));
+
 		if (i < length - 1) text += "\n";
 	}
+
 	return text;
 }
 
@@ -84,6 +88,7 @@ export function RainView({
 
 	useEffect(() => {
 		const frameEl = frameRef.current;
+
 		if (!frameEl) return;
 
 		let cancelled = false;
@@ -93,6 +98,7 @@ export function RainView({
 			const { layoutWithLines, prepareWithSegments } = await import(
 				"@chenglou/pretext"
 			);
+
 			if (cancelled || !frameEl) return;
 
 			preparedColumns = seeds.map((seed) =>
@@ -104,17 +110,21 @@ export function RainView({
 
 			const relayout = () => {
 				if (cancelled || !frameEl) return;
+
 				const height = frameEl.getBoundingClientRect().height;
 				const lineCount = Math.max(22, Math.ceil(height / LINE_HEIGHT) + 12);
+
 				setColumns(
 					seeds.map((seed, index) => {
 						const prepared = preparedColumns[index];
+
 						const stream = prepared
 							? layoutWithLines(prepared, 24, LINE_HEIGHT)
 									.lines.map((line) => line.text || " ")
 									.slice(0, lineCount)
 									.join("\n")
 							: seed.raw;
+
 						return {
 							left: seed.left,
 							delay: seed.delay,
@@ -125,16 +135,21 @@ export function RainView({
 						};
 					}),
 				);
+
 				onLayout?.(seeds.length, lineCount);
 			};
 
 			relayout();
+
 			const observer = new ResizeObserver(relayout);
+
 			observer.observe(frameEl);
+
 			return () => observer.disconnect();
 		}
 
 		let cleanup: (() => void) | undefined;
+
 		void boot().then((destroy) => {
 			cleanup = destroy;
 		});

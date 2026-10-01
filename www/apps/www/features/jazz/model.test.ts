@@ -9,10 +9,14 @@ import { barsOf, formatBar, itemsOf, roles, serialize } from "./tune";
 
 function seeded(seed: number) {
 	let a = seed;
+
 	return () => {
 		a = (a + 0x6d2b79f5) | 0;
+
 		let t = Math.imul(a ^ (a >>> 15), 1 | a);
+
 		t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+
 		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 	};
 }
@@ -24,6 +28,7 @@ describe("corpus", () => {
 		expect(stats("armstrong").solos).toBe(8);
 		expect(stats("dodds").solos).toBe(6);
 		expect(stats("ory").solos).toBe(5);
+
 		for (const line of lines)
 			for (let i = 1; i < line.tones.length; i++)
 				expect(line.tones[i].slot).toBeGreaterThan(line.tones[i - 1].slot);
@@ -42,7 +47,9 @@ describe("ask", () => {
 					yours: [],
 					random: seeded(memory),
 				});
+
 				expect(answer.notes.length).toBeGreaterThan(4);
+
 				for (const n of answer.notes) {
 					expect(n.at).toBeGreaterThanOrEqual(0);
 					expect(n.at + n.length).toBeLessThanOrEqual(4 * slotsPerBar);
@@ -57,6 +64,7 @@ describe("ask", () => {
 	it("quotes longer phrases with more memory", () => {
 		const pieces = (memory: number) => {
 			let total = 0;
+
 			for (let r = 0; r < 40; r++)
 				total += fragments(
 					ask({
@@ -68,8 +76,10 @@ describe("ask", () => {
 						random: seeded(r),
 					}).notes,
 				).length;
+
 			return total;
 		};
+
 		expect(pieces(5)).toBeLessThan(pieces(1) / 2);
 	});
 
@@ -82,11 +92,15 @@ describe("ask", () => {
 			yours: [],
 			random: seeded(3),
 		});
+
 		for (let k = 1; k < answer.notes.length; k++) {
 			const a = answer.notes[k - 1];
 			const b = answer.notes[k];
+
 			if (a.line !== b.line || a.index !== b.index - 1) continue;
+
 			const source = b.line.tones[b.index].key - a.line.tones[a.index].key;
+
 			expect((b.key - a.key - source) % 12).toBe(0);
 		}
 	});
@@ -97,7 +111,9 @@ describe("ask", () => {
 			1,
 			roles.slice(0, 4),
 		);
+
 		let yours = 0;
+
 		for (let r = 0; r < 20; r++)
 			yours += ask({
 				player: "armstrong",
@@ -107,6 +123,7 @@ describe("ask", () => {
 				yours: [mine],
 				random: seeded(r),
 			}).notes.filter((n) => n.line.who === "you").length;
+
 		expect(yours).toBeGreaterThan(0);
 	});
 });
@@ -120,8 +137,11 @@ describe("transcription", () => {
 			{ key: 74, at: 12, length: 12 },
 			{ key: 67, at: 30, length: 3 },
 		];
+
 		const written = bars(placed, 4);
+
 		expect(written[0]).toBe("[bb4@2 c5@2 ~ db5@7 ~@4]");
+
 		const compiled = compileAll({
 			tempo: 120,
 			swing: 2,
@@ -136,8 +156,11 @@ describe("transcription", () => {
 			},
 			muted: [],
 		});
+
 		const played = [0, 1, 2, 3].flatMap((b) => notes(compiled, "you", b, 2));
+
 		expect(played.map((n) => n.keys[0])).toEqual(placed.map((p) => p.key));
+
 		expect(played.map((n) => Math.round(n.onset * 12))).toEqual(
 			placed.map((p) => p.at),
 		);
@@ -157,6 +180,7 @@ describe("transcription", () => {
 			{ key: 72, clock: 4.0, end: 4.1 },
 			{ key: 74, clock: 7.95, end: null },
 		];
+
 		expect(transcribe(takes, 4, 4, 7.9, 2).map((n) => n.key)).toEqual([72]);
 	});
 
@@ -175,11 +199,13 @@ describe("bars", () => {
 				{ text: "~", size: 24 },
 			]),
 		).toBe("[d5 ~@3]");
+
 		expect(formatBar([{ text: "~", size: 48 }])).toBe("~");
 	});
 
 	it("splits a bar into steps with their start times", () => {
 		const items = itemsOf(parse("[d5 f5 ~ [d5 c5]]"), 0);
+
 		expect(items.map((i) => [i.text, i.begin, i.size])).toEqual([
 			["d5", 0, 12],
 			["f5", 12, 12],
@@ -187,6 +213,7 @@ describe("bars", () => {
 			["d5", 36, 6],
 			["c5", 42, 6],
 		]);
+
 		expect(formatBar(items)).toBe("[d5@2 f5@2 ~@2 d5 c5]");
 	});
 });
@@ -196,8 +223,10 @@ describe("chord chart", () => {
 		const code = "<Bb7 Eb7 Bb7!2 Eb7!2 Bb7!2 F7 Eb7 Bb7 [Gm7 F7]>";
 		const node = compile("chords", code).node;
 		const read = barsOf(node);
+
 		expect(read[11]).toBe("[Gm7 F7]");
 		expect(serialize(read)).toBe(code);
+
 		expect(
 			compile("chords", serialize(barsOf(parse("[Bb7@3 G7]")))).problem,
 		).toBeNull();
@@ -208,17 +237,21 @@ describe("ear", () => {
 	it("hears the pitch of a sung note", () => {
 		const rate = 48000;
 		const data = new Float32Array(2048);
+
 		for (let i = 0; i < data.length; i++)
 			data[i] =
 				Math.sin((2 * Math.PI * 196 * i) / rate) +
 				0.4 * Math.sin((2 * Math.PI * 392 * i) / rate);
+
 		const f = yin(data, rate);
+
 		expect(f).not.toBeNull();
 		expect(Math.abs((f ?? 0) - 196)).toBeLessThan(2);
 	});
 
 	it("snaps a low voice onto the keys", () => {
 		const keys = [67, 70, 72, 73, 74, 75, 77, 79, 80, 82];
+
 		expect(snap(55, keys)).toBe(67);
 		expect(snap(58.3, keys)).toBe(70);
 		expect(snap(96, keys)).toBe(72);
@@ -233,6 +266,7 @@ describe("cues", () => {
 				waitCue(p, 5),
 				...Array.from({ length: 12 }, (_, n) => turnCue(p, n)),
 			];
+
 			for (const c of all) expect(c.text.length).toBeLessThanOrEqual(150);
 		}
 	});

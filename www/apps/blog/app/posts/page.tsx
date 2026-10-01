@@ -12,6 +12,7 @@ interface PageProps {
 
 export async function generateMetadata({ searchParams }: PageProps) {
 	const params = await searchParams;
+
 	return listingMetadata({
 		title: "Blog",
 		description:

@@ -78,7 +78,9 @@ export function Story() {
 
 	useEffect(() => {
 		const rows = listRef.current?.querySelectorAll<HTMLElement>("li[data-id]");
+
 		if (!rows?.length) return;
+
 		const io = new IntersectionObserver(
 			(entries) => {
 				for (const entry of entries) {
@@ -89,12 +91,15 @@ export function Story() {
 			},
 			{ rootMargin: "-45% 0px -45% 0px" },
 		);
+
 		for (const row of rows) io.observe(row);
+
 		return () => io.disconnect();
 	}, []);
 
 	const jump = (id: ScreenId) => {
 		setActive(id);
+
 		document.getElementById(`chapter-${id}`)?.scrollIntoView({
 			behavior: reduced ? "auto" : "smooth",
 			block: "center",
@@ -103,6 +108,7 @@ export function Story() {
 
 	const i = chapterIndex(active);
 	const chapter = chapters[i] ?? chapters[0];
+
 	if (!chapter) return null;
 
 	return (

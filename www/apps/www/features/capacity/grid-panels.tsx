@@ -115,6 +115,7 @@ export function WirePanel({
 		})),
 		...opened.map((id) => ({ id, what: "open" })),
 	];
+
 	return (
 		<div className="cc-selection">
 			<p className="cc-selection-title">
@@ -191,6 +192,7 @@ export function SearchPanel({
 	frame: number;
 }) {
 	const step = trace[frame];
+
 	return (
 		<div className="cc-selection">
 			<p className="cc-selection-title">

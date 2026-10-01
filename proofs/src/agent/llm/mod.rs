@@ -37,11 +37,13 @@ pub struct Helper {
 impl ProofPlan {
     pub fn parse(value: &Value) -> Result<Self> {
         let mut plan: Self = serde_json::from_value(value.clone())?;
+
         plan.candidates.retain(|script| !script.trim().is_empty());
         plan.candidates.truncate(3);
         plan.helpers
             .retain(|helper| !helper.statement.trim().is_empty());
         plan.helpers.truncate(3);
+
         Ok(plan)
     }
 
@@ -53,15 +55,19 @@ impl ProofPlan {
         {
             return Self::parse(&call.function.arguments).unwrap_or_default();
         }
+
         let text = reply.said.trim();
+
         let json_text = text
             .strip_prefix("```json")
             .and_then(|text| text.strip_suffix("```"))
             .unwrap_or(text)
             .trim();
+
         if let Ok(value) = serde_json::from_str::<Value>(json_text) {
             return Self::parse(&value).unwrap_or_default();
         }
+
         Self {
             candidates: tactics(text),
             ..Self::default()
@@ -93,6 +99,7 @@ pub fn unreachable(error: &anyhow::Error) -> bool {
     if error.is::<Dropped>() {
         return true;
     }
+
     match error.downcast_ref::<ProviderError>() {
         Some(
             ProviderError::Http(_)
@@ -102,6 +109,7 @@ pub fn unreachable(error: &anyhow::Error) -> bool {
         ) => true,
         Some(ProviderError::ProviderResponse(response)) => response.status.is_none_or(|status| {
             let code = status.as_u16();
+
             code >= 500 || code == 408 || code == 429
         }),
         _ => false,
@@ -136,13 +144,17 @@ impl Reply {
 impl Reply {
     pub fn message(&self) -> Message {
         let mut content = Vec::new();
+
         if !self.said.trim().is_empty() {
             content.push(AssistantContent::text(self.said.trim()));
         }
+
         content.extend(self.calls.iter().cloned().map(AssistantContent::ToolCall));
+
         if content.is_empty() {
             content.push(AssistantContent::text("(silence)"));
         }
+
         Message::Assistant { id: None, content }
     }
 }
@@ -150,6 +162,7 @@ impl Reply {
 impl Llm {
     pub fn new(url: &str, key: &str, model: &str) -> Result<Self> {
         let client = gateway::client(url, key);
+
         Ok(Llm {
             model: client.chat(model),
             client,
@@ -168,7 +181,9 @@ impl Llm {
             + serde_json::to_string(ask.history).map_or(0, |text| text.len())
             + serde_json::to_string(&ask.prompt).map_or(0, |text| text.len())
             + serde_json::to_string(&ask.tools).map_or(0, |text| text.len());
+
         let names: Vec<String> = ask.tools.iter().map(|tool| tool.name.clone()).collect();
+
         let request = CompletionRequest::new(ask.prompt)
             .preamble(ask.preamble.to_string())
             .messages(ask.history.iter().cloned())
@@ -182,11 +197,13 @@ impl Llm {
                 "presence_penalty": if ask.thinking { 1.5 } else { 0.0 },
                 "truncate_sequence": true,
             }));
+
         let mut stream = self.model.stream(request)?;
         let mut reply = Reply::default();
         let mut splitter = Splitter::default();
         let mut musing = Splitter::thinking();
         let mut echo = Echo::default();
+
         let mut route = |piece: Piece, reply: &mut Reply| match piece {
             Piece::Think(text) => {
                 sink(Channel::Think, &text);
@@ -197,14 +214,17 @@ impl Llm {
                 reply.said.push_str(&text);
             }
         };
+
         while let Some(item) = stream.next().await {
             match item? {
                 Item::Event(StreamEvent::Reasoning { text, .. }) => {
                     for piece in musing.push(&text) {
                         route(piece, &mut reply);
                     }
+
                     if echo.push(&text) {
                         reply.looped = true;
+
                         break;
                     }
                 }
@@ -212,8 +232,10 @@ impl Llm {
                     for piece in splitter.push(&text) {
                         route(piece, &mut reply);
                     }
+
                     if echo.push(&text) {
                         reply.looped = true;
+
                         break;
                     }
                 }
@@ -224,36 +246,45 @@ impl Llm {
                 _ => {}
             }
         }
+
         let ended = if reply.looped {
             false
         } else {
             match stream.finish().await {
                 Ok(response) => {
                     let usage = response.usage;
+
                     reply.tokens = usage.output_tokens.unwrap_or(0);
+
                     reply.read = usage
                         .input_tokens
                         .unwrap_or(0)
                         .saturating_sub(usage.cached_input_tokens.unwrap_or(0));
+
                     true
                 }
                 Err(ProviderError::Truncated) => false,
                 Err(error) => return Err(error.into()),
             }
         };
+
         if !ended && !reply.looped {
             return Err(Dropped.into());
         }
+
         for piece in musing.finish().into_iter().chain(splitter.finish()) {
             route(piece, &mut reply);
         }
+
         if reply.calls.is_empty() {
             let names: Vec<&str> = names.iter().map(String::as_str).collect();
+
             reply.calls = written_calls(&mut reply, &names, [&musing, &splitter])
                 .into_iter()
                 .enumerate()
                 .filter_map(|(index, (name, args))| {
                     let name = ToolName::new(name).ok()?;
+
                     match AssistantContent::tool_call(format!("written-{index}"), name, args) {
                         AssistantContent::ToolCall(call) => Some(call),
                         _ => None,
@@ -261,12 +292,15 @@ impl Llm {
                 })
                 .collect();
         }
+
         if reply.tokens == 0 {
             reply.tokens = ((reply.thought.len() + reply.said.len()) / 4) as u64;
         }
+
         if reply.read == 0 {
             reply.read = (sent / 4) as u64;
         }
+
         Ok(reply)
     }
 
@@ -274,6 +308,7 @@ impl Llm {
         let (plan, tokens) = self
             .plan(&json!({"goals": [goal], "failures": failed}), 1536)
             .await?;
+
         Ok((plan.candidates, tokens))
     }
 
@@ -303,7 +338,9 @@ impl Llm {
             thinking: true,
             max_tokens,
         };
+
         let reply = self.reply(ask, |_, _| {}).await?;
+
         Ok((ProofPlan::from_reply(&reply), reply.processed()))
     }
 }
@@ -318,24 +355,30 @@ fn written_calls(
         .flat_map(|splitter| splitter.spoken())
         .filter_map(|block| written::parse(block))
         .collect();
+
     if !spoken.is_empty() {
         return spoken;
     }
+
     let found = written::loose(&reply.said, names);
+
     if !found.is_empty() {
         for (span, _, _) in found.iter().rev() {
             reply.said.replace_range(span.clone(), "");
         }
+
         return found
             .into_iter()
             .map(|(_, name, args)| (name, args))
             .collect();
     }
+
     let mused = splitters
         .iter()
         .flat_map(|splitter| splitter.mused())
         .rev()
         .find_map(|block| written::parse(block));
+
     mused
         .or_else(|| {
             written::loose(&reply.thought, names)
@@ -371,39 +414,48 @@ mod tests {
     fn proof_plans_accept_tools_json_and_legacy_replies() {
         let args =
             json!({"strategy": "split", "candidates": ["constructor\n· exact hp\n· exact hq"]});
+
         let mut reply = Reply {
             said: args.to_string(),
             ..Reply::default()
         };
+
         assert_eq!(
             ProofPlan::from_reply(&reply).candidates[0],
             "constructor\n· exact hp\n· exact hq"
         );
+
         reply.said = "1. simp\n2. exact h".into();
+
         assert_eq!(
             ProofPlan::from_reply(&reply).candidates,
             vec!["simp", "exact h"]
         );
+
         if let AssistantContent::ToolCall(call) =
             AssistantContent::tool_call("plan", ToolName::new("proof_plan").unwrap(), args)
         {
             reply.calls.push(call);
         }
+
         assert_eq!(ProofPlan::from_reply(&reply).strategy, "split");
     }
 
     #[test]
     fn proof_plans_preserve_multiline_blocks() {
         let script = "have hn : ∀ n : ℕ, s ≠ -n := by\n  rintro n rfl\n  have : (0 : ℝ) ≤ n := n.cast_nonneg\n  simp at h0\n  linarith\nhave h1' : s ≠ 1 := by\n  rintro rfl\n  simp at h1\nrw [riemannZeta_one_sub hn h1', hs, mul_zero]";
+
         let plan = ProofPlan::parse(&json!({
             "strategy": "Establish the functional equation's side conditions.",
             "candidates": [script],
             "helpers": [{"statement": "lemma positive_ne_one (s : ℂ) (h : s.re < 1) : s ≠ 1"}],
         }))
         .unwrap();
+
         assert_eq!(plan.candidates, vec![script]);
         assert_eq!(plan.helpers.len(), 1);
         assert!(plan.helpers[0].proof.is_none());
+
         assert_eq!(
             serde_json::from_value::<ProofPlan>(serde_json::to_value(&plan).unwrap())
                 .unwrap()
@@ -416,6 +468,7 @@ mod tests {
     fn proof_plans_are_bounded_and_typed() {
         let plan = ProofPlan::parse(&json!({"candidates": ["", "rfl", "simp", "omega", "aesop"]}))
             .unwrap();
+
         assert_eq!(plan.candidates, vec!["rfl", "simp", "omega"]);
         assert!(ProofPlan::parse(&json!({"candidates": [42]})).is_err());
     }

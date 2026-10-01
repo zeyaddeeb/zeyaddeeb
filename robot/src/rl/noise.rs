@@ -18,8 +18,10 @@ impl OuNoise {
     pub fn sample(&mut self) -> Vec<f32> {
         for s in &mut self.state {
             let dx = self.theta * (self.mu - *s) + self.sigma * rand::random_range(-1.0f64..1.0f64);
+
             *s += dx;
         }
+
         self.state.iter().map(|&v| v as f32).collect()
     }
 }

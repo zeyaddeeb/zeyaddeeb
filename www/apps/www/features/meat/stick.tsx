@@ -49,6 +49,7 @@ export function Stick({
 	hair,
 }: StickProps) {
 	const [l, r] = arms[pose];
+
 	const limbs = [
 		"M0 -51 V-21",
 		`M0 -45 L${l[0]} ${l[1]} L${l[2]} ${l[3]}`,
@@ -56,6 +57,7 @@ export function Stick({
 		"M0 -21 L-8 0",
 		"M0 -21 L8 0",
 	].join(" ");
+
 	return (
 		<g
 			className="mc-stick"
@@ -125,6 +127,7 @@ export function Callout({
 	const bend = { x: tx, y: y + (ty - y) * 0.15 };
 	const lx = anchor === "start" ? tx + 6 : anchor === "end" ? tx - 6 : tx;
 	const ly = anchor === "middle" ? (ty < y ? ty - 8 : ty + 16) : ty + 5;
+
 	return (
 		<g className="mc-callout">
 			<path d={`M${x} ${y} Q${bend.x} ${bend.y} ${tx} ${ty}`} />

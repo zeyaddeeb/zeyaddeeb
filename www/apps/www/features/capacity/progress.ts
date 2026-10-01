@@ -22,13 +22,18 @@ function write(progress: Progress) {
 
 export function useProgress() {
 	const [progress, setProgress] = useState<Progress>({});
+
 	useEffect(() => setProgress(read()), []);
+
 	const win = useCallback((id: string) => {
 		setProgress((all) => {
 			const next = { ...all, [id]: true };
+
 			write(next);
+
 			return next;
 		});
 	}, []);
+
 	return { progress, win };
 }

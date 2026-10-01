@@ -28,6 +28,7 @@ const angle = (t: number) => (t / chorus) * 2 * Math.PI - Math.PI / 2;
 
 const point = (r: number, t: number) => {
 	const a = angle(t);
+
 	return [C + r * Math.cos(a), C + r * Math.sin(a)] as const;
 };
 
@@ -36,11 +37,14 @@ const fixed = (n: number) => Math.round(n * 10) / 10;
 function arc(r0: number, r1: number, t0: number, t1: number) {
 	const steps = Math.max(2, Math.ceil((t1 - t0) * 16));
 	const pts: string[] = [];
+
 	for (let k = 0; k <= steps; k++) {
 		const f = k / steps;
 		const [x, y] = point(r0 + (r1 - r0) * f, t0 + (t1 - t0) * f);
+
 		pts.push(`${fixed(x)},${fixed(y)}`);
 	}
+
 	return pts.join(" ");
 }
 
@@ -49,6 +53,7 @@ function sector(r0: number, r1: number, t0: number, t1: number) {
 	const [bx, by] = point(r1, t1);
 	const [cx, cy] = point(r0, t1);
 	const [dx, dy] = point(r0, t0);
+
 	return `M${fixed(ax)} ${fixed(ay)}A${r1} ${r1} 0 0 1 ${fixed(bx)} ${fixed(by)}L${fixed(cx)} ${fixed(cy)}A${r0} ${r0} 0 0 0 ${fixed(dx)} ${fixed(dy)}Z`;
 }
 
@@ -70,12 +75,14 @@ function band(r: number, t0: number, t1: number, reverse: boolean) {
 	const [ax, ay] = point(r, reverse ? t1 : t0);
 	const [bx, by] = point(r, reverse ? t0 : t1);
 	const large = t1 - t0 > chorus / 2 ? 1 : 0;
+
 	return `M${fixed(ax)} ${fixed(ay)}A${r} ${r} 0 ${large} ${reverse ? 0 : 1} ${fixed(bx)} ${fixed(by)}`;
 }
 
 function Sources({ sources }: { sources: Source[] }) {
 	const small = useSmall();
 	const size = small ? 34 : 19;
+
 	return (
 		<g className="jz-sources-ring">
 			<circle cx={C} cy={C} r={510} className="jz-sources-guide" />
@@ -85,13 +92,16 @@ function Sources({ sources }: { sources: Source[] }) {
 				const r = bottom ? 526 + size * 0.75 : 526;
 				const length = ((s.t1 - s.t0) / chorus) * 2 * Math.PI * r;
 				const room = Math.floor(length / (size * 0.61));
+
 				const text =
 					room < 4
 						? ""
 						: s.label.length <= room
 							? s.label
 							: `${s.label.slice(0, room - 1)}…`;
+
 				const id = `jz-src-${k}-${Math.round(s.t0 * 100)}`;
+
 				return (
 					<g
 						key={id}
@@ -152,46 +162,59 @@ export function Clock({
 }: ClockProps) {
 	const lanes = useMemo(() => {
 		const out = {} as Record<LaneId, Note[]>;
+
 		for (const lane of ["chords", "you", ...voices] as LaneId[]) {
 			out[lane] = [];
+
 			for (let bar = 0; bar < chorus; bar++)
 				out[lane].push(...notes(compiled, lane, bar, ratio));
 		}
+
 		return out;
 	}, [compiled, ratio]);
 
 	const ranges = useMemo(() => {
 		const out = {} as Record<Voice, [number, number]>;
+
 		for (const lane of voices) {
 			const keys = [
 				...lanes[lane],
 				...(lane === "cornet" ? lanes.you : []),
 			].flatMap((n) => [...n.keys, ...(n.slide === null ? [] : [n.slide])]);
+
 			let lo = Math.min(...keys);
 			let hi = Math.max(...keys);
+
 			if (!keys.length) [lo, hi] = [60, 72];
+
 			if (hi - lo < 8) {
 				const mid = (hi + lo) / 2;
+
 				[lo, hi] = [mid - 4, mid + 4];
 			}
+
 			out[lane] = [lo, hi];
 		}
+
 		return out;
 	}, [lanes, live]);
 
 	const radius = (lane: Voice, key: number) => {
 		const [r0, r1] = rings[lane];
 		const [lo, hi] = ranges[lane];
+
 		return r0 + 6 + ((key - lo) / (hi - lo)) * (r1 - r0 - 12);
 	};
 
 	const spot = (lane: LaneId, note: Note): Focus => {
 		const bar = Math.floor(note.begin + 1e-9);
+
 		return { lane, bar, at: Math.round((note.begin - bar) * ticks) };
 	};
 
 	const picked = (lane: LaneId, note: Note) => {
 		const s = spot(lane, note);
+
 		return focus?.lane === lane && focus.bar === s.bar && focus.at === s.at;
 	};
 
@@ -203,6 +226,7 @@ export function Clock({
 				const [lx, ly] = point(466, bar + 0.5);
 				const [x0, y0] = point(140, bar);
 				const [x1, y1] = point(492, bar);
+
 				return (
 					<g
 						key={`bar-${bar}`}
@@ -243,6 +267,7 @@ export function Clock({
 				const and = Math.floor(t) + swing(t - Math.floor(t) + 1 / 8, ratio);
 				const [c0, d0] = point(426, and);
 				const [c1, d1] = point(434, and);
+
 				return (
 					<g key={`beat-${beat}`}>
 						<line
@@ -275,6 +300,7 @@ export function Clock({
 					{lanes[lane].map((note, index) => {
 						const t0 = note.onset;
 						const t1 = Math.max(t0 + 0.02, note.offset - 0.01);
+
 						const common = {
 							className: "jz-note",
 							"data-t0": note.onset,
@@ -289,10 +315,13 @@ export function Clock({
 								onFocus(picked(lane, note) ? null : spot(lane, note));
 							},
 						};
+
 						const key = `${note.span[0]}:${note.begin}`;
+
 						if (lane === "banjo") {
 							const [x0, y0] = point(152, t0);
 							const [x1, y1] = point(176, t0);
+
 							return (
 								<g key={key} {...common}>
 									<line
@@ -305,10 +334,12 @@ export function Clock({
 								</g>
 							);
 						}
+
 						if (lane === "piano") {
 							const rs = note.keys.map((k) => radius("piano", k));
 							const [x0, y0] = point(Math.min(...rs) - 3, t0);
 							const [x1, y1] = point(Math.max(...rs) + 3, t0);
+
 							return (
 								<g key={key} {...common}>
 									<line
@@ -321,13 +352,17 @@ export function Clock({
 								</g>
 							);
 						}
+
 						const k = note.keys[0];
+
 						if (k === undefined) return null;
+
 						const ring = lane === "you" ? "cornet" : lane;
 						const r0 = radius(ring, k);
 						const r1 = note.slide === null ? r0 : radius(ring, note.slide);
 						const [x, y] = point(r0, t0);
 						const s = 13;
+
 						return (
 							<g key={key} {...common}>
 								<polyline points={arc(r0, r1, t0, t1)} className="jz-tail" />
@@ -358,6 +393,7 @@ export function Clock({
 					const r = radius("cornet", note.key);
 					const [x, y] = point(r, t0);
 					const s = 13;
+
 					return (
 						<g key={`${note.clock}:${note.key}`} className="jz-note" data-on="">
 							<polyline points={arc(r, r, t0, t1)} className="jz-tail" />

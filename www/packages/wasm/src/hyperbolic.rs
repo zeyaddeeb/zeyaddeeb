@@ -53,16 +53,19 @@ impl Cx {
 
     fn div(self, other: Cx) -> Cx {
         let d = other.abs2();
+
         self.mul(other.conj()).scale(1.0 / d)
     }
 }
 
 fn reflect(z: Cx, a: Cx, b: Cx) -> Cx {
     let det = 4.0 * (a.re * b.im - a.im * b.re);
+
     if det.abs() < 1e-12 {
         let dir = b.sub(a);
         let theta = dir.im.atan2(dir.re);
         let rot = Cx::from_polar(1.0, 2.0 * theta);
+
         return rot.mul(z.conj());
     }
 
@@ -74,6 +77,7 @@ fn reflect(z: Cx, a: Cx, b: Cx) -> Cx {
     let r2 = c.abs2() - 1.0;
 
     let w = z.sub(c);
+
     c.add(w.scale(r2 / w.abs2()))
 }
 
@@ -114,6 +118,7 @@ impl HyperbolicTiling {
                 base_vertices.push(pt.re);
                 base_vertices.push(pt.im);
             }
+
             meta.push(tile.layer);
             meta.push(tile.parity);
         }
@@ -161,12 +166,15 @@ impl HyperbolicTiling {
         let bc = b.conj();
 
         let mut out = Vec::with_capacity(self.base_vertices.len());
+
         for chunk in self.base_vertices.chunks_exact(2) {
             let z = Cx::new(chunk[0], chunk[1]);
             let w = a.mul(z).add(b).div(bc.mul(z).add(ac));
+
             out.push(w.re);
             out.push(w.im);
         }
+
         out
     }
 }
@@ -187,10 +195,12 @@ fn central_tile(p: u32, q: u32) -> Tile {
 
     let vertex = |k: i64| -> Cx {
         let angle = (2.0 * k as f64 + 1.0) * pi / p as f64;
+
         Cx::from_polar(rv, angle)
     };
 
     let mut points = Vec::with_capacity(p * SAMPLES_PER_EDGE);
+
     for k in 0..p {
         let center = Cx::from_polar(d, 2.0 * pi * k as f64 / p as f64);
         let start = vertex(k as i64 - 1);
@@ -199,15 +209,18 @@ fn central_tile(p: u32, q: u32) -> Tile {
         let phi0 = (start.im - center.im).atan2(start.re - center.re);
         let phi1 = (end.im - center.im).atan2(end.re - center.re);
         let mut dphi = phi1 - phi0;
+
         while dphi > pi {
             dphi -= 2.0 * pi;
         }
+
         while dphi < -pi {
             dphi += 2.0 * pi;
         }
 
         for j in 0..SAMPLES_PER_EDGE {
             let phi = phi0 + dphi * j as f64 / SAMPLES_PER_EDGE as f64;
+
             points.push(center.add(Cx::from_polar(r, phi)));
         }
     }
@@ -215,18 +228,22 @@ fn central_tile(p: u32, q: u32) -> Tile {
     let rin = d - r;
     let arm = 2.0 * pi / p as f64;
     let swirl = 1.9 * arm;
+
     for k in 0..p {
         let theta = arm * k as f64;
         let mut upper = Vec::with_capacity(BLADE_SAMPLES);
         let mut lower = Vec::with_capacity(BLADE_SAMPLES);
+
         for j in 0..BLADE_SAMPLES {
             let t = 0.12 + 0.87 * j as f64 / (BLADE_SAMPLES - 1) as f64;
             let spine = theta + swirl * (1.0 - t).powf(1.35);
             let width = 0.26 * arm * (pi * t.powf(0.7)).sin().max(0.03);
             let rad = rin * t * 0.99;
+
             upper.push(Cx::from_polar(rad, spine + width));
             lower.push(Cx::from_polar(rad, spine - width));
         }
+
         points.extend(upper);
         points.extend(lower.into_iter().rev());
     }
@@ -250,6 +267,7 @@ fn dedup_key(c: Cx) -> (i64, i64) {
 
 fn is_seen(seen: &HashMap<(i64, i64), ()>, c: Cx) -> bool {
     let (kx, ky) = dedup_key(c);
+
     for dx in -1..=1 {
         for dy in -1..=1 {
             if seen.contains_key(&(kx + dx, ky + dy)) {
@@ -257,14 +275,17 @@ fn is_seen(seen: &HashMap<(i64, i64), ()>, c: Cx) -> bool {
             }
         }
     }
+
     false
 }
 
 fn generate(central: Tile, p: usize, max_tiles: usize, min_size: f64) -> Vec<Tile> {
     let mut seen: HashMap<(i64, i64), ()> = HashMap::new();
+
     seen.insert(dedup_key(central.center), ());
 
     let mut queue: VecDeque<Tile> = VecDeque::new();
+
     queue.push_back(central);
 
     let mut tiles: Vec<Tile> = Vec::new();
@@ -279,20 +300,24 @@ fn generate(central: Tile, p: usize, max_tiles: usize, min_size: f64) -> Vec<Til
             let b = tile.points[((edge + 1) % p) * SAMPLES_PER_EDGE];
 
             let center = reflect(tile.center, a, b);
+
             if center.abs() > 0.9999 || is_seen(&seen, center) {
                 continue;
             }
 
             let points: Vec<Cx> = tile.points.iter().map(|&z| reflect(z, a, b)).collect();
+
             let size = points
                 .iter()
                 .map(|pt| pt.sub(center).abs())
                 .fold(0.0, f64::max);
+
             if size < min_size {
                 continue;
             }
 
             seen.insert(dedup_key(center), ());
+
             queue.push_back(Tile {
                 points,
                 center,
@@ -324,28 +349,36 @@ mod tests {
     #[test]
     fn test_builds_heptagonal_tiling() {
         let tiling = HyperbolicTiling::new(7, 3, 500, 0.002).unwrap();
+
         assert!(tiling.tile_count() > 100);
+
         assert_eq!(
             tiling.points_per_tile(),
             7 * (SAMPLES_PER_EDGE + 2 * BLADE_SAMPLES) as u32 + 1
         );
+
         assert_eq!(
             tiling.boundary_points_per_tile(),
             7 * SAMPLES_PER_EDGE as u32
         );
+
         assert_eq!(tiling.polygon_sides(), 7);
+
         assert_eq!(
             tiling.get_base_vertices().len(),
             tiling.tile_count() as usize * tiling.points_per_tile() as usize * 2
         );
+
         assert_eq!(tiling.get_meta().len(), tiling.tile_count() as usize * 2);
     }
 
     #[test]
     fn test_all_points_inside_unit_disk() {
         let tiling = HyperbolicTiling::new(5, 4, 800, 0.002).unwrap();
+
         for chunk in tiling.get_base_vertices().chunks_exact(2) {
             let r2 = chunk[0] * chunk[0] + chunk[1] * chunk[1];
+
             assert!(r2 < 1.0, "point escaped the disk: r^2 = {r2}");
         }
     }
@@ -356,9 +389,12 @@ mod tests {
         let t = Cx::new(0.4, 0.2);
         let n = 1.0 / (1.0 - t.abs2()).sqrt();
         let out = tiling.transform_vertices(n, 0.0, t.re * n, t.im * n);
+
         assert_eq!(out.len(), tiling.get_base_vertices().len());
+
         for chunk in out.chunks_exact(2) {
             let r2 = chunk[0] * chunk[0] + chunk[1] * chunk[1];
+
             assert!(r2 < 1.0 + 1e-9, "transform escaped the disk: r^2 = {r2}");
         }
     }
@@ -370,6 +406,7 @@ mod tests {
         let z = Cx::new(-0.2, 0.4);
         let once = reflect(z, a, b);
         let twice = reflect(once, a, b);
+
         assert!((twice.re - z.re).abs() < 1e-12);
         assert!((twice.im - z.im).abs() < 1e-12);
     }

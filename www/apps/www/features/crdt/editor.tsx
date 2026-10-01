@@ -17,6 +17,7 @@ function Status({
 		offline: "offline — editing locally",
 		connecting: "connecting…",
 	}[status];
+
 	return (
 		<span className="eyebrow inline-flex items-center gap-2">
 			<span
@@ -47,6 +48,7 @@ function SequencePanel({
 			<p className="font-mono text-xs text-dim">start typing to see the RGA</p>
 		);
 	}
+
 	return (
 		<div className="max-h-72 overflow-auto">
 			<table className="w-full font-mono text-xs">
@@ -95,6 +97,7 @@ function OpLog({
 }) {
 	if (ops.length === 0)
 		return <span className="font-mono text-xs text-dim">no ops yet</span>;
+
 	return (
 		<ul className="flex flex-wrap gap-1.5">
 			{ops.map((op, i) => (
@@ -119,6 +122,7 @@ function OpLog({
 
 export default function CrdtEditor({ docId }: { docId: string }) {
 	const { loading, error } = useWasm();
+
 	const {
 		text,
 		sequence,
@@ -137,6 +141,7 @@ export default function CrdtEditor({ docId }: { docId: string }) {
 
 	if (loading)
 		return <p className="font-mono text-xs text-dim">loading engine…</p>;
+
 	if (error)
 		return (
 			<p className="font-mono text-sm text-destructive">
@@ -148,14 +153,17 @@ export default function CrdtEditor({ docId }: { docId: string }) {
 		const next = e.target.value;
 		const prev = prevTextRef.current;
 		let start = 0;
+
 		while (
 			start < prev.length &&
 			start < next.length &&
 			prev[start] === next[start]
 		)
 			start++;
+
 		let prevEnd = prev.length;
 		let nextEnd = next.length;
+
 		while (
 			prevEnd > start &&
 			nextEnd > start &&
@@ -164,8 +172,11 @@ export default function CrdtEditor({ docId }: { docId: string }) {
 			prevEnd--;
 			nextEnd--;
 		}
+
 		for (let i = prevEnd - 1; i >= start; i--) del(i);
+
 		for (let i = start; i < nextEnd; i++) insert(i, next[i] ?? "");
+
 		prevTextRef.current = next;
 	}
 

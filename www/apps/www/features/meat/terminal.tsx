@@ -28,21 +28,28 @@ export function Terminal() {
 			},
 			{ threshold: 0.4 },
 		);
+
 		if (box.current) io.observe(box.current);
+
 		return () => io.disconnect();
 	}, []);
 
 	useEffect(() => {
 		if (!armed) return;
+
 		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
 			setShown(log.length);
+
 			return;
 		}
+
 		if (shown >= log.length) return;
+
 		const timer = window.setTimeout(
 			() => setShown((n) => n + 1),
 			shown === 0 ? 200 : 420,
 		);
+
 		return () => window.clearTimeout(timer);
 	}, [armed, shown, log.length]);
 

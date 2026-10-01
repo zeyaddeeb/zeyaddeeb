@@ -80,6 +80,7 @@ mod tests {
             r#"{"type":"audioFrame","sampleRate":16000,"channels":1,"samples":[0.5]}"#,
         )
         .unwrap();
+
         let ClientMessage::AudioFrame {
             sample_rate,
             channels,
@@ -88,6 +89,7 @@ mod tests {
         else {
             panic!("expected an audio frame");
         };
+
         assert_eq!((sample_rate, channels, samples), (16000, 1, vec![0.5]));
     }
 }

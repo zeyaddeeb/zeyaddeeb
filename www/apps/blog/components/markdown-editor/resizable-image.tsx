@@ -22,6 +22,7 @@ function ResizableImageNodeView({
 			setIsResizing(true);
 
 			const img = imageRef.current;
+
 			if (!img) return;
 
 			startPos.current = {
@@ -260,6 +261,7 @@ export const ResizableImage = Image.extend({
 				default: null,
 				renderHTML: (attributes) => {
 					if (!attributes.width) return {};
+
 					return { width: attributes.width };
 				},
 				parseHTML: (element) =>
@@ -270,6 +272,7 @@ export const ResizableImage = Image.extend({
 				default: null,
 				renderHTML: (attributes) => {
 					if (!attributes.height) return {};
+
 					return { height: attributes.height };
 				},
 				parseHTML: (element) =>
@@ -280,6 +283,7 @@ export const ResizableImage = Image.extend({
 				default: "left",
 				renderHTML: (attributes) => {
 					if (!attributes.align || attributes.align === "left") return {};
+
 					return { "data-align": attributes.align };
 				},
 				parseHTML: (element) => element.getAttribute("data-align") || "left",

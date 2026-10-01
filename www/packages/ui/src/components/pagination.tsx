@@ -17,10 +17,13 @@ export function Pagination({
 }) {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
+
 	const href = (next: number) => {
 		const params = new URLSearchParams(searchParams.toString());
+
 		if (next > 1) params.set("page", String(next));
 		else params.delete("page");
+
 		return `${pathname}${params.size ? `?${params}` : ""}`;
 	};
 

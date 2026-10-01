@@ -74,18 +74,22 @@ mod tests {
     #[test]
     fn insert_matches_wasm_wire_format() {
         let op: CrdtOp = serde_json::from_str(INSERT_ROOT).unwrap();
+
         let CrdtOp::Insert(ref insert) = op else {
             panic!("expected insert");
         };
+
         assert_eq!(insert.id, CharId { site: 7, clock: 1 });
         assert!(insert.parent.is_none());
         assert_eq!(insert.value, "a");
         assert_eq!(serde_json::to_string(&op).unwrap(), INSERT_ROOT);
 
         let op: CrdtOp = serde_json::from_str(INSERT_CHILD).unwrap();
+
         let CrdtOp::Insert(ref insert) = op else {
             panic!("expected insert");
         };
+
         assert_eq!(insert.id, CharId { site: 7, clock: 2 });
         assert_eq!(insert.parent, Some(CharId { site: 3, clock: 1 }));
         assert_eq!(insert.value, "é");
@@ -95,9 +99,11 @@ mod tests {
     #[test]
     fn delete_matches_wasm_wire_format() {
         let op: CrdtOp = serde_json::from_str(DELETE).unwrap();
+
         let CrdtOp::Delete(ref delete) = op else {
             panic!("expected delete");
         };
+
         assert_eq!(delete.id, CharId { site: 3, clock: 1 });
         assert_eq!(serde_json::to_string(&op).unwrap(), DELETE);
     }
@@ -106,9 +112,11 @@ mod tests {
     fn client_op_envelope_wraps_wasm_ops() {
         for fixture in [INSERT_ROOT, INSERT_CHILD, DELETE] {
             let envelope = format!(r#"{{"type":"op","op":{fixture}}}"#);
+
             let ClientMsg::Op { op } = serde_json::from_str(&envelope).unwrap() else {
                 panic!("expected op message");
             };
+
             assert_eq!(serde_json::to_string(&op).unwrap(), fixture);
         }
     }

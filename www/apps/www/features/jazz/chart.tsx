@@ -68,32 +68,41 @@ export function Chart({
 }: ChartProps) {
 	const grid = useMemo(() => {
 		const out = {} as Record<LaneId, Item[][]>;
+
 		for (const lane of laneIds)
 			out[lane] = bars.map((b) => itemsOf(compiled[lane].node, b));
+
 		return out;
 	}, [compiled]);
 
 	const ranges = useMemo(() => {
 		const out = {} as Record<LaneId, [number, number]>;
+
 		for (const lane of laneIds) {
 			const keys = grid[lane].flat().flatMap((i) => {
 				const p = pitch(i.text);
+
 				return p ? [p.from, ...(p.to === null ? [] : [p.to])] : [];
 			});
+
 			const lo = keys.length ? Math.min(...keys) : 60;
 			const hi = keys.length ? Math.max(...keys) : 72;
+
 			out[lane] = hi - lo < 8 ? [lo - 4, hi + 4] : [lo, hi];
 		}
+
 		return out;
 	}, [grid]);
 
 	const writeBar = (lane: LaneId, bar: number, text: string) => {
 		const next = barsOf(compiled[lane].node);
+
 		next[bar] = text;
 		onCode(lane, serialize(next));
 	};
 
 	const small = useSmall();
+
 	const systems = small
 		? [bars.slice(0, 4), bars.slice(4, 8), bars.slice(8)]
 		: [bars];
@@ -216,13 +225,16 @@ function Cell({
 	range: [number, number];
 }) {
 	const sounding = items.filter((i) => i.text !== "~");
+
 	if (lane === "chords")
 		return (
 			<span className="jz-cell-chord">
 				{sounding.map((i) => i.text).join(" ")}
 			</span>
 		);
+
 	const y = (key: number) => 21 - ((key - lo) / Math.max(1, hi - lo)) * 18;
+
 	return (
 		<svg
 			viewBox={`0 0 ${ticks} 24`}
@@ -232,6 +244,7 @@ function Cell({
 			{sounding.map((i) => {
 				if (!melodic(lane)) {
 					const bass = /^[135]$/.test(i.text);
+
 					return (
 						<line
 							key={i.begin}
@@ -242,10 +255,14 @@ function Cell({
 						/>
 					);
 				}
+
 				const p = pitch(i.text);
+
 				if (!p) return null;
+
 				const y0 = y(p.from);
 				const y1 = p.to === null ? y0 : y(p.to);
+
 				return (
 					<polygon
 						key={i.begin}
@@ -282,38 +299,48 @@ function BarEditor({
 	const current = formatBar(items);
 	const [draft, setDraft] = useState(current);
 	const [wrong, setWrong] = useState<string | null>(null);
+
 	useEffect(() => {
 		setDraft(current);
 		setWrong(null);
 	}, [current]);
+
 	const picked = items.find((i) => i.begin === focus.at) ?? null;
 
 	const replace = (text: string) => {
 		if (!picked) return;
+
 		onBar(formatBar(items.map((i) => (i === picked ? { ...i, text } : i))));
 	};
 
 	const nudge = (by: number) => {
 		if (!picked || picked.text === "~") return;
+
 		const next =
 			lane === "chords"
 				? shiftChord(picked.text, by)
 				: shiftNote(picked.text, by);
+
 		if (next) replace(next);
 	};
 
 	useEffect(() => {
 		if (!melodic(lane) && lane !== "chords") return;
+
 		const key = (event: KeyboardEvent) => {
 			if ((event.target as HTMLElement | null)?.closest("input, textarea"))
 				return;
+
 			if (event.key === "ArrowUp") nudge(event.shiftKey ? 12 : 1);
 			else if (event.key === "ArrowDown") nudge(event.shiftKey ? -12 : -1);
 			else if (event.key === "Escape") onFocus(null);
 			else return;
+
 			event.preventDefault();
 		};
+
 		window.addEventListener("keydown", key);
+
 		return () => window.removeEventListener("keydown", key);
 	});
 
@@ -329,11 +356,16 @@ function BarEditor({
 
 	const type = (text: string) => {
 		setDraft(text);
+
 		const bars = code.trim() ? barsFrom(code) : null;
+
 		if (!bars) return;
+
 		bars[bar] = text.trim() || "~";
+
 		const candidate = serialize(bars);
 		const result = compile(lane, candidate);
+
 		if (result.problem) setWrong(result.problem.message);
 		else {
 			setWrong(null);
@@ -404,6 +436,7 @@ function BarEditor({
 				<div className="jz-choices" data-wide="">
 					{rhythms[lane].map((r) => {
 						const text = formatBar(itemsOf(parse(r.code), 0));
+
 						return (
 							<button
 								key={r.code}

@@ -44,11 +44,14 @@ const memories = [
 
 function Seams({ pieces }: { pieces: number[] }) {
 	let x = 0;
+
 	return (
 		<svg viewBox="0 0 24 8" aria-hidden="true" className="jz-seams">
 			{pieces.map((w, k) => {
 				const at = x;
+
 				x += w + 1;
+
 				return (
 					<rect key={k} x={at} y="0" width={Math.min(w, 24 - at)} height="8" />
 				);
@@ -206,9 +209,11 @@ export function Provenance({
 			<MemoryControl memory={memory} onMemory={onMemory} />
 		</div>
 	);
+
 	const [focus, setFocus] = useState<number | null>(null);
 	const spec =
 		players.find((p) => p.id === (ledger?.player ?? player)) ?? players[0];
+
 	if (!ledger)
 		return (
 			<div className="jz-ledger" data-empty="">
@@ -222,16 +227,20 @@ export function Provenance({
 				<p className="jz-ledger-detail">&nbsp;</p>
 			</div>
 		);
+
 	const notes = ledger.answer.notes;
 	const pieces = fragments(notes);
+
 	const longest = pieces.reduce(
 		(best, f, k) => (f.count > pieces[best].count ? k : best),
 		0,
 	);
+
 	const shown = pieces[focus ?? longest];
 	const yours = notes.filter((n) => n.line.who === "you").length;
 	const first = pieces[0];
 	const heard = ledger.heard.slice(-ledger.answer.heard);
+
 	const summary = ledger.opening
 		? `${spec.short} opened from his own memory.`
 		: ledger.silent
@@ -239,7 +248,9 @@ export function Provenance({
 			: heard.length && first
 				? `He matched your last ${heard.length === 1 ? "note" : `${heard.length} notes`} (${heard.map(noteName).join(" ")}) in ${first.line.title}.`
 				: `Nothing he recorded fits your last note, so he started somewhere new.`;
+
 	const total = 4 * slotsPerBar;
+
 	return (
 		<div className="jz-ledger" data-lane={spec.voice}>
 			{head}
@@ -259,6 +270,7 @@ export function Provenance({
 				{pieces.map((f, k) => {
 					const last = notes.find((n) => n.at === f.to);
 					const end = Math.min(total, f.to + (last?.length ?? 1));
+
 					return (
 						<button
 							key={`${f.from}:${f.line.title}`}

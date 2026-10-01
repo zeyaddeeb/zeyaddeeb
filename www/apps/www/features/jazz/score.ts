@@ -56,16 +56,21 @@ const hints: Record<LaneId, string> = {
 
 function valid(lane: LaneId, word: string) {
 	if (lane === "chords") return chordPattern.test(word);
+
 	if (lane === "piano") return /^(x|1|3|5)$/.test(word);
+
 	if (lane === "banjo") return word === "x";
+
 	return pitch(word) !== null;
 }
 
 export function compile(lane: LaneId, code: string): Compiled {
 	if (!code.trim()) return { node: null, problem: null };
+
 	try {
 		const node = parse(code);
 		const wrong = words(node).find((w) => !valid(lane, w.value));
+
 		if (wrong)
 			return {
 				node: null,
@@ -74,10 +79,12 @@ export function compile(lane: LaneId, code: string): Compiled {
 					message: `“${wrong.value}” isn’t ${hints[lane]}.`,
 				},
 			};
+
 		return { node, problem: null };
 	} catch (error) {
 		if (error instanceof PatternError)
 			return { node: null, problem: { at: error.at, message: error.message } };
+
 		throw error;
 	}
 }
@@ -107,9 +114,12 @@ const fallback = chord("Bb") as Chord;
 
 function chordAt(compiled: CompiledScore, time: number): Chord {
 	const node = compiled.chords.node;
+
 	if (!node) return fallback;
+
 	const bar = Math.floor(time);
 	const hit = cycle(node, bar).find((h) => h.begin <= time && time < h.end);
+
 	return (hit && chord(hit.value)) || fallback;
 }
 
@@ -120,15 +130,19 @@ export function notes(
 	ratio: number,
 ): Note[] {
 	const node = compiled[lane].node;
+
 	if (!node) return [];
+
 	return cycle(node, bar).map((hap) => {
 		const harmony = chordAt(compiled, hap.begin);
 		let keys: number[] = [];
 		let slide: number | null = null;
 		let current: Chord | null = null;
+
 		if (lane === "chords") current = chord(hap.value);
 		else if (lane === "piano") {
 			current = harmony;
+
 			keys =
 				hap.value === "x"
 					? voicing(harmony, 57, 4)
@@ -138,11 +152,13 @@ export function notes(
 			keys = voicing(harmony, 55, 4);
 		} else {
 			const p = pitch(hap.value);
+
 			if (p) {
 				keys = [p.from];
 				slide = p.to;
 			}
 		}
+
 		return {
 			lane,
 			begin: hap.begin,

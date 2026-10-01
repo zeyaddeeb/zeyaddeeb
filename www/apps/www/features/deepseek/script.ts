@@ -134,17 +134,23 @@ const NUMBER = /^\d+$/;
 
 export function slotOf(probe: ProbeView, slot: Slot) {
 	const tokens = probe.line.tokens;
+
 	if (slot === "answer") return tokens.length;
+
 	const last = (test: (text: string) => boolean) =>
 		tokens.reduce(
 			(found, t, i) => (t.role === "code" && test(t.text) ? i : found),
 			-1,
 		);
+
 	if (slot === "assign") {
 		const assign = tokens.findIndex((t) => t.role === "code" && t.text === "=");
+
 		if (assign > 0) return assign;
 	}
+
 	const number = last((text) => NUMBER.test(text));
+
 	return number > 0
 		? number
 		: Math.max(
@@ -159,6 +165,7 @@ export function choices(probe: ProbeView) {
 	const others = ["=", ";", "7", "let"].filter((text) => text !== actual);
 	const options = [actual, ...others].slice(0, 4);
 	const turn = probe.line.code.length % options.length;
+
 	return [...options.slice(turn), ...options.slice(0, turn)];
 }
 
@@ -171,29 +178,37 @@ export interface Spotlight {
 
 export function spotlight(probe: ProbeView | null): Spotlight | null {
 	if (!probe) return null;
+
 	const tokens = probe.line.tokens;
 	let best: Spotlight | null = null;
+
 	for (const trace of probe.focus.layers) {
 		const total = tokens.map((_, i) => trace.tokens[i] ?? 0);
+
 		for (const block of trace.blocks) {
 			for (let i = block.start; i <= block.end && i < total.length; i++) {
 				total[i] += block.weight / (block.end - block.start + 1);
 			}
 		}
+
 		for (const [index, weight] of total.entries()) {
 			if (tokens[index].role !== "code") continue;
+
 			if (!best || weight > best.weight) {
 				best = { layer: trace.layer, index, text: tokens[index].text, weight };
 			}
 		}
 	}
+
 	return best;
 }
 
 function liveStageOf(state: LabState, flags: Flags): Chapter {
 	const steps = state.session?.phaseSteps;
 	const phase = state.operation?.phase;
+
 	if (!steps) return "guess";
+
 	if (
 		flags.own ||
 		steps.distill > 0 ||
@@ -201,9 +216,13 @@ function liveStageOf(state: LabState, flags: Flags): Chapter {
 		phase === "generate"
 	)
 		return "yours";
+
 	if (steps.rl > 0 || phase === "rl") return "practice";
+
 	if (steps.sft > 0 || phase === "sft" || flags.asked) return "question";
+
 	if (steps.pretrain > 0 || phase === "pretrain") return "shape";
+
 	return "guess";
 }
 
@@ -211,6 +230,7 @@ const ORDER = CHAPTERS.map((chapter) => chapter.id);
 
 export function stageOf(state: LabState, flags: Flags): Chapter {
 	const live = liveStageOf(state, flags);
+
 	return flags.view && ORDER.indexOf(flags.view) < ORDER.indexOf(live)
 		? flags.view
 		: live;
@@ -232,16 +252,23 @@ export function step(flags: Flags, from: Shot, by: 1 | -1): Flags {
 	const at = counted(stage) ? Math.min(flags.at[stage], LAST[stage]) : 0;
 	const put = (chapter: Chapter, value: number) =>
 		counted(chapter) ? { ...flags.at, [chapter]: value } : flags.at;
+
 	if (by > 0) {
 		if (at < LAST[stage]) return { ...flags, at: put(stage, at + 1) };
+
 		const next = ORDER[ORDER.indexOf(stage) + 1];
+
 		if (!next || stage === from.live) return flags;
+
 		return next === from.live
 			? { ...flags, view: null }
 			: { ...flags, view: next, at: put(next, 0) };
 	}
+
 	if (at > 0) return { ...flags, at: put(stage, at - 1) };
+
 	const previous = ORDER[ORDER.indexOf(stage) - 1];
+
 	return previous
 		? { ...flags, view: previous, at: put(previous, LAST[previous]) }
 		: flags;
@@ -262,6 +289,7 @@ const BACK: ShotAction = { id: "back", label: "Back" };
 
 export function shot(state: LabState, view: View): Shot {
 	const { flags, selected } = view;
+
 	const base: Shot = {
 		id: "loading",
 		chapter: "guess",
@@ -288,6 +316,7 @@ export function shot(state: LabState, view: View): Shot {
 			primary: { id: "retry", label: "Try again" },
 		};
 	}
+
 	if (state.connection === "down") {
 		return {
 			...base,
@@ -296,8 +325,10 @@ export function shot(state: LabState, view: View): Shot {
 			primary: { id: "retry", label: "Reconnect" },
 		};
 	}
+
 	const session = state.session;
 	const probe = state.probe;
+
 	if (!session || !probe) {
 		return {
 			...base,
@@ -314,9 +345,11 @@ export function shot(state: LabState, view: View): Shot {
 	const stage = stageOf(state, flags);
 	const revisit = stage !== live;
 	const operation = state.operation;
+
 	const working = ["running", "paused", "queued"].includes(
 		operation?.state ?? "",
 	);
+
 	const steps = session.phaseSteps;
 	const model = session.model;
 	const tokens = probe.line.tokens;
@@ -330,11 +363,13 @@ export function shot(state: LabState, view: View): Shot {
 
 	if (stage === "guess") {
 		const at = Math.min(flags.at.guess, 2);
+
 		const scene: Scene = {
 			...EMPTY,
 			line: "covered",
 			slot: "assign",
 		};
+
 		if (at === 0) {
 			result = {
 				...result,
@@ -353,6 +388,7 @@ export function shot(state: LabState, view: View): Shot {
 			};
 		} else if (at === 1) {
 			const knew = flags.pick !== null && flags.pick === boxedText;
+
 			result = {
 				...result,
 				id: "flat",
@@ -426,6 +462,7 @@ export function shot(state: LabState, view: View): Shot {
 		const thin = probe.heldOutLoss > 1.6;
 		const more: ShotAction = { id: "pretrain", label: "Train more" };
 		const loss = state.step?.losses.at(-1);
+
 		if (at === 0) {
 			const scene: Scene = {
 				...EMPTY,
@@ -435,7 +472,9 @@ export function shot(state: LabState, view: View): Shot {
 				bars: true,
 				truth: true,
 			};
+
 			const found = boxedBet >= 0.6;
+
 			result = {
 				...result,
 				id: "training",
@@ -487,6 +526,7 @@ export function shot(state: LabState, view: View): Shot {
 			const spread = focused
 				? probe.focus.distribution.filter((p) => p >= 0.04).length
 				: 0;
+
 			result = {
 				...result,
 				id: "open",
@@ -533,6 +573,7 @@ export function shot(state: LabState, view: View): Shot {
 		} else {
 			const first = state.dreams[0];
 			const latest = state.dreams.at(-1);
+
 			result = {
 				...result,
 				id: "writes",
@@ -558,6 +599,7 @@ export function shot(state: LabState, view: View): Shot {
 
 	if (stage === "question") {
 		const at = Math.min(flags.at.question, 2);
+
 		const asked: Scene = {
 			...EMPTY,
 			line: "asked",
@@ -565,7 +607,9 @@ export function shot(state: LabState, view: View): Shot {
 			figure: "bet",
 			truth: true,
 		};
+
 		const right = Math.round(probe.accuracy * probe.evaluated);
+
 		if (steps.sft === 0 && operation?.phase !== "sft") {
 			result = {
 				...result,
@@ -602,10 +646,13 @@ export function shot(state: LabState, view: View): Shot {
 			const mastered = probe.families
 				.filter((f) => f.correct === f.total)
 				.map((f) => f.label);
+
 			const lost = probe.families
 				.filter((f) => f.correct === 0)
 				.map((f) => f.label);
+
 			const weak = probe.accuracy < 0.3;
+
 			result = {
 				...result,
 				id: "graded",
@@ -632,6 +679,7 @@ export function shot(state: LabState, view: View): Shot {
 		} else if (at === 1) {
 			const spot = focused ? spotlight(probe) : null;
 			const needed = spot?.text === probe.line.truth;
+
 			result = {
 				...result,
 				id: "looks",
@@ -676,6 +724,7 @@ export function shot(state: LabState, view: View): Shot {
 		const early = state.rewards.slice(0, 8);
 		const late = state.rewards.slice(-8);
 		const scene: Scene = { ...EMPTY, figure: "attempts" };
+
 		if (working) {
 			result = {
 				...result,
@@ -695,6 +744,7 @@ export function shot(state: LabState, view: View): Shot {
 		} else {
 			const measured = state.rewards.length >= 24;
 			const improved = measured && mean(late) > mean(early) + 0.03;
+
 			result = {
 				...result,
 				id: "practiced",
@@ -731,9 +781,11 @@ export function shot(state: LabState, view: View): Shot {
 			slot: "answer",
 			figure: "ask",
 		};
+
 		const distilling =
 			operation?.phase === "distill" &&
 			!["completed", "canceled", "failed"].includes(operation.state);
+
 		if (distilling) {
 			result = {
 				...result,
@@ -783,6 +835,7 @@ export function shot(state: LabState, view: View): Shot {
 		const demoted = result.primary;
 		const trains =
 			demoted && ["pretrain", "sft", "rl", "distill"].includes(demoted.id);
+
 		result = {
 			...result,
 			primary: { id: "next", label: "Continue" },
@@ -794,12 +847,14 @@ export function shot(state: LabState, view: View): Shot {
 			],
 		};
 	}
+
 	if (result.id !== "cover" && !result.secondary.some((a) => a.id === "back")) {
 		result = { ...result, secondary: [...result.secondary, BACK] };
 	}
 
 	if (operation) {
 		const controls = result.secondary.filter((a) => a.id === "back");
+
 		switch (operation.state) {
 			case "queued":
 				result = {
@@ -814,15 +869,18 @@ export function shot(state: LabState, view: View): Shot {
 					waiting: "Waiting to start",
 					secondary: [{ id: "cancel", label: "Cancel run" }, ...controls],
 				};
+
 				break;
 			case "running":
 				if (operation.phase !== "generate") {
 					const pause: ShotAction = { id: "pause", label: "Pause" };
 					const cancel: ShotAction = { id: "cancel", label: "Cancel run" };
+
 					result = result.primary
 						? { ...result, secondary: [pause, cancel, ...controls] }
 						: { ...result, primary: pause, secondary: [cancel, ...controls] };
 				}
+
 				break;
 			case "paused":
 				result = {
@@ -836,6 +894,7 @@ export function shot(state: LabState, view: View): Shot {
 					primary: { id: "resume", label: "Resume" },
 					secondary: [{ id: "cancel", label: "Cancel run" }, ...controls],
 				};
+
 				break;
 			case "cancelRequested":
 			case "compensating":
@@ -851,6 +910,7 @@ export function shot(state: LabState, view: View): Shot {
 					secondary: controls,
 					waiting: "Canceling…",
 				};
+
 				break;
 			case "canceled": {
 				const where = {
@@ -860,6 +920,7 @@ export function shot(state: LabState, view: View): Shot {
 					distill: "yours",
 					generate: null,
 				}[operation.phase];
+
 				result = {
 					...result,
 					kept:
@@ -868,6 +929,7 @@ export function shot(state: LabState, view: View): Shot {
 							? `Run canceled. Updates through ${count(operation.retainedStep)} are retained.`
 							: null,
 				};
+
 				break;
 			}
 			case "failed":
@@ -882,8 +944,10 @@ export function shot(state: LabState, view: View): Shot {
 					note: null,
 					kept: `The weights from update ${count(operation.retainedStep)} are intact.`,
 				};
+
 				break;
 		}
 	}
+
 	return result;
 }

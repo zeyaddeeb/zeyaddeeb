@@ -111,13 +111,16 @@ const planning = (level: PlanLevel) =>
 describe("scheduling projects", () => {
 	it("cycles a start through the years and back to never", () => {
 		let game = planning(lead);
+
 		game = cycleStart(game, lead, transformer.id);
 		expect(game.starts[transformer.id]).toEqual({ period: 0, count: 1 });
+
 		game = cycleStart(
 			cycleStart(game, lead, transformer.id),
 			lead,
 			transformer.id,
 		);
+
 		expect(game.starts[transformer.id]?.period).toBe(2);
 		game = cycleStart(game, lead, transformer.id);
 		expect(game.starts[transformer.id]).toBeUndefined();
@@ -125,19 +128,23 @@ describe("scheduling projects", () => {
 
 	it("skips years the one crew is already using", () => {
 		let game = cycleStart(planning(lead), lead, transformer.id);
+
 		game = cycleStart(game, lead, rebuild.id);
 		expect(game.starts[rebuild.id]?.period).toBe(1);
 	});
 
 	it("sends starts, rentals and breakers to the service", () => {
 		let game = cycleStart(planning(lead), lead, transformer.id);
+
 		game = setRental(game, turbines, "y2028", 2);
+
 		game = toggleOpen(
 			{ ...game, view: "y2028" },
 			lead,
 			"yardley-waxpool",
 			true,
 		);
+
 		expect(scheduleOf(game, lead)).toEqual({
 			starts: [{ project: transformer.id, period: 0, count: 1 }],
 			rentals: [{ project: turbines.id, case: "y2028", blocks: 2 }],
@@ -147,6 +154,7 @@ describe("scheduling projects", () => {
 
 	it("sizes a pre-order within its blocks", () => {
 		const game = setSize(planning(futures), preorder, 9);
+
 		expect(game.starts[preorder.id]).toEqual({ period: 0, count: 6 });
 		expect(setSize(game, preorder, 0).starts).toEqual({});
 	});
@@ -157,6 +165,7 @@ describe("scheduling projects", () => {
 			rentals: [],
 			opened: [],
 		};
+
 		expect(activeIn(schedule, transformer, 2)).toBe(0);
 		expect(activeIn(schedule, transformer, 3)).toBe(1);
 	});
@@ -172,10 +181,14 @@ describe("the map for a year", () => {
 			rentals: [],
 			opened: [],
 		};
+
 		const early = mapView(lead, plans, grid, schedule, undefined, "y2028");
+
 		expect(early.level.hubCapacity).toEqual({});
 		expect(early.limits).toEqual({});
+
 		const late = mapView(lead, plans, grid, schedule, undefined, "y2030");
+
 		expect(late.level.hubCapacity).toEqual({ goosecreek: 1150 });
 		expect(late.limits).toEqual({ "loudoun-brambleton": 650 });
 		expect(late.level.placement).toEqual({ waxpool0: "waxpool" });
@@ -210,6 +223,7 @@ describe("replaying and guessing", () => {
 	it("walks the trace and lands on the solver's plan", () => {
 		let game = thinkPlan(planning(lead));
 		const best = solved(50);
+
 		expect(shownPlan(game, { best, yours: null }).solver).toBe(true);
 		game = advancePlan(advancePlan(game, 2), 2);
 		expect(game.phase).toBe("solved");
@@ -217,6 +231,7 @@ describe("replaying and guessing", () => {
 
 	it("locks a guess only while guessing", () => {
 		let game = startPlan(futures, { steps: 1, guessing: true });
+
 		game = nextPlanStep(game, { steps: 1, guessing: true });
 		expect(game.phase).toBe("guess");
 		game = lockGuess(setDraft(game, 7000));
@@ -232,11 +247,13 @@ describe("replaying and guessing", () => {
 			projectName: (id: string) => id,
 			period: () => "2027",
 		};
+
 		for (const copy of planCopies) {
 			for (const step of copy.guide)
 				expect(step.text({ ...names, level: lead }).length).toBeLessThanOrEqual(
 					190,
 				);
+
 			expect(copy.ask.length).toBeLessThanOrEqual(190);
 		}
 	});

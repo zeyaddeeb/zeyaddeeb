@@ -56,6 +56,7 @@ async fn list(State(pool): State<Arc<Pool>>) -> impl IntoResponse {
             statement: level.statement,
         })
         .collect();
+
     Json(levels)
 }
 
@@ -63,24 +64,30 @@ async fn check(State(pool): State<Arc<Pool>>, Json(request): Json<Check>) -> imp
     let Some(level) = levels::find(&request.level) else {
         return (StatusCode::NOT_FOUND, "unknown level").into_response();
     };
+
     if request.steps.len() > MAX_STEPS {
         return (StatusCode::BAD_REQUEST, "too many steps").into_response();
     }
+
     let refused = request
         .steps
         .iter()
         .enumerate()
         .find_map(|(index, step)| guard::tactic(step).err().map(|refusal| (index, refusal)));
+
     let allowed = refused.map_or(request.steps.len(), |(index, _)| index);
+
     let tactics: Vec<String> = request.steps[..allowed]
         .iter()
         .map(|step| step.trim().to_string())
         .collect();
+
     match pool.run(level, &tactics).await {
         Ok(mut run) => {
             if let Some((index, refusal)) = refused {
                 if run.steps.len() == allowed && run.steps.iter().all(|s| s.ok) {
                     run.solved = false;
+
                     run.steps.push(Step {
                         tactic: request.steps[index].trim().to_string(),
                         ok: false,
@@ -89,6 +96,7 @@ async fn check(State(pool): State<Arc<Pool>>, Json(request): Json<Check>) -> imp
                     });
                 }
             }
+
             Json(Checked {
                 goals: pool.start_goals(level),
                 lean_ms: run.micros as f64 / 1000.0,
@@ -106,6 +114,7 @@ async fn check(State(pool): State<Arc<Pool>>, Json(request): Json<Check>) -> imp
             .into_response(),
         Err(PoolError::Down(error)) => {
             tracing::error!(%error, "could not start Lean");
+
             (StatusCode::SERVICE_UNAVAILABLE, "Lean is not available").into_response()
         }
     }
@@ -130,16 +139,19 @@ mod tests {
     #[test]
     fn level_start_matches_previous_json() {
         let level = &LEVELS[0];
+
         let typed = LevelStart {
             goals: vec![goal()],
             id: level.id,
             statement: level.statement,
         };
+
         let loose = serde_json::json!({
             "id": level.id,
             "statement": level.statement,
             "goals": vec![goal()],
         });
+
         assert_eq!(
             serde_json::to_string(&typed).unwrap(),
             serde_json::to_string(&loose).unwrap()
@@ -162,7 +174,9 @@ mod tests {
                 error: Some("type mismatch".into()),
             },
         ];
+
         let micros = 1234u64;
+
         let typed = Checked {
             goals: vec![goal()],
             lean_ms: micros as f64 / 1000.0,
@@ -170,6 +184,7 @@ mod tests {
             solved: false,
             steps: steps.clone(),
         };
+
         let loose = serde_json::json!({
             "level": "intro",
             "goals": vec![goal()],
@@ -177,6 +192,7 @@ mod tests {
             "solved": false,
             "leanMs": micros as f64 / 1000.0,
         });
+
         assert_eq!(
             serde_json::to_string(&typed).unwrap(),
             serde_json::to_string(&loose).unwrap()

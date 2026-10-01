@@ -15,5 +15,4 @@ resource "helm_release" "crdt" {
       image_repository = local.image_repository
     })
   ]
-
 }

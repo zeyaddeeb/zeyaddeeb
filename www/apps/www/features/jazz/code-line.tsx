@@ -12,6 +12,7 @@ interface Token {
 export function tokenize(code: string): Token[] {
 	const out: Token[] = [];
 	const pattern = /([A-Za-z0-9#.'-]+(?:>[A-Ga-g][A-Za-z0-9#.'-]*)*)|(\s+)|(.)/g;
+
 	for (const match of code.matchAll(pattern)) {
 		out.push({
 			text: match[0],
@@ -19,6 +20,7 @@ export function tokenize(code: string): Token[] {
 			word: match[1] !== undefined,
 		});
 	}
+
 	return out;
 }
 
@@ -30,6 +32,7 @@ export function wordAt(code: string, caret: number): [number, number] | null {
 			caret <= token.start + token.text.length
 		)
 			return [token.start, token.start + token.text.length];
+
 	return null;
 }
 
@@ -53,16 +56,22 @@ export function CodeLine({
 	onCaret,
 }: CodeLineProps) {
 	const mirror = useRef<HTMLDivElement>(null);
+
 	const sync = (event: SyntheticEvent<HTMLInputElement>) => {
 		if (mirror.current)
 			mirror.current.style.transform = `translateX(${-event.currentTarget.scrollLeft}px)`;
 	};
+
 	const caret = (event: SyntheticEvent<HTMLInputElement>) => {
 		sync(event);
+
 		const at = event.currentTarget.selectionStart;
+
 		if (at !== null) onCaret(at);
 	};
+
 	const bad = problem ? problem.at : null;
+
 	return (
 		<div
 			className="jz-code"

@@ -115,6 +115,7 @@ def world() -> World:
 
 def _response(result: Result) -> SolveOut:
     plan = result.plan
+
     return SolveOut(
         routes=[
             Route(city=c, site=s, mw=mw) for (c, s), mw in plan.routes.items()
@@ -147,15 +148,21 @@ def _invalid(detail: str) -> HTTPException:
 
 def _validated(level: Level, edits: EditsIn, optimize_build: bool) -> Edits:
     unknown = set(edits.offline) - level.capacity.keys()
+
     if unknown:
         raise _invalid(f"unknown sites {sorted(unknown)}")
+
     build = {s: n for s, n in edits.build.items() if n}
+
     if (build or optimize_build) and level.build is None:
         raise _invalid("this level has nothing to build")
+
     if not build.keys() <= level.capacity.keys():
         raise _invalid("blocks must go on sites in this level")
+
     if level.build and sum(build.values()) > level.build.blocks:
         raise _invalid(f"at most {level.build.blocks} blocks")
+
     return Edits(
         offline=frozenset(edits.offline),
         latency=edits.latency,
@@ -177,9 +184,12 @@ def get_world() -> World:
 @app.post("/solve", response_model_by_alias=True)
 def post_solve(body: SolveIn) -> SolveOut:
     level = LEVELS.get(body.level)
+
     if level is None:
         raise _invalid(f"unknown level {body.level}")
+
     edits = _validated(level, body.edits, body.optimize_build)
+
     try:
         return _cached_solve(level.id, edits, body.optimize_build)
     except SolverError as error:
@@ -267,8 +277,10 @@ def _cached_grid_solve(
 
 def _grid_edits(level: GridLevel, edits: GridEditsIn) -> GridEdits:
     unknown = set(edits.tripped) - LINES.keys() - set(level.candidates)
+
     if unknown:
         raise _invalid(f"unknown lines {sorted(unknown)}")
+
     return GridEdits(tripped=frozenset(edits.tripped), demand=edits.demand)
 
 
@@ -276,23 +288,32 @@ def _grid_choice(level: GridLevel, body: GridSolveIn) -> Choice | None:
     if body.optimize:
         if body.placement or body.built or body.opened:
             raise _invalid("the solver makes its own choices")
+
         return None
+
     campuses = {c.id for c in level.campuses}
+
     if level.placement is None:
         if not body.placement.keys() <= campuses:
             raise _invalid("unknown campuses")
+
         if not set(body.placement.values()) <= SUBSTATIONS.keys():
             raise _invalid("campuses go on substations")
     elif body.placement:
         raise _invalid("this level's campuses are already placed")
+
     if not set(body.built) <= set(level.candidates):
         raise _invalid("that line is not on offer")
+
     if len(set(body.built)) > level.max_build:
         raise _invalid(f"at most {level.max_build} new lines")
+
     if body.opened and not level.switching:
         raise _invalid("this level has no breakers to open")
+
     if not set(body.opened) <= LINES.keys():
         raise _invalid("unknown lines to open")
+
     return Choice(
         placement=frozenset(
             body.placement.items() or (level.placement or {}).items()
@@ -310,10 +331,13 @@ def get_grid() -> GridWorld:
 @app.post("/grid/solve", response_model_by_alias=True)
 def post_grid_solve(body: GridSolveIn) -> GridSolveOut:
     level = GRID_LEVELS.get(body.level)
+
     if level is None:
         raise _invalid(f"unknown level {body.level}")
+
     edits = _grid_edits(level, body.edits)
     choice = _grid_choice(level, body)
+
     try:
         return _cached_grid_solve(level.id, edits, choice)
     except SolverError as error:
@@ -407,30 +431,43 @@ def _plan_schedule(level: PlanLevel, body: ScheduleIn) -> Schedule:
     cases = {c.id for c in level.cases}
     per_period: dict[int, int] = {}
     seen: set[str] = set()
+
     for s in body.starts:
         project = PROJECTS.get(s.project)
+
         if s.project not in level.projects or project is None:
             raise _invalid(f"{s.project} is not on offer")
+
         if s.period >= level.periods:
             raise _invalid("that start is outside the plan")
+
         if s.count > project.size or s.project in seen:
             raise _invalid(f"too much {s.project}")
+
         seen.add(s.project)
+
         per_period[s.period] = per_period.get(s.period, 0) + s.count
+
     if any(n > level.crews for n in per_period.values()):
         raise _invalid(f"at most {level.crews} starts a year")
+
     if level.budget is not None and len(body.starts) > level.budget:
         raise _invalid(f"at most {level.budget} projects")
+
     if body.rentals and level.recourse:
         raise _invalid("the solver rents on the day")
+
     for r in body.rentals:
         if r.project not in level.rentals or r.case not in cases:
             raise _invalid("that rental is not on offer")
+
         if r.blocks > PROJECTS[r.project].blocks:
             raise _invalid("too many blocks")
+
     for o in body.opened:
         if not level.switching or o.line not in LINES or o.case not in cases:
             raise _invalid("that breaker is not on offer")
+
     return Schedule(
         starts=frozenset((s.project, s.period, s.count) for s in body.starts),
         rentals=frozenset((r.project, r.case, r.blocks) for r in body.rentals),
@@ -453,9 +490,12 @@ def get_plans() -> PlansWorld:
 @app.post("/plan/solve", response_model_by_alias=True)
 def post_plan_solve(body: PlanSolveIn) -> PlanSolveOut:
     level = PLAN_LEVELS.get(body.level)
+
     if level is None:
         raise _invalid(f"unknown level {body.level}")
+
     schedule = _plan_schedule(level, body.schedule) if body.schedule else None
+
     try:
         return _cached_plan_solve(level.id, schedule)
     except SolverError as error:

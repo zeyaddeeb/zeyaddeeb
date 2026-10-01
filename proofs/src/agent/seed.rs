@@ -318,9 +318,11 @@ pub fn nodes() -> Vec<Node> {
         .iter()
         .map(|entry| {
             let mut node = Node::new(entry.key, entry.kind, entry.trust, entry.title, entry.body);
+
             node.front = entry.front.to_string();
             node.source = entry.source.map(str::to_string);
             node.lean = entry.lean.map(str::to_string);
+
             node
         })
         .collect()
@@ -346,6 +348,7 @@ mod tests {
     #[test]
     fn links_point_at_seeded_keys() {
         let keys: Vec<&str> = ENTRIES.iter().map(|e| e.key).collect();
+
         for (from, _, to) in LINKS {
             assert!(keys.contains(from), "{from}");
             assert!(keys.contains(to), "{to}");
@@ -357,7 +360,9 @@ mod tests {
         for entry in ENTRIES {
             assert!(fronts::find(entry.front).is_some(), "{}", entry.key);
         }
+
         let mut keys: Vec<&str> = ENTRIES.iter().map(|e| e.key).collect();
+
         keys.sort();
         keys.dedup();
         assert_eq!(keys.len(), ENTRIES.len());

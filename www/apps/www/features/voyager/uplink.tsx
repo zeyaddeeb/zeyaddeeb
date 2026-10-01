@@ -59,6 +59,7 @@ export interface Sent {
 function read(): Sent | null {
 	try {
 		const raw = window.localStorage.getItem(KEY);
+
 		return raw ? (JSON.parse(raw) as Sent) : null;
 	} catch {
 		return null;
@@ -72,8 +73,10 @@ function subscribe(cb: () => void) {
 		cache = read();
 		cb();
 	};
+
 	window.addEventListener(EVENT, on);
 	window.addEventListener("storage", on);
+
 	return () => {
 		window.removeEventListener(EVENT, on);
 		window.removeEventListener("storage", on);
@@ -85,6 +88,7 @@ export function useSent() {
 		subscribe,
 		() => {
 			if (cache === undefined) cache = read();
+
 			return cache;
 		},
 		() => null,
@@ -96,6 +100,7 @@ function save(sent: Sent | null) {
 		if (sent) window.localStorage.setItem(KEY, JSON.stringify(sent));
 		else window.localStorage.removeItem(KEY);
 	} catch {}
+
 	cache = sent;
 	window.dispatchEvent(new Event(EVENT));
 }
@@ -112,6 +117,7 @@ const clock = (ms: number) =>
 
 const span = (seconds: number) => {
 	const d = duration(seconds);
+
 	return `${d.h} h ${String(d.m).padStart(2, "0")} m`;
 };
 
@@ -130,9 +136,11 @@ function Flight({ sent, now }: { sent: Sent | null; now: number }) {
 	const arrive = at + light * 1000;
 	const back = at + light * 2000;
 	const done = sent !== null && now >= arrive;
+
 	const progress = sent
 		? Math.min(1, Math.max(0.006, (now - at) / (light * 1000)))
 		: 0;
+
 	const state = sent ? (done ? "arrived" : "flight") : "idle";
 
 	return (
@@ -184,9 +192,11 @@ export function Uplink() {
 	const [open, setOpen] = useState(false);
 	const [now, setNow] = useState(0);
 	const sent = useSent();
+
 	const bits = wasm
 		? Array.from(wasm.command_bits(choice.opcode, choice.operand))
 		: null;
+
 	const cells = bits ?? Array.from({ length: WIDTH }, () => null);
 	const airtime = `${WIDTH} bits, ${(WIDTH / BPS).toFixed(1)} seconds on the antenna.`;
 	const arrive = sent ? sent.at + sent.light * 1000 : 0;
@@ -195,22 +205,31 @@ export function Uplink() {
 
 	useEffect(() => {
 		const d = sheet.current;
+
 		if (!d) return;
+
 		const show = (e: Event) => {
 			const id = (e as CustomEvent<string | undefined>).detail;
 			const pick = commands.find((c) => c.id === id);
+
 			if (pick) setChoice(pick);
+
 			setNow(Date.now());
 			setOpen(true);
+
 			if (!d.open) d.showModal();
 		};
+
 		const backdrop = (e: MouseEvent) => {
 			if (e.target === d) d.close();
 		};
+
 		const closed = () => setOpen(false);
+
 		window.addEventListener("vg-open-uplink", show);
 		d.addEventListener("click", backdrop);
 		d.addEventListener("close", closed);
+
 		return () => {
 			window.removeEventListener("vg-open-uplink", show);
 			d.removeEventListener("click", backdrop);
@@ -220,35 +239,46 @@ export function Uplink() {
 
 	useEffect(() => {
 		if (!open) return;
+
 		const id = window.setInterval(() => setNow(Date.now()), 1000);
+
 		return () => window.clearInterval(id);
 	}, [open]);
 
 	const send = () => {
 		if (!bits) return;
+
 		const total = (bits.length / BPS) * 1000;
 		const start = performance.now();
 		const id = choice.id;
 		let last = -1;
+
 		setSending(0);
+
 		const tick = () => {
 			const done = Math.min(
 				bits.length,
 				Math.floor(((performance.now() - start) / total) * bits.length),
 			);
+
 			if (done !== last) {
 				last = done;
 				setSending(done);
 			}
+
 			if (done < bits.length) {
 				requestAnimationFrame(tick);
+
 				return;
 			}
+
 			const at = Date.now();
+
 			save({ id, at, light: fix(at).lightSeconds });
 			setNow(at);
 			setSending(null);
 		};
+
 		requestAnimationFrame(tick);
 	};
 

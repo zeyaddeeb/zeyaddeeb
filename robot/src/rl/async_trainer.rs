@@ -39,6 +39,7 @@ impl AsyncTrainer {
         let agent = Arc::new(Mutex::new(
             DDPGAgent::new_or_load(CHECKPOINT_DIR).expect("Failed to create DDPG agent"),
         ));
+
         let agent_clone = Arc::clone(&agent);
 
         let handle = thread::spawn(move || {
@@ -99,6 +100,7 @@ fn training_worker(
 ) {
     loop {
         let mut transitions_added = 0;
+
         loop {
             match transition_rx.try_recv() {
                 Ok(t) => {
@@ -123,7 +125,9 @@ fn training_worker(
         let steps_to_train = {
             if let Ok(mut count) = train_requested.try_lock() {
                 let n = (*count).min(1);
+
                 *count = count.saturating_sub(n);
+
                 n
             } else {
                 0

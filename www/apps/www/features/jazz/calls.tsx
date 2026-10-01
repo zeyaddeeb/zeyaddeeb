@@ -31,11 +31,13 @@ export function deskSummary(state: Calls, player: string) {
 	const tempo = { medium: "120", drag: "76, slow", stomp: "184, fast" }[
 		state.tempo
 	];
+
 	const rhythm = {
 		four: "four to the bar",
 		two: "two-beat",
 		stop: "stop time",
 	}[state.rhythm];
+
 	const who = {
 		trade: `trading with ${player}`,
 		lead: "the tune",
@@ -43,6 +45,7 @@ export function deskSummary(state: Calls, player: string) {
 		clarinet: "clarinet solo",
 		answer: "call and answer",
 	}[state.lineup];
+
 	return `${tempo} · ${state.swing ? "swing" : "straight"} · ${rhythm} · ${who}`;
 }
 
@@ -57,6 +60,7 @@ export function BandDesk({
 	const set = (on: boolean, id: CallId) => () => {
 		if (!on) onCall(id);
 	};
+
 	const tempo: Option[] = [
 		{
 			label: "Slow drag",
@@ -81,6 +85,7 @@ export function BandDesk({
 			act: set(state.tempo === "stomp", "stomp"),
 		},
 	];
+
 	const feel: Option[] = [
 		{
 			label: "Straight",
@@ -96,6 +101,7 @@ export function BandDesk({
 			act: set(state.swing, "swing"),
 		},
 	];
+
 	const rhythm: Option[] = [
 		{
 			label: "Four",
@@ -117,6 +123,7 @@ export function BandDesk({
 			act: set(state.rhythm === "stop", "stop"),
 		},
 	];
+
 	const who: Option[] = (
 		[
 			["trade", "Trade fours", player],
@@ -132,6 +139,7 @@ export function BandDesk({
 		pending: pending === id,
 		act: () => onLineup(id),
 	}));
+
 	const extras: Option[] = [
 		{
 			label: "Blue notes",
@@ -148,6 +156,7 @@ export function BandDesk({
 			act: () => onCall("break"),
 		},
 	];
+
 	return (
 		<section className="jz-desk" aria-label="Lead the band">
 			<Row label="Tempo" options={tempo} />
@@ -204,6 +213,7 @@ export function Cue({
 	onRecord: (id: RecordId) => void;
 }) {
 	const record = records.find((r) => r.id === caption.record);
+
 	return (
 		<div className="jz-caption" aria-live="polite">
 			<div className="jz-caption-head">

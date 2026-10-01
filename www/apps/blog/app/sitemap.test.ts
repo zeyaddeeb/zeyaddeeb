@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@zeyaddeeb/db", () => {
 	const collectionItem = { published: "collection.published" };
 	const post = { published: "post.published" };
+
 	return {
 		collectionItem,
 		post,
@@ -14,6 +15,7 @@ vi.mock("@zeyaddeeb/db", () => {
 						if (condition.field !== table.published || !condition.value) {
 							throw new Error("The sitemap must select only published content");
 						}
+
 						return [
 							{
 								slug: table === post ? "rust-notes" : "a book",
@@ -33,6 +35,7 @@ import sitemap from "./sitemap";
 describe("blog sitemap", () => {
 	it("keeps exactly one blog prefix and uses stored modification dates", async () => {
 		const entries = await sitemap();
+
 		expect(entries.map((entry) => entry.url)).toEqual([
 			"https://www.zeyaddeeb.com/blog",
 			"https://www.zeyaddeeb.com/blog/posts",
@@ -40,9 +43,11 @@ describe("blog sitemap", () => {
 			"https://www.zeyaddeeb.com/blog/library/a%20book",
 			"https://www.zeyaddeeb.com/blog/posts/rust-notes",
 		]);
+
 		for (const entry of entries.slice(0, 3)) {
 			expect(entry.lastModified).toBeUndefined();
 		}
+
 		for (const entry of entries.slice(3)) {
 			expect(entry.lastModified).toEqual(new Date("2026-01-02T00:00:00Z"));
 		}

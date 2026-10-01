@@ -16,9 +16,12 @@ describe("screenplay compiler", () => {
 	it("fits every camera position into the mobile drawing without clipping the move", () => {
 		for (const shot of compile(INITIAL_SCRIPT).screenplay.shots) {
 			const view = frameRect(drawingFrame(shot));
+
 			expect(view.w / view.h).toBeCloseTo(4 / 3);
+
 			for (const frame of setups[shot.setup].frames) {
 				const rect = frameRect(frame);
+
 				expect(view.x).toBeLessThan(rect.x);
 				expect(view.y).toBeLessThan(rect.y);
 				expect(view.x + view.w).toBeGreaterThan(rect.x + rect.w);
@@ -26,10 +29,13 @@ describe("screenplay compiler", () => {
 			}
 		}
 	});
+
 	it("compiles the shooting script into eight timed setups", () => {
 		const { screenplay, error } = compile(INITIAL_SCRIPT);
+
 		expect(error).toBeNull();
 		expect(screenplay.heading).toMatch(/^INT\. HOTEL KUBERNETES/);
+
 		expect(screenplay.shots.map((shot) => shot.setup)).toEqual([
 			"WIDE",
 			"DOLLY",
@@ -40,11 +46,13 @@ describe("screenplay compiler", () => {
 			"TABLEAU",
 			"PULL",
 		]);
+
 		expect(screenplay.shots[4]).toMatchObject({
 			character: "ANNA",
 			parenthetical: "with surgical patience",
 			dialogue: "Don't delete the room. Set the reservation to zero.",
 		});
+
 		expect(screenplay.shots[5].action).toBe("PART TWO: DESIRED STATE");
 		expect(screenplay.shots[5].character).toBe("");
 		expect(durationOf(schedule(screenplay.shots))).toBe(47);
@@ -52,6 +60,7 @@ describe("screenplay compiler", () => {
 
 	it("keeps the timeline contiguous and clamps the end", () => {
 		const cues = schedule(compile(INITIAL_SCRIPT).screenplay.shots);
+
 		expect(cues[1]).toMatchObject({ start: 8, end: 14, index: 1 });
 		expect(locate(cues, 7.99).index).toBe(0);
 		expect(locate(cues, 8).index).toBe(1);
@@ -60,6 +69,7 @@ describe("screenplay compiler", () => {
 
 	it("uses each setup's default length when the cue has none", () => {
 		const { screenplay } = compile("[[WHIP]]\nA glance.");
+
 		expect(screenplay.shots[0].duration).toBe(setups.WHIP.seconds);
 	});
 
@@ -67,6 +77,7 @@ describe("screenplay compiler", () => {
 		const { screenplay, error } = compile(
 			"[[WIDE 2]]\nOTTO\nOne.\nTwo.\n\nThe room waits.",
 		);
+
 		expect(error).toBeNull();
 		expect(screenplay.shots[0].dialogue).toBe("One. Two.");
 		expect(screenplay.shots[0].action).toBe("The room waits.");
@@ -79,13 +90,17 @@ describe("screenplay compiler", () => {
 		expect(compile("[[WIDE 0]]").error).toMatch(/between 1 and 12/);
 		expect(compile("[[WIDE 13]]").error).toMatch(/between 1 and 12/);
 		expect(compile("[[WIDE 4]]\nOTTO\nHi.\nANNA\nBye.").error).toBeNull();
+
 		expect(compile("[[WIDE 4]]\nOTTO\nHi.\n\nANNA\nBye.").error).toMatch(
 			/one speaker/,
 		);
+
 		expect(compile("[[WIDE 4]]\nOTTO\n\n[[WIDE 2]]").error).toMatch(
 			/OTTO needs a line/,
 		);
+
 		expect(compile("[[WIDE 4]]\nOTTO").error).toMatch(/OTTO needs a line/);
+
 		expect(compile(Array(11).fill("[[WIDE 1]]").join("\n")).error).toMatch(
 			/at most 10/,
 		);
@@ -94,6 +109,7 @@ describe("screenplay compiler", () => {
 	it("round-trips through the formatter", () => {
 		const first = compile(INITIAL_SCRIPT).screenplay;
 		const second = compile(format(first)).screenplay;
+
 		expect(second).toEqual(first);
 	});
 
@@ -104,18 +120,25 @@ describe("screenplay compiler", () => {
 			w: 1200,
 			h: 649,
 		});
+
 		for (const setup of Object.values(setups)) {
 			for (const frame of setup.frames) {
 				const { w, h } = frameRect(frame);
+
 				expect(w / h).toBeCloseTo(1.85, 1);
 			}
+
 			for (const frame of setup.tall) {
 				const { w, h } = frameRect(frame);
+
 				expect(w / h).toBeCloseTo(0.6, 1);
 			}
+
 			expect(setup.tall.length).toBe(setup.frames.length);
 		}
+
 		const pull = compile(INITIAL_SCRIPT).screenplay.shots[7];
+
 		expect(arrival(pull)).toBe(setups.PULL.frames[1]);
 		expect(arrival(pull, true)).toBe(setups.PULL.tall[1]);
 	});

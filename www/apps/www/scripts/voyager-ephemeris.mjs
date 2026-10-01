@@ -20,23 +20,31 @@ async function table(start, stop, step) {
 		QUANTITIES: "'19,20'",
 		CSV_FORMAT: "'YES'",
 	});
+
 	const response = await fetch(`${API}?${params}`);
+
 	if (!response.ok) throw new Error(`Horizons: ${response.status}`);
+
 	const text = await response.text();
 	const body = text.split("$$SOE")[1]?.split("$$EOE")[0];
+
 	if (!body) throw new Error(text.slice(0, 400));
+
 	return body
 		.trim()
 		.split("\n")
 		.map((line) => {
 			const cells = line.split(",").map((c) => c.trim());
+
 			const [r, rdot, delta, deldot] = cells
 				.slice(1)
 				.filter((c) => c !== "")
 				.map(Number);
+
 			if (![r, rdot, delta, deldot].every(Number.isFinite)) {
 				throw new Error(`bad row: ${line}`);
 			}
+
 			return { date: iso(cells[0]), r, rdot, delta, deldot };
 		});
 }
@@ -46,6 +54,7 @@ const MONTHS = "JanFebMarAprMayJunJulAugSepOctNovDec";
 function iso(stamp) {
 	const [y, m, d] = stamp.split(" ")[0].split("-");
 	const month = String(MONTHS.indexOf(m) / 3 + 1).padStart(2, "0");
+
 	return `${y}-${month}-${d}`;
 }
 

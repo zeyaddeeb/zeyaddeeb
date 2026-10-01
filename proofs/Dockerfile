@@ -11,7 +11,6 @@ COPY . .
 
 RUN cargo build --locked --release
 
-
 FROM debian:bookworm-slim AS lean
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -47,7 +46,6 @@ RUN cd /mathlib \
     && lake env lean --run Prune.lean --premises /sysroot/premises.json Header.lean \
     && lake env lean --run Prune.lean /sysroot/lib/lean Header.lean \
     && rm -rf /mathlib/.lake
-
 
 FROM debian:bookworm-slim AS base
 

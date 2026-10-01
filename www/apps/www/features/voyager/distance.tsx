@@ -24,12 +24,17 @@ const two = (n: number) => String(Math.floor(n)).padStart(2, "0");
 
 function span(seconds: number, unit = "") {
 	if (seconds < 10) return `${seconds.toFixed(1)}${unit}s`;
+
 	const t = Math.floor(seconds);
 	const h = Math.floor(t / 3600);
 	const m = Math.floor((t % 3600) / 60);
+
 	if (h > 0) return `${h}${unit}h${NB}${m}${unit}m`;
+
 	if (m >= 10) return `${m}${unit}m`;
+
 	if (m > 0) return `${m}${unit}m${NB}${t % 60}${unit}s`;
+
 	return `${t}${unit}s`;
 }
 
@@ -37,8 +42,11 @@ function clock(seconds: number, unit = "") {
 	const t = Math.max(0, Math.floor(seconds));
 	const h = Math.floor(t / 3600);
 	const m = Math.floor((t % 3600) / 60);
+
 	if (h > 0) return `${h}${unit}h${NB}${m}${unit}m`;
+
 	if (m > 0) return `${m}${unit}m${NB}${t % 60}${unit}s`;
+
 	return `${t}${unit}s`;
 }
 
@@ -92,35 +100,45 @@ function stack(width: number, xs: number[], ws: number[]): Stack {
 	const r = new Array<number>(n);
 	const rows = new Array<number>(n);
 	const ends = new Array<number>(n);
+
 	for (let code = 0; code < 4 ** n; code++) {
 		let cost = 0;
+
 		for (let i = 0; i < n; i++) {
 			const o = Math.floor(code / 4 ** i) % 4;
+
 			rows[i] = o % 2;
 			ends[i] = o >> 1;
 			l[i] = ends[i] ? xs[i] - ws[i] - FLAG : xs[i];
 			r[i] = ends[i] ? xs[i] : xs[i] + ws[i] + FLAG;
 			cost += rows[i] + ends[i] * 2;
+
 			if (l[i] < 0) cost += 1000 - l[i];
+
 			if (r[i] > width) cost += 1000 + r[i] - width;
 		}
+
 		for (let i = 0; i < n && cost < low; i++) {
 			for (let j = i + 1; j < n; j++) {
 				if (rows[i] === rows[j]) {
 					const over = Math.min(r[i], r[j]) + CLEAR - Math.max(l[i], l[j]);
+
 					if (over > 0) cost += 1000 + over;
 				} else {
 					const a = rows[i] ? i : j;
 					const b = rows[i] ? j : i;
+
 					if (xs[a] > l[b] - 4 && xs[a] < r[b] + 4) cost += 1000;
 				}
 			}
 		}
+
 		if (cost < low) {
 			low = cost;
 			best = { rows: [...rows], ends: [...ends] };
 		}
 	}
+
 	return best;
 }
 
@@ -137,51 +155,65 @@ function line(
 	here: { x: number; long: number; short: number },
 ): Line {
 	const xs = ticks.map((t) => t.x * width);
+
 	const nudge = Math.min(
 		Math.max(0, here.x - xs[3]),
 		width - (xs[3] + FLAG + ws[3]),
 	);
+
 	let best: Line = {
 		ends: [0, 0, 0, 0],
 		hidden: [0, 0, 0, 0],
 		short: false,
 		nudge,
 	};
+
 	let low = Number.POSITIVE_INFINITY;
+
 	for (let code = 0; code < 18; code++) {
 		const a = code % 3;
 		const b = Math.floor(code / 3) % 3;
 		const short = code >= 9;
+
 		const boxes: [number, number][] = [
 			[0, ws[0] + FLAG],
 			[xs[3], xs[3] + FLAG + ws[3] + nudge],
 			[here.x - FLAG - (short ? here.short : here.long), here.x],
 		];
+
 		let cost = short ? 20 : 0;
+
 		for (const [k, o] of [
 			[1, a],
 			[2, b],
 		]) {
 			if (o === 2) {
 				cost += 500;
+
 				continue;
 			}
+
 			cost += o * 2;
+
 			boxes.push(
 				o ? [xs[k] - FLAG - ws[k], xs[k]] : [xs[k], xs[k] + FLAG + ws[k]],
 			);
 		}
+
 		for (let i = 0; i < boxes.length; i++) {
 			for (let j = i + 1; j < boxes.length; j++) {
 				const over =
 					Math.min(boxes[i][1], boxes[j][1]) +
 					CLEAR -
 					Math.max(boxes[i][0], boxes[j][0]);
+
 				if (over > 0) cost += 1000 + over;
 			}
 		}
+
 		if (cost < low) {
 			low = cost;
+
 			best = {
 				ends: [0, a === 1 ? 1 : 0, b === 1 ? 1 : 0, 0],
 				hidden: [0, a === 2 ? 1 : 0, b === 2 ? 1 : 0, 0],
@@ -190,15 +222,19 @@ function line(
 			};
 		}
 	}
+
 	return best;
 }
 
 function relax(ys: number[]) {
 	const out = [...ys];
+
 	for (let i = out.length - 2; i > 0; i--)
 		out[i] = Math.min(out[i], out[i + 1] - STEP);
+
 	for (let i = 1; i < out.length - 1; i++)
 		out[i] = Math.max(out[i], out[i - 1] + STEP);
+
 	return out.map((y, i) => Math.round(y - ys[i]));
 }
 
@@ -228,6 +264,7 @@ type Vars = CSSProperties & Record<`--${string}`, string | number>;
 
 function countdown(ms: number) {
 	const s = Math.floor(Math.abs(LIGHT_DAY - ms) / 1000);
+
 	return {
 		d: Math.floor(s / DAY_S),
 		parts: [
@@ -251,7 +288,9 @@ const pills = {
 
 const put = (el: Element | null, text: string) => {
 	if (!el) return;
+
 	const node = el.firstChild;
+
 	if (node?.nodeType === Node.TEXT_NODE && !node.nextSibling) {
 		if (node.nodeValue !== text) node.nodeValue = text;
 	} else if (el.textContent !== text) el.textContent = text;
@@ -280,7 +319,9 @@ export function Distance() {
 	const away = useRef<HTMLSpanElement>(null);
 	const flags = useRef<Record<string, boolean>>({});
 	const live = useRef(sent);
+
 	live.current = sent;
+
 	const [crossed, setCrossed] = useState(REFERENCE >= LIGHT_DAY);
 	const [wide, setWide] = useState(false);
 	const [closing, setClosing] = useState(first.kmPerS < 0);
@@ -291,82 +332,113 @@ export function Distance() {
 
 	useEffect(() => {
 		const el = root.current;
+
 		if (!el) return;
+
 		let frame = 0;
 		let last = 0;
 		let on = false;
 		const narrow = window.matchMedia("(max-width: 760px)");
+
 		const flip = (
 			key: string,
 			value: boolean,
 			set: (next: boolean) => void,
 		) => {
 			if (flags.current[key] === value) return;
+
 			flags.current[key] = value;
 			set(value);
 		};
+
 		const tick = () => {
 			const ms = Date.now();
 			const f = fix(ms);
 			const c = countdown(ms);
+
 			c.parts.forEach((p, i) => {
 				put(digits.current[i], p);
 			});
+
 			flip("crossed", ms >= LIGHT_DAY, setCrossed);
 			flip("wide", c.d >= 100, setWide);
 			flip("closing", f.kmPerS < 0, setClosing);
+
 			const p = place(f.lightSeconds);
+
 			here.current?.style.setProperty("--p", p.toFixed(5));
 			plot.current?.style.setProperty("--v", p.toFixed(5));
 			put(hereTime.current, span(f.lightSeconds));
 			put(sun.current, (f.sunKm / AU_KM).toFixed(3));
 			put(sunSpeed.current, grouped(f.sunKmPerS * 3600));
+
 			const speed = Math.abs(f.kmPerS).toFixed(2);
+
 			put(away.current, speed);
+
 			away.current?.parentElement?.style.setProperty(
 				"--ch",
 				String(speed.length - 0.5),
 			);
+
 			const s = live.current;
 			const earth = home.current;
+
 			if (!s) {
 				earth?.toggleAttribute("data-quiet", false);
 				flip("landed", false, setLanded);
 				put(eta.current, clock(f.lightSeconds, NB));
+
 				return;
 			}
+
 			const end = arrival(s);
 			const done = ms >= end;
+
 			flip("landed", done, setLanded);
 			put(eta.current, clock(f.lightSeconds, NB));
+
 			if (!done) put(left.current, clock((end - ms) / 1000, NB));
+
 			const dot = photon.current;
+
 			if (!dot) return;
+
 			const e = (ms - s.at) / 1000;
+
 			dot.style.setProperty("--p", place(Math.min(e, s.light)).toFixed(5));
 			dot.dataset.arrived = done ? "true" : "false";
 			put(photonName.current, done ? "Arrived" : "Your command");
 			put(photonTime.current, done ? weekday(end) : `${clock(e)} out`);
+
 			const box = plot.current;
 			const label = photonName.current?.parentElement;
+
 			if (box && label && earth) {
 				const x = place(Math.min(e, s.light)) * box.clientWidth;
 				const width = earth.offsetWidth;
 				const trail = x - FLAG - label.offsetWidth >= width + FLAG + CLEAR;
+
 				dot.style.setProperty("--end", trail ? "1" : "0");
+
 				earth.toggleAttribute(
 					"data-quiet",
 					!narrow.matches && !trail && x + 2 < FLAG + width + HUSH,
 				);
 			}
 		};
+
 		const loop = (t: number) => {
 			if (!on) return;
+
 			frame = requestAnimationFrame(loop);
+
 			if (t - last < 100) return;
+
 			last = t;
 			tick();
 		};
+
 		const io = new IntersectionObserver(
 			([entry]) => {
 				if (entry.isIntersecting && !on) {
@@ -380,8 +452,10 @@ export function Distance() {
 			},
 			{ rootMargin: "100% 0px" },
 		);
+
 		io.observe(el);
 		tick();
+
 		return () => {
 			on = false;
 			cancelAnimationFrame(frame);
@@ -391,37 +465,52 @@ export function Distance() {
 
 	useEffect(() => {
 		const box = plot.current;
+
 		if (!box) return;
+
 		const phone = window.matchMedia("(max-width: 760px)");
+
 		const fit = () => {
 			if (phone.matches) {
 				if (today.current) today.current.hidden = false;
+
 				return;
 			}
+
 			const width = box.clientWidth;
 			const items = [...box.querySelectorAll<HTMLElement>(".vg-mark")];
+
 			const ws = items.map(
 				(li) =>
 					li.querySelector<HTMLElement>(".vg-mark__label")?.offsetWidth ?? 0,
 			);
+
 			const fitted = stack(
 				width,
 				marks.map((m) => m.x * width),
 				ws,
 			);
+
 			items.forEach((li, i) => {
 				li.style.setProperty("--row", String(fitted.rows[i]));
 				li.style.setProperty("--end", String(fitted.ends[i]));
 				li.style.setProperty("--align", fitted.ends[i] ? "right" : "left");
 			});
+
 			const tickEls = [...box.querySelectorAll<HTMLElement>(".vg-tick")];
+
 			const label = here.current?.querySelector<HTMLElement>(
 				".vg-ladder__here-label",
 			);
+
 			const word = today.current;
+
 			if (!label || !word) return;
+
 			word.hidden = false;
+
 			const full = label.offsetWidth;
+
 			const top = line(
 				width,
 				tickEls.map(
@@ -434,16 +523,22 @@ export function Distance() {
 					short: full - word.offsetWidth,
 				},
 			);
+
 			word.hidden = top.short;
+
 			tickEls.forEach((li, i) => {
 				li.style.setProperty("--end", String(top.ends[i]));
 				li.style.setProperty("--show", String(1 - top.hidden[i]));
 			});
+
 			tickEls[3]?.style.setProperty("--nudge", `${top.nudge}px`);
 		};
+
 		const ro = new ResizeObserver(fit);
+
 		ro.observe(box);
 		document.fonts?.ready.then(fit);
+
 		return () => ro.disconnect();
 	}, []);
 

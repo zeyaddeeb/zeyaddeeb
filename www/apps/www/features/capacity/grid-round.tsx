@@ -69,8 +69,10 @@ function planRows(
 			{ label: "Before", total: best?.totals.total ?? null, tone: "ink" },
 			{ label: "Now", total: live?.totals.total ?? null, tone: "line" },
 		];
+
 	const out = yours ? dark(yours) : 0;
 	const step = game.phase === "thinking" ? best?.trace[game.frame] : null;
+
 	return [
 		{
 			label: "You",
@@ -100,6 +102,7 @@ function quizRows(
 	const extreme = script.questions[game.question] ?? "max";
 	const pick = game.picks[game.question];
 	const answer = answerOf(prices, extreme);
+
 	return [
 		{
 			label: "Pick",
@@ -149,13 +152,16 @@ export function GridRound({
 		}),
 		[copy],
 	);
+
 	const [game, setGame] = useState<GridGame>(() => startGrid(level, script));
 	const step = game.phase === "guide" ? copy.guide[game.step] : undefined;
+
 	const { solutions, pending, failed } = useGridSolutions(
 		level,
 		game,
 		step?.preview,
 	);
+
 	const names = useMemo(() => gridNames(grid), [grid]);
 	const { best, yours, live, today } = solutions;
 	const frames = best?.trace.length ?? 0;
@@ -165,11 +171,14 @@ export function GridRound({
 
 	useEffect(() => {
 		if (game.phase !== "thinking") return;
+
 		const timer = setTimeout(() => setGame((g) => advance(g, frames)), STEP_MS);
+
 		return () => clearTimeout(timer);
 	}, [game.phase, frames]);
 
 	const ready = complete(game, level);
+
 	const won = quiz
 		? game.phase === "told" &&
 			lastQuestion &&
@@ -215,28 +224,36 @@ export function GridRound({
 				label: step.action,
 				run: () => setGame((g) => nextStep(g, script)),
 			};
+
 		if (game.phase === "plan")
 			return {
 				label: "Ask the solver",
 				disabled: !best || !ready,
 				run: () => {
 					const replay = frames > 1 && !reducedMotion();
+
 					setGame((g) => (replay ? think(g) : reveal(g)));
+
 					if (won) onWin(level.id);
 				},
 			};
+
 		if (game.phase === "thinking")
 			return { label: "Skip", run: () => setGame(reveal) };
+
 		if (game.phase === "ask") return null;
+
 		if (game.phase === "told" && !lastQuestion)
 			return {
 				label: "Next question",
 				run: () => setGame((g) => nextQuestion(g, script)),
 			};
+
 		return next ? { label: next.label, run: next.run, arrow: true } : null;
 	})();
 
 	const key = viewingSolver ? best?.key : null;
+
 	const callout: GridCallout | null = key
 		? key.kind === "site" && key.campus && key.substation
 			? {
@@ -255,6 +272,7 @@ export function GridRound({
 
 	const before = currentGridTotal(solutions);
 	const lineContext = { grid, name: names.name, before };
+
 	const slot = (() => {
 		if (game.phase === "play")
 			return (
@@ -263,8 +281,10 @@ export function GridRound({
 					onDemand={(d) => setGame((g) => changeDemand(g, d, before))}
 				/>
 			);
+
 		if (game.phase === "thinking" && best)
 			return <SearchPanel trace={best.trace} frame={game.frame} />;
+
 		if (comparing)
 			return (
 				<ViewToggle
@@ -272,7 +292,9 @@ export function GridRound({
 					onChange={(v) => setGame((g) => showView(g, v))}
 				/>
 			);
+
 		if (quiz) return <PriceLegend />;
+
 		if (game.phase === "plan" && !level.placement)
 			return (
 				<CampusPicker
@@ -283,6 +305,7 @@ export function GridRound({
 					onSelect={(c) => setGame((g) => selectCampus(g, c))}
 				/>
 			);
+
 		if (game.phase === "plan")
 			return (
 				<WirePanel
@@ -292,6 +315,7 @@ export function GridRound({
 					onToggle={(l) => setGame((g) => pickLine(g, level, l, lineContext))}
 				/>
 			);
+
 		return <GridLegend />;
 	})();
 
@@ -303,34 +327,47 @@ export function GridRound({
 				: game.phase === "guide"
 					? null
 					: best;
+
 	const trace = game.phase === "thinking" ? best?.trace[game.frame] : null;
+
 	const verdictText = (() => {
 		if (trace)
 			return `Replaying SCIP’s search: node ${trace.nodes}, ${ms(trace.ms)} in.`;
+
 		if (quiz) {
 			if (game.phase === "play")
 				return "Live: every change re-prices the grid.";
+
 			if (game.phase !== "told")
 				return "One guess each. Prices appear once you pick.";
+
 			const pick = game.picks[game.question];
 			const answer = answerOf(prices, script.questions[game.question]);
+
 			if (!pick || !answer) return "";
+
 			return pick === answer
 				? "Right on."
 				: `Off by ${perMwh(Math.abs((prices[pick] ?? 0) - (prices[answer] ?? 0)))} a megawatt-hour.`;
 		}
+
 		if (comparing)
 			return verdict(yours?.totals.total ?? 0, best?.totals.total ?? 0, won);
+
 		if (game.phase === "play") return "Live: every change is a fresh solve.";
+
 		return "Every dark megawatt costs $1,400 an hour in lost GPU rent.";
 	})();
+
 	const rows = quiz
 		? quizRows(game, script, prices)
 		: planRows(game, ready, yours, best, live);
+
 	const scale =
 		trace && best
 			? Math.max(yours?.totals.total ?? 0, best.totals.total) * 1.6
 			: undefined;
+
 	const hub = grid.hubs.find((h) => level.hubCapacity[h.id]);
 
 	return (

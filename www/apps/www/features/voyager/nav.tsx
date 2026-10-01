@@ -23,27 +23,36 @@ function useActive() {
 
 	useEffect(() => {
 		let frame = 0;
+
 		const read = () => {
 			frame = 0;
+
 			const line = window.innerHeight * 0.5;
 			let id: string | null = null;
 			let bottom = 0;
+
 			for (const s of sections) {
 				const r = document.getElementById(s.id)?.getBoundingClientRect();
+
 				if (!r || r.top > line) break;
+
 				id = s.id;
 				bottom = r.bottom;
 			}
+
 			setActive(
 				id === sections[sections.length - 1].id && bottom < line ? null : id,
 			);
 		};
+
 		const queue = () => {
 			if (!frame) frame = requestAnimationFrame(read);
 		};
+
 		read();
 		window.addEventListener("scroll", queue, { passive: true });
 		window.addEventListener("resize", queue);
+
 		return () => {
 			cancelAnimationFrame(frame);
 			window.removeEventListener("scroll", queue);
@@ -58,8 +67,11 @@ const pad = (n: number) => String(n).padStart(2, "0");
 
 export function flightLabel(sent: Sent, now: number) {
 	const arrive = sent.at + sent.light * 1000;
+
 	if (now >= arrive) return "Arrived";
+
 	const minutes = Math.ceil((arrive - now) / 60_000);
+
 	return `In flight · ${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
 }
 
@@ -68,16 +80,24 @@ function useFlight(sent: Sent | null) {
 
 	useEffect(() => {
 		if (!sent) return;
+
 		const arrive = sent.at + sent.light * 1000;
 		let id = 0;
+
 		const tick = () => {
 			const t = Date.now();
+
 			setNow(t);
+
 			if (t >= arrive) return;
+
 			const edge = (arrive - t) % 60_000;
+
 			id = window.setTimeout(tick, (edge || 60_000) + 50);
 		};
+
 		tick();
+
 		return () => window.clearTimeout(id);
 	}, [sent]);
 
@@ -101,15 +121,22 @@ export function Nav() {
 
 	useEffect(() => {
 		const d = sheet.current;
+
 		if (!d) return;
+
 		const closed = () => setOpen(false);
+
 		const click = (e: MouseEvent) => {
 			const row = (e.target as Element).closest("a[href^='#']");
+
 			if (e.target === d || row) d.close();
 		};
+
 		d.addEventListener("close", closed);
 		d.addEventListener("click", click);
+
 		const release = dragToClose(d);
+
 		return () => {
 			d.removeEventListener("close", closed);
 			d.removeEventListener("click", click);
@@ -119,7 +146,9 @@ export function Nav() {
 
 	const show = () => {
 		const d = sheet.current;
+
 		if (!d || d.open) return;
+
 		d.style.transform = "";
 		d.showModal();
 		setOpen(true);

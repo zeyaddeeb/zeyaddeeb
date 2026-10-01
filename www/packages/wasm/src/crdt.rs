@@ -68,36 +68,46 @@ impl RgaDocument {
 
     pub fn insert(&mut self, position: usize, value: &str) -> String {
         let ch = value.chars().next().unwrap_or(' ');
+
         self.clock += 1;
+
         let id = CharId {
             site: self.site_id,
             clock: self.clock,
         };
+
         let parent = if position == 0 {
             None
         } else {
             self.nth_visible(position - 1).map(|c| c.id.clone())
         };
+
         let op = InsertOp {
             id,
             parent,
             value: ch,
         };
+
         self.apply_insert_internal(&op, false);
+
         serde_json::to_string(&CrdtOp::Insert(op)).unwrap_or_default()
     }
 
     pub fn delete(&mut self, position: usize) -> Option<String> {
         let id = self.nth_visible(position)?.id.clone();
         let op = DeleteOp { id };
+
         self.apply_delete_internal(&op);
+
         Some(serde_json::to_string(&CrdtOp::Delete(op)).unwrap_or_default())
     }
 
     pub fn apply_remote(&mut self, op_json: &str) -> Result<(), JsValue> {
         let op: CrdtOp = serde_json::from_str(op_json)
             .map_err(|e| JsValue::from_str(&format!("crdt parse error: {e}")))?;
+
         self.apply_op(op);
+
         Ok(())
     }
 
@@ -117,6 +127,7 @@ impl RgaDocument {
         while !pending_inserts.is_empty() {
             let before = pending_inserts.len();
             let mut i = 0;
+
             while i < pending_inserts.len() {
                 if self.apply_insert_internal(&pending_inserts[i], true) {
                     pending_inserts.remove(i);
@@ -165,6 +176,7 @@ impl RgaDocument {
                 }
             })
             .collect();
+
         serde_json::to_string(&ops).unwrap_or_default()
     }
 
@@ -189,6 +201,7 @@ impl RgaDocument {
                 })
             })
             .collect();
+
         serde_json::to_string(&items).unwrap_or_default()
     }
 }
@@ -228,8 +241,10 @@ impl RgaDocument {
         };
 
         let mut pos = start;
+
         while pos < self.chars.len() {
             let c = &self.chars[pos];
+
             if c.parent == op.parent && c.id > op.id {
                 pos += 1;
             } else {

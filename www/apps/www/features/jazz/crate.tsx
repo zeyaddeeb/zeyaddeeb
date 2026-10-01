@@ -50,12 +50,15 @@ function Record({
 
 	useEffect(() => {
 		if (!request) return;
+
 		audio.current?.play().catch(() => setFailed(true));
 	}, [request]);
 
 	const toggle = () => {
 		const el = audio.current;
+
 		if (!el) return;
+
 		if (el.paused) el.play().catch(() => setFailed(true));
 		else el.pause();
 	};
@@ -107,6 +110,7 @@ function Record({
 				onError={() => setFailed(true)}
 				onTimeUpdate={(event) => {
 					const el = event.currentTarget;
+
 					if (el.duration) setProgress(el.currentTime / el.duration);
 				}}
 			/>

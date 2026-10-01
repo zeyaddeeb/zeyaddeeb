@@ -47,6 +47,7 @@ export function TextInput({
 	type = "text",
 }: TextInputProps) {
 	const id = useId();
+
 	return (
 		<FormField label={label} htmlFor={id} required={required}>
 			<input
@@ -82,6 +83,7 @@ export function TextAreaInput({
 	className,
 }: TextAreaInputProps) {
 	const id = useId();
+
 	return (
 		<FormField label={label} htmlFor={id} required={required}>
 			<textarea
@@ -113,6 +115,7 @@ export function SelectInput<T extends string>({
 	getOptionLabel = (o) => o.charAt(0).toUpperCase() + o.slice(1),
 }: SelectInputProps<T>) {
 	const id = useId();
+
 	return (
 		<FormField label={label} htmlFor={id}>
 			<select
@@ -143,6 +146,7 @@ export function CheckboxInput({
 	onChange,
 }: CheckboxInputProps) {
 	const id = useId();
+
 	return (
 		<div className="flex items-center gap-3">
 			<input
@@ -173,6 +177,7 @@ export function ColorPicker({
 	placeholder = "#ff6b6b",
 }: ColorPickerProps) {
 	const id = useId();
+
 	return (
 		<FormField label={label} htmlFor={id}>
 			<div className="flex gap-2">
@@ -203,6 +208,7 @@ interface NumberInputProps {
 
 export function NumberInput({ label, value, onChange }: NumberInputProps) {
 	const id = useId();
+
 	return (
 		<FormField label={label} htmlFor={id}>
 			<input

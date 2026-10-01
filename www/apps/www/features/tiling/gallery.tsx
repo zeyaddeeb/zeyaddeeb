@@ -34,9 +34,12 @@ function StagedPlate({
 	const zoomRef = useRef({ cur: 1, target: 1 });
 	const dragRef = useRef<{ x: number; y: number } | null>(null);
 	const reducedRef = useRef(false);
+
 	reducedRef.current = useReducedMotion();
+
 	const { touchActive, setTouchActive, canInteract, touchAction } =
 		useCanvasInteraction();
+
 	useCanvasWheel(canvasRef, (delta) => {
 		zoomRef.current.target = clamp(
 			zoomRef.current.target * Math.exp(-delta * 0.0012),
@@ -48,6 +51,7 @@ function StagedPlate({
 	useEffect(() => {
 		const wrapper = wrapperRef.current;
 		const canvas = canvasRef.current;
+
 		if (!wrapper || !canvas) return;
 
 		let pixelRatio = 1;
@@ -55,36 +59,49 @@ function StagedPlate({
 		const resize = () => {
 			const w = wrapper.clientWidth;
 			const h = wrapper.clientHeight;
+
 			if (w === 0 || h === 0) return;
+
 			pixelRatio = fitCanvas(canvas, w, h);
 			canvas.style.width = `${w}px`;
 			canvas.style.height = `${h}px`;
 		};
+
 		resize();
+
 		const observer = new ResizeObserver(resize);
+
 		observer.observe(wrapper);
 
 		const el = canvas;
 		const pointers = new Map<number, { x: number; y: number }>();
 		let pinchDist = 0;
+
 		const onDown = (e: PointerEvent) => {
 			if (!canInteract(e) || e.button !== 0) return;
+
 			el.setPointerCapture(e.pointerId);
 			pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
 			if (pointers.size === 2) {
 				const [p1, p2] = [...pointers.values()];
+
 				pinchDist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
 				dragRef.current = null;
 			} else {
 				dragRef.current = { x: e.clientX, y: e.clientY };
 			}
 		};
+
 		const onMove = (e: PointerEvent) => {
 			if (!pointers.has(e.pointerId)) return;
+
 			pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
 			if (pointers.size === 2) {
 				const [p1, p2] = [...pointers.values()];
 				const d = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+
 				if (pinchDist > 0 && d > 0) {
 					zoomRef.current.target = clamp(
 						zoomRef.current.target * (d / pinchDist),
@@ -92,27 +109,39 @@ function StagedPlate({
 						2.7,
 					);
 				}
+
 				pinchDist = d;
+
 				return;
 			}
+
 			const drag = dragRef.current;
+
 			if (!drag) return;
+
 			const dx = e.clientX - drag.x;
 			const dy = e.clientY - drag.y;
+
 			driftRef.current.angle += dx * 0.004 + dy * 0.0015;
 			driftRef.current.velocity = dx * 0.018;
 			dragRef.current = { x: e.clientX, y: e.clientY };
 		};
+
 		const onUp = (e: PointerEvent) => {
 			if (!pointers.has(e.pointerId)) return;
+
 			pointers.delete(e.pointerId);
+
 			if (pointers.size < 2) pinchDist = 0;
+
 			dragRef.current = null;
 		};
+
 		const onDouble = () => {
 			driftRef.current = { angle: 0, velocity: 0 };
 			zoomRef.current.target = 1;
 		};
+
 		el.addEventListener("pointerdown", onDown);
 		el.addEventListener("pointermove", onMove);
 		el.addEventListener("pointerup", onUp);
@@ -124,43 +153,57 @@ function StagedPlate({
 		let lastTime = performance.now();
 		const ART_SIZE = 1400;
 		const art = document.createElement("canvas");
+
 		art.width = ART_SIZE;
 		art.height = ART_SIZE;
+
 		const artCtx = art.getContext("2d");
 
 		const loop = (now: number) => {
 			raf = requestAnimationFrame(loop);
+
 			const dt = Math.min(0.1, (now - lastTime) / 1000);
+
 			lastTime = now;
 
 			const { tiling, layout, colors, theme } = handlesRef.current;
 			const ctx = canvas.getContext("2d");
+
 			if (!ctx || canvas.width === 0 || !tiling || !artCtx) return;
+
 			if (canvas.clientWidth === 0) return;
 
 			const width = canvas.width;
 			const height = canvas.height;
+
 			ctx.clearRect(0, 0, width, height);
 
 			const clock = clockRef.current;
 			const drift = driftRef.current;
+
 			if (!reducedRef.current) {
 				if (!dragRef.current) {
 					drift.angle += (0.055 + drift.velocity) * dt;
 					drift.velocity *= Math.exp(-2.4 * dt);
 				}
+
 				clock.theta += dt * 0.13;
 				clock.phase += dt * 0.19;
 			}
+
 			const view = glide(clock);
+
 			const verts = tiling.transform_vertices(
 				view.ar,
 				view.ai,
 				view.br,
 				view.bi,
 			);
+
 			const zoom = zoomRef.current;
+
 			zoom.cur += (zoom.target - zoom.cur) * Math.min(1, dt * 6);
+
 			drawTiling(
 				artCtx,
 				ART_SIZE,
@@ -189,6 +232,7 @@ function StagedPlate({
 			ctx.restore();
 
 			const dpr = pixelRatio;
+
 			ctx.save();
 			ctx.beginPath();
 			ctx.arc(cx, cy, Math.max(0, r - dpr), 0, Math.PI * 2);
@@ -197,13 +241,16 @@ function StagedPlate({
 			ctx.stroke();
 			ctx.restore();
 		};
+
 		raf = requestAnimationFrame(loop);
 
 		return () => {
 			dragRef.current = null;
+
 			for (const id of pointers.keys()) {
 				if (el.hasPointerCapture(id)) el.releasePointerCapture(id);
 			}
+
 			cancelAnimationFrame(raf);
 			observer.disconnect();
 			el.removeEventListener("pointerdown", onDown);
@@ -309,6 +356,7 @@ export default function CircleLimitGallery() {
 				<ol className="grid grid-cols-1 gap-px border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-3">
 					{VARIANTS.map((variant, index) => {
 						const onView = variant.id === heroId;
+
 						return (
 							<li key={variant.id} className="bg-charcoal">
 								<button

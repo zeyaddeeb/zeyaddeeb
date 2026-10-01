@@ -30,6 +30,7 @@ impl ReplayBuffer {
         if self.buffer.len() == self.capacity {
             self.buffer.pop_front();
         }
+
         self.buffer.push_back(t);
     }
 
@@ -61,12 +62,15 @@ impl ReplayBuffer {
         if self.len() < batch_size {
             return None;
         }
+
         let batch: Vec<Transition> = (0..batch_size)
             .map(|_| {
                 let i = rand::random_range(0..self.len());
+
                 self.buffer[i].clone()
             })
             .collect();
+
         Some(batch)
     }
 
@@ -74,8 +78,10 @@ impl ReplayBuffer {
         let file = File::create(path)?;
         let mut writer = BufWriter::new(file);
         let data: Vec<&Transition> = self.buffer.iter().collect();
+
         rmp_serde::encode::write(&mut writer, &data).map_err(std::io::Error::other)?;
         writer.flush()?;
+
         writer.get_ref().sync_all()
     }
 
@@ -86,9 +92,11 @@ impl ReplayBuffer {
             rmp_serde::decode::from_read(&mut reader).map_err(std::io::Error::other)?;
 
         self.buffer.clear();
+
         for t in data {
             self.push(t);
         }
+
         Ok(())
     }
 }

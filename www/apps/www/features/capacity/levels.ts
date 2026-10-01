@@ -27,8 +27,10 @@ function restraint({ solved, name }: Context): string {
 	const short = Object.entries(solved.dropped).map(
 		([city, amount]) => `${name(city)} ${mw(amount)}`,
 	);
+
 	if (solved.buildAllCost === null || !short.length)
 		return "Every block it was offered paid for itself.";
+
 	return `It left ${listing(short)} short on purpose: the last block would cost ${money(solved.buildAllCost)} an hour more than the customers it wins back.`;
 }
 
@@ -81,6 +83,7 @@ export const copies: Copy[] = [
 				.slice()
 				.sort((a, b) => b.mw - a.mw)
 				.map((t) => name(t.site));
+
 			return `Training went to ${listing(far)}, starting with the power no chat user can reach. That left the capacity near people for the work that has to be near people.`;
 		},
 		matched: () =>
@@ -98,6 +101,7 @@ export const copies: Copy[] = [
 			const berlin = solved.routes
 				.filter((r) => r.city === "berlin")
 				.map((r) => `${mw(r.mw)} from ${name(r.site)}`);
+
 			return `The solver splits Berlin, ${listing(berlin)}, to land exactly on the cap. Loosen it by one tonne and the bill falls by ${money(solved.carbonPrice ?? 0)} an hour. That’s the carbon price your cap sets.`;
 		},
 		matched: ({ solved }) =>

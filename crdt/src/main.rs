@@ -25,12 +25,15 @@ async fn main() -> anyhow::Result<()> {
             std::env::var("RUST_LOG").unwrap_or_else(|_| "crdt=info,tower_http=info".into()),
         )
         .init();
+
     let db = db::connect().await?;
 
     let state = AppState::new(db);
     let sweeper = state.clone();
+
     tokio::spawn(async move {
         let mut tick = tokio::time::interval(std::time::Duration::from_secs(30));
+
         loop {
             tick.tick().await;
             sweeper.sweep().await;
@@ -51,14 +54,17 @@ async fn main() -> anyhow::Result<()> {
         .with_state(state);
 
     let addr = std::env::var("CRDT_BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:3001".into());
+
     info!("crdt server listening on {addr}");
 
     let listener = tokio::net::TcpListener::bind(&addr).await?;
+
     axum::serve(listener, app)
         .with_graceful_shutdown(async {
             let mut terminate =
                 tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
                     .expect("SIGTERM handler");
+
             tokio::select! {
                 _ = tokio::signal::ctrl_c() => {}
                 _ = terminate.recv() => {}
@@ -89,13 +95,16 @@ async fn ws_upgrade(
     if doc_id.len() > 64 || !doc_id.chars().all(|c| c.is_alphanumeric() || c == '-') {
         return (StatusCode::BAD_REQUEST, "invalid doc_id").into_response();
     }
+
     let Ok(permit) = state.connections.clone().try_acquire_owned() else {
         return (StatusCode::TOO_MANY_REQUESTS, "server at capacity").into_response();
     };
+
     ws.max_message_size(4096)
         .max_frame_size(4096)
         .on_upgrade(move |socket| async move {
             let _permit = permit;
+
             ws::handle(socket, doc_id, state).await;
         })
 }

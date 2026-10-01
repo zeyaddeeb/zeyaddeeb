@@ -16,6 +16,7 @@ export function CaseTabs({
 	onShow: (id: string) => void;
 }) {
 	const futures = level.periods === 1 && level.cases.length > 1;
+
 	return (
 		<div
 			className="cc-cases"
@@ -24,10 +25,12 @@ export function CaseTabs({
 		>
 			{level.cases.map((c) => {
 				const result = results.find((r) => r.case === c.id);
+
 				const dark = Object.values(result?.flow.shed ?? {}).reduce(
 					(a, b) => a + b,
 					0,
 				);
+
 				return (
 					<button
 						key={c.id}
@@ -114,11 +117,13 @@ export function ProjectPanel({
 	onRent: (project: Project, blocks: number) => void;
 }) {
 	const viewLabel = level.cases.find((c) => c.id === game.view)?.label ?? "";
+
 	const rentals = level.recourse
 		? []
 		: level.rentals
 				.map((id) => names.project(id))
 				.filter((p): p is Project => !!p);
+
 	return (
 		<div className="cc-selection">
 			<div
@@ -138,7 +143,9 @@ export function ProjectPanel({
 								/>
 							</span>
 						);
+
 					const start = game.starts[p.id];
+
 					return (
 						<button
 							key={p.id}
@@ -202,7 +209,9 @@ export function rushNote(
 	names: PlanNames,
 ): string {
 	const rush = Object.entries(result?.rentals ?? {});
+
 	if (!rush.length) return "";
+
 	return rush
 		.map(([id, n]) => `${names.projectName(id)}: ${mw(n * 100)}`)
 		.join(", ");

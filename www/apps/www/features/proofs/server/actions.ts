@@ -19,7 +19,9 @@ export async function loadLevels(): Promise<Loaded> {
 			cache: "no-store",
 			signal: AbortSignal.timeout(5000),
 		});
+
 		if (!response.ok) return { ok: false, reason: "down" };
+
 		return { ok: true, levels: await response.json() };
 	} catch {
 		return { ok: false, reason: "down" };
@@ -35,7 +37,9 @@ export async function checkProof(
 	steps: string[],
 ): Promise<CheckResult> {
 	const parsed = checkSchema.safeParse({ level, steps });
+
 	if (!parsed.success) return { ok: false, reason: "invalid" };
+
 	try {
 		const response = await fetch(`${service}/check`, {
 			method: "POST",
@@ -44,8 +48,11 @@ export async function checkProof(
 			headers: { "content-type": "application/json" },
 			body: JSON.stringify(parsed.data),
 		});
+
 		if (response.status === 503) return { ok: false, reason: "busy" };
+
 		if (!response.ok) return { ok: false, reason: "down" };
+
 		return { ok: true, checked: await response.json() };
 	} catch {
 		return { ok: false, reason: "down" };

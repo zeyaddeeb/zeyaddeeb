@@ -12,9 +12,11 @@ export default async function EditCollectionPage({
 }: EditCollectionPageProps) {
 	const { id } = await params;
 	const user = await requireAdminPage();
+
 	if (!user) return <AccessDenied />;
 
 	const result = await getCollectionItemForEdit(id);
+
 	if (!result.success) {
 		return <WriteNotice title="Item Not Found" message={result.error} />;
 	}

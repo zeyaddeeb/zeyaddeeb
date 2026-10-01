@@ -25,24 +25,31 @@ export function PostScreen() {
 
 	useEffect(() => {
 		if (phase !== "memory") return;
+
 		const id = setInterval(() => {
 			setKb((v) => {
 				const next = Math.min(TOTAL_KB, v + 64);
+
 				if (next === TOTAL_KB) setPhase("devices");
+
 				return next;
 			});
 		}, 28);
+
 		return () => clearInterval(id);
 	}, [phase]);
 
 	useEffect(() => {
 		if (phase !== "devices") return;
+
 		const id = setInterval(() => {
 			setShown((n) => {
 				if (n + 1 >= DEVICES.length) setPhase("done");
+
 				return n + 1;
 			});
 		}, 420);
+
 		return () => clearInterval(id);
 	}, [phase]);
 

@@ -43,6 +43,7 @@ function Notes() {
 	const [rev1, rev2] = habits.reviewer;
 	const time = ([h, m]: [number, number]) =>
 		`${h > 12 ? h - 12 : h}:${String(m).padStart(2, "0")}`;
+
 	return (
 		<div className="mc-notes">
 			<h3>The question</h3>

@@ -30,16 +30,20 @@ export default function AudioVisualizerCanvas() {
 
 	useEffect(() => {
 		unmountedRef.current = false;
+
 		return () => {
 			unmountedRef.current = true;
 			audioProcessorRef.current?.free();
 			audioProcessorRef.current = null;
+
 			if (animationFrameRef.current) {
 				cancelAnimationFrame(animationFrameRef.current);
 			}
+
 			if (audioContextRef.current) {
 				audioContextRef.current.close();
 			}
+
 			for (const track of streamRef.current?.getTracks() ?? []) track.stop();
 		};
 	}, []);
@@ -48,11 +52,14 @@ export default function AudioVisualizerCanvas() {
 		if (animationFrameRef.current) {
 			cancelAnimationFrame(animationFrameRef.current);
 		}
+
 		if (audioContextRef.current) {
 			audioContextRef.current.close();
 			audioContextRef.current = null;
 		}
+
 		for (const track of streamRef.current?.getTracks() ?? []) track.stop();
+
 		streamRef.current = null;
 		analyserRef.current = null;
 		audioProcessorRef.current?.free();
@@ -69,6 +76,7 @@ export default function AudioVisualizerCanvas() {
 		if (!canvas || !analyser || !processor || !wasm) return;
 
 		const ctx = canvas.getContext("2d");
+
 		if (!ctx) return;
 
 		const timeDomainData = new Float32Array(analyser.fftSize);
@@ -102,6 +110,7 @@ export default function AudioVisualizerCanvas() {
 					smoothing,
 				);
 			}
+
 			if (previousDataRef.current?.length === frequencyBins.length)
 				previousDataRef.current.set(frequencyBins);
 			else previousDataRef.current = new Float32Array(frequencyBins);
@@ -116,15 +125,19 @@ export default function AudioVisualizerCanvas() {
 			switch (mode) {
 				case "bars":
 					drawBars(ctx, width, height, frequencyBins);
+
 					break;
 				case "wave":
 					drawWave(ctx, width, height, frequencyBins);
+
 					break;
 				case "circular":
 					drawCircular(ctx, width, height, frequencyBins);
+
 					break;
 				case "particles":
 					drawParticles(ctx, width, height, frequencyBins);
+
 					break;
 			}
 		};
@@ -135,6 +148,7 @@ export default function AudioVisualizerCanvas() {
 	const startListening = useCallback(async () => {
 		if (!wasm) {
 			setError("WASM module not loaded yet");
+
 			return;
 		}
 
@@ -149,10 +163,12 @@ export default function AudioVisualizerCanvas() {
 
 			if (unmountedRef.current) {
 				for (const track of stream.getTracks()) track.stop();
+
 				return;
 			}
 
 			streamRef.current = stream;
+
 			const audioContext = new AudioContext();
 
 			if (audioContext.state === "suspended") {
@@ -170,6 +186,7 @@ export default function AudioVisualizerCanvas() {
 			analyserRef.current = analyser;
 
 			const processor = new wasm.AudioProcessor(2048);
+
 			audioProcessorRef.current = processor;
 
 			setIsListening(true);
@@ -203,12 +220,14 @@ export default function AudioVisualizerCanvas() {
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
+
 		if (!canvas) return;
 
 		const updateCanvasSize = () => {
 			const rect = canvas.getBoundingClientRect();
 			const dpr = fitCanvas(canvas, rect.width, rect.height);
 			const ctx = canvas.getContext("2d");
+
 			if (ctx) {
 				ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 			}
@@ -221,6 +240,7 @@ export default function AudioVisualizerCanvas() {
 		});
 
 		resizeObserver.observe(canvas);
+
 		return () => resizeObserver.disconnect();
 	}, []);
 

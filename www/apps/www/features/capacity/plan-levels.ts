@@ -41,10 +41,14 @@ export interface PlanCopy {
 
 export function planNames(plans: PlansWorld, names: GridNames): PlanNames {
 	const project = (id: string) => plans.projects.find((p) => p.id === id);
+
 	const projectName = (id: string): string => {
 		const p = project(id);
+
 		if (!p) return id;
+
 		const where = names.name(p.target);
+
 		switch (p.kind) {
 			case "hub":
 				return `${where} transformer`;
@@ -60,8 +64,10 @@ export function planNames(plans: PlansWorld, names: GridNames): PlanNames {
 					: `Turbines at ${where}`;
 		}
 	};
+
 	const period = (level: PlanLevel, t: number) =>
 		level.cases.find((c) => c.period === t)?.label ?? `year ${t + 1}`;
+
 	return { ...names, project, projectName, period };
 }
 
@@ -145,6 +151,7 @@ export const planCopies: PlanCopy[] = [
 		ask: "How many blocks do you order today, before anyone signs? The score is the expected hour: every future weighted by its odds.",
 		aha: ({ solved }) => {
 			const h = solved.hedge;
+
 			return `The solver orders ${blocksOf(solved)} blocks. Plan for the average signing and you order ${h?.meanSize ?? 0}; if three sign, rush orders run out and Arcola goes dark. That’s ${money(h?.vss ?? 0)} more an hour.`;
 		},
 		matched: ({ solved }) =>
@@ -164,6 +171,7 @@ export const planCopies: PlanCopy[] = [
 		ask: "Order blocks to make the worst future as cheap as possible.",
 		aha: ({ solved }) => {
 			const h = solved.hedge;
+
 			return `The solver orders ${blocksOf(solved)} blocks and never rush-orders. That insurance costs ${money(solved.total - (h?.otherTotal ?? solved.total))} an hour on average and saves ${money((h?.otherWorst ?? solved.worst) - solved.worst)} if all three sign.`;
 		},
 		matched: ({ solved }) =>
@@ -190,6 +198,7 @@ export const planCopies: PlanCopy[] = [
 			reveal: ({ solved }, guess) => {
 				const evpi = solved.hedge?.evpi ?? 0;
 				const close = Math.abs(guess - evpi) <= evpi * 0.25;
+
 				return `${close ? "Close. " : ""}It’s worth ${money(evpi)} an hour: the gap between the best plan made blind and the best plan for each future. Pay the consultant less than that.`;
 			},
 		},

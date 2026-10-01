@@ -19,7 +19,9 @@ const weigh = scale(answer);
 describe("weighing a reply", () => {
 	it("finds exactly two words of meat in a verbatim paste", () => {
 		const w = weigh(paste);
+
 		expect(w.mine).toBe(2);
+
 		expect(
 			w.pieces
 				.filter((p) => p.word && p.mine)
@@ -76,9 +78,12 @@ describe("formatting", () => {
 describe("the reading bill", () => {
 	it("breaks even around two readers", () => {
 		const n = breakEven(words(answer).length);
+
 		expect(n).toBeGreaterThan(1.5);
 		expect(n).toBeLessThan(3);
+
 		const b = bill(Math.ceil(n), words(answer).length);
+
 		expect(b.digest).toBeLessThan(b.paste);
 	});
 });
@@ -87,6 +92,7 @@ describe("the glossary", () => {
 	it("defines every term it links", () => {
 		for (const id of Object.keys(glossary))
 			for (const child of children(id)) expect(glossary[child]).toBeDefined();
+
 		for (const s of sources)
 			for (const seg of segments(s.markup))
 				if (seg.id) expect(glossary[seg.id]).toBeDefined();
@@ -106,15 +112,20 @@ describe("the glossary", () => {
 		const claude = closure(sources[0].markup);
 		const person = closure(sources[1].markup);
 		const all = new Set([...claude.order, ...person.order]);
+
 		expect([...all].sort()).toEqual(Object.keys(glossary).sort());
 	});
 
 	it("goes supercritical for Claude and not for a person", () => {
 		let r = start(sources[0].markup);
+
 		for (const id of r.seed.slice(0, 4)) r = open(r, id);
+
 		expect(measure(r).k).toBeGreaterThan(1);
 		expect(measure(r).expected).toBe(Infinity);
+
 		const p = closure(sources[1].markup);
+
 		expect(measure(p).k).toBe(0);
 		expect(measure(p).lookups).toBe(2);
 	});
@@ -122,8 +133,10 @@ describe("the glossary", () => {
 	it("never moves a node once placed", () => {
 		let r = start(sources[0].markup);
 		const first = { ...r.nodes };
+
 		r = open(r, "pod");
 		r = open(r, "kubernetes");
+
 		for (const id of Object.keys(first)) expect(r.nodes[id]).toEqual(first[id]);
 	});
 });
@@ -131,12 +144,14 @@ describe("the glossary", () => {
 describe("the wire", () => {
 	it("takes no reading when both people paste", () => {
 		const t = totals(trip("paste", "paste", 700));
+
 		expect(t.you + t.them).toBe(0);
 		expect(t.seconds).toBe(70);
 	});
 
 	it("makes a reader read the long answers", () => {
 		const t = totals(trip("read", "paste", 700));
+
 		expect(t.you).toBe(1400);
 		expect(t.them).toBe(0);
 		expect(verdict("read", "paste")).toMatch(/coworker is the cable/);
@@ -151,11 +166,13 @@ describe("ping", () => {
 			"66 h 51 min",
 			"5 h 5 min",
 		]);
+
 		expect(habits.writing).toHaveLength(5);
 	});
 
 	it("replays the 2001 pigeon log", () => {
 		const log = lines("pigeon");
+
 		expect(log.some((l) => l.text.includes("55% packet loss"))).toBe(true);
 		expect(log.filter((l) => l.text.includes("time="))).toHaveLength(4);
 	});

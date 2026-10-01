@@ -22,18 +22,24 @@ const REACHABLE: &[&str] = &[
 #[tokio::test]
 async fn formal_targets_elaborate_and_the_first_rungs_are_reachable() {
     let mut bench = Workbench::new(Config::from_env(), Vec::new());
+
     if !bench.available() {
         eprintln!("skipping: no REPL or Mathlib");
+
         return;
     }
+
     for node in seed::nodes() {
         if let Some(statement) = &node.lean {
             let opened = bench.open(statement).await;
+
             assert!(opened.is_ok(), "{}: {opened:?}", node.key);
         }
     }
+
     for proof in REACHABLE {
         let checked = bench.check(proof).await;
+
         assert!(checked.ok, "{proof}\n{checked:?}");
     }
 }

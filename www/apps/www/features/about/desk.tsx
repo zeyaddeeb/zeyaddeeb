@@ -30,6 +30,7 @@ function brooklynHour() {
 
 function useBrooklynTime() {
 	const [time, setTime] = useState<string | null>(null);
+
 	useEffect(() => {
 		const fmt = new Intl.DateTimeFormat("en-US", {
 			hour: "2-digit",
@@ -37,11 +38,16 @@ function useBrooklynTime() {
 			hour12: false,
 			timeZone: BROOKLYN,
 		});
+
 		const tick = () => setTime(fmt.format(new Date()));
+
 		tick();
+
 		const id = setInterval(tick, 30_000);
+
 		return () => clearInterval(id);
 	}, []);
+
 	return time;
 }
 
@@ -54,6 +60,7 @@ export function Desk() {
 	useEffect(() => {
 		const h = brooklynHour();
 		const dark = h >= 18 || h < 7;
+
 		setNight(dark);
 		setOn(dark);
 	}, []);

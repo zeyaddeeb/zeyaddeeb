@@ -11,10 +11,12 @@ export default async function HomePage() {
 		getTopCollectionItems(4),
 		getRecentPosts(3),
 	]);
+
 	const featuredItems =
 		featuredResult.status === "fulfilled" ? featuredResult.value : [];
 	const recentPosts =
 		postsResult.status === "fulfilled" ? postsResult.value : [];
+
 	return (
 		<div className="blog-home container">
 			<header className="blog-masthead">

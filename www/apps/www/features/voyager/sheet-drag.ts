@@ -25,7 +25,9 @@ export function dragToClose(
 		window.clearTimeout(timer);
 		tracking = e.touches.length === 1 && scroller.scrollTop <= 0;
 		dragging = false;
+
 		if (!tracking) return;
+
 		y0 = e.touches[0].clientY;
 		last = y0;
 		lastAt = performance.now();
@@ -35,41 +37,59 @@ export function dragToClose(
 
 	const stop = (release: boolean) => {
 		const was = dragging;
+
 		tracking = false;
 		dragging = false;
+
 		if (!was) return;
+
 		delete sheet.dataset.drag;
+
 		const t = performance.now();
 		const flick = dy > SLOP * 2 && speed > FLICK && t - lastAt < STALE;
+
 		if (release && (dy > DISTANCE || flick)) {
 			sheet.close();
 			timer = window.setTimeout(() => place(0), SETTLE);
+
 			return;
 		}
+
 		place(0);
 	};
 
 	const move = (e: TouchEvent) => {
 		if (!tracking) return;
+
 		if (e.touches.length !== 1) {
 			stop(false);
+
 			return;
 		}
+
 		const y = e.touches[0].clientY;
 		const d = y - y0;
+
 		if (!dragging) {
 			if (d < -SLOP || scroller.scrollTop > 0) {
 				tracking = false;
+
 				return;
 			}
+
 			if (d <= SLOP) return;
+
 			dragging = true;
 			y0 += SLOP;
 			sheet.dataset.drag = "true";
 		}
+
 		e.preventDefault();
+
 		const t = performance.now();
+
 		if (t > lastAt) speed = (y - last) / (t - lastAt);
+
 		last = y;
 		lastAt = t;
 		dy = Math.max(0, y - y0);

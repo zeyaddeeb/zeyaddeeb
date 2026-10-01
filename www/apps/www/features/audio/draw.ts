@@ -15,6 +15,7 @@ export function drawBars(
 
 		const gradient = ctx.createLinearGradient(x, y, x, height);
 		const hue = (i / data.length) * 60 + 260;
+
 		gradient.addColorStop(0, `hsla(${hue}, 80%, 60%, 0.9)`);
 		gradient.addColorStop(1, `hsla(${hue + 30}, 80%, 40%, 0.3)`);
 
@@ -50,6 +51,7 @@ export function drawWave(
 		} else {
 			const prevX = (i - 1) * sliceWidth;
 			const cpX = (prevX + x) / 2;
+
 			ctx.quadraticCurveTo(
 				prevX,
 				centerY - data[i - 1] * (height / 3),
@@ -64,6 +66,7 @@ export function drawWave(
 	ctx.closePath();
 
 	const gradient = ctx.createLinearGradient(0, 0, width, 0);
+
 	gradient.addColorStop(0, "rgba(139, 92, 246, 0.4)");
 	gradient.addColorStop(0.5, "rgba(236, 72, 153, 0.4)");
 	gradient.addColorStop(1, "rgba(139, 92, 246, 0.4)");
@@ -71,6 +74,7 @@ export function drawWave(
 	ctx.fill();
 
 	ctx.beginPath();
+
 	for (let i = 0; i < data.length; i++) {
 		const x = i * sliceWidth;
 		const amplitude = data[i] * (height / 3);
@@ -84,6 +88,7 @@ export function drawWave(
 	}
 
 	const lineGradient = ctx.createLinearGradient(0, 0, width, 0);
+
 	lineGradient.addColorStop(0, "rgb(139, 92, 246)");
 	lineGradient.addColorStop(0.5, "rgb(236, 72, 153)");
 	lineGradient.addColorStop(1, "rgb(139, 92, 246)");
@@ -92,6 +97,7 @@ export function drawWave(
 	ctx.stroke();
 
 	ctx.beginPath();
+
 	for (let i = 0; i < data.length; i++) {
 		const x = i * sliceWidth;
 		const amplitude = data[i] * (height / 4);
@@ -103,6 +109,7 @@ export function drawWave(
 			ctx.lineTo(x, y);
 		}
 	}
+
 	ctx.strokeStyle = "rgba(139, 92, 246, 0.3)";
 	ctx.lineWidth = 2;
 	ctx.stroke();
@@ -149,7 +156,9 @@ export function drawCircular(
 
 	const avgIntensity =
 		Array.from(data).reduce((a, b) => a + b, 0) / data.length;
+
 	ctx.beginPath();
+
 	ctx.arc(
 		centerX,
 		centerY,
@@ -157,6 +166,7 @@ export function drawCircular(
 		0,
 		Math.PI * 2,
 	);
+
 	const gradient = ctx.createRadialGradient(
 		centerX,
 		centerY,
@@ -165,6 +175,7 @@ export function drawCircular(
 		centerY,
 		baseRadius,
 	);
+
 	gradient.addColorStop(0, "rgba(139, 92, 246, 0.3)");
 	gradient.addColorStop(1, "rgba(139, 92, 246, 0)");
 	ctx.fillStyle = gradient;
@@ -193,6 +204,7 @@ export function drawParticles(
 			const size = 2 + intensity * 6;
 
 			const hue = (i / data.length) * 60 + 260;
+
 			ctx.beginPath();
 			ctx.arc(x, y, size, 0, Math.PI * 2);
 			ctx.fillStyle = `hsla(${hue}, 80%, 60%, ${0.3 + intensity * 0.5})`;
@@ -216,6 +228,7 @@ export function drawParticles(
 		centerY,
 		pulseRadius,
 	);
+
 	gradient.addColorStop(0, `rgba(236, 72, 153, ${0.4 + avgIntensity * 0.4})`);
 	gradient.addColorStop(1, "rgba(236, 72, 153, 0)");
 

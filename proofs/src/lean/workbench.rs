@@ -58,9 +58,11 @@ impl Config {
     pub fn from_env() -> Self {
         let dir =
             PathBuf::from(std::env::var("PROOFS_REPL_DIR").unwrap_or_else(|_| ".repl".into()));
+
         let lean_path = std::env::var("PROOFS_AGENT_LEAN_PATH")
             .ok()
             .or_else(|| local_mathlib(&PathBuf::from("mathlib")));
+
         Config {
             dir,
             lean_path,
@@ -84,12 +86,15 @@ impl Config {
 pub fn local_mathlib(project: &std::path::Path) -> Option<String> {
     let packages = project.join(".lake/packages");
     let mut paths = Vec::new();
+
     for entry in std::fs::read_dir(&packages).ok()? {
         let lib = entry.ok()?.path().join(".lake/build/lib/lean");
+
         if lib.is_dir() {
             paths.push(lib.canonicalize().ok()?.display().to_string());
         }
     }
+
     (!paths.is_empty()).then(|| paths.join(":"))
 }
 
@@ -167,25 +172,31 @@ impl Workbench {
     pub fn rest_if_idle(&mut self) -> bool {
         if self.live.is_some() && self.used.elapsed() > self.config.idle {
             self.live = None;
+
             return true;
         }
+
         false
     }
 
     async fn ready(&mut self) -> anyhow::Result<&mut Live> {
         self.used = Instant::now();
+
         if self.live.is_none() {
             let mut process =
                 Process::spawn(&self.config.dir, self.config.lean_path.as_deref()).await?;
+
             let reply = timeout(
                 Duration::from_secs(180),
                 process.send(&json!({ "cmd": self.config.header })),
             )
             .await
             .map_err(|_| anyhow::anyhow!("Mathlib took too long to load"))??;
+
             let mut env = reply["env"]
                 .as_u64()
                 .ok_or_else(|| anyhow::anyhow!("Mathlib did not load: {reply}"))?;
+
             for code in &self.library {
                 if let Ok(Ok(reply)) = timeout(
                     self.config.limit,
@@ -200,23 +211,28 @@ impl Workbench {
                     }
                 }
             }
+
             self.starts += 1;
             self.live = Some(Live { process, env });
         }
+
         Ok(self.live.as_mut().expect("live"))
     }
 
     async fn send(&mut self, request: Value) -> anyhow::Result<Value> {
         let limit = self.config.limit;
         let live = self.ready().await?;
+
         match timeout(limit, live.process.send(&request)).await {
             Ok(Ok(reply)) => Ok(reply),
             Ok(Err(error)) => {
                 self.live = None;
+
                 Err(error)
             }
             Err(_) => {
                 self.live = None;
+
                 Err(anyhow::anyhow!(
                     "Lean ran out of time ({}s)",
                     limit.as_secs()
@@ -231,6 +247,7 @@ impl Workbench {
 
     pub async fn check(&mut self, code: &str) -> Checked {
         let began = Instant::now();
+
         let failed = |errors: Vec<String>, began: Instant| Checked {
             ok: false,
             names: Vec::new(),
@@ -238,32 +255,43 @@ impl Workbench {
             axioms: Vec::new(),
             millis: began.elapsed().as_millis() as u64,
         };
+
         if let Err(refusal) = guard::declaration(code) {
             return failed(vec![refusal.message().to_string()], began);
         }
+
         if let Err(error) = self.ready().await {
             return failed(vec![error.to_string()], began);
         }
+
         let env = self.env();
+
         let reply = match self.send(json!({ "cmd": code, "env": env })).await {
             Ok(reply) => reply,
             Err(error) => return failed(vec![error.to_string()], began),
         };
+
         let errors = all_errors(&reply);
+
         if !errors.is_empty() {
             return failed(errors, began);
         }
+
         if messages(&reply)
             .iter()
             .any(|m| m["data"].as_str().is_some_and(|d| d.contains("sorry")))
         {
             return failed(vec!["The proof still contains a gap.".into()], began);
         }
+
         let names = declared(code);
+
         let Some(after) = reply["env"].as_u64() else {
             return failed(vec!["Lean returned no environment.".into()], began);
         };
+
         let mut axioms = Vec::new();
+
         for name in &names {
             let reply = match self
                 .send(json!({ "cmd": format!("#print axioms {name}"), "env": after }))
@@ -272,19 +300,23 @@ impl Workbench {
                 Ok(reply) => reply,
                 Err(error) => return failed(vec![error.to_string()], began),
             };
+
             for message in messages(&reply) {
                 if let Some(text) = message["data"].as_str() {
                     axioms.extend(parse_axioms(text));
                 }
             }
         }
+
         axioms.sort();
         axioms.dedup();
+
         let foreign: Vec<String> = axioms
             .iter()
             .filter(|a| !TRUSTED_AXIOMS.contains(&a.as_str()))
             .cloned()
             .collect();
+
         if !foreign.is_empty() {
             return failed(
                 vec![format!(
@@ -294,6 +326,7 @@ impl Workbench {
                 began,
             );
         }
+
         Checked {
             ok: true,
             names,
@@ -306,19 +339,26 @@ impl Workbench {
     pub async fn adopt(&mut self, code: &str) -> anyhow::Result<()> {
         let env = {
             self.ready().await?;
+
             self.env()
         };
+
         let reply = self.send(json!({ "cmd": code, "env": env })).await?;
+
         if let Some(error) = first_error(&reply) {
             anyhow::bail!(error);
         }
+
         let next = reply["env"]
             .as_u64()
             .ok_or_else(|| anyhow::anyhow!("no environment"))?;
+
         if let Some(live) = self.live.as_mut() {
             live.env = next;
         }
+
         self.library.push(code.to_string());
+
         Ok(())
     }
 
@@ -328,6 +368,7 @@ impl Workbench {
             signature(statement),
             ROUTINE.join(" | ")
         );
+
         self.check(&code).await.ok
     }
 
@@ -337,6 +378,7 @@ impl Workbench {
             signature(statement),
             RESTATED.join(" | ")
         );
+
         self.check(&code).await.ok
     }
 
@@ -345,22 +387,28 @@ impl Workbench {
             "example : ¬ ({proposition}) := by first | {}",
             ROUTINE.join(" | ")
         );
+
         self.check(&code).await.ok
     }
 
     pub async fn open(&mut self, statement: &str) -> anyhow::Result<Opened> {
         let code = format!("{} := by sorry", statement.trim());
+
         guard::declaration(statement).map_err(|r| anyhow::anyhow!(r.message()))?;
         self.ready().await?;
+
         let env = self.env();
         let reply = self.send(json!({ "cmd": code, "env": env })).await?;
+
         if let Some(error) = first_error(&reply) {
             anyhow::bail!(clean_error(&error));
         }
+
         let sorry = reply["sorries"]
             .as_array()
             .and_then(|all| all.first())
             .ok_or_else(|| anyhow::anyhow!("Lean did not open a goal"))?;
+
         Ok(Opened {
             state: sorry["proofState"]
                 .as_u64()
@@ -380,7 +428,9 @@ impl Workbench {
             .map(|line| format!("  {line}"))
             .collect::<Vec<_>>()
             .join("\n");
+
         let block = format!("(\n{indented}\n)");
+
         self.apply_guarded(state, &block, guard::proof_block(script))
             .await
     }
@@ -398,9 +448,11 @@ impl Workbench {
             error: Some(error),
             suggestion: None,
         };
+
         if let Err(refusal) = guarded {
             return refused(refusal.message().to_string());
         }
+
         let reply = match self
             .send(json!({ "tactic": tactic, "proofState": state }))
             .await
@@ -408,18 +460,22 @@ impl Workbench {
             Ok(reply) => reply,
             Err(error) => return refused(error.to_string()),
         };
+
         if let Some(message) = reply["message"].as_str() {
             return refused(clean_error(message));
         }
+
         if let Some(error) = first_error(&reply) {
             return refused(clean_error(&error));
         }
+
         if messages(&reply)
             .iter()
             .any(|m| m["data"].as_str().is_some_and(|d| d.contains("sorry")))
         {
             return refused("That move leaves a gap.".into());
         }
+
         let goals: Vec<String> = reply["goals"]
             .as_array()
             .map(|all| {
@@ -429,10 +485,13 @@ impl Workbench {
                     .collect()
             })
             .unwrap_or_default();
+
         let status = reply["proofStatus"].as_str().unwrap_or("");
+
         if goals.is_empty() && !status.is_empty() && status != "Completed" {
             return refused(status.to_string());
         }
+
         Moved {
             ok: true,
             state: reply["proofState"].as_u64(),
@@ -460,14 +519,17 @@ fn all_errors(reply: &Value) -> Vec<String> {
         .filter(|m| m["severity"] == "error")
         .filter_map(|m| m["data"].as_str().map(clean_error))
         .collect();
+
     if let Some(message) = reply["message"].as_str() {
         errors.push(clean_error(message));
     }
+
     errors
 }
 
 pub fn declared(code: &str) -> Vec<String> {
     let tokens: Vec<&str> = code.split_whitespace().collect();
+
     tokens
         .windows(2)
         .filter(|pair| pair[0] == "theorem" || pair[0] == "lemma")
@@ -478,6 +540,7 @@ pub fn declared(code: &str) -> Vec<String> {
 pub fn signature(code: &str) -> String {
     let head = code.split(":=").next().unwrap_or(code);
     let mut words = head.split_whitespace().peekable();
+
     if words
         .peek()
         .is_some_and(|word| matches!(*word, "theorem" | "lemma"))
@@ -485,17 +548,21 @@ pub fn signature(code: &str) -> String {
         words.next();
         words.next();
     }
+
     let text = words.collect::<Vec<_>>().join(" ");
     let names = binders(&text);
     let mut renamed = String::new();
     let mut word = String::new();
+
     let flush = |word: &mut String, renamed: &mut String| {
         match names.iter().position(|name| name == word) {
             Some(index) => renamed.push_str(&format!("v{index}")),
             None => renamed.push_str(word),
         }
+
         word.clear();
     };
+
     for c in text.chars() {
         if c.is_alphanumeric() || c == '_' || c == '\'' {
             word.push(c);
@@ -504,7 +571,9 @@ pub fn signature(code: &str) -> String {
             renamed.push(c);
         }
     }
+
     flush(&mut word, &mut renamed);
+
     renamed
 }
 
@@ -512,20 +581,24 @@ fn binders(text: &str) -> Vec<String> {
     let mut names = Vec::new();
     let mut depth = 0;
     let mut group = String::new();
+
     for c in text.chars() {
         match c {
             '(' | '{' | '[' | '⦃' => {
                 if depth > 0 {
                     group.push(c);
                 }
+
                 depth += 1;
             }
             ')' | '}' | ']' | '⦄' => {
                 depth -= 1;
+
                 if depth == 0 {
                     if let Some((declared, _)) = group.split_once(':') {
                         names.extend(declared.split_whitespace().map(str::to_string));
                     }
+
                     group.clear();
                 } else {
                     group.push(c);
@@ -536,12 +609,14 @@ fn binders(text: &str) -> Vec<String> {
             _ => {}
         }
     }
+
     names
 }
 
 fn suggestion(text: &str) -> Option<String> {
     let (_, rest) = text.split_once("Try this:")?;
     let line = rest.trim().lines().next()?.trim();
+
     Some(line.trim_start_matches("[apply]").trim().to_string()).filter(|s| !s.is_empty())
 }
 
@@ -549,9 +624,11 @@ fn parse_axioms(text: &str) -> Vec<String> {
     let Some(start) = text.find('[') else {
         return Vec::new();
     };
+
     let Some(end) = text.rfind(']') else {
         return Vec::new();
     };
+
     text[start + 1..end]
         .split(',')
         .map(|name| name.trim().to_string())
@@ -582,16 +659,20 @@ mod tests {
         let a =
             signature("theorem square_plus_3 (x : ℝ) (h : 0 < x) : 0 < x ^ 2 + x := by positivity");
         let b = signature("lemma square_plus_4 (x : ℝ)  (h : 0 < x) :\n  0 < x ^ 2 + x");
+
         assert_eq!(a, b);
         assert_eq!(a, "(v0 : ℝ) (v1 : 0 < v0) : 0 < v0 ^ 2 + v0");
+
         assert_eq!(
             a,
             signature("theorem renamed (y : ℝ) (hy : 0 < y) : 0 < y ^ 2 + y")
         );
+
         assert_eq!(
             signature("theorem p {s : ℂ} (hs : riemannZeta s = 0) : s.re < 1"),
             signature("theorem q {z : ℂ} (h : riemannZeta z = 0) : z.re < 1")
         );
+
         assert_ne!(a, signature("theorem c (x : ℝ) : 0 ≤ x ^ 2"));
     }
 
@@ -601,6 +682,7 @@ mod tests {
             suggestion("Try this:\n  [apply] exact riemannZeta_ne_zero_of_one_lt_re h").as_deref(),
             Some("exact riemannZeta_ne_zero_of_one_lt_re h")
         );
+
         assert_eq!(suggestion("unused variable"), None);
     }
 
@@ -612,6 +694,7 @@ mod tests {
             ),
             vec!["propext", "Classical.choice", "Quot.sound"]
         );
+
         assert!(parse_axioms("'t' does not depend on any axioms").is_empty());
     }
 }

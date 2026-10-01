@@ -47,6 +47,7 @@ const clock = (s: number) =>
 
 function pickVoice() {
 	const voices = window.speechSynthesis.getVoices();
+
 	return (
 		voices.find(
 			(v) =>
@@ -75,9 +76,11 @@ export function Film() {
 	const reduced = useReducedMotion();
 	const narrow = useMediaQuery("(max-width: 720px)");
 	const [lessonOpen, setLessonOpen] = useState(false);
+
 	const [drawingView, setDrawingView] = useState<"shot" | "overview">(
 		"overview",
 	);
+
 	const [canSpeak, setCanSpeak] = useState(false);
 	const film = useRef<SVGSVGElement>(null);
 	const board = useRef<HTMLOListElement>(null);
@@ -93,6 +96,7 @@ export function Film() {
 	const setup = setups[cue.shot.setup];
 	const shownRatio = ratio ?? (narrow ? 1.37 : 1.85);
 	const drawingDetail = narrow && drawingView === "shot";
+
 	const drawingBox = drawingDetail
 		? drawingFrame(cue.shot)
 		: `${SHEET.x} ${SHEET.y} ${SHEET.w} ${SHEET.h}`;
@@ -100,7 +104,9 @@ export function Film() {
 	function syncCamera() {
 		const box = film.current?.viewBox.animVal;
 		const rect = cameraRect.current;
+
 		if (!box || !rect) return;
+
 		rect.setAttribute("x", String(box.x));
 		rect.setAttribute("y", String(box.y));
 		rect.setAttribute("width", String(box.width));
@@ -109,10 +115,13 @@ export function Film() {
 
 	useEffect(() => {
 		setCanSpeak("speechSynthesis" in window);
+
 		const visibility = () => {
 			if (document.hidden) setPlaying(false);
 		};
+
 		document.addEventListener("visibilitychange", visibility);
+
 		return () => {
 			document.removeEventListener("visibilitychange", visibility);
 			window.speechSynthesis?.cancel();
@@ -123,7 +132,9 @@ export function Film() {
 
 	useEffect(() => {
 		const svg = film.current;
+
 		if (!svg) return;
+
 		svg.pauseAnimations();
 		svg.setCurrentTime(0);
 		stopAt.current = null;
@@ -134,13 +145,18 @@ export function Film() {
 
 	useEffect(() => {
 		const svg = film.current;
+
 		if (!playing || !svg) return;
+
 		svg.unpauseAnimations();
+
 		let frame = 0;
 		let shown = -1;
+
 		const tick = () => {
 			const now = svg.getCurrentTime();
 			const limit = stopAt.current ?? total;
+
 			if (now >= limit) {
 				svg.pauseAnimations();
 				svg.setCurrentTime(limit);
@@ -148,17 +164,23 @@ export function Film() {
 				setTime(limit);
 				setPlaying(false);
 				syncCamera();
+
 				return;
 			}
+
 			const rounded = Math.floor(now * 10) / 10;
+
 			if (rounded !== shown) {
 				shown = rounded;
 				setTime(rounded);
 			}
+
 			syncCamera();
 			frame = requestAnimationFrame(tick);
 		};
+
 		frame = requestAnimationFrame(tick);
+
 		return () => {
 			cancelAnimationFrame(frame);
 			svg.pauseAnimations();
@@ -167,10 +189,15 @@ export function Film() {
 
 	useEffect(() => {
 		if (!canSpeak) return;
+
 		const synth = window.speechSynthesis;
+
 		synth.cancel();
+
 		if (!voice || !playing || !cue.shot.dialogue) return;
+
 		const line = new SpeechSynthesisUtterance(cue.shot.dialogue);
+
 		line.rate = 0.86;
 		line.pitch = 0.78;
 		line.voice = pickVoice();
@@ -179,18 +206,23 @@ export function Film() {
 
 	useEffect(() => {
 		if (!playing || !music || !audio.current) return;
+
 		let cancelled = false;
 		let node: AudioBufferSourceNode | undefined;
 		const context = audio.current;
 		const requestedAt = performance.now();
+
 		score.current ??= renderMusic();
+
 		void score.current
 			.then((buffer) => {
 				if (cancelled || context.state === "closed") return;
+
 				node = context.createBufferSource();
 				node.buffer = buffer;
 				node.loop = true;
 				node.connect(context.destination);
+
 				node.start(
 					0,
 					(time + (performance.now() - requestedAt) / 1000) % buffer.duration,
@@ -198,12 +230,16 @@ export function Film() {
 			})
 			.catch(() => {
 				if (cancelled) return;
+
 				setMusic(false);
+
 				setNotice(
 					"Music is unavailable in this browser. The reel runs silent.",
 				);
+
 				score.current = null;
 			});
+
 		return () => {
 			cancelled = true;
 			node?.stop();
@@ -214,7 +250,9 @@ export function Film() {
 	useEffect(() => {
 		const list = board.current;
 		const item = list?.children[cue.index] as HTMLElement | undefined;
+
 		if (!list || !item || list.scrollWidth <= list.clientWidth) return;
+
 		list.scrollTo({
 			left:
 				list.scrollLeft +
@@ -227,44 +265,57 @@ export function Film() {
 
 	function seek(seconds: number) {
 		const next = clamp(seconds, 0, total);
+
 		setPlaying(false);
 		stopAt.current = null;
 		film.current?.setCurrentTime(next);
 		setTime(next);
 		syncCamera();
 	}
+
 	function begin() {
 		if (music) void audio.current?.resume().catch(() => setMusic(false));
+
 		setRun((n) => n + 1);
 		setPlaying(true);
 	}
 
 	function playShot(index: number) {
 		const target = cues[index];
+
 		if (!target) return;
+
 		film.current?.setCurrentTime(target.start);
 		setTime(target.start);
 		stopAt.current = target.end - 0.05;
 		syncCamera();
 		begin();
 	}
+
 	function togglePlay() {
 		if (playing) {
 			setPlaying(false);
+
 			return;
 		}
+
 		stopAt.current = null;
+
 		if (time >= total - 0.1) {
 			film.current?.setCurrentTime(0);
 			setTime(0);
 		}
+
 		begin();
 	}
+
 	async function toggleMusic() {
 		if (music) {
 			setMusic(false);
+
 			return;
 		}
+
 		try {
 			audio.current ??= new AudioContext();
 			await audio.current.resume();
@@ -273,23 +324,32 @@ export function Film() {
 			setNotice("Music is unavailable in this browser. The reel runs silent.");
 		}
 	}
+
 	function thread() {
 		const result = compile(draft);
+
 		setError(result.error);
+
 		if (result.error) return;
+
 		setPlaying(false);
 		setSource(draft);
 		setTake((n) => n + 1);
+
 		setNotice(
 			`${result.screenplay.shots.length} shots, ${durationOf(schedule(result.screenplay.shots))} seconds, threaded.`,
 		);
 	}
+
 	function download() {
 		const text = `Title: ${SCRIPT_TITLE}\nCredit: a scene study after Wes Anderson\nDraft date: ${new Date().toISOString().slice(0, 10)}\n\n${format(screenplay)}\n`;
+
 		const url = URL.createObjectURL(
 			new Blob([text], { type: "text/plain;charset=utf-8" }),
 		);
+
 		const anchor = document.createElement("a");
+
 		anchor.href = url;
 		anchor.download = "checkout-pending.fountain";
 		anchor.click();
@@ -807,6 +867,7 @@ function SheetFrame({
 	const end = rects[rects.length - 1];
 	const tagY =
 		move === "whip" || move === "snap" ? start.y + start.h - 80 : start.y;
+
 	return (
 		<g
 			className="film-master-shot"

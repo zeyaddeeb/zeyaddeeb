@@ -102,15 +102,18 @@ impl ModelRuntime {
         let mono = mono_samples(frame);
         let input = OrtTensor::from_array(([1, mono.len()], mono))
             .context("failed to build ONNX Runtime input tensor")?;
+
         let mut session = self
             .session
             .lock()
             .map_err(|_| anyhow!("ONNX Runtime session mutex was poisoned"))?;
+
         let result = session
             .run(ort::inputs! {
                 self.input_name.as_str() => input
             })
             .with_context(|| format!("ONNX inference failed for input {}", self.input_name))?;
+
         let (_shape, output) = result[0]
             .try_extract_tensor::<f32>()
             .context("ONNX output was not f32")?;
@@ -153,6 +156,7 @@ fn frame_energy(device: &Device, samples: &[f32]) -> anyhow::Result<f32> {
     let tensor = CandleTensor::from_slice(samples, samples.len(), device)?;
     let squared = tensor.sqr()?;
     let mean = squared.mean_all()?.to_scalar::<f32>()?;
+
     Ok(mean.sqrt())
 }
 

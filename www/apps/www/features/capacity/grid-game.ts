@@ -104,12 +104,17 @@ export function pickSubstation(
 ): GridGame {
 	if (game.phase === "ask") {
 		const picks = [...game.picks];
+
 		picks[game.question] = substation;
+
 		return { ...game, picks, phase: "told" };
 	}
+
 	if (game.phase !== "plan" || level.placement || !game.campus) return game;
+
 	const campus = game.campus;
 	const placement = { ...game.placement, [campus]: substation };
+
 	return {
 		...game,
 		placement,
@@ -124,17 +129,22 @@ const toggle = (list: string[], id: string) =>
 function planLine(game: GridGame, level: GridLevel, line: string): GridGame {
 	if (level.candidates.includes(line)) {
 		const had = game.built.includes(line);
+
 		const built = had
 			? game.built.filter((l) => l !== line)
 			: [...game.built, line].slice(-level.maxBuild);
+
 		return {
 			...game,
 			built,
 			outcome: { kind: had ? "unbuilt" : "built", line },
 		};
 	}
+
 	if (!level.switching) return game;
+
 	const had = game.opened.includes(line);
+
 	return {
 		...game,
 		opened: toggle(game.opened, line),
@@ -155,9 +165,12 @@ export function pickLine(
 	{ grid, name, before }: LineContext,
 ): GridGame {
 	if (game.phase === "plan") return planLine(game, level, line);
+
 	if (game.phase !== "play" || !grid.lines.some((l) => l.id === line))
 		return game;
+
 	const back = game.play.tripped.includes(line);
+
 	return {
 		...game,
 		play: { ...game.play, tripped: toggle(game.play.tripped, line) },
@@ -192,6 +205,7 @@ export function think(game: GridGame): GridGame {
 
 export function advance(game: GridGame, frames: number): GridGame {
 	if (game.phase !== "thinking") return game;
+
 	return game.frame + 1 < frames
 		? { ...game, frame: game.frame + 1 }
 		: reveal(game);
@@ -209,6 +223,7 @@ export function answerOf(
 ): string | null {
 	const ranked = Object.entries(prices).sort((a, b) => a[1] - b[1]);
 	const at = extreme === "max" ? ranked.at(-1) : ranked[0];
+
 	return at?.[0] ?? null;
 }
 
@@ -257,11 +272,13 @@ export interface Pickable {
 
 export function gridPickable(game: GridGame, level: GridLevel): Pickable {
 	if (game.phase === "ask") return { substations: true, lines: false };
+
 	if (game.phase === "plan")
 		return {
 			substations: !level.placement && !!game.campus,
 			lines: !!level.placement,
 		};
+
 	return { substations: false, lines: game.phase === "play" };
 }
 
@@ -290,11 +307,13 @@ function toldPrices(
 	prices: Record<string, number>,
 ): Record<string, number> {
 	if (game.question + 1 >= script.questions.length) return prices;
+
 	const shown = new Set(
 		script.questions
 			.slice(0, game.question + 1)
 			.flatMap((extreme, i) => [game.picks[i], answerOf(prices, extreme)]),
 	);
+
 	return Object.fromEntries(
 		Object.entries(prices).filter(([sub]) => shown.has(sub)),
 	);
@@ -307,6 +326,7 @@ export function gridBoard(
 	focus: string[] = [],
 ): GridBoard {
 	const { best, yours, preview, live } = solutions;
+
 	switch (game.phase) {
 		case "guide":
 			return { ...blank, solved: preview ?? yours, focus };
@@ -326,6 +346,7 @@ export function gridBoard(
 			};
 		case "play": {
 			const now = live ?? best;
+
 			return {
 				...blank,
 				solved: now,
@@ -342,6 +363,7 @@ export function gridBoard(
 					solver: true,
 					candidates: best?.candidates ?? null,
 				};
+
 			return { ...blank, solved: yours };
 		default:
 			return { ...blank, solved: yours };

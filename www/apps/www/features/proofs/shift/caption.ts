@@ -18,8 +18,10 @@ function objects(text: string): string {
 	let start = 0;
 	let quoted = false;
 	let escaped = false;
+
 	for (let at = 0; at < text.length; at++) {
 		const c = text[at];
+
 		if (depth === 0) {
 			if (c === "{") {
 				depth = 1;
@@ -27,25 +29,33 @@ function objects(text: string): string {
 			} else {
 				out += c;
 			}
+
 			continue;
 		}
+
 		if (quoted) {
 			if (escaped) escaped = false;
 			else if (c === "\\") escaped = true;
 			else if (c === '"') quoted = false;
+
 			continue;
 		}
+
 		if (c === '"') quoted = true;
 		else if (c === "{") depth++;
 		else if (c === "}" && --depth === 0) {
 			const span = text.slice(start, at + 1);
+
 			out += span.includes('":') ? ELIDED : span;
 		}
 	}
+
 	if (depth > 0) {
 		const tail = text.slice(start);
+
 		out += tail.includes('":') || tail.length < 3 ? ELIDED : tail;
 	}
+
 	return out;
 }
 
@@ -73,9 +83,12 @@ export function caption(text: string): Caption | null {
 			sentence.replaceAll(ELIDED, " ").replace(/\s+/g, " ").trim(),
 		)
 		.filter((sentence) => /[\p{L}\p{N}]/u.test(sentence));
+
 	if (!all.length) return null;
+
 	const now = all[all.length - 1];
 	const before = all.length > 1 ? all[all.length - 2] : null;
 	const whole = all.length === 1 && now.length <= SHORT;
+
 	return { before: before ? clip(before) : null, now: clip(now), whole };
 }

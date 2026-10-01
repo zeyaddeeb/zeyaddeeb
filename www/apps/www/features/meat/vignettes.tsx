@@ -49,6 +49,7 @@ export function ChainArt() {
 				const [x, y] = at(a, 20);
 				const [x2, y2] = at(a - 0.28, 38);
 				const [x3, y3] = at(a + 0.28, 38);
+
 				return (
 					<g key={a}>
 						<path

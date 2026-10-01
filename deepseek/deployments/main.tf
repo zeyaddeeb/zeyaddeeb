@@ -15,5 +15,4 @@ resource "helm_release" "deepseek" {
       image_repository = local.image_repository
     })
   ]
-
 }

@@ -7,6 +7,7 @@ const EMBED_SOURCES = [
 
 export function securityHeaders({ frameSrc = [] } = {}) {
 	const development = process.env.NODE_ENV === "development";
+
 	const csp = [
 		"default-src 'self'",
 		`script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${development ? " 'unsafe-eval'" : ""}`,

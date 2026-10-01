@@ -29,6 +29,7 @@ describe("rust excerpts", () => {
 			new URL("../../../../packages/wasm/src/voyager.rs", import.meta.url),
 			"utf8",
 		);
+
 		expect(build(rs)).toEqual(source);
 	});
 });
@@ -52,8 +53,10 @@ describe("golden record cover", () => {
 
 	it("decodes the pulsar periods", () => {
 		expect(pulsars).toHaveLength(14);
+
 		const crab = pulsars.find((p) => p.nickname === "Crab");
 		const vela = pulsars.find((p) => p.nickname === "Vela");
+
 		expect(crab && period(crab)).toBeCloseTo(0.0331296448, 9);
 		expect(vela && period(vela)).toBeCloseTo(0.0892187481, 9);
 	});
@@ -62,6 +65,7 @@ describe("golden record cover", () => {
 describe("ephemeris", () => {
 	it("puts Voyager 1 about 172 AU away now", () => {
 		const f = fix(Date.UTC(2026, 8, 28));
+
 		expect(f.km / AU_KM).toBeCloseTo(172.13, 1);
 		expect(f.sunKmPerS).toBeCloseTo(16.88, 1);
 		expect(f.lightSeconds / 3600).toBeCloseTo(23.86, 1);
@@ -69,6 +73,7 @@ describe("ephemeris", () => {
 
 	it("crosses one light-day within a day of NASA's moment", () => {
 		const nasa = Date.UTC(2026, 10, 18, 10, 16, 7);
+
 		expect(Math.abs(lightDay() - nasa)).toBeLessThan(24 * 3600 * 1000);
 	});
 });
@@ -85,13 +90,16 @@ describe("power", () => {
 		const on = instruments.filter(
 			(i) => i.off === null || yearOf(i.off) > 2026.5,
 		);
+
 		expect(on.map((i) => i.id)).toEqual(["MAG", "PWS"]);
+
 		expect([...offParts(2026.5)].sort()).toEqual([
 			"crs",
 			"lecp",
 			"pls",
 			"scan",
 		]);
+
 		expect(offParts(1978).size).toBe(0);
 	});
 });

@@ -4,6 +4,7 @@ import { Bullet } from "./lines";
 
 export function ActCard({ act, onBegin }: { act: Act; onBegin: () => void }) {
 	const id = `cc-act-${act.id}`;
+
 	return (
 		<div
 			className="cc-act"

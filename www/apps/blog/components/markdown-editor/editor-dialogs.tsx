@@ -75,6 +75,7 @@ export function LinkModal({
 	const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		e.stopPropagation();
+
 		if (url) {
 			onSubmit(url, text);
 			onClose();
@@ -141,6 +142,7 @@ export function ImageModal({ isOpen, onClose, onSubmit }: ImageModalProps) {
 	const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		e.stopPropagation();
+
 		if (url) {
 			onSubmit(url, alt, width);
 			onClose();
@@ -152,15 +154,20 @@ export function ImageModal({ isOpen, onClose, onSubmit }: ImageModalProps) {
 
 	const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
+
 		if (file) {
 			const reader = new FileReader();
+
 			reader.onload = () => {
 				const base64 = reader.result as string;
+
 				setUrl(base64);
+
 				if (!alt) {
 					setAlt(file.name.replace(/\.[^/.]+$/, ""));
 				}
 			};
+
 			reader.readAsDataURL(file);
 		}
 	};

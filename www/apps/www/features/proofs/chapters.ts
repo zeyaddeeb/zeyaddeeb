@@ -47,6 +47,7 @@ export interface Place {
 export function place(index: number): Place {
 	const id = levels[index]?.id;
 	const chapter = chapters.find((c) => c.levels.includes(id)) ?? chapters[0];
+
 	return {
 		chapter,
 		part: chapter.levels.indexOf(id) + 1,

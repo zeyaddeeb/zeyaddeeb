@@ -38,6 +38,7 @@ pub fn training_loop(
 
         if training.cooldown > 0 {
             training.cooldown -= 1;
+
             return;
         }
 
@@ -45,6 +46,7 @@ pub fn training_loop(
 
         let state = {
             let q = queries.p0();
+
             extract_robot_state(&q)
         };
 
@@ -54,9 +56,11 @@ pub fn training_loop(
 
         let (ball_pos, ball_v) = {
             let q = queries.p2();
+
             let Ok((pos, lin_vel, _)) = q.single() else {
                 return;
             };
+
             (pos.0, lin_vel.0)
         };
 
@@ -78,6 +82,7 @@ pub fn training_loop(
             training.step,
             crate::rl::EPISODE_STEPS,
         );
+
         let terminal = end_reason.is_some_and(|r| r.is_terminal());
 
         if let (Some(prev_obs), Some(prev_action)) =
@@ -93,23 +98,28 @@ pub fn training_loop(
             );
 
             let mut reward = comps.stand + comps.throw;
+
             if training.ball_released
                 && training.steps_since_release == 0
                 && grip.as_deref().is_none_or(|grip| !grip.dropped)
             {
                 reward += release_reward(ball_pos, ball_v);
+
                 let miss = shot_miss_distance(ball_pos, ball_v);
+
                 training.shot_miss_ema = Some(
                     training
                         .shot_miss_ema
                         .map_or(miss, |ema| 0.95 * ema + 0.05 * miss),
                 );
             }
+
             if !training.ball_released {
                 training.episode_best_aim = training
                     .episode_best_aim
                     .min(shot_miss_distance(ball_pos, ball_v));
             }
+
             if end_reason == Some(EpisodeEndReason::BasketMade) {
                 reward += BASKET_REWARD;
             } else if end_reason.is_some() && training.curriculum_stage == CurriculumStage::Shooting
@@ -140,6 +150,7 @@ pub fn training_loop(
                 next_state: obs.clone(),
                 done: terminal,
             };
+
             if training.headless {
                 training.sac_trainer.add_transition_blocking(transition);
             } else {
@@ -149,12 +160,16 @@ pub fn training_loop(
 
         if let Some(reason) = end_reason {
             finish_episode(&mut training, reason, ball_pos);
+
             let mut q = queries.p1();
+
             apply_torques(&mut q, &ComputedTorques::default());
+
             return;
         }
 
         let warming_up = training.sac_trainer.needs_random_warmup();
+
         let mut action = if warming_up {
             (0..ACT_DIM)
                 .map(|_| rand::random::<f32>() * 2.0 - 1.0)
@@ -166,16 +181,20 @@ pub fn training_loop(
         if action.len() < ACT_DIM {
             action.resize(ACT_DIM, 0.0);
         }
+
         for a in action.iter_mut() {
             if !a.is_finite() {
                 *a = 0.0;
             }
+
             *a = a.clamp(-1.0, 1.0);
         }
 
         let torques = ComputedTorques::from_action(&action);
+
         {
             let mut q = queries.p1();
+
             apply_torques(&mut q, &torques);
         }
 
@@ -183,6 +202,7 @@ pub fn training_loop(
             training.steps_since_release += 1;
         } else if should_release(training.curriculum_stage, training.step, action[13]) {
             training.ball_released = true;
+
             if let Some(grip) = grip.as_deref_mut() {
                 release_ball(&mut commands, grip);
             }
@@ -207,6 +227,7 @@ fn finish_episode(training: &mut TrainingState, reason: EpisodeEndReason, ball_p
     }
 
     let is_best = training.episode_reward > training.best_episode_reward;
+
     if is_best {
         training.best_episode_reward = training.episode_reward;
     }
@@ -242,6 +263,7 @@ fn finish_episode(training: &mut TrainingState, reason: EpisodeEndReason, ball_p
     } else {
         training.stage_success_streak = 0;
     }
+
     training.stage_episodes += 1;
 
     if training.stage_episodes >= STAGE_MIN_EPISODES
@@ -253,6 +275,7 @@ fn finish_episode(training: &mut TrainingState, reason: EpisodeEndReason, ball_p
                 stage.as_str(),
                 training.stage_episodes
             );
+
             training.curriculum_stage = stage;
             training.stage_episodes = 0;
             training.stage_success_streak = 0;
@@ -260,6 +283,7 @@ fn finish_episode(training: &mut TrainingState, reason: EpisodeEndReason, ball_p
     }
 
     let aim = training.episode_best_aim;
+
     if aim.is_finite() {
         training.best_aim_ema = Some(
             training
@@ -267,11 +291,13 @@ fn finish_episode(training: &mut TrainingState, reason: EpisodeEndReason, ball_p
                 .map_or(aim, |ema| 0.95 * ema + 0.05 * aim),
         );
     }
+
     training.episode_best_aim = f32::INFINITY;
 
     training.needs_reset = true;
     training.cooldown = RESET_COOLDOWN;
     training.episode += 1;
+
     training
         .sac_trainer
         .set_progress(crate::rl::TrainingProgress {
@@ -281,9 +307,11 @@ fn finish_episode(training: &mut TrainingState, reason: EpisodeEndReason, ball_p
             stage_success_streak: training.stage_success_streak,
             baskets_made: training.baskets_made,
         });
+
     if training.episode.is_multiple_of(200) {
         training.sac_trainer.save_checkpoint();
     }
+
     training.step = 0;
     training.episode_reward = 0.0;
     training.ball_released = false;

@@ -66,12 +66,17 @@ const ROOT: Node = dir({
 
 function resolve(path: string[]): Node | null {
 	let node: Node = ROOT;
+
 	for (const part of path) {
 		if (node.kind !== "dir") return null;
+
 		const next = node.children[part];
+
 		if (!next) return null;
+
 		node = next;
 	}
+
 	return node;
 }
 
@@ -79,35 +84,44 @@ const promptFor = (cwd: string[]) => `C:\\${cwd.join("\\")}>`;
 
 function shortName(name: string) {
 	const [base, ext = ""] = name.split(".");
+
 	return `${(base ?? "").padEnd(8)} ${ext.padEnd(3)}`;
 }
 
 function listing(cwd: string[]): string[] {
 	const node = resolve(cwd);
+
 	if (node?.kind !== "dir") return ["Path not found"];
+
 	const entries = Object.entries(node.children);
+
 	const lines = [
 		" Volume in drive C is ZD",
 		` Directory of C:\\${cwd.join("\\")}`,
 		"",
 	];
+
 	let files = 0;
 	let bytes = 0;
+
 	for (const [name, child] of entries) {
 		if (child.kind === "dir") {
 			lines.push(`${shortName(name)} <DIR>          ${child.stamp}`);
 		} else {
 			files++;
 			bytes += child.size;
+
 			lines.push(
 				`${shortName(name)} ${child.size.toLocaleString("en-US").padStart(11)} ${child.stamp}`,
 			);
 		}
 	}
+
 	lines.push(
 		`${String(files).padStart(9)} file(s) ${bytes.toLocaleString("en-US").padStart(12)} bytes`,
 		`${String(entries.length - files).padStart(9)} dir(s)   98,304,000 bytes free`,
 	);
+
 	return lines;
 }
 
@@ -116,17 +130,25 @@ function changeDir(
 	arg: string,
 ): { cwd: string[]; error?: string } {
 	if (!arg) return { cwd };
+
 	let next = arg.startsWith("\\") || arg.startsWith("C:") ? [] : [...cwd];
+
 	for (const part of arg.replace(/^C:/i, "").split(/[\\/]/).filter(Boolean)) {
 		if (part === ".") continue;
+
 		if (part === "..") {
 			next.pop();
+
 			continue;
 		}
+
 		const node = resolve([...next, part.toUpperCase()]);
+
 		if (node?.kind !== "dir") return { cwd, error: "Invalid directory" };
+
 		next = [...next, part.toUpperCase()];
 	}
+
 	return { cwd: next };
 }
 
@@ -135,12 +157,16 @@ function makeRunner() {
 
 	return (input: string): ShellResult => {
 		const trimmed = input.trim();
+
 		if (!trimmed) return {};
+
 		const [rawCmd, ...rest] = trimmed.split(/\s+/);
+
 		const cmd = (rawCmd ?? "")
 			.toUpperCase()
 			.replace(/^CD(?=\S)/, "CD ")
 			.trim();
+
 		const arg =
 			cmd === "CD" && rawCmd && rawCmd.length > 2 && !rest.length
 				? rawCmd.slice(2)
@@ -152,8 +178,11 @@ function makeRunner() {
 			case "CD":
 			case "CHDIR": {
 				if (!arg) return { lines: [`C:\\${cwd.join("\\")}`, ""] };
+
 				const moved = changeDir(cwd, arg);
+
 				cwd = moved.cwd;
+
 				return {
 					lines: moved.error ? [moved.error, ""] : [],
 					prompt: promptFor(cwd),
@@ -161,9 +190,11 @@ function makeRunner() {
 			}
 			case "CD..":
 				cwd = cwd.slice(0, -1);
+
 				return { prompt: promptFor(cwd) };
 			case "CD\\":
 				cwd = [];
+
 				return { prompt: promptFor(cwd) };
 			case "CLS":
 				return { clear: true };
@@ -187,7 +218,9 @@ function makeRunner() {
 				};
 			case "TYPE": {
 				const node = resolve([...cwd, arg.toUpperCase()]);
+
 				if (node?.kind !== "file") return { lines: ["File not found", ""] };
+
 				return { lines: [...(node.text ?? ["(binary)"]), ""] };
 			}
 			case "HELP":
@@ -206,13 +239,16 @@ function makeRunner() {
 			default: {
 				const name = `${cmd}${cmd.includes(".") ? "" : ".EXE"}`;
 				const here = resolve([...cwd, name]);
+
 				if (here?.kind === "file" && name === "PRINCE.EXE") {
 					return {
 						lines: ["Loading PRINCE.EXE from drive A:..."],
 						launch: "floppy",
 					};
 				}
+
 				if (here?.kind === "file") return { lines: ["Not enough memory", ""] };
+
 				return { lines: ["Bad command or file name", ""] };
 			}
 		}

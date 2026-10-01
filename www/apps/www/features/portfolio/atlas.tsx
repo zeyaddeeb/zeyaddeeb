@@ -86,6 +86,7 @@ export function WebsiteAtlas() {
 	const dragAnchor = useRef({ x: 0, y: 0, startX: 0, startY: 0 });
 	const { touchActive, setTouchActive, canInteract, touchAction } =
 		useCanvasInteraction();
+
 	useCanvasWheel(interactionRef, (delta) => {
 		setZoomLevel((level) => clamp(level - delta * 0.0015, 0.55, 1.9));
 	});
@@ -113,6 +114,7 @@ export function WebsiteAtlas() {
 			0,
 			...cardLayouts.map((layout) => layout.x + layout.width),
 		);
+
 		const cardBottom = Math.max(
 			0,
 			...cardLayouts.map((layout) => layout.y + layout.height),
@@ -132,19 +134,26 @@ export function WebsiteAtlas() {
 		0.15,
 		1,
 	);
+
 	const zoom = fitZoom * zoomLevel;
 
 	useLayoutEffect(() => {
 		const viewport = viewportRef.current;
+
 		if (!viewport) return;
+
 		const update = () =>
 			setViewport({
 				width: viewport.clientWidth,
 				height: viewport.clientHeight,
 			});
+
 		update();
+
 		const observer = new ResizeObserver(update);
+
 		observer.observe(viewport);
+
 		return () => observer.disconnect();
 	}, []);
 
@@ -169,6 +178,7 @@ export function WebsiteAtlas() {
 
 		event.currentTarget.setPointerCapture(event.pointerId);
 		setDragging(true);
+
 		dragAnchor.current = {
 			x: event.clientX,
 			y: event.clientY,

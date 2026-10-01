@@ -75,6 +75,7 @@ impl WsBridge {
             Ok(ws) => ws,
             Err(e) => {
                 web_sys::console::error_1(&format!("WebSocket creation failed: {:?}", e).into());
+
                 return;
             }
         };
@@ -87,34 +88,42 @@ impl WsBridge {
         let mailbox = Rc::clone(&self.mailbox);
 
         let state_open = Rc::clone(&state);
+
         let onopen_callback = Closure::<dyn FnMut()>::new(move || {
             *state_open.borrow_mut() = WsState::Connected;
             update_ws_status("Connected", "connected");
         });
+
         ws.set_onopen(Some(onopen_callback.as_ref().unchecked_ref()));
 
         let onerror_callback = Closure::<dyn FnMut()>::new(move || {
             web_sys::console::error_1(&"WebSocket error".into());
             update_ws_status("Disconnected", "disconnected");
         });
+
         ws.set_onerror(Some(onerror_callback.as_ref().unchecked_ref()));
 
         let state_close = Rc::clone(&state);
+
         let onclose_callback = Closure::<dyn FnMut()>::new(move || {
             *state_close.borrow_mut() = WsState::Disconnected;
             update_ws_status("Disconnected", "disconnected");
         });
+
         ws.set_onclose(Some(onclose_callback.as_ref().unchecked_ref()));
 
         let onmessage_callback = Closure::<dyn FnMut(_)>::new(move |e: MessageEvent| {
             if let Ok(txt) = e.data().dyn_into::<js_sys::JsString>() {
                 let s: String = txt.into();
+
                 if let Ok(action) = serde_json::from_str::<ActionMsg>(&s) {
                     mailbox.borrow_mut().receive(action);
                 }
             }
         });
+
         ws.set_onmessage(Some(onmessage_callback.as_ref().unchecked_ref()));
+
         self.callbacks = Some((
             onopen_callback,
             onerror_callback,
@@ -133,8 +142,10 @@ impl WsBridge {
             socket.set_onclose(None);
             socket.set_onerror(None);
             socket.set_onmessage(None);
+
             let _ = socket.close();
         }
+
         self.callbacks = None;
         self.mailbox.borrow_mut().cancel();
         self.pending = None;
@@ -146,16 +157,20 @@ impl WsBridge {
         let Some(id) = self.mailbox.borrow_mut().begin(obs.episode) else {
             return;
         };
+
         obs.request_id = id;
+
         if let Some(ws) = &self.socket {
             if let Ok(json) = serde_json::to_string(&obs) {
                 if ws.send_with_str(&json).is_ok() {
                     self.pending = Some(obs);
                     self.pending_seconds = 0.0;
+
                     return;
                 }
             }
         }
+
         self.disconnect();
     }
 
@@ -168,12 +183,15 @@ fn update_ws_status(text: &str, class_name: &str) {
     let Some(window) = web_sys::window() else {
         return;
     };
+
     let Some(document) = window.document() else {
         return;
     };
+
     let Ok(Some(status)) = document.query_selector("#status span") else {
         return;
     };
+
     status.set_text_content(Some(text));
     status.set_attribute("class", class_name).ok();
 }
@@ -182,6 +200,7 @@ fn update_training_stats(stats: &TrainStatsMsg) {
     let Some(window) = web_sys::window() else {
         return;
     };
+
     let Some(document) = window.document() else {
         return;
     };
@@ -189,15 +208,19 @@ fn update_training_stats(stats: &TrainStatsMsg) {
     if let Some(el) = document.get_element_by_id("stat-buffer") {
         el.set_text_content(Some(&stats.buffer_size.to_string()));
     }
+
     if let Some(el) = document.get_element_by_id("stat-steps") {
         el.set_text_content(Some(&stats.train_steps.to_string()));
     }
+
     if let Some(el) = document.get_element_by_id("stat-episodes") {
         el.set_text_content(Some(&stats.episodes.to_string()));
     }
+
     if let Some(el) = document.get_element_by_id("stat-avg-reward") {
         el.set_text_content(Some(&format!("{:.2}", stats.avg_reward)));
     }
+
     if let Some(el) = document.get_element_by_id("stat-recent-reward") {
         el.set_text_content(Some(&format!("{:.2}", stats.recent_reward)));
     }
@@ -205,9 +228,11 @@ fn update_training_stats(stats: &TrainStatsMsg) {
 
 pub fn ws_connection_system(mut bridge: ResMut<WsBridge>, time: Res<Time<Real>>) {
     let state = *bridge.state.borrow();
+
     match state {
         WsState::Connecting => {
             bridge.alive += time.delta_secs();
+
             if bridge.alive > 15.0 {
                 bridge.disconnect();
             }
@@ -215,12 +240,16 @@ pub fn ws_connection_system(mut bridge: ResMut<WsBridge>, time: Res<Time<Real>>)
         WsState::Connected => {
             if bridge.pending.is_some() {
                 bridge.pending_seconds += time.delta_secs();
+
                 if bridge.pending_seconds > 10.0 {
                     bridge.disconnect();
+
                     return;
                 }
             }
+
             bridge.alive += time.delta_secs();
+
             if bridge.alive > RETRY_RESET_SECS {
                 bridge.retry_delay = RETRY_MIN_SECS;
             }
@@ -232,9 +261,12 @@ pub fn ws_connection_system(mut bridge: ResMut<WsBridge>, time: Res<Time<Real>>)
                 bridge.retry_in = bridge.retry_delay;
                 bridge.retry_delay = (bridge.retry_delay * 2.0).min(RETRY_MAX_SECS);
             }
+
             bridge.retry_in -= time.delta_secs();
+
             if bridge.retry_in <= 0.0 {
                 bridge.connect();
+
                 if bridge.socket.is_none() {
                     bridge.retry_in = bridge.retry_delay;
                 }
@@ -254,55 +286,74 @@ pub fn wasm_training_loop(
     // Avian retains its previous delta on pause; zero it to avoid an extra step.
     physics_time.pause();
     physics_time.advance_by(std::time::Duration::ZERO);
+
     if sim.needs_reset {
         return;
     }
+
     if sim.cooldown > 0 {
         sim.cooldown -= 1;
         physics_time.unpause();
+
         return;
     }
+
     if !bridge.is_connected() {
         return;
     }
+
     sim.ball_released |= grip.as_deref().is_some_and(|grip| grip.released);
+
     if bridge.pending.is_some() {
         let response = bridge.mailbox.borrow_mut().take();
+
         if let Some(response) = response {
             let request = bridge.pending.take().unwrap();
+
             if request.episode != sim.episode as u64 {
                 return;
             }
+
             if let Some(stats) = response.stats {
                 let stage = stats.curriculum_stage.map(CurriculumStage::from_index);
+
                 update_training_stats(&stats);
                 sim.server_stats = Some(stats);
+
                 if sim.step == 0 && stage.is_some_and(|stage| stage != sim.curriculum_stage) {
                     sim.curriculum_stage = stage.unwrap();
+
                     // Request an action for the corrected context before the first physics step.
                     return;
                 }
             }
+
             let action = response.action;
+
             apply_torques(&mut queries.p1(), &ComputedTorques::from_action(&action));
+
             if sim.ball_released {
                 sim.steps_since_release += 1;
             } else if should_release(sim.curriculum_stage, sim.step, action[13]) {
                 sim.ball_released = true;
+
                 if let Some(grip) = grip.as_deref_mut() {
                     release_ball(&mut commands, grip);
                 }
             }
+
             sim.prev_obs = Some(request.obs);
             sim.prev_action = Some(action);
             sim.step += 1;
             physics_time.unpause();
         }
+
         return;
     }
 
     let state = {
         let q = queries.p0();
+
         extract_robot_state(&q)
     };
 
@@ -310,9 +361,11 @@ pub fn wasm_training_loop(
 
     let (ball_pos, ball_v) = {
         let q = queries.p2();
+
         let Ok((pos, lin_vel, _)) = q.single() else {
             return;
         };
+
         (pos.0, lin_vel.0)
     };
 
@@ -334,9 +387,11 @@ pub fn wasm_training_loop(
         sim.step,
         EPISODE_STEPS,
     );
+
     let terminal = end_reason.is_some_and(|r| r.is_terminal());
 
     let mut reward = 0.0;
+
     if let Some(prev_action) = sim.prev_action.take() {
         let comps = compute_reward_components(
             &state,
@@ -348,21 +403,25 @@ pub fn wasm_training_loop(
         );
 
         reward = comps.stand + comps.throw;
+
         if sim.ball_released
             && sim.steps_since_release == 0
             && grip.as_deref().is_none_or(|grip| !grip.dropped)
         {
             reward += release_reward(ball_pos, ball_v);
         }
+
         if end_reason == Some(EpisodeEndReason::BasketMade) {
             reward += BASKET_REWARD;
         } else if end_reason.is_some() && sim.curriculum_stage == CurriculumStage::Shooting {
             reward -= 5.0;
         }
+
         sim.episode_reward += reward;
     }
 
     sim.prev_ball_pos = Some(ball_pos);
+
     bridge.send_observation(ObservationMsg {
         protocol_version: crate::rl::ENVIRONMENT_VERSION,
         episode: sim.episode as u64,
@@ -374,6 +433,7 @@ pub fn wasm_training_loop(
         step: sim.step as u64,
         ball_released: sim.ball_released,
     });
+
     if let Some(reason) = end_reason {
         finish_episode(&mut sim, reason, ball_pos);
         bridge.mailbox.borrow_mut().cancel();

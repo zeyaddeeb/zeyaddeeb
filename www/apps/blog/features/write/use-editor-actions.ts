@@ -31,6 +31,7 @@ export function useEditorActions({
 		setError(null);
 
 		const result = await save();
+
 		if (result.success) {
 			router.push(savedHref(result.data));
 		} else {
@@ -41,6 +42,7 @@ export function useEditorActions({
 
 	const destroy = async () => {
 		if (!remove || !removedHref) return;
+
 		if (
 			!confirm(
 				`Are you sure you want to delete this ${noun}? This action cannot be undone.`,
@@ -53,6 +55,7 @@ export function useEditorActions({
 		setError(null);
 
 		const result = await remove();
+
 		if (result.success) {
 			router.push(removedHref);
 		} else {

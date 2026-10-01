@@ -26,6 +26,7 @@ pub fn run_headless_with_substeps(
     substeps: u32,
 ) {
     assert!(substeps > 0, "physics substeps must be positive");
+
     let runner = match max_steps_per_second {
         Some(hz) if hz > 0.0 => ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(1.0 / hz)),
         _ => ScheduleRunnerPlugin::default(),

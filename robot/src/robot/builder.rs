@@ -17,11 +17,13 @@ pub fn spawn_robot(
         perceptual_roughness: 0.3,
         ..default()
     });
+
     let white_mat = materials.add(StandardMaterial {
         base_color: Color::srgb(0.92, 0.92, 0.90),
         perceptual_roughness: 0.7,
         ..default()
     });
+
     let poses = get_initial_poses();
     let torso_pos = poses.torso.position;
 
@@ -48,6 +50,7 @@ pub fn spawn_robot(
                 MeshMaterial3d(white_mat.clone()),
                 Transform::from_xyz(0.0, TORSO_HEIGHT / 2.0 + NECK_HEIGHT / 2.0, 0.0),
             ));
+
             parent.spawn((
                 Mesh3d(meshes.add(Sphere::new(HEAD_RADIUS))),
                 MeshMaterial3d(gold_mat.clone()),
@@ -517,6 +520,7 @@ mod tests {
     #[test]
     fn spawn_matches_reset_and_starts_with_aligned_hinges() {
         let mut app = App::new();
+
         app.init_resource::<Assets<Mesh>>()
             .init_resource::<Assets<StandardMaterial>>()
             .add_systems(
@@ -525,12 +529,16 @@ mod tests {
                  mut meshes: ResMut<Assets<Mesh>>,
                  mut materials: ResMut<Assets<StandardMaterial>>| {
                     let robot = spawn_robot(&mut commands, &mut meshes, &mut materials);
+
                     commands.insert_resource(robot);
                 },
             );
+
         app.update();
+
         let poses = get_initial_poses();
         let robot = app.world().resource::<RobotEntities>();
+
         for (entity, pose) in [
             (robot.torso, poses.torso),
             (robot.right_upper_arm, poses.upper_arm),
@@ -547,54 +555,68 @@ mod tests {
             (robot.right_foot, poses.right_foot),
         ] {
             let transform = app.world().get::<Transform>(entity).unwrap();
+
             assert!(transform.translation.abs_diff_eq(pose.position, 1e-5));
             assert!(transform.rotation.abs_diff_eq(pose.rotation, 1e-5));
         }
 
         assert!(app.world().get::<RevoluteJoint>(robot.left_ankle).is_some());
+
         assert!(app
             .world()
             .get::<RevoluteJoint>(robot.right_ankle)
             .is_some());
+
         let body_rotations: Vec<_> = app
             .world_mut()
             .query::<(Entity, &Transform, &ConstantTorque)>()
             .iter(app.world())
             .map(|(entity, transform, _)| (entity, transform.rotation))
             .collect();
+
         assert_eq!(body_rotations.len(), 13);
+
         for (entity, rotation) in body_rotations {
             app.world_mut()
                 .entity_mut(entity)
                 .insert(Rotation(Quat::from_rotation_x(0.3) * rotation));
         }
+
         let mut torque_system = bevy::ecs::system::SystemState::<
             super::super::torque::TorqueWriteQuery,
         >::new(app.world_mut());
+
         let torques =
             super::super::torque::ComputedTorques::from_action(&[0.5; crate::rl::ACT_DIM]);
+
         super::super::torque::apply_torques(
             &mut torque_system.get_mut(app.world_mut()).unwrap(),
             &torques,
         );
+
         let mut forces = app.world_mut().query::<&ConstantTorque>();
         let total: Vec3 = forces.iter(app.world()).map(|t| t.0).sum();
+
         assert!(
             total.length() < 1e-5,
             "Internal actuators must conserve angular momentum: {total}"
         );
 
         let mut joints = app.world_mut().query::<&RevoluteJoint>();
+
         for joint in joints.iter(app.world()) {
             let first = app.world().get::<Transform>(joint.body1).unwrap();
             let second = app.world().get::<Transform>(joint.body2).unwrap();
             let anchor1 = first.transform_point(joint.local_anchor1().unwrap());
             let anchor2 = second.transform_point(joint.local_anchor2().unwrap());
+
             assert!(anchor1.abs_diff_eq(anchor2, 1e-5));
+
             let basis1 = first.rotation * joint.local_basis1().unwrap();
             let basis2 = second.rotation * joint.local_basis2().unwrap();
             let angle = (basis1.inverse() * basis2).to_euler(EulerRot::ZYX).0;
             let limits = joint.angle_limit.unwrap();
+
             assert!(
                 angle >= limits.min && angle <= limits.max,
                 "joint starts outside limits: {angle}"

@@ -55,9 +55,11 @@ export function ProofsLab() {
 	const [pending, setPending] = useState<string | null>(null);
 	const [showHint, setShowHint] = useState(false);
 	const [draft, setDraft] = useState("");
+
 	const [timing, setTiming] = useState<{ moves: number; ms: number } | null>(
 		null,
 	);
+
 	const [progress, setProgress] = useState<Record<string, Progress>>({});
 	const request = useRef(0);
 
@@ -68,6 +70,7 @@ export function ProofsLab() {
 
 	useEffect(() => {
 		setProgress(readProgress());
+
 		loadLevels().then((loaded) => {
 			if (loaded.ok) setStarts(loaded.levels);
 			else setDown(true);
@@ -80,7 +83,9 @@ export function ProofsLab() {
 				...all,
 				[id]: { ...next, solved: next.solved || (keep && !!all[id]?.solved) },
 			};
+
 			writeProgress(merged);
+
 			return merged;
 		});
 	}, []);
@@ -88,6 +93,7 @@ export function ProofsLab() {
 	const open = useCallback(async (to: number) => {
 		const id = levels[to].id;
 		const saved = readProgress()[id];
+
 		setIndex(to);
 		setSteps([]);
 		setFailure(null);
@@ -95,14 +101,23 @@ export function ProofsLab() {
 		setTried(0);
 		setShowHint(false);
 		setDraft("");
+
 		if (!saved?.tactics.length) return;
+
 		const ticket = ++request.current;
+
 		setPending(saved.tactics.at(-1) ?? null);
+
 		const result = await checkProof(id, saved.tactics);
+
 		if (ticket !== request.current) return;
+
 		setPending(null);
+
 		if (!result.ok) return;
+
 		const accepted = result.checked.steps.filter((s) => s.ok);
+
 		setSteps(accepted);
 		setSolved(result.checked.solved);
 		setTried(accepted.length);
@@ -111,14 +126,21 @@ export function ProofsLab() {
 	const play = useCallback(
 		async (tactic: string) => {
 			const text = tactic.trim();
+
 			if (!text || pending) return;
+
 			const ticket = ++request.current;
+
 			setPending(text);
 			setShowHint(false);
+
 			const result = await checkProof(level.id, [...tactics, text]);
+
 			if (ticket !== request.current) return;
+
 			setPending(null);
 			setTried((n) => n + 1);
+
 			if (!result.ok) {
 				setFailure({
 					tactic: text,
@@ -126,16 +148,21 @@ export function ProofsLab() {
 					goals: [],
 					error: unavailable[result.reason],
 				});
+
 				return;
 			}
+
 			const all = result.checked.steps;
 			const last = all.at(-1);
+
 			setTiming({ moves: all.length, ms: result.checked.leanMs });
+
 			if (last?.ok) {
 				setSteps(all);
 				setFailure(null);
 				setSolved(result.checked.solved);
 				setDraft("");
+
 				remember(level.id, {
 					tactics: all.map((s) => s.tactic),
 					solved: result.checked.solved,
@@ -151,11 +178,15 @@ export function ProofsLab() {
 	const undo = () => {
 		request.current++;
 		setPending(null);
+
 		if (failure) {
 			setFailure(null);
+
 			return;
 		}
+
 		const kept = steps.slice(0, -1);
+
 		setSteps(kept);
 		setSolved(false);
 		remember(level.id, { tactics: kept.map((s) => s.tactic), solved: false });
@@ -186,6 +217,7 @@ export function ProofsLab() {
 	const finished = solved || (level.open && tried >= 2);
 	const statement = start?.statement ?? "";
 	const key = legend(goals);
+
 	const status = down
 		? "Lean offline"
 		: !starts
@@ -195,6 +227,7 @@ export function ProofsLab() {
 				: timing
 					? `Lean ran ${timing.moves} ${timing.moves === 1 ? "move" : "moves"} in ${timing.ms < 1 ? "<1" : Math.round(timing.ms)} ms`
 					: "Lean 4 is ready";
+
 	const nextLevel = (where: "dock" | "side") =>
 		finished && index < levels.length - 1 ? (
 			<button

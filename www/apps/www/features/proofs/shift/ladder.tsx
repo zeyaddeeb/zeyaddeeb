@@ -54,12 +54,15 @@ function title(text: string): string {
 
 export function entries(nodes: BlueprintNode[]): Entry[] {
 	const seen = new Map<string, Entry>();
+
 	for (const node of nodes) {
 		const key = title(node.title);
 		const known = seen.get(key);
+
 		if (known) known.copies += 1;
 		else seen.set(key, { node, copies: 1 });
 	}
+
 	return [...seen.values()];
 }
 
@@ -93,6 +96,7 @@ function Detail({
 	onSelect: (key: string) => void;
 }) {
 	const related = links.filter((l) => l.from === node.key || l.to === node.key);
+
 	return (
 		<article className="ns-detail" aria-live="polite">
 			<p className="ns-eyebrow">
@@ -125,6 +129,7 @@ function Detail({
 						const other = l.from === node.key ? l.to : l.from;
 						const phrase =
 							l.from === node.key ? FORWARD[l.relation] : BACKWARD[l.relation];
+
 						return (
 							<li key={`${l.from}-${l.relation}-${l.to}`}>
 								{phrase}{" "}
@@ -155,6 +160,7 @@ export function Ladder({
 	const [selected, setSelected] = useState<string>("rh");
 	const all = Object.values(nodes).sort((a, b) => b.updated - a.updated);
 	const chosen = nodes[selected];
+
 	return (
 		<section className="ns-block ns-ladder" aria-labelledby="ns-ladder-title">
 			<header className="ns-block-head">
@@ -169,6 +175,7 @@ export function Ladder({
 				{RUNGS.map((rung) => {
 					const held = all.filter((n) => rung.trusts.includes(n.trust));
 					const listed = entries(held);
+
 					return (
 						<li key={rung.id} className="ns-rung" data-rung={rung.id}>
 							<p className="ns-rung-head">

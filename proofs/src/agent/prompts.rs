@@ -53,10 +53,12 @@ result already guarantees (no zeros off the line below 3·10¹², Hasse's bound)
 with it. Lemmas Lean's automation proves alone are routine and earn little; restating a proved lemma is refused.
 - Between calls, write one or two plain sentences."
     );
+
     if !rules.is_empty() {
         text.push_str("\n\nYour own rules, learned from your past episodes:\n");
         text.push_str(&numbered(rules));
     }
+
     text
 }
 
@@ -122,16 +124,19 @@ fn trial_line(rules: &Rules) -> String {
                 change.text
             ),
         });
+
     let outcome = match rules.standing {
         Standing::Trial => format!("on trial, {} pairs so far", rules.pairs.len()),
         Standing::Lost | Standing::Reverted => "lost".to_string(),
         _ => "kept".to_string(),
     };
+
     let numbers = match (rules.gain, rules.p) {
         (Some(gain), Some(p)) => format!(", gain {gain:+.2}, p = {p:.2}"),
         (Some(gain), None) => format!(", mean gain {gain:+.2}"),
         _ => String::new(),
     };
+
     format!("v{} {change}: {outcome}{numbers}", rules.version)
 }
 
@@ -154,6 +159,7 @@ pub fn revision(
             numbered(&current.lines)
         )
     };
+
     section(
         &mut text,
         "Trials so far, newest first",
@@ -163,6 +169,7 @@ pub fn revision(
             .take(6)
             .map(trial_line),
     );
+
     section(
         &mut text,
         "Wasted actions in the last episodes",
@@ -170,11 +177,13 @@ pub fn revision(
             .iter()
             .map(|(what, count)| format!("{what} ×{count}")),
     );
+
     section(
         &mut text,
         "The proof tree under rh",
         tree.iter().take(12).cloned(),
     );
+
     section(
         &mut text,
         "Last episodes",
@@ -192,6 +201,7 @@ pub fn revision(
             )
         }),
     );
+
     text
 }
 
@@ -206,6 +216,7 @@ pub fn method_record(current: &Rules, lineage: &[Rules]) -> String {
         },
         numbered(&current.lines)
     );
+
     section(
         &mut text,
         "Trials it produced",
@@ -217,6 +228,7 @@ pub fn method_record(current: &Rules, lineage: &[Rules]) -> String {
             .take(8)
             .map(trial_line),
     );
+
     section(
         &mut text,
         "Methods before it",
@@ -239,6 +251,7 @@ pub fn method_record(current: &Rules, lineage: &[Rules]) -> String {
                 )
             }),
     );
+
     text
 }
 
@@ -251,6 +264,7 @@ pub fn moves(episodes: &[Episode]) -> Vec<String> {
                 .filter(|e| e.heuristic == *id)
                 .map(|e| e.reward)
                 .collect();
+
             (!rewards.is_empty()).then(|| {
                 format!(
                     "{id} ({what}): {:.2} over {}",
@@ -286,6 +300,7 @@ pub fn brief(brief: &Brief) -> String {
         moves,
         actions,
     } = brief;
+
     let mut text = format!(
         "Episode {} · {}\n{}\n\n{}\n\nWhere things stand: every zero up to t = {:.1} is on the line, certified by Turing's method \
 ({} zeros, {} missing); {} rectangles searched off the line; {} predictions made, {} held, {} broke; {} lemmas proved in Lean, \
@@ -305,32 +320,41 @@ pub fn brief(brief: &Brief) -> String {
         state.routine,
         state.reductions,
     );
+
     let records = records(state);
+
     if !records.is_empty() {
         text.push_str(&format!("\nRecords: {}.", records.join("; ")));
     }
+
     if !state.letter.is_empty() {
         text.push_str(&format!("\n\nYour letter to yourself: {}", state.letter));
     }
+
     section(
         &mut text,
         "Blueprint nearby",
         related.iter().map(Node::line),
     );
+
     section(&mut text, "Open on this front", open.iter().map(Node::line));
+
     section(
         &mut text,
         "The proof tree under rh (Lean-checked; open leaves come first)",
         tree.iter().cloned(),
     );
+
     if let Some(focus) = focus {
         text.push_str(&format!("\n\nWhere to work: {focus}"));
     }
+
     section(
         &mut text,
         "Pólya's moves so far (mean reward over episodes)",
         moves.iter().cloned(),
     );
+
     section(
         &mut text,
         "Last episodes here",
@@ -338,12 +362,15 @@ pub fn brief(brief: &Brief) -> String {
             .iter()
             .map(|e| format!("#{}: {} Next: {}", e.number, e.summary, e.next)),
     );
+
     text.push_str(&format!("\n\nYou have {actions} actions. Begin with plan."));
+
     text
 }
 
 pub fn digest(episodes: &[Episode], nodes: &[Node], letter: &str) -> String {
     let mut text = String::from("What happened since you last slept.");
+
     section(
         &mut text,
         "Episodes",
@@ -354,45 +381,57 @@ pub fn digest(episodes: &[Episode], nodes: &[Node], letter: &str) -> String {
             )
         }),
     );
+
     section(&mut text, "Blueprint changes", nodes.iter().map(Node::line));
+
     if !letter.is_empty() {
         text.push_str(&format!("\n\nYour last letter: {letter}"));
     }
+
     text
 }
 
 fn records(state: &AgentState) -> Vec<String> {
     let r = &state.records;
     let mut out = Vec::new();
+
     if let Some(gap) = r.closest_gap {
         out.push(format!("closest pair of zeros {gap:.6} apart"));
     }
+
     if let Some(d) = r.gue_distance {
         out.push(format!("best GUE distance {d:.4}"));
     }
+
     if let (Some(digits), Some(margin)) = (r.robin_digits, r.robin_margin) {
         out.push(format!("Robin margin {margin:.3e} at {digits:.0} digits"));
     }
+
     if let (Some(x), Some(ratio)) = (r.mertens_x, r.mertens_ratio) {
         out.push(format!("max |M(x)|/√x = {ratio:.4} up to {x}"));
     }
+
     if let Some(primes) = r.hasse_primes {
         out.push(format!("Hasse checked over {primes} primes"));
     }
+
     out
 }
 
 fn section(text: &mut String, title: &str, lines: impl Iterator<Item = String>) {
     let lines: Vec<String> = lines.collect();
+
     if lines.is_empty() {
         return;
     }
+
     text.push_str(&format!("\n\n{title}:\n"));
     text.push_str(&lines.join("\n"));
 }
 
 pub fn awake(since: i64, now: i64) -> String {
     let minutes = ((now - since).max(0) / 60_000) as u64;
+
     match (minutes / 1440, minutes % 1440 / 60, minutes % 60) {
         (0, 0, m) => unit(m, "minute"),
         (0, h, m) => format!("{} {}", unit(h, "hour"), unit(m, "minute")),
@@ -417,6 +456,7 @@ mod tests {
             letter: "Try the Lehmer pair near 7005.".into(),
             ..Default::default()
         };
+
         let text = brief(&Brief {
             front: &FRONTS[0],
             state: &state,
@@ -428,6 +468,7 @@ mod tests {
             moves: &["decompose 0.40 (3)".into()],
             actions: 8,
         });
+
         assert!(text.starts_with("Episode 5 · The line"));
         assert!(text.contains("t = 1234.5"));
         assert!(text.contains("Lehmer pair near 7005"));

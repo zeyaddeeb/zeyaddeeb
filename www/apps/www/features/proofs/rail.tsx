@@ -32,11 +32,13 @@ export function Rail({
 	onOpen: (index: number) => void;
 }) {
 	const here = place(index).chapter;
+
 	return (
 		<nav className="pf-rail" aria-label="Chapters">
 			<ol className="pf-chapters">
 				{chapters.map((chapter) => {
 					const done = chapter.levels.every(solved);
+
 					if (chapter !== here) {
 						return (
 							<li key={chapter.id}>
@@ -52,12 +54,14 @@ export function Rail({
 							</li>
 						);
 					}
+
 					return (
 						<li key={chapter.id} className="pf-chapter-open">
 							<span className="pf-chapter-title">{chapter.title}</span>
 							<ol aria-label={`Chapter ${chapter.number}: ${chapter.title}`}>
 								{chapter.levels.map((id, part) => {
 									const at = levelIndex(id);
+
 									return (
 										<li key={id}>
 											<button

@@ -12,13 +12,17 @@ export async function signInWithEmail(email: string, password: string) {
 				password: z.string().min(1).max(128),
 			})
 			.parse({ email, password });
+
 		const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+
 		if (!adminEmail || input.email.trim().toLowerCase() !== adminEmail)
 			return { error: "Invalid credentials" };
+
 		await auth.api.signInEmail({
 			body: { email: adminEmail, password: input.password },
 			headers: await headers(),
 		});
+
 		return { success: true };
 	} catch {
 		return {
@@ -30,6 +34,7 @@ export async function signInWithEmail(email: string, password: string) {
 export async function signOutAction() {
 	try {
 		await auth.api.signOut({ headers: await headers() });
+
 		return { success: true };
 	} catch {
 		return { error: "Failed to sign out" };

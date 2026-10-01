@@ -30,14 +30,17 @@ impl AudioProcessor {
     #[wasm_bindgen]
     pub fn process(&mut self, samples: &[f32]) -> Vec<f32> {
         self.buffer.fill(Complex::new(0.0, 0.0));
+
         for ((slot, &sample), &weight) in self.buffer.iter_mut().zip(samples).zip(&self.window) {
             *slot = Complex::new(sample * weight, 0.0);
         }
 
         let fft = self.planner.plan_fft_forward(self.fft_size);
+
         fft.process(&mut self.buffer);
 
         let scale = self.fft_size as f32;
+
         self.buffer[..self.fft_size / 2]
             .iter()
             .map(|bin| 20.0 * (bin.norm() / scale).max(1e-10).log10())
@@ -54,6 +57,7 @@ impl AudioProcessor {
                 let start = i * bin_size;
                 let end = ((i + 1) * bin_size).min(magnitudes.len());
                 let sum: f32 = magnitudes[start..end].iter().sum();
+
                 sum / (end - start) as f32
             })
             .collect()
@@ -64,6 +68,7 @@ impl AudioProcessor {
         data.iter()
             .map(|&val| {
                 let clamped = val.clamp(min_db, max_db);
+
                 (clamped - min_db) / (max_db - min_db)
             })
             .collect()
@@ -101,6 +106,7 @@ mod tests {
         let mut processor = AudioProcessor::new(1024);
         let samples: Vec<f32> = (0..1024).map(|i| (i as f32 * 0.1).sin()).collect();
         let result = processor.process(&samples);
+
         assert_eq!(result.len(), 512);
     }
 
@@ -109,6 +115,7 @@ mod tests {
         let mut processor = AudioProcessor::new(1024);
         let samples: Vec<f32> = (0..1024).map(|i| (i as f32 * 0.1).sin()).collect();
         let bins = processor.get_frequency_bins(&samples, 32);
+
         assert_eq!(bins.len(), 32);
     }
 }

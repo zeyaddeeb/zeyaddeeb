@@ -37,11 +37,14 @@ struct Hit {
 impl Store {
     pub async fn connect(url: &str, credentials: Option<(String, String)>) -> Result<Self> {
         let db = any::connect(url).await?;
+
         if let Some((username, password)) = credentials {
             db.signin(Root { username, password }).await?;
         }
+
         db.use_ns("proofs").use_db("agent").await?;
         db.query(SCHEMA).await?.check()?;
+
         Ok(Store { db })
     }
 
@@ -60,6 +63,7 @@ impl Store {
             .bind(("ttl", format!("{seconds}s")))
             .await?
             .check()?;
+
         Ok(response.take::<Option<bool>>(0)?.unwrap_or(false))
     }
 
@@ -73,6 +77,7 @@ impl Store {
             .upsert(("agent", "state"))
             .content(state.clone())
             .await?;
+
         Ok(())
     }
 
@@ -82,12 +87,15 @@ impl Store {
 
     pub async fn put_node(&self, node: &Node) -> Result<()> {
         let mut node = node.clone();
+
         node.refresh();
+
         let _: Option<Node> = self
             .db
             .upsert(("node", node.key.clone()))
             .content(node)
             .await?;
+
         Ok(())
     }
 
@@ -95,7 +103,9 @@ impl Store {
         if self.node(&node.key).await?.is_some() {
             return Ok(false);
         }
+
         self.put_node(node).await?;
+
         Ok(true)
     }
 
@@ -104,6 +114,7 @@ impl Store {
             .db
             .query("SELECT * OMIT id FROM node ORDER BY updated DESC LIMIT 400")
             .await?;
+
         Ok(response.take(0)?)
     }
 
@@ -118,6 +129,7 @@ impl Store {
             .bind(("trust", trust))
             .bind(("limit", limit as i64))
             .await?;
+
         Ok(response.take(0)?)
     }
 
@@ -131,13 +143,16 @@ impl Store {
             .bind(("query", query.to_string()))
             .bind(("limit", limit as i64))
             .await?;
+
         let keys: Vec<Key> = response.take(0)?;
         let mut nodes = Vec::with_capacity(keys.len());
+
         for Key { key } in keys {
             if let Some(node) = self.node(&key).await? {
                 nodes.push(node);
             }
         }
+
         Ok(nodes)
     }
 
@@ -149,10 +164,13 @@ impl Store {
             .bind(("to", link.to.clone()))
             .bind(("relation", link.relation))
             .await?;
+
         let found: Vec<surrealdb::types::Value> = existing.take(0)?;
+
         if !found.is_empty() {
             return Ok(false);
         }
+
         self.db
             .query(
                 "RELATE (type::record('node', $from))->link->(type::record('node', $to))
@@ -164,6 +182,7 @@ impl Store {
             .bind(("episode", link.episode as i64))
             .await?
             .check()?;
+
         Ok(true)
     }
 
@@ -172,6 +191,7 @@ impl Store {
             .db
             .query("SELECT from, to, relation, episode FROM link")
             .await?;
+
         Ok(response.take(0)?)
     }
 
@@ -184,6 +204,7 @@ impl Store {
             &episode.next,
         ]
         .join(" ");
+
         self.db
             .query(
                 "UPSERT type::record('episode', $number) CONTENT $episode;
@@ -194,6 +215,7 @@ impl Store {
             .bind(("text", text))
             .await?
             .check()?;
+
         Ok(())
     }
 
@@ -201,6 +223,7 @@ impl Store {
         if let Ok(number) = query.trim().trim_start_matches('#').parse::<u64>() {
             return Ok(self.episode(number).await?.into_iter().collect());
         }
+
         let mut response = self
             .db
             .query(
@@ -212,21 +235,28 @@ impl Store {
             .bind(("query", query.to_string()))
             .bind(("limit", (limit * 2) as i64))
             .await?;
+
         let mut hits: Vec<Hit> = response.take(0)?;
+
         hits.extend(response.take::<Vec<Hit>>(1)?);
         hits.sort_by(|a, b| b.score.total_cmp(&a.score));
+
         let mut numbers: Vec<u64> = Vec::new();
+
         for hit in hits {
             if !numbers.contains(&hit.number) {
                 numbers.push(hit.number);
             }
         }
+
         let mut found = Vec::new();
+
         for number in numbers.into_iter().take(limit) {
             if let Some(episode) = self.episode(number).await? {
                 found.push(episode);
             }
         }
+
         Ok(found)
     }
 
@@ -240,6 +270,7 @@ impl Store {
             .query("SELECT * OMIT id FROM episode ORDER BY number DESC LIMIT $limit")
             .bind(("limit", limit as i64))
             .await?;
+
         Ok(response.take(0)?)
     }
 
@@ -253,6 +284,7 @@ impl Store {
             .bind(("before", before as i64))
             .bind(("limit", limit as i64))
             .await?;
+
         Ok(response.take(0)?)
     }
 
@@ -266,15 +298,18 @@ impl Store {
             .bind(("front", front.to_string()))
             .bind(("limit", limit as i64))
             .await?;
+
         Ok(response.take(0)?)
     }
 
     pub async fn put_turn(&self, turn: &Turn) -> Result<()> {
         let mut text = format!("{} {}", turn.thought, turn.said);
+
         for call in &turn.calls {
             text.push(' ');
             text.push_str(&call.summary);
         }
+
         self.db
             .query(
                 "UPSERT type::record('turn', $id) CONTENT $turn;
@@ -285,6 +320,7 @@ impl Store {
             .bind(("text", text))
             .await?
             .check()?;
+
         Ok(())
     }
 
@@ -294,6 +330,7 @@ impl Store {
             .query("SELECT * OMIT id FROM turn WHERE episode = $episode ORDER BY index")
             .bind(("episode", episode as i64))
             .await?;
+
         Ok(response.take(0)?)
     }
 
@@ -303,11 +340,13 @@ impl Store {
             .bind(("episode", episode as i64))
             .await?
             .check()?;
+
         Ok(())
     }
 
     pub async fn put_stretch(&self, stretch: &Stretch) -> Result<()> {
         let _: Option<Stretch> = self.db.create("stretch").content(stretch.clone()).await?;
+
         Ok(())
     }
 
@@ -316,11 +355,13 @@ impl Store {
             .db
             .query("SELECT * OMIT id FROM stretch ORDER BY from")
             .await?;
+
         Ok(response.take(0)?)
     }
 
     pub async fn put_probe(&self, probe: &Probe) -> Result<()> {
         let _: Option<Probe> = self.db.create("probe").content(probe.clone()).await?;
+
         Ok(())
     }
 
@@ -329,12 +370,14 @@ impl Store {
             .db
             .query("SELECT * OMIT id FROM probe ORDER BY t_from")
             .await?;
+
         Ok(response.take(0)?)
     }
 
     pub async fn put_lemma(&self, lemma: &Lemma) -> Result<()> {
         self.db.query("BEGIN TRANSACTION; LET $sequence = array::len(SELECT name FROM lemma); UPSERT type::record('lemma', $name) CONTENT $lemma; UPDATE type::record('lemma', $name) SET sequence = $sequence; COMMIT TRANSACTION;")
             .bind(("name", lemma.name.clone())).bind(("lemma", lemma.clone())).await?.check()?;
+
         Ok(())
     }
 
@@ -343,6 +386,7 @@ impl Store {
             .db
             .query("SELECT * OMIT id FROM lemma ORDER BY episode, sequence")
             .await?;
+
         Ok(response.take(0)?)
     }
 
@@ -352,6 +396,7 @@ impl Store {
             .query("SELECT episode, calls FROM turn WHERE episode >= $episode ORDER BY episode")
             .bind(("episode", episode as i64))
             .await?;
+
         Ok(response.take(0)?)
     }
 
@@ -361,6 +406,7 @@ impl Store {
             .upsert(("rules", rules.id()))
             .content(rules.clone())
             .await?;
+
         Ok(())
     }
 
@@ -373,6 +419,7 @@ impl Store {
             .db
             .query("SELECT * OMIT id FROM rules ORDER BY version DESC LIMIT 400")
             .await?;
+
         Ok(response.take(0)?)
     }
 
@@ -382,6 +429,7 @@ impl Store {
             .upsert(("reduction", reduction.lemma.clone()))
             .content(reduction.clone())
             .await?;
+
         Ok(())
     }
 
@@ -390,6 +438,7 @@ impl Store {
             .db
             .query("SELECT * OMIT id FROM reduction ORDER BY episode")
             .await?;
+
         Ok(response.take(0)?)
     }
 
@@ -399,6 +448,7 @@ impl Store {
             .upsert(("proof", proof.key.clone()))
             .content(proof.clone())
             .await?;
+
         Ok(())
     }
 
@@ -414,6 +464,7 @@ impl Store {
     ) -> Result<Vec<ProofExperience>> {
         let mut response = self.db.query("SELECT *, search::score(1) AS score OMIT id FROM proof WHERE text @1,OR@ $query AND environment = $environment AND checked = true ORDER BY score DESC LIMIT $limit")
             .bind(("query", query.to_string())).bind(("environment", environment.to_string())).bind(("limit", limit as i64)).await?.check()?;
+
         Ok(response.take(0)?)
     }
 }
@@ -429,6 +480,7 @@ mod tests {
     #[tokio::test]
     async fn checked_proof_experience_survives_transcript_pruning() {
         let store = store().await;
+
         let proof = ProofExperience {
             key: "checked".into(),
             statement: "theorem saved : True".into(),
@@ -439,7 +491,9 @@ mod tests {
             text: "zeta reflection".into(),
             ..Default::default()
         };
+
         store.put_proof(&proof).await.unwrap();
+
         store
             .put_proof(&ProofExperience {
                 key: "failed".into(),
@@ -448,24 +502,30 @@ mod tests {
             })
             .await
             .unwrap();
+
         store.forget_turns_before(100).await.unwrap();
+
         let found = store.proof_examples("zeta", "pinned", 3).await.unwrap();
+
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].key, "checked");
         assert!(found[0].replayable("theorem saved : True", "pinned", "before"));
         assert!(!found[0].replayable("theorem saved : False", "pinned", "before"));
         assert!(!found[0].replayable("theorem saved : True", "pinned", "after"));
+
         assert!(store
             .proof_examples("zeta", "another-version", 3)
             .await
             .unwrap()
             .is_empty());
+
         assert!(store.proof("failed").await.unwrap().is_some());
     }
 
     #[tokio::test]
     async fn nodes_round_trip_and_recall_by_text() {
         let store = store().await;
+
         let mut robin = Node::new(
             "robin",
             Kind::Equivalence,
@@ -473,8 +533,10 @@ mod tests {
             "Robin's inequality",
             "RH holds exactly when sigma(n) < e^gamma n log log n for every n above 5040.",
         );
+
         robin.front = "divisors".into();
         store.put_node(&robin).await.unwrap();
+
         let mertens = Node::new(
             "mertens",
             Kind::Equivalence,
@@ -482,47 +544,58 @@ mod tests {
             "Mertens growth",
             "RH holds exactly when the Mertens function grows no faster than x to the one half plus epsilon.",
         );
+
         store.put_node(&mertens).await.unwrap();
         assert!(!store.insert_missing(&mertens).await.unwrap());
 
         let back = store.node("robin").await.unwrap().unwrap();
+
         assert_eq!(back.trust, Trust::Literature);
         assert_eq!(back.kind, Kind::Equivalence);
 
         let found = store.recall("divisor sigma inequality", 5).await.unwrap();
+
         assert_eq!(
             found.first().map(|n| n.key.as_str()),
             Some("robin"),
             "{found:?}"
         );
+
         let found = store.recall("Mertens function", 5).await.unwrap();
+
         assert_eq!(found.first().map(|n| n.key.as_str()), Some("mertens"));
 
         let on = store
             .nodes_where("divisors", Trust::Literature, 5)
             .await
             .unwrap();
+
         assert_eq!(on.len(), 1);
     }
 
     #[tokio::test]
     async fn links_are_graph_edges_without_duplicates() {
         let store = store().await;
+
         for key in ["a", "b"] {
             store
                 .put_node(&Node::new(key, Kind::Theorem, Trust::Mathlib, key, key))
                 .await
                 .unwrap();
         }
+
         let link = Link {
             from: "a".into(),
             to: "b".into(),
             relation: Relation::Implies,
             episode: 1,
         };
+
         assert!(store.link(&link).await.unwrap());
         assert!(!store.link(&link).await.unwrap());
+
         let links = store.links().await.unwrap();
+
         assert_eq!(links.len(), 1);
         assert_eq!(links[0].relation, Relation::Implies);
     }
@@ -531,8 +604,10 @@ mod tests {
     async fn memory_on_disk_survives_a_restart() {
         let dir = std::env::temp_dir().join(format!("proofs-agent-{}", std::process::id()));
         let url = format!("surrealkv://{}", dir.display());
+
         {
             let store = Store::connect(&url, None).await.unwrap();
+
             store
                 .put_node(&Node::new(
                     "kept",
@@ -544,17 +619,24 @@ mod tests {
                 .await
                 .unwrap();
         }
+
         let mut reopened = None;
+
         for _ in 0..50 {
             if let Ok(store) = Store::connect(&url, None).await {
                 reopened = Some(store);
+
                 break;
             }
+
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         }
+
         let store = reopened.expect("the lock is released after the first store drops");
+
         assert!(store.node("kept").await.unwrap().is_some());
         drop(store);
+
         let _ = std::fs::remove_dir_all(dir);
     }
 
@@ -562,9 +644,11 @@ mod tests {
     async fn rule_versions_round_trip_with_their_trials() {
         let store = store().await;
         let mut rules = Rules::seed(Layer::Playbook, vec!["Pass claim.".into()], 3);
+
         rules.version = 2;
         rules.parent = 1;
         rules.standing = Standing::Trial;
+
         rules.change = Some(Change {
             op: "add".into(),
             rule: None,
@@ -572,6 +656,7 @@ mod tests {
             was: String::new(),
             because: "Claims never moved.".into(),
         });
+
         rules.pairs.push(Pair {
             front: "line".into(),
             champion: 0.2,
@@ -579,17 +664,22 @@ mod tests {
             champion_episode: 4,
             challenger_episode: 5,
         });
+
         store.put_rules(&rules).await.unwrap();
+
         store
             .put_rules(&Rules::seed(Layer::Method, vec!["One change.".into()], 0))
             .await
             .unwrap();
+
         let back = store.rules(Layer::Playbook, 2).await.unwrap().unwrap();
+
         assert_eq!(back.standing, Standing::Trial);
         assert_eq!(back.pairs[0].gain(), 0.4 - 0.2);
         assert_eq!(back.change.unwrap().because, "Claims never moved.");
         assert!(store.rules(Layer::Method, 2).await.unwrap().is_none());
         assert_eq!(store.lineage().await.unwrap().len(), 2);
+
         let state = AgentState {
             half: Some(Half {
                 front: "line".into(),
@@ -599,14 +689,18 @@ mod tests {
             }),
             ..Default::default()
         };
+
         store.save_state(&state).await.unwrap();
+
         let back = store.state().await.unwrap().unwrap();
+
         assert_eq!(back.half.unwrap().episode, 7);
     }
 
     #[tokio::test]
     async fn only_one_holder_keeps_the_lease() {
         let store = store().await;
+
         assert!(store.claim("pod-a", 60).await.unwrap());
         assert!(store.claim("pod-a", 60).await.unwrap());
         assert!(!store.claim("pod-b", 60).await.unwrap());
@@ -615,12 +709,15 @@ mod tests {
     #[tokio::test]
     async fn state_episodes_and_turns_persist() {
         let store = store().await;
+
         assert!(store.state().await.unwrap().is_none());
+
         let state = AgentState {
             episodes: 3,
             frontier: 1000.0,
             ..Default::default()
         };
+
         store.save_state(&state).await.unwrap();
         assert_eq!(store.state().await.unwrap().unwrap().episodes, 3);
 
@@ -633,6 +730,7 @@ mod tests {
                 })
                 .await
                 .unwrap();
+
             store
                 .put_turn(&Turn {
                     episode: number,
@@ -650,11 +748,14 @@ mod tests {
                 .await
                 .unwrap();
         }
+
         let recent = store.episodes(2).await.unwrap();
+
         assert_eq!(
             recent.iter().map(|e| e.number).collect::<Vec<_>>(),
             vec![3, 2]
         );
+
         store
             .put_episode(&Episode {
                 number: 4,
@@ -664,17 +765,26 @@ mod tests {
             })
             .await
             .unwrap();
+
         let found = store.search("robin margin", 5).await.unwrap();
+
         assert_eq!(found.first().map(|e| e.number), Some(4));
+
         let by_number = store.search("#2", 5).await.unwrap();
+
         assert_eq!(by_number.first().map(|e| e.number), Some(2));
+
         let by_thought = store.search("Lehmer", 5).await.unwrap();
+
         assert_eq!(by_thought.first().map(|e| e.number), Some(3));
+
         let older = store.episodes_before(3, 5).await.unwrap();
+
         assert_eq!(
             older.iter().map(|e| e.number).collect::<Vec<_>>(),
             vec![2, 1]
         );
+
         store.forget_turns_before(3).await.unwrap();
         assert!(store.turns(1).await.unwrap().is_empty());
         assert_eq!(store.turns(3).await.unwrap().len(), 1);

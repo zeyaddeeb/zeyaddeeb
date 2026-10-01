@@ -43,6 +43,7 @@ const smooth = (t: number) => t * t * (3 - 2 * t);
 const minus = (n: number) => `−${n.toFixed(1)}`;
 const fit = (v: string | number, n: number) => {
 	const text = String(v);
+
 	return {
 		text: text.padStart(n, "\u2007"),
 		style: { "--short": Math.max(0, n - text.length) } as CSSProperties,
@@ -88,14 +89,18 @@ const FRAMES: Record<
 function closest(year: number): PartId | null {
 	let best: PartId | null = null;
 	let gap = REACH;
+
 	for (const r of rows) {
 		if (r.end === null) continue;
+
 		const d = Math.abs(r.end - year);
+
 		if (d < gap) {
 			gap = d;
 			best = r.part;
 		}
 	}
+
 	return best;
 }
 
@@ -112,12 +117,14 @@ export function Power({ now }: { now: number }) {
 	const held = useRef(false);
 	const todayRef = useRef(today);
 	const follow = useRef<() => void>(() => {});
+
 	const drag = useRef<{
 		id: number;
 		x: number;
 		y: number;
 		live: boolean;
 	} | null>(null);
+
 	const dwell = useRef(0);
 
 	const point = (part: PartId | null) => {
@@ -135,65 +142,87 @@ export function Power({ now }: { now: number }) {
 	useEffect(() => {
 		const mq = window.matchMedia(STACKED);
 		const sync = () => setStacked(mq.matches);
+
 		sync();
 		mq.addEventListener("change", sync);
+
 		return () => mq.removeEventListener("change", sync);
 	}, []);
 
 	useEffect(() => {
 		const el = root.current;
 		const st = stick.current;
+
 		if (!el || !st) return;
+
 		const narrow = window.matchMedia(STACKED);
 		const still = window.matchMedia("(prefers-reduced-motion: reduce)");
 		let frame = 0;
 		let top = 0;
 		let shown: number | null = null;
 		let last = 0;
+
 		const measure = () => {
 			top = Number.parseFloat(getComputedStyle(st).top) || 0;
 		};
+
 		const apply = (now = performance.now()) => {
 			frame = 0;
+
 			if (held.current) {
 				shown = null;
+
 				return;
 			}
+
 			const r = el.getBoundingClientRect();
 			const travel = r.height - st.offsetHeight;
 			const p = travel > 0 ? clamp((top - r.top) / travel) : 0;
 			const t = smooth(clamp((p - 0.05) / 0.85));
 			const target = LAUNCH_YEAR + (todayRef.current - LAUNCH_YEAR) * t;
 			const dt = Math.min(0.05, (now - last) / 1000);
+
 			last = now;
+
 			if (shown === null || still.matches || !narrow.matches) shown = target;
 			else shown += (target - shown) * (1 - Math.exp(-dt / TAU_STACKED));
+
 			if (Math.abs(target - shown) < 0.002) shown = target;
 			else frame = requestAnimationFrame(apply);
+
 			const next = shown;
+
 			setYear((y) => (Math.abs(y - next) < 0.002 ? y : next));
 		};
+
 		const queue = () => {
 			if (frame) return;
+
 			last = performance.now();
 			frame = requestAnimationFrame(apply);
 		};
+
 		const resize = () => {
 			measure();
 			queue();
 		};
+
 		follow.current = queue;
+
 		const io = new IntersectionObserver(([entry]) => {
 			if (entry.isIntersecting || !held.current) return;
+
 			held.current = false;
 			setManual(false);
 			queue();
 		});
+
 		measure();
 		apply();
 		io.observe(el);
 		window.addEventListener("scroll", queue, { passive: true });
 		window.addEventListener("resize", resize);
+
 		return () => {
 			cancelAnimationFrame(frame);
 			follow.current = () => {};
@@ -211,7 +240,9 @@ export function Power({ now }: { now: number }) {
 
 	const yearAt = (clientX: number) => {
 		const r = scale.current?.getBoundingClientRect();
+
 		if (!r || r.width === 0) return null;
+
 		return {
 			year: LAUNCH_YEAR + clamp((clientX - r.left) / r.width) * SPAN,
 			left: r.left,
@@ -220,8 +251,11 @@ export function Power({ now }: { now: number }) {
 
 	const down = (e: PointerEvent<HTMLDivElement>) => {
 		if (e.button !== 0) return;
+
 		const hit = yearAt(e.clientX);
+
 		if (!hit) return;
+
 		if (e.pointerType === "touch") {
 			drag.current = {
 				id: e.pointerId,
@@ -229,9 +263,12 @@ export function Power({ now }: { now: number }) {
 				y: e.clientY,
 				live: false,
 			};
+
 			return;
 		}
+
 		if (e.clientX < hit.left - 12) return;
+
 		e.preventDefault();
 		window.clearTimeout(dwell.current);
 		setHover(null);
@@ -243,36 +280,50 @@ export function Power({ now }: { now: number }) {
 
 	const move = (e: PointerEvent<HTMLDivElement>) => {
 		const d = drag.current;
+
 		if (!d || d.id !== e.pointerId) return;
+
 		if (!d.live) {
 			const dx = e.clientX - d.x;
 			const dy = e.clientY - d.y;
+
 			if (Math.abs(dy) > SLOP && Math.abs(dy) >= Math.abs(dx)) {
 				drag.current = null;
+
 				return;
 			}
+
 			if (Math.abs(dx) < SLOP) return;
+
 			d.live = true;
 			e.currentTarget.setPointerCapture(e.pointerId);
 			setEngaged(true);
 		}
+
 		const hit = yearAt(e.clientX);
+
 		if (hit) take(hit.year);
 	};
 
 	const up = (e: PointerEvent<HTMLDivElement>) => {
 		const d = drag.current;
+
 		if (!d || d.id !== e.pointerId) return;
+
 		drag.current = null;
+
 		if (!d.live) {
 			const hit = yearAt(e.clientX);
+
 			if (hit) take(hit.year);
 		}
+
 		setEngaged(false);
 	};
 
 	const cancel = (e: PointerEvent<HTMLDivElement>) => {
 		if (drag.current?.id !== e.pointerId) return;
+
 		drag.current = null;
 		setEngaged(false);
 	};
@@ -286,10 +337,12 @@ export function Power({ now }: { now: number }) {
 			PageUp: 10,
 			PageDown: -10,
 		};
+
 		if (e.key === "Home") take(LAUNCH_YEAR);
 		else if (e.key === "End") take(END_YEAR);
 		else if (e.key in steps) take(year + steps[e.key]);
 		else return;
+
 		e.preventDefault();
 	};
 
@@ -298,13 +351,16 @@ export function Power({ now }: { now: number }) {
 	const count = rows.filter((r) => r.end === null || r.end > year).length;
 	const future = year > today + 0.001;
 	const offKey = [...offParts(year)].sort().join(" ");
+
 	const off = useMemo(
 		() => new Set((offKey ? offKey.split(" ") : []) as PartId[]),
 		[offKey],
 	);
+
 	const heat = Math.round((w / LAUNCH_WATTS) ** 2 * 400) / 400;
 	const focus = hover ?? (engaged ? closest(year) : null);
 	const frame = FRAMES[stacked ? "stacked" : "wide"];
+
 	const pose = useMemo<Pose>(
 		() => ({ ...frame, off, heat, focus }),
 		[frame, off, heat, focus],
@@ -319,6 +375,7 @@ export function Power({ now }: { now: number }) {
 		}),
 		[now, today],
 	);
+
 	const marks = useMemo(() => [...fixed, stamp].sort(byYear), [stamp]);
 	const lines = useMemo(() => [...events, stamp].sort(byYear), [stamp]);
 	const near = nearest(marks, year, (m) => m.year);
@@ -417,6 +474,7 @@ export function Power({ now }: { now: number }) {
 							{rows.map((r) => {
 								const on = r.end === null || r.end > year;
 								const end = r.end === null ? 1 : at(r.end);
+
 								return (
 									<li
 										key={r.id}

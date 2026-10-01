@@ -72,9 +72,11 @@ export function FilterBar({
 
 	const handleSearchInput = (value: string) => {
 		setLocalSearch(value);
+
 		if (debounceRef.current) {
 			clearTimeout(debounceRef.current);
 		}
+
 		debounceRef.current = setTimeout(() => {
 			onSearchChange(value);
 		}, 300);
@@ -82,6 +84,7 @@ export function FilterBar({
 
 	const clearSearch = () => {
 		if (debounceRef.current) clearTimeout(debounceRef.current);
+
 		setLocalSearch("");
 		onSearchChange("");
 	};
@@ -128,6 +131,7 @@ export function FilterBar({
 						{types.map((type) => {
 							const Icon = getTypeIcon(type);
 							const isSelected = selectedType === type;
+
 							return (
 								<motion.button
 									key={type}

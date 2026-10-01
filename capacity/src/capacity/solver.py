@@ -103,14 +103,17 @@ class Result:
 
 def scenario(level: Level, edits: Edits) -> Scenario:
     offline = set(edits.offline) | ({level.outage} if level.outage else set())
+
     capacity = {
         s: 0.0 if s in offline else float(mw)
         for s, mw in level.capacity.items()
     }
+
     if level.build:
         for site, n in edits.build:
             if capacity.get(site, 0) > 0:
                 capacity[site] += n * level.build.block
+
     return Scenario(
         capacity=capacity,
         demand={c: mw * edits.demand for c, mw in level.demand.items()},
@@ -137,6 +140,7 @@ class _Model:
     def variable(self, demand: str, site: str) -> pywraplp.Variable | None:
         if demand == TRAINING:
             return self.training.get(site)
+
         return self.routes.get((demand, site))
 
     def chosen_blocks(self) -> dict[str, int]:
@@ -151,9 +155,12 @@ def _formulate(
     sc: Scenario, engine: str, build: Build | None = None
 ) -> _Model:
     solver = pywraplp.Solver.CreateSolver(engine)
+
     if solver is None:
         raise SolverError(f"{engine} is unavailable")
+
     solver.SetTimeLimit(TIME_LIMIT_MS)
+
     inf = solver.infinity()
 
     routes = {
@@ -162,15 +169,19 @@ def _formulate(
         for s in sc.capacity
         if rtt_ms(c, s) <= sc.latency
     }
+
     training = (
         {s: solver.NumVar(0, inf, f"train[{s}]") for s in sc.capacity}
         if sc.training
         else {}
     )
+
     unmet = {c: solver.NumVar(0, inf, f"unmet[{c}]") for c in sc.demand}
+
     unmet_training = (
         solver.NumVar(0, inf, "unmet[training]") if sc.training else None
     )
+
     blocks = (
         {
             s: solver.IntVar(0, build.blocks, f"blocks[{s}]")
@@ -195,12 +206,15 @@ def _formulate(
             + unmet[city]
             == mw
         )
+
     if unmet_training is not None:
         solver.Add(sum(training.values()) + unmet_training == sc.training)
+
     site_rows = {
         s: solver.Add(load(s) - added(s) <= cap)
         for s, cap in sc.capacity.items()
     }
+
     carbon_row = (
         solver.Add(
             sum(SITES[s].carbon * load(s) for s in sc.capacity)
@@ -213,12 +227,17 @@ def _formulate(
     cost = sum(
         SITES[s].price * load(s) for s in sc.capacity
     ) + INFERENCE_VALUE * sum(unmet.values())
+
     if unmet_training is not None:
         cost += TRAINING_VALUE * unmet_training
+
     if build and blocks:
         solver.Add(sum(blocks.values()) <= build.blocks)
+
         cost += build.cost * build.block * sum(blocks.values())
+
     solver.Minimize(cost)
+
     return _Model(
         solver,
         routes,
@@ -235,16 +254,21 @@ def _run(model: _Model) -> float:
     started = perf_counter()
     status = model.solver.Solve()
     elapsed_ms = (perf_counter() - started) * 1000
+
     if status != pywraplp.Solver.OPTIMAL:
         raise SolverError("no optimal solution")
+
     is_lp = model.solver.SolverVersion().startswith("Glop")
+
     if is_lp and not model.solver.VerifySolution(VERIFY_TOLERANCE, False):
         raise SolverError("solution failed verification")
+
     return elapsed_ms
 
 
 def _lp(sc: Scenario) -> tuple[_Model, float]:
     model = _formulate(sc, "GLOP")
+
     return model, _run(model)
 
 
@@ -254,6 +278,7 @@ def _objective(sc: Scenario) -> float:
 
 def _positive(variables: dict) -> dict:
     values = {k: round(v.solution_value(), 6) for k, v in variables.items()}
+
     return {k: v for k, v in values.items() if v > ZERO}
 
 
@@ -261,6 +286,7 @@ def _plan(model: _Model, build: dict[str, int]) -> Plan:
     unmet_training = (
         model.unmet_training.solution_value() if model.unmet_training else 0.0
     )
+
     return Plan(
         routes=_positive(model.routes),
         training=_positive(model.training),
@@ -274,20 +300,26 @@ def _plan(model: _Model, build: dict[str, int]) -> Plan:
 
 def totals(sc: Scenario, plan: Plan, level: Level) -> Totals:
     load: dict[str, float] = {}
+
     for (_, site), mw in plan.routes.items():
         load[site] = load.get(site, 0.0) + mw
+
     for site, mw in plan.training.items():
         load[site] = load.get(site, 0.0) + mw
+
     energy = sum(SITES[s].price * mw for s, mw in load.items())
+
     lost = (
         INFERENCE_VALUE * sum(plan.dropped.values())
         + TRAINING_VALUE * plan.dropped_training
     )
+
     build = (
         level.build.cost * level.build.block * sum(plan.build.values())
         if level.build
         else 0.0
     )
+
     return Totals(
         energy=round(energy, DIGITS),
         lost=round(lost, DIGITS),
@@ -311,19 +343,26 @@ class _Choice:
 def _choose_blocks(level: Level, edits: Edits, optimize: bool) -> _Choice:
     if not level.build:
         return _Choice({})
+
     if not optimize:
         return _Choice(dict(edits.build))
+
     sc = scenario(level, edits)
     mip = _formulate(sc, "SCIP", level.build)
     ms = _run(mip)
     chosen = mip.chosen_blocks()
+
     if sum(chosen.values()) >= level.build.blocks:
         return _Choice(chosen, ms)
+
     forced = _formulate(sc, "SCIP", level.build)
+
     forced.solver.Add(
         forced.solver.Sum(forced.blocks.values()) == level.build.blocks
     )
+
     ms += _run(forced)
+
     return _Choice(
         chosen, ms, round(forced.objective() - mip.objective(), DIGITS)
     )
@@ -343,16 +382,22 @@ def _upgrades(
 def _key(sc: Scenario, model: _Model, level: Level) -> Key | None:
     if level.key is None:
         return None
+
     demand, site = level.key
     used = model.variable(demand, site)
+
     if used is None or used.solution_value() <= ZERO:
         return None
+
     banned = _formulate(sc, "GLOP")
     banned_var = banned.variable(demand, site)
+
     if banned_var is None:
         return None
+
     banned_var.SetUb(0)
     _run(banned)
+
     return Key(
         demand=demand,
         site=site,
@@ -364,6 +409,7 @@ def _key(sc: Scenario, model: _Model, level: Level) -> Key | None:
 def _carbon_price(sc: Scenario, base: float) -> float | None:
     if sc.carbon_cap is None:
         return None
+
     return round(
         base - _objective(replace(sc, carbon_cap=sc.carbon_cap + 1)), DIGITS
     )
@@ -379,6 +425,7 @@ def solve(
     base = model.objective()
     online = [s for s, cap in sc.capacity.items() if cap > 0]
     plan = _plan(model, build)
+
     return Result(
         plan=plan,
         totals=totals(sc, plan, level),

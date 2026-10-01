@@ -86,6 +86,7 @@ export const LifeView = forwardRef<LifeHandle, LifeViewProps>(function LifeView(
 		backend,
 		tickMs,
 	});
+
 	optsRef.current = {
 		cellSize: cellSizeRef.current,
 		showGrid,
@@ -98,26 +99,36 @@ export const LifeView = forwardRef<LifeHandle, LifeViewProps>(function LifeView(
 	const paint = useCallback(() => {
 		const canvas = canvasRef.current;
 		const engine = engineRef.current;
+
 		if (!canvas || !engine) return;
+
 		const ctx = canvas.getContext("2d");
+
 		if (!ctx) return;
+
 		drawLife(ctx, engine, {
 			...optsRef.current,
 			cellSize: cellSizeRef.current,
 		});
+
 		dirtyRef.current = false;
 	}, []);
 
 	useEffect(() => {
 		if (loading) return;
+
 		engineRef.current?.free();
+
 		const engine = new LifeEngine(cols, rows, wasm);
+
 		engine.seed(seedProbability);
 		engineRef.current = engine;
 		dirtyRef.current = true;
 		onReady?.(engine.hasWasm);
+
 		return () => {
 			engine.free();
+
 			if (engineRef.current === engine) engineRef.current = null;
 		};
 	}, [loading, wasm, cols, rows, seedProbability, onReady]);
@@ -125,25 +136,36 @@ export const LifeView = forwardRef<LifeHandle, LifeViewProps>(function LifeView(
 	useEffect(() => {
 		const wrap = wrapRef.current;
 		const canvas = canvasRef.current;
+
 		if (!wrap || !canvas) return;
+
 		const resize = () => {
 			const w = wrap.clientWidth;
 			const h = wrap.clientHeight;
+
 			if (!w || !h) return;
+
 			const cell = Math.max(1, Math.min(w / cols, h / rows));
+
 			cellSizeRef.current = cell;
+
 			const cw = Math.round(cols * cell);
 			const ch = Math.round(rows * cell);
 			const dpr = fitCanvas(canvas, cw, ch);
+
 			canvas.style.width = `${cw}px`;
 			canvas.style.height = `${ch}px`;
 			canvas.getContext("2d")?.setTransform(dpr, 0, 0, dpr, 0, 0);
 			dirtyRef.current = true;
 			paint();
 		};
+
 		resize();
+
 		const ro = new ResizeObserver(resize);
+
 		ro.observe(wrap);
+
 		return () => ro.disconnect();
 	}, [cols, rows, paint]);
 
@@ -158,7 +180,9 @@ export const LifeView = forwardRef<LifeHandle, LifeViewProps>(function LifeView(
 
 		const loop = (now: number) => {
 			raf = requestAnimationFrame(loop);
+
 			const engine = engineRef.current;
+
 			if (!engine) return;
 
 			if (running && now - lastTick >= optsRef.current.tickMs) {
@@ -180,7 +204,9 @@ export const LifeView = forwardRef<LifeHandle, LifeViewProps>(function LifeView(
 				onStats?.({ ...engine.stats(), fps: running ? fps : 0 });
 			}
 		};
+
 		raf = requestAnimationFrame(loop);
+
 		return () => cancelAnimationFrame(raf);
 	}, [running, maxFps, paint, onStats]);
 
@@ -210,9 +236,12 @@ export const LifeView = forwardRef<LifeHandle, LifeViewProps>(function LifeView(
 
 	const cellAt = (e: React.PointerEvent<HTMLCanvasElement>) => {
 		const canvas = canvasRef.current;
+
 		if (!canvas) return null;
+
 		const rect = canvas.getBoundingClientRect();
 		const cell = cellSizeRef.current;
+
 		return {
 			col: Math.floor((e.clientX - rect.left) / cell),
 			row: Math.floor((e.clientY - rect.top) / cell),
@@ -221,7 +250,9 @@ export const LifeView = forwardRef<LifeHandle, LifeViewProps>(function LifeView(
 
 	const stamp = (e: React.PointerEvent<HTMLCanvasElement>) => {
 		const at = cellAt(e);
+
 		if (!at) return;
+
 		engineRef.current?.setCell(at.row, at.col, drawMode === "draw");
 		dirtyRef.current = true;
 	};
@@ -245,6 +276,7 @@ export const LifeView = forwardRef<LifeHandle, LifeViewProps>(function LifeView(
 					interactive
 						? (e) => {
 								if (!canInteract(e) || e.button !== 0 || !e.isPrimary) return;
+
 								pointerDownRef.current = e.pointerId;
 								e.currentTarget.setPointerCapture(e.pointerId);
 								stamp(e);

@@ -88,6 +88,7 @@ function scene(
 		Object.fromEntries(
 			shapes.map((shape) => [shape, on[shape] ?? off[shape]]),
 		) as Forms;
+
 	return {
 		experiment: getExperiment(id),
 		...options,

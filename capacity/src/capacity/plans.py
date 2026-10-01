@@ -217,6 +217,8 @@ PLAN_LEVELS: dict[str, PlanLevel] = {
 def line_of(project: Project):
     if project.kind == "line":
         return CANDIDATES[project.target]
+
     if project.kind == "upgrade":
         return LINES[project.target]
+
     return None

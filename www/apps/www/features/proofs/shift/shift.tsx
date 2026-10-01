@@ -28,14 +28,18 @@ const CONNECTION: Record<Connection, string> = {
 
 function mind(about: About | null): string {
 	if (!about) return "—";
+
 	const name = about.model.split("/").at(-1) ?? about.model;
+
 	return `${name} · 4 CPU cores`;
 }
 
 function Calibrated({ about }: { about: About | null }) {
 	if (!about) return <dd>—</dd>;
+
 	const passed = about.calibration.filter((c) => c.passed).length;
 	const all = about.calibration.length;
+
 	return (
 		<dd>
 			<details
@@ -130,6 +134,7 @@ function Pager({
 }) {
 	const older = viewing === null ? (off ? latest - 1 : latest) : viewing - 1;
 	const newer = viewing === null || viewing + 1 > latest ? null : viewing + 1;
+
 	return (
 		<div className="ns-pager">
 			<button
@@ -187,6 +192,7 @@ export function NightShift() {
 	const newest = live?.episodes[0]?.number ?? null;
 	const shown = viewing ?? (off ? newest : null);
 	const opened = useTranscript(shown);
+
 	const drawn = useMemo(
 		() =>
 			live && strip ? figure(strip, live.state.frontier, live.scans) : null,
@@ -216,10 +222,12 @@ export function NightShift() {
 	}
 
 	const latest = newest ?? 0;
+
 	const view =
 		shown === null || !opened
 			? liveView(live, fronts, now, off)
 			: archivedView(opened, fronts);
+
 	const running =
 		!off && live.mode === "work" && live.episode !== null && live.front
 			? { number: live.episode, front: live.front }

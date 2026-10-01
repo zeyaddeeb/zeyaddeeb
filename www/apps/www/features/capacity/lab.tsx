@@ -49,6 +49,7 @@ export function CapacityLab() {
 		grid: GridWorld;
 		plans: PlansWorld;
 	} | null>(null);
+
 	const [down, setDown] = useState(false);
 	const [index, setIndex] = useState(0);
 	const [seen, setSeen] = useState<Set<Act["id"]>>(() => new Set());
@@ -69,17 +70,20 @@ export function CapacityLab() {
 	const stage = stages[index];
 	const act = stage.chapter.act;
 	const lines = <Lines index={index} progress={progress} onOpen={setIndex} />;
+
 	const card = seen.has(act.id) ? null : (
 		<ActCard
 			act={act}
 			onBegin={() => setSeen((all) => new Set(all).add(act.id))}
 		/>
 	);
+
 	const label = nextLabel(index);
 	const next = label ? { label, run: () => setIndex(index + 1) } : null;
 
 	if (loaded && stage.kind === "plan") {
 		const level = loaded.plans.levels.find((l) => l.id === stage.copy.id);
+
 		if (level)
 			return (
 				<PlanRound
@@ -96,8 +100,10 @@ export function CapacityLab() {
 				/>
 			);
 	}
+
 	if (loaded && stage.kind === "grid") {
 		const level = loaded.grid.levels.find((l) => l.id === stage.copy.id);
+
 		if (level)
 			return (
 				<GridRound
@@ -113,10 +119,12 @@ export function CapacityLab() {
 				/>
 			);
 	}
+
 	const level =
 		loaded && stage.kind === "route"
 			? loaded.world.levels.find((l) => l.id === stage.copy.id)
 			: undefined;
+
 	if (!loaded || !level || stage.kind !== "route")
 		return (
 			<Waiting
@@ -126,6 +134,7 @@ export function CapacityLab() {
 				lines={lines}
 			/>
 		);
+
 	return (
 		<Round
 			key={level.id}
@@ -201,6 +210,7 @@ function scoreRows(
 			{ label: "Before", total: best?.totals.total ?? null, tone: "ink" },
 			{ label: "Now", total: live?.totals.total ?? null, tone: "line" },
 		];
+
 	return [
 		{
 			label: "You",
@@ -278,33 +288,41 @@ function Round({
 
 	const primary = ((): Action | null => {
 		const step = copy.guide?.[game.step];
+
 		if (game.phase === "guide" && step)
 			return {
 				label: step.action,
 				run: () => setGame((g) => nextGuide(g, level, steps)),
 			};
+
 		if (game.phase === "intro" && copy.intro)
 			return {
 				label: copy.intro.action,
 				run: () => setGame((g) => cutPower(g, level)),
 			};
+
 		if (game.phase === "plan")
 			return {
 				label: "Ask the solver",
 				disabled: !best,
 				run: () => {
 					setGame(reveal);
+
 					if (won) onWin(level.id);
 				},
 			};
+
 		if (game.phase === "solved" && copy.guess && !game.pick)
 			return { label: "One more question", run: () => setGame(askGuess) };
+
 		if (game.phase === "guess" && !game.pick) return null;
+
 		return next ? { label: next.label, run: next.run, arrow: true } : null;
 	})();
 
 	const carbonSource =
 		game.phase === "play" ? live : viewingSolver ? best : null;
+
 	const carbon =
 		level.carbonCap === null
 			? null
@@ -312,6 +330,7 @@ function Round({
 					used: carbonSource?.totals.carbon ?? mine.carbon,
 					cap: level.carbonCap,
 				};
+
 	const verdictText = comparing
 		? verdict(mine.total, best?.totals.total ?? 0, won)
 		: game.phase === "play"
@@ -329,13 +348,16 @@ function Round({
 					body: keyMove(world, best.key).worth,
 				}
 			: null;
+
 	const upgrades =
 		game.phase === "guess" && game.pick && best ? best.upgrades : null;
+
 	const chips = upgrades
 		? Object.fromEntries(
 				Object.entries(upgrades).map(([s, v]) => [s, `+${money(v)}`]),
 			)
 		: undefined;
+
 	const topUpgrade = upgrades
 		? (Object.entries(upgrades).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null)
 		: null;
@@ -350,6 +372,7 @@ function Round({
 					}
 				/>
 			);
+
 		if (comparing)
 			return (
 				<ViewToggle
@@ -357,6 +380,7 @@ function Round({
 					onChange={(v) => setGame((g) => showView(g, v))}
 				/>
 			);
+
 		if (game.phase === "plan" && level.build)
 			return (
 				<Blocks
@@ -366,6 +390,7 @@ function Round({
 					onChange={(b) => setGame((g) => setBlocks(g, b))}
 				/>
 			);
+
 		if (game.phase === "plan" && game.selected)
 			return (
 				<Selection
@@ -383,6 +408,7 @@ function Round({
 					}
 				/>
 			);
+
 		return <Legend level={level} />;
 	})();
 

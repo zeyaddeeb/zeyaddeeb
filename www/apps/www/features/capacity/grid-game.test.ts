@@ -166,12 +166,14 @@ describe("acts", () => {
 	it("gives every act exactly three chapters, in order", () => {
 		for (const act of acts) {
 			const own = chapters.filter((c) => c.act === act);
+
 			expect(own.map((c) => c.number)).toEqual([1, 2, 3]);
 		}
 	});
 
 	it("keeps every Act 1 level, two parts to a chapter", () => {
 		const first = stages.filter((s) => s.chapter.act.number === 1);
+
 		expect(first.map((s) => s.copy.id)).toEqual([
 			"atlantic",
 			"asia",
@@ -180,6 +182,7 @@ describe("acts", () => {
 			"outage",
 			"build",
 		]);
+
 		expect(first.map((s) => `${s.chapter.number}.${s.part + 1}`)).toEqual([
 			"1.1",
 			"1.2",
@@ -199,6 +202,7 @@ describe("acts", () => {
 
 	it("paints every chapter a different color", () => {
 		const colors = chapters.map((c) => c.line.color);
+
 		expect(new Set(colors).size).toBe(colors.length);
 	});
 });
@@ -207,20 +211,25 @@ describe("the guide", () => {
 	it("walks every step before handing over the map", () => {
 		const steps = gridCopies[0].guide.length;
 		let game = startGrid(siting, script(steps));
+
 		expect(game.phase).toBe("guide");
+
 		for (let i = 1; i < steps; i++) {
 			game = nextStep(game, script(steps));
 			expect(game).toMatchObject({ phase: "guide", step: i });
 		}
+
 		expect(nextStep(game, script(steps)).phase).toBe("plan");
 	});
 
 	it("keeps the map read-only while guiding", () => {
 		const game = startGrid(siting, script(2));
+
 		expect(gridPickable(game, siting)).toEqual({
 			substations: false,
 			lines: false,
 		});
+
 		expect(pickSubstation(game, siting, "dulles")).toBe(game);
 	});
 });
@@ -228,6 +237,7 @@ describe("the guide", () => {
 describe("siting campuses", () => {
 	it("places the selected campus and moves on to the next", () => {
 		let game = planning(siting);
+
 		expect(game.campus).toBe("alpha");
 		game = pickSubstation(game, siting, "dulles");
 		expect(game.placement).toEqual({ alpha: "dulles" });
@@ -236,6 +246,7 @@ describe("siting campuses", () => {
 		game = pickSubstation(game, siting, "yardley");
 		expect(complete(game, siting)).toBe(true);
 		expect(game.campus).toBeNull();
+
 		expect(choiceOf(game, siting)).toEqual({
 			placement: { alpha: "dulles", beta: "yardley" },
 		});
@@ -243,6 +254,7 @@ describe("siting campuses", () => {
 
 	it("moves a placed campus once it is selected again", () => {
 		let game = pickSubstation(planning(siting), siting, "dulles");
+
 		game = pickSubstation(game, siting, "yardley");
 		game = pickSubstation(selectCampus(game, "alpha"), siting, "sterling");
 		expect(game.placement.alpha).toBe("sterling");
@@ -250,6 +262,7 @@ describe("siting campuses", () => {
 
 	it("ignores taps on substations when nothing is selected", () => {
 		let game = pickSubstation(planning(siting), siting, "dulles");
+
 		game = pickSubstation(game, siting, "yardley");
 		expect(pickSubstation(game, siting, "belmont")).toBe(game);
 	});
@@ -258,6 +271,7 @@ describe("siting campuses", () => {
 describe("wiring", () => {
 	it("builds at most one new line, replacing the last", () => {
 		let game = pickLine(planning(wires), wires, "goosecreek-waxpool", context);
+
 		expect(game.built).toEqual(["goosecreek-waxpool"]);
 		game = pickLine(game, wires, "loudoun-yardley", context);
 		expect(game.built).toEqual(["loudoun-yardley"]);
@@ -267,6 +281,7 @@ describe("wiring", () => {
 
 	it("opens and closes breakers on existing lines", () => {
 		let game = pickLine(planning(wires), wires, "yardley-waxpool", context);
+
 		expect(game.opened).toEqual(["yardley-waxpool"]);
 		expect(game.outcome).toEqual({ kind: "opened", line: "yardley-waxpool" });
 		game = pickLine(game, wires, "yardley-waxpool", context);
@@ -276,6 +291,7 @@ describe("wiring", () => {
 
 	it("trips only existing lines when breaking it", () => {
 		let game = breakIt(reveal(planning(wires)));
+
 		game = pickLine(game, wires, "loudoun-brambleton", context);
 		expect(game.play.tripped).toEqual(["loudoun-brambleton"]);
 		expect(game.edit?.label).toBe("Loudoun–Brambleton tripped");
@@ -290,12 +306,16 @@ describe("the board", () => {
 		const best = solved({ supply: { loudoun: 800 }, candidates: { x: 1 } });
 		const all = { ...none, preview, yours, best };
 		const guide = startGrid(siting, script(2));
+
 		expect(gridBoard(guide, all, script(2), ["dulles-loudoun"])).toMatchObject({
 			solved: preview,
 			focus: ["dulles-loudoun"],
 		});
+
 		expect(gridBoard(planning(siting), all, script()).solved).toBe(yours);
+
 		const shown = gridBoard(reveal(planning(siting)), all, script());
+
 		expect(shown).toMatchObject({ solved: best, solver: true });
 		expect(shown.candidates).toEqual({ x: 1 });
 	});
@@ -309,11 +329,13 @@ describe("watching the solver think", () => {
 		nodes: i * 10 + 1,
 		flow: solved({ opened: [`line-${i}`] }),
 	}));
+
 	const best = solved({ trace, totals: { ...solved().totals, total: 100 } });
 
 	it("steps through each plan the solver found, then reveals", () => {
 		let game = think(planning(wires));
 		const all = { ...none, best };
+
 		expect(gridBoard(game, all, script()).solved?.opened).toEqual(["line-0"]);
 		game = advance(game, trace.length);
 		expect(gridBoard(game, all, script()).solved?.opened).toEqual(["line-1"]);
@@ -324,6 +346,7 @@ describe("watching the solver think", () => {
 
 	it("narrates the proof on the last plan", () => {
 		const game = { ...think(planning(wires)), frame: 2 };
+
 		const text = gridNarrate({
 			phase: game.phase,
 			step: 0,
@@ -345,6 +368,7 @@ describe("watching the solver think", () => {
 			picks: [],
 			script: script(),
 		}).text;
+
 		expect(text).toContain("The bound caught up at node 21");
 	});
 });
@@ -357,10 +381,12 @@ describe("price questions", () => {
 
 	it("hides every price until a pick, then shows only the pick and the answer", () => {
 		let game = startGrid(wires, quiz);
+
 		expect(game.phase).toBe("ask");
 		expect(gridBoard(game, all, quiz).prices).toBeNull();
 		game = pickSubstation(game, wires, "yardley");
 		expect(game.phase).toBe("told");
+
 		expect(gridBoard(game, all, quiz).prices).toEqual({
 			yardley: 62,
 			brambleton: 65,
@@ -369,6 +395,7 @@ describe("price questions", () => {
 
 	it("reveals every price after the last question and scores both picks", () => {
 		let game = pickSubstation(startGrid(wires, quiz), wires, "brambleton");
+
 		game = pickSubstation(nextQuestion(game, quiz), wires, "yardley");
 		expect(gridBoard(game, all, quiz).prices).toEqual(prices);
 		expect(rightPicks(game, quiz, prices)).toEqual([true, false]);
@@ -382,7 +409,9 @@ describe("narration", () => {
 			shed: { brambleton: 80, yardley: 2 },
 			binding: ["loudoun-brambleton"],
 		});
+
 		expect(dark(out)).toBe(82);
+
 		expect(darkness(out, names)).toBe(
 			"Brambleton loses 80 MW and Yardley Ridge loses 2 MW: Loudoun–Brambleton is full.",
 		);
@@ -390,6 +419,7 @@ describe("narration", () => {
 
 	it("asks for the second campus until both are placed", () => {
 		const game = pickSubstation(planning(siting), siting, "waxpool");
+
 		const text = gridNarrate({
 			phase: game.phase,
 			step: 0,
@@ -411,6 +441,7 @@ describe("narration", () => {
 			picks: [],
 			script: script(),
 		}).text;
+
 		expect(text).toBe(
 			"The 300 MW campus plugs into Waxpool. Now place the 200 MW campus.",
 		);
@@ -422,11 +453,14 @@ describe("narration", () => {
 			shed: { brambleton: 80 },
 			binding: ["loudoun-brambleton"],
 		});
+
 		for (const copy of gridCopies) {
 			const level = copy.id === "wires" ? wires : siting;
 			const guide = { grid, level, shown, today: solved(), ...names };
+
 			for (const step of copy.guide)
 				expect(step.text(guide).length).toBeLessThanOrEqual(190);
+
 			expect(copy.ask.length).toBeLessThanOrEqual(190);
 		}
 	});
@@ -436,10 +470,12 @@ describe("line tags", () => {
 	it("slides a tag along its track to dodge a label", () => {
 		const track = octilinear({ x: 0, y: 0 }, { x: 200, y: 0 });
 		const label = { x0: 80, y0: -10, x1: 120, y1: 10 };
+
 		const spot = placeTags(
 			[{ id: "a-b", track, width: 40, height: 14 }],
 			[label],
 		).get("a-b");
+
 		expect(spot).toBeDefined();
 		expect(spot?.y).toBe(0);
 		expect(Math.abs((spot?.x ?? 100) - 100)).toBeGreaterThan(20);
@@ -448,6 +484,7 @@ describe("line tags", () => {
 	it("drops a tag that has nowhere to go", () => {
 		const track = octilinear({ x: 0, y: 0 }, { x: 40, y: 0 });
 		const wall = { x0: -50, y0: -50, x1: 90, y1: 50 };
+
 		expect(
 			placeTags([{ id: "a-b", track, width: 30, height: 14 }], [wall]).size,
 		).toBe(0);

@@ -25,6 +25,7 @@ impl Adam {
                 .into_iter()
                 .map(|(n, v)| {
                     let zero = v.zeros_like()?;
+
                     Ok((n, v, zero.clone(), zero))
                 })
                 .collect::<Result<_>>()?,
@@ -34,17 +35,23 @@ impl Adam {
     }
     pub fn backward_step(&mut self, loss: &Tensor) -> Result<()> {
         let grads = loss.backward()?;
+
         self.step += 1;
+
         let correction1 = 1.0 - 0.9_f64.powf(self.step as f64);
         let correction2 = 1.0 - 0.999_f64.powf(self.step as f64);
+
         for (_, var, m, v) in &mut self.vars {
             if let Some(g) = grads.get(var) {
                 *m = ((&*m * 0.9)? + (g * 0.1)?)?.detach();
                 *v = ((&*v * 0.999)? + (g.sqr()? * 0.001)?)?.detach();
+
                 let update = ((&*m / correction1)? / ((&*v / correction2)?.sqrt()? + 1e-8)?)?;
+
                 var.set(&(var.as_tensor() - (update * self.lr)?)?)?;
             }
         }
+
         Ok(())
     }
     pub fn save(&self, prefix: &str, tensors: &mut HashMap<String, Tensor>) {
@@ -63,16 +70,21 @@ impl Adam {
             let saved_m = tensors.get(&format!("{prefix}.{name}.m")).ok_or_else(|| {
                 candle_core::Error::Msg(format!("Missing Adam moment {prefix}.{name}"))
             })?;
+
             let saved_v = tensors.get(&format!("{prefix}.{name}.v")).ok_or_else(|| {
                 candle_core::Error::Msg(format!("Missing Adam variance {prefix}.{name}"))
             })?;
+
             if saved_m.shape() != var.shape() || saved_v.shape() != var.shape() {
                 candle_core::bail!("Invalid optimizer shape");
             }
+
             *m = saved_m.clone();
             *v = saved_v.clone();
         }
+
         self.step = step;
+
         Ok(())
     }
 }
@@ -85,18 +97,23 @@ mod tests {
     fn restored_adam_matches_uninterrupted_updates() {
         let x = Var::new(&[2.0_f32], &Device::Cpu).unwrap();
         let mut first = Adam::new(vec![("x".into(), x.clone())], 0.03).unwrap();
+
         for _ in 0..7 {
             first.backward_step(&x.sqr().unwrap()).unwrap();
         }
+
         let y = Var::from_tensor(x.as_tensor()).unwrap();
         let mut resumed = Adam::new(vec![("x".into(), y.clone())], 0.03).unwrap();
         let mut tensors = HashMap::new();
+
         first.save("test", &mut tensors);
         resumed.restore("test", &tensors, first.step).unwrap();
+
         for _ in 0..11 {
             first.backward_step(&x.sqr().unwrap()).unwrap();
             resumed.backward_step(&y.sqr().unwrap()).unwrap();
         }
+
         assert_eq!(x.to_vec1::<f32>().unwrap(), y.to_vec1::<f32>().unwrap());
     }
 }

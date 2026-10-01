@@ -33,14 +33,19 @@ impl Aacs {
 
     pub fn step(&mut self, dt: f64) -> Pulse {
         self.error += self.rate * dt;
+
         if self.error > self.deadband && self.rate > 0.0 {
             self.fire(-KICK_DEG_S);
+
             return Pulse::Minus;
         }
+
         if self.error < -self.deadband && self.rate < 0.0 {
             self.fire(KICK_DEG_S);
+
             return Pulse::Plus;
         }
+
         Pulse::Coast
     }
 
@@ -166,16 +171,20 @@ impl Fds {
             count: 0,
             seed: 0x5EED,
         };
+
         for routine in 0..LAYOUT.len() {
             fds.load(routine);
         }
+
         fds.patch();
+
         fds
     }
 
     fn load(&mut self, routine: usize) {
         let (_, _, len) = LAYOUT[routine];
         let base = self.bases[routine];
+
         for offset in 0..len {
             self.memory[base + offset] = listing(routine, offset);
             self.owner[base + offset] = routine as u8;
@@ -188,15 +197,20 @@ impl Fds {
 
     pub fn relocate(&mut self, routine: usize, base: usize) -> Result<u32, String> {
         let len = LAYOUT[routine].2;
+
         if base + len > WORDS || !self.fits(base, len) {
             return Err(format!("{} words do not fit at {base:#06x}", len));
         }
+
         let old = self.bases[routine];
+
         for word in old..old + len {
             self.owner[word] = FREE;
         }
+
         self.bases[routine] = base;
         self.load(routine);
+
         Ok(self.patch())
     }
 
@@ -206,41 +220,52 @@ impl Fds {
 
     fn patch(&mut self) -> u32 {
         let mut patched = 0;
+
         for &(from, at, to) in CALLS.iter() {
             let site = self.bases[from] + at;
             let call = CALL | self.bases[to] as u16;
+
             if self.memory[site] != call {
                 self.memory[site] = call;
                 patched += 1;
             }
         }
+
         patched
     }
 
     pub fn healthy(&self) -> bool {
         let alive = (0..LAYOUT.len()).all(|r| {
             let base = self.bases[r];
+
             !(base..base + LAYOUT[r].2).any(|w| self.is_dead(w))
         });
+
         let linked = CALLS.iter().all(|&(from, at, to)| {
             self.memory[self.bases[from] + at] == CALL | self.bases[to] as u16
         });
+
         alive && linked
     }
 
     pub fn frame(&mut self, watts: f64, nanotesla: f64) -> Vec<u16> {
         self.count += 1;
+
         if !self.healthy() {
             return vec![STUCK; FRAME_WORDS];
         }
+
         let mut frame = vec![0; FRAME_WORDS];
+
         frame[..2].copy_from_slice(&SYNC);
         frame[2] = self.count as u16;
         frame[3] = (watts * 10.0) as u16;
         frame[4] = (nanotesla * 1000.0) as u16;
+
         for word in frame.iter_mut().skip(5) {
             *word = self.noise() as u16;
         }
+
         frame
     }
 
@@ -252,6 +277,7 @@ impl Fds {
         self.seed ^= self.seed << 13;
         self.seed ^= self.seed >> 17;
         self.seed ^= self.seed << 5;
+
         self.seed
     }
 
@@ -259,6 +285,7 @@ impl Fds {
         if self.is_dead(word) {
             return self.noise() as u16;
         }
+
         self.memory[word]
     }
 
@@ -279,9 +306,11 @@ impl Default for Fds {
 
 fn listing(routine: usize, offset: usize) -> u16 {
     let mut x = (routine as u32 + 1).wrapping_mul(2_654_435_761) ^ (offset as u32 + 1);
+
     x ^= x >> 15;
     x = x.wrapping_mul(0x2C1B_3C6D);
     x ^= x >> 12;
+
     (x as u16) & !CALL
 }
 
@@ -314,7 +343,9 @@ pub fn command_bits(opcode: u8, operand: u16) -> Vec<u8> {
     let mut bits: Vec<u8> = (0..22).rev().map(|i| ((word >> i) & 1) as u8).collect();
     let high = bits[..11].iter().fold(0, |p, b| p ^ b);
     let low = bits[11..].iter().fold(0, |p, b| p ^ b);
+
     bits.extend([high, low]);
+
     bits
 }
 
@@ -325,10 +356,12 @@ mod tests {
     #[test]
     fn layout_fits_in_memory() {
         let mut end = 0;
+
         for &(_, base, len) in LAYOUT.iter() {
             assert!(base >= end);
             end = base + len;
         }
+
         assert!(end <= WORDS);
     }
 
@@ -341,6 +374,7 @@ mod tests {
             })
             .map(|&(name, _, _)| name)
             .collect();
+
         assert_eq!(
             inside,
             [
@@ -355,6 +389,7 @@ mod tests {
     #[test]
     fn failure_sticks_the_frame_and_relocation_fixes_it() {
         let mut fds = Fds::new();
+
         assert!(fds.healthy());
         fds.fail();
         assert_eq!(fds.frame(220.0, 0.5)[0], STUCK);
@@ -370,9 +405,11 @@ mod tests {
     #[test]
     fn a_greedy_move_can_strand_a_routine() {
         let mut fds = Fds::new();
+
         fds.fail();
         fds.relocate(18, 2228).unwrap();
         fds.relocate(16, 4896).unwrap();
+
         for gap in [5314, 6162, 7046, 7540, 8172] {
             assert!(fds.relocate(17, gap).is_err());
         }
@@ -381,10 +418,12 @@ mod tests {
     #[test]
     fn pulses_hold_the_deadband() {
         let mut aacs = Aacs::new(0.1);
+
         for _ in 0..200_000 {
             aacs.step(1.0);
             assert!(aacs.error().abs() < 0.1 + KICK_DEG_S * 2.0);
         }
+
         assert!(aacs.pulses() > 0);
     }
 

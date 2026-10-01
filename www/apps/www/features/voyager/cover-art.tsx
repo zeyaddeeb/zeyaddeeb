@@ -27,6 +27,7 @@ const box = (x: number, y: number, w: number, h: number) =>
 function row(bits: string, x: number, y: number, step: number): Mark[] {
 	return [...bits].map((b, i) => {
 		const cx = x + i * step;
+
 		return {
 			d:
 				b === "1"
@@ -44,13 +45,16 @@ const ringBits: Mark[] = [...RING.bits].map((b, i) => {
 	const a = (ringAngle(i) * Math.PI) / 180;
 	const { x, y } = REC;
 	const r = RING.r;
+
 	if (b === "1") {
 		return {
 			d: `M${r1(x + Math.cos(a) * (r - 7))} ${r1(y + Math.sin(a) * (r - 7))} L${r1(x + Math.cos(a) * (r + 7))} ${r1(y + Math.sin(a) * (r + 7))}`,
 		};
 	}
+
 	const a0 = a - 0.055;
 	const a1 = a + 0.055;
+
 	return {
 		d: `M${r1(x + Math.cos(a0) * r)} ${r1(y + Math.sin(a0) * r)} A${r} ${r} 0 0 1 ${r1(x + Math.cos(a1) * r)} ${r1(y + Math.sin(a1) * r)}`,
 	};
@@ -88,29 +92,37 @@ const length = {
 
 function wave(x0: number, x1: number, seed: number) {
 	const pts: string[] = [];
+
 	for (let x = x0; x <= x1; x += 2.5) {
 		const t = (x - x0) / (x1 - x0);
 		const env = Math.sin(t * Math.PI) * 18 + 6;
+
 		const n =
 			Math.sin(x * 0.9 + seed) * 0.5 +
 			Math.sin(x * 0.37 + seed * 2) * 0.35 +
 			Math.sin(x * 2.1 + seed * 3) * 0.3;
+
 		pts.push(`${r1(x)} ${r1(228 - env - n * 12)}`);
 	}
+
 	return pts.join(" L");
 }
 
 function pictureMarks(): Mark[] {
 	const burst: string[] = [];
+
 	for (let i = 0; i <= 12; i++)
 		burst.push(`${480 + i * 5} ${i % 2 ? 205 : 245}`);
+
 	const lines = [
 		[572, 640],
 		[656, 736],
 		[748, 830],
 	];
+
 	const labels = ["1", "10", "11"];
 	const bits = full(lineTime);
+
 	return [
 		{ d: `M${burst.join(" L")} L548 225 V250 H566 V232` },
 		...lines.map(([a, b], i) => ({
@@ -155,6 +167,7 @@ const picture = pictureMarks();
 export function pulsarEnd(p: Pulsar, scale = 1) {
 	const a = (p.angle * Math.PI) / 180;
 	const len = p.length * MAP.l * scale;
+
 	return { x: MAP.x + Math.cos(a) * len, y: MAP.y + Math.sin(a) * len, a, len };
 }
 
@@ -165,6 +178,7 @@ function pulsarMarks(p: Pulsar): Mark[] {
 	const n = p.bits.length;
 	const step = Math.min(6.2, (len - 24) / n);
 	const start = len - n * step;
+
 	return [
 		{
 			d: `M${MAP.x} ${MAP.y} L${r1(MAP.x + c * start)} ${r1(MAP.y + s * start)}`,
@@ -174,6 +188,7 @@ function pulsarMarks(p: Pulsar): Mark[] {
 			const d = start + (i + 0.5) * step;
 			const x = MAP.x + c * d;
 			const y = MAP.y + s * d;
+
 			return b === "1"
 				? {
 						d: `M${r1(x - s * 4)} ${r1(y + c * 4)} L${r1(x + s * 4)} ${r1(y - c * 4)}`,
@@ -348,17 +363,21 @@ export function paintEtch(
 	ctx.strokeStyle = color;
 	ctx.lineCap = "round";
 	ctx.lineJoin = "round";
+
 	for (const m of etchMarks()) {
 		ctx.lineWidth = m.w ?? 2.4;
 		ctx.stroke(new Path2D(m.d));
 	}
+
 	ctx.restore();
 }
 
 export function paintCover(ctx: CanvasRenderingContext2D, size: number) {
 	ctx.save();
 	ctx.scale(size / 1000, size / 1000);
+
 	const gold = ctx.createRadialGradient(366, 308, 0, 366, 308, 768);
+
 	gold.addColorStop(0, "#f6dc93");
 	gold.addColorStop(0.35, "#d9a746");
 	gold.addColorStop(0.7, "#a8741f");
@@ -369,11 +388,13 @@ export function paintCover(ctx: CanvasRenderingContext2D, size: number) {
 	ctx.fill();
 	ctx.strokeStyle = "rgb(255 243 207 / 4.5%)";
 	ctx.lineWidth = 3;
+
 	for (let i = 0; i < 46; i++) {
 		ctx.beginPath();
 		ctx.arc(500, 500, 40 + i * 9.6, 0, Math.PI * 2);
 		ctx.stroke();
 	}
+
 	ctx.strokeStyle = "rgb(91 60 12 / 55%)";
 	ctx.lineWidth = 6;
 	ctx.beginPath();

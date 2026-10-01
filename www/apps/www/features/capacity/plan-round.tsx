@@ -72,22 +72,27 @@ function callout(
 	names: PlanNames,
 ): GridCallout | null {
 	const key = solved?.key;
+
 	if (!key) return null;
+
 	const project = names.project(key.project);
 	const when =
 		key.period === null ? "" : ` in ${names.period(level, key.period)}`;
+
 	if (key.kind === "open")
 		return {
 			target: key.project,
 			title: `The move · open ${names.name(key.project)}${when}`,
 			body: `Keep it closed and the plan costs ${money(key.worth)} more an hour`,
 		};
+
 	if (key.kind === "rent")
 		return {
 			target: project?.target ?? key.project,
 			title: `The move · ${names.projectName(key.project).toLowerCase()}`,
 			body: `Without turbines the best plan costs ${money(key.worth)} more an hour`,
 		};
+
 	return {
 		target: project?.target ?? key.project,
 		title: `The move · ${names.projectName(key.project)}${when}`,
@@ -120,21 +125,25 @@ export function PlanRound({
 		() => ({ steps: copy.guide.length, guessing: !!copy.guess }),
 		[copy],
 	);
+
 	const [game, setGame] = useState<PlanGame>(() => startPlan(level, script));
 	const { solutions, pending, failed } = usePlanSolutions(level, game);
 	const names = useMemo(() => planNames(plans, gridNames(grid)), [plans, grid]);
 	const { best, yours } = solutions;
 	const frames = best?.trace.length ?? 0;
+
 	const projects = level.projects
 		.map((id) => names.project(id))
 		.filter((p): p is Project => !!p);
 
 	useEffect(() => {
 		if (game.phase !== "thinking") return;
+
 		const timer = setTimeout(
 			() => setGame((g) => advancePlan(g, frames)),
 			STEP_MS,
 		);
+
 		return () => clearTimeout(timer);
 	}, [game.phase, frames]);
 
@@ -142,12 +151,15 @@ export function PlanRound({
 		best && (game.phase === "solved" || game.phase === "told")
 			? { ...names, plans, level, solved: best, yours }
 			: null;
+
 	const answer =
 		copy.guess && best
 			? copy.guess.answer({ ...names, plans, level, solved: best, yours })
 			: 0;
+
 	const mine = scoreOf(level, yours);
 	const bestScore = scoreOf(level, best);
+
 	const won = copy.guess
 		? game.guess !== null && Math.abs(game.guess - answer) <= answer * 0.25
 		: mine !== null && bestScore !== null && matched(mine, bestScore);
@@ -158,13 +170,16 @@ export function PlanRound({
 
 	const shown = shownPlan(game, solutions);
 	const result = shown.cases.find((c) => c.case === game.view);
+
 	const shownSchedule =
 		game.phase === "thinking"
 			? (best?.trace[game.frame]?.schedule ?? scheduleOf(game, level))
 			: shown.solver && shown.solved
 				? shown.solved.schedule
 				: scheduleOf(game, level);
+
 	const view = mapView(level, plans, grid, shownSchedule, result, game.view);
+
 	const board = planBoard(result, shown.solver, {
 		limits: view.limits,
 		generators: view.generators,
@@ -186,6 +201,7 @@ export function PlanRound({
 	});
 
 	const step = game.phase === "guide" ? copy.guide[game.step] : undefined;
+
 	const primary = ((): Action | null => {
 		if (game.phase === "guide" && step)
 			return {
@@ -195,29 +211,36 @@ export function PlanRound({
 						nextPlanStep(g, script, copy.guide[g.step + 1]?.view ?? step.view),
 					),
 			};
+
 		if (game.phase === "plan")
 			return {
 				label: "Ask the solver",
 				disabled: !best,
 				run: () => {
 					const replay = frames > 1 && !reducedMotion();
+
 					setGame((g) => (replay ? thinkPlan(g) : revealPlan(g)));
+
 					if (won) onWin(level.id);
 				},
 			};
+
 		if (game.phase === "thinking")
 			return { label: "Skip", run: () => setGame(revealPlan) };
+
 		if (game.phase === "guess")
 			return {
 				label: "Lock in my guess",
 				disabled: !best,
 				run: () => setGame(lockGuess),
 			};
+
 		return next ? { label: next.label, run: next.run, arrow: true } : null;
 	})();
 
 	const comparing = game.phase === "solved";
 	const trace = game.phase === "thinking" ? best?.trace[game.frame] : null;
+
 	const rows: ScoreRow[] = copy.guess
 		? [
 				{
@@ -240,17 +263,20 @@ export function PlanRound({
 					tone: "ink",
 				},
 			];
+
 	const unit =
 		level.objective === "worst"
 			? "Scored on the most expensive future."
 			: level.periods === 1
 				? "Each future weighted by its odds."
 				: "Averaged over the hours of 2027 to 2030.";
+
 	const verdictText = trace
 		? `Replaying SCIP’s search: node ${trace.nodes}.`
 		: comparing && mine !== null && bestScore !== null
 			? verdict(mine, bestScore, won)
 			: unit;
+
 	const scale =
 		trace && bestScore !== null
 			? Math.max(mine ?? 0, bestScore) * 1.6
@@ -259,6 +285,7 @@ export function PlanRound({
 	const slot = (() => {
 		if (game.phase === "thinking" && best)
 			return <SearchPanel trace={best.trace} frame={game.frame} />;
+
 		if (comparing)
 			return (
 				<ViewToggle
@@ -266,6 +293,7 @@ export function PlanRound({
 					onChange={(v) => setGame((g) => showPlan(g, v))}
 				/>
 			);
+
 		if (game.phase === "guess" && copy.guess)
 			return (
 				<GuessSlider
@@ -275,6 +303,7 @@ export function PlanRound({
 					onChange={(n) => setGame((g) => setDraft(g, n))}
 				/>
 			);
+
 		if (game.phase === "plan")
 			return (
 				<ProjectPanel
@@ -287,6 +316,7 @@ export function PlanRound({
 					onRent={(p, n) => setGame((g) => setRental(g, p, g.view, n))}
 				/>
 			);
+
 		return <GridLegend />;
 	})();
 
@@ -296,6 +326,7 @@ export function PlanRound({
 			: game.phase === "guide"
 				? null
 				: best;
+
 	const rush = level.rentals
 		.map((id) => names.project(id))
 		.find((p) => p?.id.startsWith("rush-"));

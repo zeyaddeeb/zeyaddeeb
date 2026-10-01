@@ -45,22 +45,30 @@ function Turn({ clockwise }: { clockwise: boolean }) {
 function useOnScreen<T extends Element>(ref: RefObject<T | null>) {
 	const [inView, setInView] = useState(false);
 	const [shown, setShown] = useState(true);
+
 	useEffect(() => {
 		const el = ref.current;
+
 		if (!el) return;
+
 		const io = new IntersectionObserver(
 			([entry]) => setInView(entry?.isIntersecting ?? false),
 			{ rootMargin: "120px" },
 		);
+
 		io.observe(el);
+
 		const update = () => setShown(document.visibilityState === "visible");
+
 		update();
 		document.addEventListener("visibilitychange", update);
+
 		return () => {
 			io.disconnect();
 			document.removeEventListener("visibilitychange", update);
 		};
 	}, [ref]);
+
 	return inView && shown;
 }
 
@@ -75,6 +83,7 @@ export function AttractorLab() {
 	const [fast, setFast] = useState(false);
 	const [caption, setCaption] = useState(FIRST);
 	const rhoNow = useRef(rho);
+
 	rhoNow.current = rho;
 
 	useEffect(() => {
@@ -83,9 +92,12 @@ export function AttractorLab() {
 
 	useEffect(() => {
 		if (!wasm) return;
+
 		const next = new Sim(wasm, rhoNow.current);
+
 		next.warm(40);
 		setSim(next);
+
 		return () => {
 			setSim(null);
 			next.free();
@@ -94,6 +106,7 @@ export function AttractorLab() {
 
 	useEffect(() => {
 		if (!sim) return;
+
 		sim.setRho(rho);
 		sim.emit();
 	}, [sim, rho]);
@@ -106,23 +119,32 @@ export function AttractorLab() {
 
 	useEffect(() => {
 		if (!sim || !running) return;
+
 		let frame = 0;
 		let last = performance.now();
+
 		const tick = (now: number) => {
 			const dt = Math.min(0.05, (now - last) / 1000);
+
 			last = now;
 			sim.step(dt);
 			frame = requestAnimationFrame(tick);
 		};
+
 		frame = requestAnimationFrame(tick);
+
 		return () => cancelAnimationFrame(frame);
 	}, [sim, running]);
 
 	useEffect(() => {
 		if (!sim) return;
+
 		const read = () => setCaption(describe(sim.observe()));
+
 		read();
+
 		const id = window.setInterval(read, 250);
+
 		return () => window.clearInterval(id);
 	}, [sim]);
 
@@ -135,6 +157,7 @@ export function AttractorLab() {
 	const act = useCallback(
 		(fn: (s: Sim) => void) => {
 			if (!sim) return;
+
 			fn(sim);
 			sim.emit();
 			setCaption(describe(sim.observe()));

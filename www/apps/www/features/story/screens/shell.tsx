@@ -37,22 +37,31 @@ export function Shell({
 
 	useEffect(() => {
 		const log = logRef.current;
+
 		if (log) log.scrollTop = log.scrollHeight;
 	}, [lines, value]);
 
 	const submit = () => {
 		const input = value;
+
 		setValue("");
+
 		if (input.trim()) {
 			history.current.push(input);
 		}
+
 		cursor.current = history.current.length;
+
 		const result = run(input);
+
 		setLines((prev) => {
 			const base = result.clear ? [] : [...prev, `${prompt}${input}`];
+
 			return [...base, ...(result.lines ?? [])].slice(-400);
 		});
+
 		if (result.prompt !== undefined) setPrompt(result.prompt);
+
 		if (result.launch) onLaunch?.(result.launch);
 	};
 
@@ -62,12 +71,16 @@ export function Shell({
 			submit();
 		} else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
 			e.preventDefault();
+
 			const h = history.current;
+
 			if (!h.length) return;
+
 			cursor.current =
 				e.key === "ArrowUp"
 					? Math.max(0, cursor.current - 1)
 					: Math.min(h.length, cursor.current + 1);
+
 			setValue(h[cursor.current] ?? "");
 		}
 	};

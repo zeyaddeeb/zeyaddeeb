@@ -18,14 +18,19 @@ type State = "proved" | "open" | "refuted";
 
 function state(trust: Trust): State {
 	if (trust === "verified" || trust === "mathlib") return "proved";
+
 	if (trust === "refuted") return "refuted";
+
 	return "open";
 }
 
 function distance(row: TreeRow, proved: boolean): string {
 	if (proved) return "Proved";
+
 	if (row.number === null) return "No route";
+
 	if (row.number >= OPEN_PROBLEM) return "Open problem";
+
 	return `Proof number ${row.number.toFixed(1)}`;
 }
 
@@ -38,16 +43,20 @@ export function ProofTree({
 }) {
 	const rows = tree?.rows ?? [];
 	const [picked, setPicked] = useState<string | null>(null);
+
 	const chosen =
 		rows.find((row) => row.key === picked) ??
 		rows.find((row) => row.key === tree?.focus) ??
 		rows[0] ??
 		null;
+
 	const node = chosen ? nodes[chosen.key] : undefined;
 	const trustOf = (row: TreeRow) => nodes[row.key]?.trust ?? row.trust;
+
 	const failures = (node?.evidence ?? []).filter(
 		(e) => e.tool === "lean" && e.held === false,
 	).length;
+
 	const shown = chosen ? state(trustOf(chosen)) : "open";
 	const proved = rows.filter((row) => state(trustOf(row)) === "proved").length;
 

@@ -11,7 +11,6 @@ resource "helm_release" "www" {
       image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.region}.amazonaws.com/zeyaddeeb/www"
     })
   ]
-
 }
 
 resource "helm_release" "blog" {
@@ -27,5 +26,4 @@ resource "helm_release" "blog" {
       image_repository = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.region}.amazonaws.com/zeyaddeeb/www"
     })
   ]
-
 }

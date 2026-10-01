@@ -36,6 +36,7 @@ const inset = { top: 56, right: 0, bottom: 40, left: 0 };
 describe("octilinear tracks", () => {
 	it("runs straight, then bends 45 degrees into the target", () => {
 		const track = octilinear({ x: 0, y: 0 }, { x: 100, y: 40 });
+
 		expect(track.d).toContain("Q60.0 0.0");
 		expect(track.length).toBeCloseTo(60 + 40 * Math.SQRT2);
 	});
@@ -75,6 +76,7 @@ describe("layout", () => {
 
 	it("keeps west to the left", () => {
 		const x = (id: string) => nodes.find((n) => n.id === id)?.x ?? 0;
+
 		expect(x("toronto")).toBeLessThan(x("keflavik"));
 		expect(x("keflavik")).toBeLessThan(x("london"));
 	});
@@ -83,6 +85,7 @@ describe("layout", () => {
 describe("labels", () => {
 	it("stay inside the map", () => {
 		const { nodes } = layout(placed, atlantic, 390, 340, inset);
+
 		for (const label of labels(nodes, true, 390, 340, inset)) {
 			expect(label.ly).toBeGreaterThan(inset.top);
 			expect(label.ly).toBeLessThan(340);
@@ -94,8 +97,10 @@ describe("labels on a short map", () => {
 	it("never run past the bottom edge", () => {
 		const height = 283;
 		const { nodes } = layout(placed, atlantic, 560, height, inset);
+
 		for (const label of labels(nodes, false, 560, height, inset)) {
 			const bottom = label.ly + (label.detail ? 14 : 0);
+
 			expect(bottom).toBeLessThanOrEqual(height - 4);
 		}
 	});
@@ -109,17 +114,20 @@ describe("planning tracks", () => {
 		x,
 		y,
 	});
+
 	const a = node("a", 0, 0);
 	const b = node("b", 200, 80);
 
 	it("bends around a station sitting on the direct track", () => {
 		const blocker = node("c", 60, 0);
 		const tracks = planTracks([{ key: "a>b", a, b }], [a, b, blocker]);
+
 		expect(tracks.get("a>b")?.d).not.toBe(octilinear(a, b, "early").d);
 	});
 
 	it("keeps two tracks from sharing a leg", () => {
 		const c = node("c", 200, 100);
+
 		const tracks = planTracks(
 			[
 				{ key: "a>b", a, b },
@@ -127,9 +135,11 @@ describe("planning tracks", () => {
 			],
 			[a, b, c],
 		);
+
 		const shapes = [tracks.get("a>b"), tracks.get("a>c")].map(
 			(t) => t?.d.split("Q")[0],
 		);
+
 		expect(shapes[0]).not.toBe(shapes[1]);
 	});
 });
@@ -143,6 +153,7 @@ describe("the key move callout", () => {
 
 	it("sits beside the route when nothing is in the way", () => {
 		const spot = placeCallout([], track, [a, b], box, map, inset);
+
 		expect(spot).toEqual({ x: 100, y: 172 });
 	});
 
@@ -154,12 +165,15 @@ describe("the key move callout", () => {
 			x: 200,
 			y: 210,
 		};
+
 		const spot = placeCallout([station], track, [a, b], box, map, inset);
+
 		const hides =
 			station.x > spot.x &&
 			station.x < spot.x + box.width &&
 			station.y > spot.y &&
 			station.y < spot.y + box.height;
+
 		expect(hides).toBe(false);
 	});
 });

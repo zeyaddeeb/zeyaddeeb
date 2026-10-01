@@ -75,47 +75,63 @@ const center = (g: Geo, s: Station) => (s === "you" ? g.you : g.them);
 
 function edge(g: Geo, s: Station, dir: 1 | -1, side: "in" | "out") {
 	if (s === "left") return g.pad + g.box;
+
 	if (s === "right") return g.w - g.pad - g.box;
+
 	return center(g, s) + (side === "in" ? -dir : dir) * g.half;
 }
 
 function along(points: Point[], f: number, length: number) {
 	const segs = points.slice(1).map((p, i) => {
 		const q = points[i];
+
 		return Math.hypot(p[0] - q[0], p[1] - q[1]);
 	});
+
 	const total = segs.reduce((a, b) => a + b, 0);
+
 	const at = (d: number): Point => {
 		let rest = Math.max(0, Math.min(total, d));
+
 		for (let i = 0; i < segs.length; i++) {
 			if (rest <= segs[i] || i === segs.length - 1) {
 				const t = segs[i] ? rest / segs[i] : 0;
 				const [x0, y0] = points[i];
 				const [x1, y1] = points[i + 1];
+
 				return [x0 + (x1 - x0) * t, y0 + (y1 - y0) * t];
 			}
+
 			rest -= segs[i];
 		}
+
 		return points[points.length - 1];
 	};
+
 	const end = f * total;
 	const start = end - length;
 	const out: Point[] = [at(start)];
 	let acc = 0;
+
 	for (let i = 0; i < segs.length; i++) {
 		acc += segs[i];
+
 		if (acc > start && acc < end) out.push(points[i + 1]);
 	}
+
 	out.push(at(end));
+
 	return out;
 }
 
 function packet(g: Geo, step: Step, progress: number) {
 	const length = Math.max(8, (step.words / answerWords) * g.long);
 	const y = g.wire;
+
 	if (step.kind === "travel" && step.to) {
 		const from = edge(g, step.at, step.dir, "out");
 		const to = edge(g, step.to, step.dir, "in");
+
 		return along(
 			[
 				[from, y],
@@ -125,9 +141,11 @@ function packet(g: Geo, step: Step, progress: number) {
 			length,
 		);
 	}
+
 	if (step.kind === "person" && step.mode === "paste") {
 		const a = edge(g, step.at, step.dir, "in");
 		const b = edge(g, step.at, step.dir, "out");
+
 		return along(
 			[
 				[a, y],
@@ -139,6 +157,7 @@ function packet(g: Geo, step: Step, progress: number) {
 			Math.max(8, (step.incoming / answerWords) * g.long),
 		);
 	}
+
 	return null;
 }
 
@@ -157,14 +176,18 @@ function Drawing({
 }) {
 	const s = g.head / 10;
 	const feet = g.wire + 63 * s;
+
 	const busy = (at: Station) =>
 		step?.at === at &&
 		(step.kind === "model" || (step.kind === "person" && step.mode === "read"));
+
 	const snake = step ? packet(g, step, progress) : null;
+
 	const people: ["you" | "them", Mode, string][] = [
 		["you", you, "you"],
 		["them", them, "your coworker"],
 	];
+
 	return (
 		<svg
 			viewBox={`0 0 ${g.w} ${g.h}`}
@@ -188,6 +211,7 @@ function Drawing({
 				const lit = busy(who);
 				const ring = lit && step ? progress : 0;
 				const r = g.head + 5 * s;
+
 				return (
 					<g key={who}>
 						<path
@@ -250,6 +274,7 @@ function Drawing({
 			{(["left", "right"] as const).map((side) => {
 				const x = side === "left" ? g.pad : g.w - g.pad - g.box;
 				const on = busy(side);
+
 				return (
 					<g key={side} className={on ? "mc-model is-on" : "mc-model"}>
 						<path
@@ -290,13 +315,17 @@ function Drawing({
 
 function useReducedMotion() {
 	const [reduced, setReduced] = useState(false);
+
 	useEffect(() => {
 		const m = window.matchMedia("(prefers-reduced-motion: reduce)");
 		const update = () => setReduced(m.matches);
+
 		update();
 		m.addEventListener("change", update);
+
 		return () => m.removeEventListener("change", update);
 	}, []);
+
 	return reduced;
 }
 
@@ -307,6 +336,7 @@ export function Cable() {
 	const box = useRef<HTMLDivElement>(null);
 	const reduced = useReducedMotion();
 	const steps = useMemo(() => timeline(you, them, answerWords), [you, them]);
+
 	const round = useMemo(
 		() => totals(trip(you, them, answerWords)),
 		[you, them],
@@ -314,14 +344,18 @@ export function Cable() {
 
 	useEffect(() => {
 		if (reduced) return;
+
 		let frame = 0;
 		let visible = false;
 		let last = 0;
+
 		const tick = (now: number) => {
 			if (last) setT((v) => v + Math.min(0.1, (now - last) / 1000));
+
 			last = now;
 			frame = requestAnimationFrame(tick);
 		};
+
 		const io = new IntersectionObserver(([e]) => {
 			if (e.isIntersecting && !visible) {
 				visible = true;
@@ -332,7 +366,9 @@ export function Cable() {
 				cancelAnimationFrame(frame);
 			}
 		});
+
 		if (box.current) io.observe(box.current);
+
 		return () => {
 			io.disconnect();
 			cancelAnimationFrame(frame);
@@ -341,6 +377,7 @@ export function Cable() {
 
 	const where = locate(steps, t);
 	const step = reduced ? null : steps[where.index];
+
 	const set = (who: "you" | "them", mode: Mode) => {
 		(who === "you" ? setYou : setThem)(mode);
 		setT(0);

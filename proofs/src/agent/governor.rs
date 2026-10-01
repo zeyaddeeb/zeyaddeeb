@@ -55,6 +55,7 @@ impl Governor {
         if now - self.ledger.day_start >= DAY_MS {
             return self.limits.tokens_per_day;
         }
+
         self.limits.tokens_per_day.saturating_sub(self.ledger.spent)
     }
 
@@ -63,12 +64,15 @@ impl Governor {
             self.ledger.day_start = now - now.rem_euclid(DAY_MS);
             self.ledger.spent = 0;
         }
+
         if now < self.blocked_until {
             return Some(Wait::Backoff(ms(self.blocked_until - now)));
         }
+
         if self.ledger.spent >= self.limits.tokens_per_day {
             return Some(Wait::Budget(ms(self.ledger.day_start + DAY_MS - now)));
         }
+
         None
     }
 
@@ -79,12 +83,15 @@ impl Governor {
 
     pub fn fail(&mut self, now: i64) -> Wait {
         self.ledger.failures += 1;
+
         let exponent = (self.ledger.failures - 1).min(16);
         let base = self.limits.backoff_base.as_millis() as i64;
         let ceiling = self.limits.backoff_max.as_millis() as i64;
         let delay = base.saturating_mul(1 << exponent).min(ceiling);
         let jittered = delay - jitter(now, delay / 4);
+
         self.blocked_until = now + jittered;
+
         Wait::Backoff(ms(jittered))
     }
 
@@ -101,9 +108,11 @@ fn jitter(seed: i64, span: i64) -> i64 {
     if span <= 0 {
         return 0;
     }
+
     let mixed = (seed as u64)
         .wrapping_mul(6_364_136_223_846_793_005)
         .rotate_left(17);
+
     (mixed % span as u64) as i64
 }
 
@@ -124,14 +133,17 @@ mod tests {
     fn spending_past_the_budget_waits_for_the_next_day() {
         let day = DAY_MS * 100;
         let mut governor = Governor::new(limits(), Ledger::default());
+
         assert_eq!(governor.check(day + 1000), None);
         governor.spend(999);
         assert_eq!(governor.check(day + 2000), None);
         governor.spend(5);
+
         match governor.check(day + 3000) {
             Some(Wait::Budget(wait)) => assert_eq!(wait, ms(DAY_MS - 3000)),
             other => panic!("{other:?}"),
         }
+
         assert_eq!(governor.check(day + DAY_MS + 1), None);
         assert_eq!(governor.remaining(day + DAY_MS + 1), 1000);
     }
@@ -141,13 +153,18 @@ mod tests {
         let mut governor = Governor::new(limits(), Ledger::default());
         let now = 1_000_000;
         let first = governor.fail(now).duration();
+
         assert!(first <= Duration::from_secs(30) && first >= Duration::from_millis(22_500));
         assert!(matches!(governor.check(now + 1000), Some(Wait::Backoff(_))));
+
         let second = governor.fail(now).duration();
+
         assert!(second > first);
+
         for _ in 0..20 {
             governor.fail(now);
         }
+
         assert!(governor.fail(now).duration() <= Duration::from_secs(1800));
         assert!(governor.exhausted());
         governor.spend(1);

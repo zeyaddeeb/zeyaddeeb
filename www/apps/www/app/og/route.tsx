@@ -5,9 +5,11 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
 	const { searchParams } = new URL(request.url);
 	const title = (searchParams.get("title") || "Zeyad Deeb").slice(0, 110);
+
 	const section = (
 		searchParams.get("section") || "Software engineer / Brooklyn, NY"
 	).slice(0, 60);
+
 	const glider = new Set([7, 14, 18, 19, 20]);
 
 	return new ImageResponse(

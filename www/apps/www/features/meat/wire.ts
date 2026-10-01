@@ -15,6 +15,7 @@ export interface Leg {
 export function hop(mode: Mode, incoming: number) {
 	if (mode === "paste")
 		return { seconds: pace.paste, words: incoming, read: 0 };
+
 	return {
 		seconds: readSeconds(incoming) + writeSeconds(pace.digest),
 		words: pace.digest,
@@ -24,6 +25,7 @@ export function hop(mode: Mode, incoming: number) {
 
 export function trip(you: Mode, them: Mode, answer: number): Leg[] {
 	const legs: Leg[] = [];
+
 	const model = (at: Station) =>
 		legs.push({
 			at,
@@ -32,17 +34,21 @@ export function trip(you: Mode, them: Mode, answer: number): Leg[] {
 			read: 0,
 			through: true,
 		});
+
 	const person = (at: Station, mode: Mode) => {
 		const incoming = legs[legs.length - 1].words;
 		const h = hop(mode, incoming);
+
 		legs.push({ at, ...h, through: mode === "read" });
 	};
+
 	model("left");
 	person("you", you);
 	person("them", them);
 	model("right");
 	person("them", them);
 	person("you", you);
+
 	return legs;
 }
 
@@ -50,16 +56,20 @@ export function totals(legs: Leg[]) {
 	const seconds = legs.reduce((sum, l) => sum + l.seconds, 0);
 	const read = (at: Station) =>
 		legs.filter((l) => l.at === at).reduce((sum, l) => sum + l.read, 0);
+
 	return { seconds, you: read("you"), them: read("them") };
 }
 
 export function verdict(you: Mode, them: Mode) {
 	if (you === "paste" && them === "paste")
 		return "Two models are talking. You are the cable.";
+
 	if (you === "read" && them === "read")
 		return "Two people are talking, each with a Claude.";
+
 	if (you === "read")
 		return "Your coworker is the cable. Their Claude is talking to you.";
+
 	return "You are the cable. Your Claude is talking to your coworker.";
 }
 
@@ -95,12 +105,15 @@ export function timeline(you: Mode, them: Mode, answer: number): Step[] {
 	const steps: Step[] = [];
 	let author: Author = "claude";
 	let incoming = answer;
+
 	legs.forEach((leg, i) => {
 		const [at, dir, to] = order[i];
 		const model = at === "left" || at === "right";
 		const mode = model ? undefined : at === "you" ? you : them;
+
 		if (model) author = "claude";
 		else if (mode === "read") author = "person";
+
 		steps.push({
 			kind: model ? "model" : "person",
 			at,
@@ -113,6 +126,7 @@ export function timeline(you: Mode, them: Mode, answer: number): Step[] {
 			incoming,
 			author,
 		});
+
 		steps.push({
 			kind: "travel",
 			at,
@@ -125,8 +139,10 @@ export function timeline(you: Mode, them: Mode, answer: number): Step[] {
 			incoming: leg.words,
 			author,
 		});
+
 		incoming = leg.words;
 	});
+
 	return steps;
 }
 
@@ -140,10 +156,13 @@ export function locate(steps: Step[], t: number) {
 	let sim = laps * simCycle;
 	let you = laps * readCycle("you");
 	let them = laps * readCycle("them");
+
 	for (let i = 0; i < steps.length; i++) {
 		const s = steps[i];
+
 		if (rest < s.real) {
 			const progress = rest / s.real;
+
 			return {
 				index: i,
 				progress,
@@ -153,10 +172,14 @@ export function locate(steps: Step[], t: number) {
 				them,
 			};
 		}
+
 		rest -= s.real;
 		sim += s.sim;
+
 		if (s.at === "you") you += s.read;
+
 		if (s.at === "them") them += s.read;
 	}
+
 	return { index: 0, progress: 0, laps: laps + 1, sim, you, them };
 }

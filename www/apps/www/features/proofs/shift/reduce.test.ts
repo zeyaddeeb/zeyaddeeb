@@ -53,6 +53,7 @@ function overview(backlog: Envelope[] = []): Overview {
 let seq = 0;
 function at(event: Event): Envelope {
 	seq += 1;
+
 	return { ...event, seq, at: seq } as Envelope;
 }
 
@@ -82,11 +83,13 @@ describe("the live shift", () => {
 				}),
 			]),
 		);
+
 		expect(live.mode).toBe("work");
 		expect(live.episode).toBe(7);
 		expect(live.turns).toHaveLength(1);
 		expect(live.turns[0].think).toBe("Gram blocks.");
 		expect(live.turns[0].calls[0].outcome?.verdict?.held).toBe(true);
+
 		expect(live.scans).toEqual([
 			{
 				kind: "line",
@@ -102,37 +105,45 @@ describe("the live shift", () => {
 	it("ignores events it has already seen", () => {
 		const first = at({ type: "delta", turn: 0, channel: "say", text: "once" });
 		const live = reduce(initial(overview([first])), first);
+
 		expect(live.turns[0].say).toBe("once");
 	});
 
 	it("retracts a turn the model has to retry", () => {
 		let live = initial(overview());
+
 		live = reduce(
 			live,
 			at({ type: "delta", turn: 2, channel: "think", text: "half a th" }),
 		);
+
 		live = reduce(live, at({ type: "retry", turn: 2 }));
 		expect(live.turns[0].think).toBe("");
 	});
 
 	it("starts a fresh page for sleep and for each new episode", () => {
 		let live = initial(overview());
+
 		live = reduce(
 			live,
 			at({ type: "delta", turn: 0, channel: "say", text: "work" }),
 		);
+
 		live = reduce(live, at({ type: "sleep", after: 4 }));
 		expect(live.mode).toBe("sleep");
 		expect(live.turns).toEqual([]);
+
 		live = reduce(
 			live,
 			at({ type: "wake", episode: 5, front: "divisors", arms: [] }),
 		);
+
 		expect(live.front).toBe("divisors");
 	});
 
 	it("restarts the search tree when a new statement opens", () => {
 		let live = initial(overview());
+
 		const step = {
 			ok: true,
 			goals: 1,
@@ -140,6 +151,7 @@ describe("the live shift", () => {
 			error: null,
 			source: "automation" as const,
 		};
+
 		live = reduce(
 			live,
 			at({
@@ -147,6 +159,7 @@ describe("the live shift", () => {
 				step: { ...step, id: 0, parent: null, tactic: "" },
 			}),
 		);
+
 		live = reduce(
 			live,
 			at({
@@ -154,6 +167,7 @@ describe("the live shift", () => {
 				step: { ...step, id: 1, parent: 0, tactic: "simp" },
 			}),
 		);
+
 		live = reduce(
 			live,
 			at({
@@ -161,6 +175,7 @@ describe("the live shift", () => {
 				step: { ...step, id: 0, parent: null, tactic: "" },
 			}),
 		);
+
 		expect(live.search).toHaveLength(1);
 	});
 
@@ -181,10 +196,12 @@ describe("the live shift", () => {
 			started: 0,
 			ended: 1,
 		};
+
 		let live = initial({
 			...overview(),
 			episodes: [{ ...episode, number: 2 }],
 		});
+
 		live = reduce(live, at({ type: "concluded", episode }));
 		live = reduce(live, at({ type: "concluded", episode }));
 		expect(live.episodes.map((e) => e.number)).toEqual([3, 2]);
@@ -217,11 +234,13 @@ describe("self-improvement", () => {
 
 	it("shows a revision as its own page and keeps every version", () => {
 		let live = initial(overview());
+
 		live = reduce(live, at({ type: "revise", after: 4, layer: "playbook" }));
 		expect(live.mode).toBe("revise");
 		expect(live.layer).toBe("playbook");
 		live = reduce(live, at({ type: "rules", rules }));
 		expect(live.rules["playbook-2"]?.lines).toEqual(rules.lines);
+
 		const played = {
 			...rules,
 			pairs: [
@@ -234,8 +253,10 @@ describe("self-improvement", () => {
 				},
 			],
 		};
+
 		live = reduce(live, at({ type: "rules", rules: played }));
 		expect(live.rules["playbook-2"]?.pairs).toHaveLength(1);
+
 		live = reduce(
 			live,
 			at({
@@ -246,6 +267,7 @@ describe("self-improvement", () => {
 				rules: 2,
 			}),
 		);
+
 		expect(live.mode).toBe("work");
 		expect(live.version).toBe(2);
 		expect(live.layer).toBeNull();

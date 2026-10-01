@@ -12,6 +12,7 @@ describe("captions", () => {
 			now: "Next I climb to 300 and wat",
 			whole: false,
 		});
+
 		expect(caption("")).toBeNull();
 		expect(caption("That settles it.")?.whole).toBe(true);
 	});
@@ -28,27 +29,34 @@ describe("captions", () => {
 				'Needs 0.505.\n<tool_call>\n<function=contour>\n<parameter=expect>\n{"op": "<"}\n</parameter>\n</function>\n</tool_call>\nThen wait.',
 			),
 		).toBe("Needs 0.505.\n \nThen wait.");
+
 		expect(unmarked("Retry.<function=contour><parameter=t_to>30")).toBe(
 			"Retry.",
 		);
+
 		expect(unmarked("<think>x < 1</think>")).toBe("x < 1");
 	});
 
 	it("fold JSON the model pastes into its thinking", () => {
 		const schema =
 			'I already tried 0.505 and got an error. {"expect": {"properties": {"op": {"enum": ["<", "}"]}}}, "sigma_from": {"description": "Left edge."}}';
+
 		expect(unmarked(schema)).toBe(
 			"I already tried 0.505 and got an error. {…}",
 		);
+
 		expect(caption(unmarked(schema))).toEqual({
 			before: null,
 			now: "I already tried 0.505 and got an error.",
 			whole: true,
 		});
+
 		expect(
 			caption(unmarked('Planned. {"name": "line"} The tool needs from.'))?.now,
 		).toBe("The tool needs from.");
+
 		expect(unmarked('Next {"field": "t", "op": "<')).toBe("Next {…}");
+
 		expect(unmarked("the set {x | x > 0} is open")).toBe(
 			"the set {x | x > 0} is open",
 		);
@@ -57,6 +65,7 @@ describe("captions", () => {
 	it("clip a runaway sentence from the front", () => {
 		const long = `${"word ".repeat(100)}end`;
 		const result = caption(long);
+
 		expect(result?.now.startsWith("…")).toBe(true);
 		expect(result?.now.endsWith("end")).toBe(true);
 		expect(result?.now.length).toBeLessThanOrEqual(260);
@@ -136,6 +145,7 @@ describe("steps", () => {
 				],
 			},
 		];
+
 		expect(steps(graded).map((s) => s.status)).toEqual(["known", "routine"]);
 	});
 

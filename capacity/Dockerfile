@@ -6,7 +6,6 @@ ARG UNUSED_AT_RUNTIME="numpy pandas python-dateutil six"
 
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
 
-
 FROM python:${PYTHON_VERSION}-slim-trixie AS builder
 
 ARG UNUSED_AT_RUNTIME
@@ -32,7 +31,6 @@ COPY src ./src
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev --no-editable \
         $(printf -- '--no-install-package %s ' $UNUSED_AT_RUNTIME)
-
 
 FROM python:${PYTHON_VERSION}-slim-trixie AS runtime
 

@@ -44,12 +44,14 @@ export function turnCue(p: Player, n: number): Caption {
 			text: `Listen first. Every note ${p.short} plays comes from one of his records. The outer ring of the clock names which one.`,
 			record: null,
 		};
+
 	if (n % 2 === 1)
 		return {
 			shout: "Your four!",
 			text: yourTurns[((n - 1) / 2) % yourTurns.length],
 			record: null,
 		};
+
 	return {
 		shout: `Answer, ${first[p.id]}!`,
 		text: hisTurns[(n / 2 - 1) % hisTurns.length],

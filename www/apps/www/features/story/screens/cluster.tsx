@@ -34,20 +34,26 @@ const name = () =>
 
 function age(ms: number) {
 	const s = Math.max(0, Math.floor(ms / 1000));
+
 	if (s < 60) return `${s}s`;
+
 	const m = Math.floor(s / 60);
+
 	return m < 60 ? `${m}m${s % 60}s` : `${Math.floor(m / 60)}h${m % 60}m`;
 }
 
 function reconcile(c: Cluster, now: number): Cluster {
 	const events = [...c.events];
+
 	const log = (e: string) => {
 		events.push(e);
+
 		if (events.length > 4) events.shift();
 	};
 
 	let pods = c.pods.flatMap((p): Pod[] => {
 		const dwell = now - p.since;
+
 		switch (p.status) {
 			case "Pending":
 				return dwell > 700
@@ -58,10 +64,12 @@ function reconcile(c: Cluster, now: number): Cluster {
 			case "OOMKilled":
 				if (dwell > 2200) {
 					log(`Started container api in pod ${p.name}`);
+
 					return [
 						{ ...p, status: "Running", restarts: p.restarts + 1, since: now },
 					];
 				}
+
 				return [p];
 			case "Terminating":
 				return dwell > 1400 ? [] : [p];
@@ -70,13 +78,16 @@ function reconcile(c: Cluster, now: number): Cluster {
 					log(
 						`Container api in pod ${p.name} exceeded its memory limit (OOMKilled)`,
 					);
+
 					return [{ ...p, status: "OOMKilled", since: now }];
 				}
+
 				return [p];
 		}
 	});
 
 	const live = pods.filter((p) => p.status !== "Terminating");
+
 	if (live.length < c.desired) {
 		for (let i = live.length; i < c.desired; i++) {
 			const p: Pod = {
@@ -86,18 +97,22 @@ function reconcile(c: Cluster, now: number): Cluster {
 				created: now,
 				since: now,
 			};
+
 			pods.push(p);
 			log(`Created pod: ${p.name}`);
 		}
 	} else if (live.length > c.desired) {
 		const extra = live.slice(c.desired);
+
 		pods = pods.map((p) =>
 			extra.includes(p)
 				? { ...p, status: "Terminating" as const, since: now }
 				: p,
 		);
+
 		for (const p of extra) log(`Deleted pod: ${p.name}`);
 	}
+
 	return { pods, desired: c.desired, events };
 }
 
@@ -115,15 +130,18 @@ export function ClusterScreen() {
 		desired: 6,
 		events: [],
 	});
+
 	const [now, setNow] = useState(() => Date.now());
 	const started = useRef(Date.now());
 
 	useEffect(() => {
 		const id = setInterval(() => {
 			const t = Date.now();
+
 			setNow(t);
 			setCluster((c) => reconcile(c, t));
 		}, TICK);
+
 		return () => clearInterval(id);
 	}, []);
 

@@ -32,8 +32,10 @@ export function Bet({ probe, model, selected, marked }: BetProps) {
 	const pending = focus.position + 1 !== selected;
 	const actual = selected < line.tokens.length ? line.tokens[selected] : null;
 	const key = JSON.stringify([line.code, line.question, focus.position]);
+
 	useEffect(() => {
 		if (pending || !focus.distribution.length) return;
+
 		setSnapshots((previous) =>
 			previous[key]
 				? previous
@@ -43,13 +45,16 @@ export function Bet({ probe, model, selected, marked }: BetProps) {
 					},
 		);
 	}, [pending, key, probe.step, focus.distribution]);
+
 	const baseline = snapshots[key];
 	const moved = !!baseline && baseline.step !== probe.step;
 
 	const size = focus.distribution.length;
+
 	const expectedId = marked
 		? model.vocabulary.indexOf(actual?.text ?? line.truth ?? "")
 		: -1;
+
 	const peak = Math.max(...focus.distribution, 0);
 	const leaderId = focus.distribution.indexOf(peak);
 	const scrub = useScrub(size, "cells");
@@ -60,12 +65,15 @@ export function Bet({ probe, model, selected, marked }: BetProps) {
 
 	const flag = (id: number) => {
 		const p = focus.distribution[id] ?? 0;
+
 		return {
 			left: `${clamp(((id + 0.5) / Math.max(size, 1)) * 100, 5, 95)}%`,
 			bottom: `${p * 100}%`,
 		} as CSSProperties;
 	};
+
 	const truthP = focus.distribution[expectedId] ?? 0;
+
 	const crowded =
 		expectedId >= 0 &&
 		expectedId !== leaderId &&
@@ -198,22 +206,28 @@ function WriterRow({ dream, wait }: { dream: DreamView; wait: number }) {
 	const still = useReducedMotion();
 	const total = dream.tokens.length;
 	const [shown, setShown] = useState(0);
+
 	useEffect(() => {
 		if (still) return;
+
 		let timer = 0;
+
 		const start = window.setTimeout(() => {
 			timer = window.setInterval(
 				() => setShown((n) => Math.min(total, n + 1)),
 				TYPE_MS,
 			);
 		}, wait);
+
 		return () => {
 			window.clearTimeout(start);
 			window.clearInterval(timer);
 		};
 	}, [still, total, wait]);
+
 	const visible = still ? total : shown;
 	const done = visible >= total;
+
 	return (
 		<li data-compiles={dream.compiles} data-done={done}>
 			<span className="ds-writer-step">
@@ -240,12 +254,14 @@ function WriterRow({ dream, wait }: { dream: DreamView; wait: number }) {
 export function Writer({ dreams }: { dreams: DreamView[] }) {
 	const first = dreams[0];
 	const latest = dreams.at(-1);
+
 	const rows =
 		first && latest && latest.step > first.step
 			? [first, latest]
 			: latest
 				? [latest]
 				: [];
+
 	return (
 		<section
 			className="ds-writer"
@@ -275,6 +291,7 @@ export function Writer({ dreams }: { dreams: DreamView[] }) {
 
 export function Score({ probe }: { probe: ProbeView }) {
 	const right = Math.round(probe.accuracy * probe.evaluated);
+
 	return (
 		<section className="ds-score" aria-label="Held-out questions">
 			<p className="ds-score-total">

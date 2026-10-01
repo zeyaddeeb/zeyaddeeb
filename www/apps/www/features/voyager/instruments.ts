@@ -125,6 +125,7 @@ export const yearOf = (iso: string) => {
 	const y = new Date(t).getUTCFullYear();
 	const start = Date.UTC(y, 0, 1);
 	const end = Date.UTC(y + 1, 0, 1);
+
 	return y + (t - start) / (end - start);
 };
 
@@ -132,17 +133,22 @@ export const yearNow = (ms: number) => {
 	const y = new Date(ms).getUTCFullYear();
 	const start = Date.UTC(y, 0, 1);
 	const end = Date.UTC(y + 1, 0, 1);
+
 	return y + (ms - start) / (end - start);
 };
 
 export function offParts(year: number): Set<PartId> {
 	const out = new Set<PartId>();
 	const byPart = new Map<PartId, boolean>();
+
 	for (const i of instruments) {
 		const on = i.off === null || yearOf(i.off) > year;
+
 		byPart.set(i.part, (byPart.get(i.part) ?? false) || on);
 	}
+
 	for (const [part, on] of byPart) if (!on) out.add(part);
+
 	return out;
 }
 
@@ -188,8 +194,10 @@ export function nearest<T>(
 	at: (t: T) => number,
 ) {
 	let best = 0;
+
 	for (let i = 1; i < list.length; i++)
 		if (Math.abs(at(list[i]) - year) < Math.abs(at(list[best]) - year))
 			best = i;
+
 	return best;
 }

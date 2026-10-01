@@ -66,6 +66,7 @@ function sanitizeAndHighlightHtml(html: string): string {
 		.use(rehypeSanitize, safeHtmlSchema)
 		.use(rehypeHighlight, highlightOptions)
 		.use(rehypeStringify);
+
 	return String(processor.processSync(html));
 }
 
@@ -83,6 +84,7 @@ export function MarkdownRenderer({
 
 	if (isHtmlContent(content)) {
 		const safeHtml = sanitizeAndHighlightHtml(content);
+
 		return <div className={containerClassName}>{parse(safeHtml)}</div>;
 	}
 
@@ -100,6 +102,7 @@ export function MarkdownRenderer({
 					h1: ({ children, node }) => {
 						const styleAttr = node?.properties?.style as string | undefined;
 						const textAlign = styleAttr?.match(/text-align:\s*(\w+)/)?.[1];
+
 						return (
 							<h1
 								className="mb-4 mt-8 text-3xl font-bold tracking-tight text-white first:mt-0"
@@ -122,6 +125,7 @@ export function MarkdownRenderer({
 					h2: ({ children, node }) => {
 						const styleAttr = node?.properties?.style as string | undefined;
 						const textAlign = styleAttr?.match(/text-align:\s*(\w+)/)?.[1];
+
 						return (
 							<h2
 								className="mb-3 mt-8 text-2xl font-semibold tracking-tight text-white first:mt-0"
@@ -144,6 +148,7 @@ export function MarkdownRenderer({
 					h3: ({ children, node }) => {
 						const styleAttr = node?.properties?.style as string | undefined;
 						const textAlign = styleAttr?.match(/text-align:\s*(\w+)/)?.[1];
+
 						return (
 							<h3
 								className="mb-2 mt-6 text-xl font-semibold tracking-tight text-white first:mt-0"
@@ -166,6 +171,7 @@ export function MarkdownRenderer({
 					h4: ({ children, node }) => {
 						const styleAttr = node?.properties?.style as string | undefined;
 						const textAlign = styleAttr?.match(/text-align:\s*(\w+)/)?.[1];
+
 						return (
 							<h4
 								className="mb-2 mt-4 text-lg font-semibold text-white first:mt-0"
@@ -188,6 +194,7 @@ export function MarkdownRenderer({
 					p: ({ children, node }) => {
 						const styleAttr = node?.properties?.style as string | undefined;
 						const textAlign = styleAttr?.match(/text-align:\s*(\w+)/)?.[1];
+
 						return (
 							<p
 								className="mb-4 leading-relaxed text-neutral-300"
@@ -225,6 +232,7 @@ export function MarkdownRenderer({
 						const content = String(children ?? "");
 						const isInline =
 							!className && !content.includes("\n") && content.length < 120;
+
 						if (isInline) {
 							return (
 								<code className="rounded-md bg-neutral-800/80 px-1.5 py-0.5 text-[13px] font-mono text-amber-400">
@@ -232,6 +240,7 @@ export function MarkdownRenderer({
 								</code>
 							);
 						}
+
 						return (
 							<code
 								className={
@@ -292,6 +301,7 @@ export function MarkdownRenderer({
 							style?: string;
 							"data-align"?: string;
 						};
+
 						const style = restProps.style;
 						const align = restProps["data-align"] || "left";
 						const styleObj: React.CSSProperties = {};
@@ -300,6 +310,7 @@ export function MarkdownRenderer({
 							styleObj.width = typeof width === "number" ? `${width}px` : width;
 						} else if (style) {
 							const widthMatch = style.match(/width:\s*([^;]+)/);
+
 							if (widthMatch) {
 								styleObj.width = widthMatch[1].trim();
 							}
@@ -310,6 +321,7 @@ export function MarkdownRenderer({
 								typeof height === "number" ? `${height}px` : height;
 						} else if (style) {
 							const heightMatch = style.match(/height:\s*([^;]+)/);
+
 							if (heightMatch) {
 								styleObj.height = heightMatch[1].trim();
 							}

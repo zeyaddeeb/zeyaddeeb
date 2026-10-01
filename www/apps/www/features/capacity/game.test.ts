@@ -70,14 +70,17 @@ describe("starting a level", () => {
 
 	it("opens an outage on the morning plan", () => {
 		const game = start(outage);
+
 		expect(game.phase).toBe("intro");
 		expect(game.routes["newyork>ashburn"]).toBe(70);
 	});
 
 	it("drops the dead site's routes when the power goes", () => {
 		const game = cutPower(start(outage), outage);
+
 		expect(game.phase).toBe("plan");
 		expect(game.routes).toEqual({ "toronto>quebec": 30, "chicago>quebec": 30 });
+
 		expect(restart({ ...game, routes: {} }, outage).routes).toEqual(
 			game.routes,
 		);
@@ -87,17 +90,20 @@ describe("starting a level", () => {
 describe("routing by tapping", () => {
 	it("routes a city to a data center", () => {
 		const game = tapAll(start(atlantic), atlantic, ["newyork", "keflavik"]);
+
 		expect(game.routes).toEqual({ "newyork>keflavik": 50 });
 		expect(game.outcome?.kind).toBe("added");
 	});
 
 	it("works in either order", () => {
 		const game = tapAll(start(atlantic), atlantic, ["keflavik", "london"]);
+
 		expect(game.routes).toEqual({ "london>keflavik": 40 });
 	});
 
 	it("switches the selection between two cities", () => {
 		const game = tapAll(start(atlantic), atlantic, ["newyork", "london"]);
+
 		expect(game.selected).toBe("london");
 		expect(game.routes).toEqual({});
 	});
@@ -116,6 +122,7 @@ describe("building blocks", () => {
 			"keflavik",
 			"ashburn",
 		]);
+
 		expect(game.blocks).toEqual({ keflavik: 2 });
 	});
 
@@ -128,12 +135,14 @@ describe("after the reveal", () => {
 	it("takes one guess and ignores the rest", () => {
 		const game = askGuess(reveal(start(atlantic)));
 		const guessed = tapAll(game, atlantic, ["keflavik", "ashburn"]);
+
 		expect(guessed.pick).toBe("keflavik");
 	});
 
 	it("cuts and restores a site's power in play", () => {
 		const game = breakIt(reveal(start(atlantic)), atlantic);
 		const cut = tapAll(game, atlantic, ["keflavik"], 7800);
+
 		expect(cut.play.offline).toEqual(["keflavik"]);
 		expect(cut.edit).toEqual({ label: "keflavik offline", before: 7800 });
 		expect(tapAll(cut, atlantic, ["keflavik"]).play.offline).toEqual([]);
@@ -142,11 +151,13 @@ describe("after the reveal", () => {
 	it("shows the solver's plan over a ghost of yours", () => {
 		const mine = tapAll(start(atlantic), atlantic, ["newyork", "keflavik"]);
 		const best = solved([{ city: "london", site: "keflavik", mw: 40 }]);
+
 		const shown = board(reveal(mine), atlantic, {
 			best,
 			built: null,
 			live: null,
 		});
+
 		expect(shown.routes).toEqual({ "london>keflavik": 40 });
 		expect(shown.ghost).toEqual({ "newyork>keflavik": 50 });
 		expect(shown.solver).toBe(true);
@@ -157,11 +168,13 @@ describe("after the reveal", () => {
 			reveal(tapAll(start(atlantic), atlantic, ["newyork", "keflavik"])),
 			"yours",
 		);
+
 		const shown = board(mine, atlantic, {
 			best: solved([]),
 			built: null,
 			live: null,
 		});
+
 		expect(shown.routes).toEqual({ "newyork>keflavik": 50 });
 		expect(shown.ghost).toBeNull();
 	});
@@ -170,6 +183,7 @@ describe("after the reveal", () => {
 describe("scoring your plan", () => {
 	it("charges for dropped demand", () => {
 		const game = tapAll(start(atlantic), atlantic, ["newyork", "keflavik"]);
+
 		expect(yours(game, world, atlantic, null).dropped).toBe(70);
 	});
 
@@ -177,6 +191,7 @@ describe("scoring your plan", () => {
 		const game = { ...start(build), blocks: { keflavik: 1 } };
 		const built = solved([{ city: "london", site: "keflavik", mw: 55 }]);
 		const metrics = yours(game, world, build, built);
+
 		expect(metrics.build).toBe(25 * 900);
 		expect(metrics.served.london).toBe(55);
 	});

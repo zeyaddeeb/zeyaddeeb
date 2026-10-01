@@ -21,13 +21,17 @@ const keys = "asdfjkl;ghqweruiop";
 
 function mash() {
 	const out: string[] = [];
+
 	for (let i = 0; i < 36; i++) {
 		const n = 2 + Math.floor(Math.random() * 6);
 		let w = "";
+
 		for (let j = 0; j < n; j++)
 			w += keys[Math.floor(Math.random() * keys.length)];
+
 		out.push(w);
 	}
+
 	return out.join(" ");
 }
 
@@ -41,21 +45,27 @@ const presets = [
 function useGzip(reply: string) {
 	const [bytes, setBytes] = useState<number | null>(null);
 	const baseSize = useRef<Promise<number | null> | null>(null);
+
 	useEffect(() => {
 		let live = true;
+
 		const timer = window.setTimeout(async () => {
 			baseSize.current ??= deflated(base);
+
 			const [a, b] = await Promise.all([
 				baseSize.current,
 				deflated(base + reply),
 			]);
+
 			if (live) setBytes(a === null || b === null ? null : b - a);
 		}, 120);
+
 		return () => {
 			live = false;
 			window.clearTimeout(timer);
 		};
 	}, [reply]);
+
 	return bytes;
 }
 
@@ -92,6 +102,7 @@ export function Weigh() {
 									onClick={() => {
 										setReply(p.text());
 										setPreset(p.id);
+
 										if (mirror.current) mirror.current.scrollTop = 0;
 									}}
 								>

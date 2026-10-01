@@ -5,6 +5,7 @@ import { type ReactNode, useId, useState } from "react";
 export function Note({ n, children }: { n: number; children: ReactNode }) {
 	const [open, setOpen] = useState(false);
 	const id = useId();
+
 	return (
 		<>
 			<button

@@ -15,5 +15,4 @@ resource "helm_release" "proofs" {
       image_repository = local.image_repository
     })
   ]
-
 }

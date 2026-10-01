@@ -106,12 +106,14 @@ function spot(land: Spot, port: Spot) {
 		[`--${key}a`]: value.align ?? "left",
 		[`--${key}s`]: `var(--${value.stop ?? "red"})`,
 	});
+
 	return { ...side(land, "l"), ...side(port, "p") } as CSSProperties;
 }
 
 function frame(box: Box) {
 	const land = toLand(box);
 	const port = toPort(box);
+
 	return vars({ ...land, c: "ink" }, { ...port, c: "ink" });
 }
 
@@ -127,14 +129,19 @@ function Grid({
 	const arm = 0.07;
 	let marks = "";
 	let lines = "";
+
 	for (let c = 0; c <= cols; c++) {
 		lines += `M${c} 0V${rows}`;
+
 		for (let r = 0; r <= rows; r++) {
 			marks += `M${c - arm} ${r}h${arm * 2}M${c} ${r - arm}v${arm * 2}`;
 		}
 	}
+
 	for (let r = 0; r <= rows; r++) lines += `M0 ${r}H${cols}`;
+
 	const guides = `M0 ${XHEIGHT}H${cols}M0 ${BASELINE}H${cols}`;
+
 	return (
 		<svg
 			className={className}
@@ -175,6 +182,7 @@ export function Poster({ head }: { head: ReactNode }) {
 	const swipeRef = useRef<{ id: number; x: number; y: number } | null>(null);
 	const suppress = useRef(false);
 	const pointerKind = useRef("mouse");
+
 	const updateDrag = (next: Drag | null) => {
 		dragRef.current = next;
 		setDrag(next);
@@ -194,15 +202,19 @@ export function Poster({ head }: { head: ReactNode }) {
 
 	const spins = useRef(layout.map((place) => place.rot));
 	const lastRot = useRef(layout.map((place) => place.rot));
+
 	layout.forEach((place, index) => {
 		const turned = (place.rot - (lastRot.current[index] ?? 0) + 4) % 4;
+
 		spins.current[index] = (spins.current[index] ?? 0) + turned;
 		lastRot.current[index] = place.rot;
 	});
 
 	useEffect(() => {
 		if (!message) return;
+
 		const id = setTimeout(() => setMessage(""), 3200);
+
 		return () => clearTimeout(id);
 	}, [message]);
 
@@ -216,8 +228,11 @@ export function Poster({ head }: { head: ReactNode }) {
 
 	const toBoard = (clientX: number, clientY: number) => {
 		const board = boardRef.current;
+
 		if (!board) return null;
+
 		const rect = board.getBoundingClientRect();
+
 		return {
 			col: ((clientX - rect.left) / rect.width) * COLS,
 			row: ((clientY - rect.top) / rect.height) * ROWS,
@@ -231,21 +246,29 @@ export function Poster({ head }: { head: ReactNode }) {
 
 	const place = (index: number, next: Place | null) => {
 		const current = layout[index];
+
 		if (!current || !next) return false;
+
 		if (full) {
 			setMessage("The shared poster is out of moves until the room empties.");
+
 			return false;
 		}
+
 		if (next.cell === current.cell && next.rot === current.rot) return false;
+
 		commit(encode(index, next));
 		setMessage("");
 		tick();
+
 		return true;
 	};
 
 	const turn = (index: number) => {
 		const current = layout[index];
+
 		if (!current) return;
+
 		place(index, turned(index, current));
 	};
 
@@ -257,9 +280,12 @@ export function Poster({ head }: { head: ReactNode }) {
 	) => {
 		const current = layout[index];
 		const at = toBoard(clientX, clientY);
+
 		if (!current || !at) return;
+
 		const col = current.cell % COLS;
 		const row = Math.floor(current.cell / COLS);
+
 		updateDrag({
 			index,
 			pointer,
@@ -272,13 +298,17 @@ export function Poster({ head }: { head: ReactNode }) {
 			moved: false,
 			target: null,
 		});
+
 		stop();
 	};
 
 	const grab = (event: PointerEvent<HTMLButtonElement>, index: number) => {
 		if (event.button !== 0 || !event.isPrimary || dragRef.current) return;
+
 		pointerKind.current = event.pointerType;
+
 		if (event.pointerType !== "mouse" && selected !== index) return;
+
 		event.stopPropagation();
 		suppress.current = false;
 		swipeRef.current = null;
@@ -288,16 +318,22 @@ export function Poster({ head }: { head: ReactNode }) {
 
 	const pull = (event: PointerEvent<HTMLButtonElement>) => {
 		const drag = dragRef.current;
+
 		if (!drag || drag.pointer !== event.pointerId) return;
+
 		const current = layout[drag.index];
 		const at = toBoard(event.clientX, event.clientY);
+
 		if (!current || !at) return;
+
 		const moved =
 			drag.moved ||
 			Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) >
 				DRAG_SLOP;
+
 		const col = at.col - drag.offX;
 		const row = at.row - drag.offY;
+
 		updateDrag({
 			...drag,
 			col,
@@ -309,18 +345,25 @@ export function Poster({ head }: { head: ReactNode }) {
 
 	const drop = (event: PointerEvent<HTMLButtonElement>) => {
 		const drag = dragRef.current;
+
 		if (!drag || drag.pointer !== event.pointerId) return;
+
 		event.stopPropagation();
+
 		if (drag.moved) {
 			suppress.current = true;
+
 			if (drag.target) place(drag.index, drag.target);
+
 			setSelected(drag.index);
 		}
+
 		updateDrag(null);
 	};
 
 	const cancelDrag = (event: PointerEvent<HTMLButtonElement>) => {
 		if (dragRef.current?.pointer !== event.pointerId) return;
+
 		suppress.current = true;
 		updateDrag(null);
 	};
@@ -328,40 +371,55 @@ export function Poster({ head }: { head: ReactNode }) {
 	const press = (index: number) => {
 		if (suppress.current) {
 			suppress.current = false;
+
 			return;
 		}
+
 		stop();
+
 		if (selected === index && kit[index]?.turns) turn(index);
 		else setSelected(index);
 	};
 
 	const nudge = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
 		const current = layout[index];
+
 		if (!current) return;
+
 		if (event.key === "r" || event.key === "R") {
 			event.preventDefault();
 			setSelected(index);
 			turn(index);
+
 			return;
 		}
+
 		const step = steps[event.key];
+
 		if (!step) return;
+
 		event.preventDefault();
 		stop();
 		setSelected(index);
+
 		const col = (current.cell % COLS) + step[0];
 		const row = Math.floor(current.cell / COLS) + step[1];
 		const next = snap(index, col, row, current.rot);
+
 		if (!place(index, next)) setMessage("That’s the edge of the poster.");
 	};
 
 	const tap = (event: PointerEvent<HTMLDivElement>) => {
 		if (selected === null) return;
+
 		const current = layout[selected];
 		const at = toBoard(event.clientX, event.clientY);
+
 		if (!current || !at) return;
+
 		const box = boxOf(selected, 0, 0, current.rot);
 		const { col, row } = at;
+
 		place(
 			selected,
 			snap(
@@ -375,15 +433,21 @@ export function Poster({ head }: { head: ReactNode }) {
 
 	const point = (event: PointerEvent<HTMLDivElement>) => {
 		if (event.pointerType !== "mouse") return;
+
 		const world = event.currentTarget;
 		const rect = world.getBoundingClientRect();
 		const mx = ((event.clientX - rect.left) / rect.width) * 2 - 1;
 		const my = ((event.clientY - rect.top) / rect.height) * 2 - 1;
+
 		world.style.setProperty("--mx", mx.toFixed(3));
 		world.style.setProperty("--my", my.toFixed(3));
+
 		const at = toBoard(event.clientX, event.clientY);
+
 		if (!at) return;
+
 		const { col, row } = at;
+
 		sendCursor(clamp(col / COLS, 0, 1), clamp(row / ROWS, 0, 1));
 	};
 
@@ -394,7 +458,9 @@ export function Poster({ head }: { head: ReactNode }) {
 
 	const swipeStart = (event: PointerEvent<HTMLDivElement>) => {
 		pointerKind.current = event.pointerType;
+
 		if (event.pointerType === "mouse") return;
+
 		swipeRef.current = {
 			id: event.pointerId,
 			x: event.clientX,
@@ -404,13 +470,19 @@ export function Poster({ head }: { head: ReactNode }) {
 
 	const swipeEnd = (event: PointerEvent<HTMLDivElement>) => {
 		const start = swipeRef.current;
+
 		swipeRef.current = null;
+
 		if (!start || start.id !== event.pointerId || dragRef.current) return;
+
 		const dx = event.clientX - start.x;
 		const dy = event.clientY - start.y;
+
 		if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+
 		suppress.current = true;
 		go(active + (dx < 0 ? 1 : -1));
+
 		window.setTimeout(() => {
 			suppress.current = false;
 		}, 0);
@@ -418,10 +490,13 @@ export function Poster({ head }: { head: ReactNode }) {
 
 	const pieceForms = (index: number) => {
 		const current = layout[index];
+
 		if (!current) return null;
+
 		const dragging = drag?.index === index && drag.moved;
 		const col = dragging && drag ? drag.col : current.cell % COLS;
 		const row = dragging && drag ? drag.row : Math.floor(current.cell / COLS);
+
 		return forms(
 			index,
 			boxOf(index, col, row, current.rot),
@@ -451,6 +526,7 @@ export function Poster({ head }: { head: ReactNode }) {
 		(full
 			? "Out of moves until the room empties."
 			: "Shared live with everyone here. Drag to move, tap twice to turn.");
+
 	const touchHint =
 		message ||
 		(full
@@ -499,12 +575,16 @@ export function Poster({ head }: { head: ReactNode }) {
 					{kit.map((piece, index) => {
 						const shape = shapes.find((item) => item === piece.id);
 						const staged = !playMode && scene && shape;
+
 						const set = staged
 							? { land: scene.land[shape], port: scene.port[shape] }
 							: pieceForms(index);
+
 						if (!set) return null;
+
 						const rank = playMode ? order.indexOf(index) : index;
 						const dragging = playMode && drag?.index === index && drag.moved;
+
 						return (
 							<span
 								key={piece.id}
@@ -542,6 +622,7 @@ export function Poster({ head }: { head: ReactNode }) {
 					{scenes.map((item, si) => {
 						const current = !playMode && shown === si + 1;
 						const { land, port } = item.labels;
+
 						return (
 							<div
 								key={item.experiment.id}
@@ -600,12 +681,15 @@ export function Poster({ head }: { head: ReactNode }) {
 					{playMode &&
 						kit.map((piece, index) => {
 							const current = layout[index];
+
 							if (!current) return null;
+
 							const dragging = drag?.index === index && drag.moved;
 							const col = dragging && drag ? drag.col : current.cell % COLS;
 							const row =
 								dragging && drag ? drag.row : Math.floor(current.cell / COLS);
 							const style = frame(boxOf(index, col, row, current.rot));
+
 							return (
 								<button
 									key={piece.id}
@@ -640,6 +724,7 @@ export function Poster({ head }: { head: ReactNode }) {
 							.map((cursor) => {
 								const col = cursor.x * COLS;
 								const row = cursor.y * ROWS;
+
 								return (
 									<span
 										key={cursor.peer}
@@ -694,6 +779,7 @@ export function Poster({ head }: { head: ReactNode }) {
 				<ol>
 					{Array.from({ length: STOPS }, (_, i) => {
 						const item = scenes[i - 1];
+
 						const inner = (
 							<>
 								<span className="poster__row-n">
@@ -722,6 +808,7 @@ export function Poster({ head }: { head: ReactNode }) {
 								{progress(i)}
 							</>
 						);
+
 						const common = {
 							className: "poster__row",
 							"data-current": shown === i || undefined,
@@ -734,6 +821,7 @@ export function Poster({ head }: { head: ReactNode }) {
 							onFocus: () => setPreview(i),
 							onBlur: () => setPreview(null),
 						};
+
 						return (
 							<li key={item?.experiment.id ?? "bauspiel"}>
 								{item ? (
@@ -764,6 +852,7 @@ export function Poster({ head }: { head: ReactNode }) {
 				<div className="poster__captions">
 					{Array.from({ length: STOPS }, (_, i) => {
 						const item = scenes[i - 1];
+
 						return (
 							<div
 								key={item?.experiment.id ?? "bauspiel"}

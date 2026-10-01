@@ -197,48 +197,61 @@ function recipe(material: Lit) {
 	const plate = data.plate as Plate | undefined;
 	const ember = data.heat !== undefined;
 	const map = ["float vgPlate = 0.0;", "float vgBlade = 1.0;"];
+
 	if (gain !== 1)
 		map.push(
 			`diffuseColor.rgb = 0.84 * (1.0 - exp(-diffuseColor.rgb * ${glsl(gain * 1.1)}));`,
 		);
+
 	if (desat > 0)
 		map.push(
 			`diffuseColor.rgb = mix(diffuseColor.rgb, vec3(dot(diffuseColor.rgb, ${LUMA})), ${glsl(desat)});`,
 		);
+
 	if (floor > 0)
 		map.push(
 			`diffuseColor.rgb = mix(vec3(${glsl(floor)}), vec3(1.0), diffuseColor.rgb);`,
 		);
+
 	if (flat > 0)
 		map.push(
 			`float vgHi = dot(sampledDiffuseColor.rgb, ${LUMA});`,
 			`float vgLo = dot(texture2D(map, vMapUv, 4.0).rgb, ${LUMA});`,
 			`diffuseColor.rgb = diffuse * mix(1.0, clamp((vgHi + 0.03) / (vgLo + 0.03), 0.6, 1.4), ${glsl(flat)});`,
 		);
+
 	if (louver)
 		map.push(
 			`vgBlade = smoothstep(0.12, 0.42, dot(sampledDiffuseColor.rgb, ${LUMA}));`,
 			"diffuseColor.rgb = mix(vec3(0.018), diffuse, vgBlade);",
 		);
+
 	if (plate && material.map) {
 		const [u0, v0, u1, v1] = plate.rect.map(glsl);
 		const [r, g, b] = plate.tone.map(glsl);
+
 		map.push(
 			`vgPlate = step(${u0}, vMapUv.x) * step(vMapUv.x, ${u1}) * step(${v0}, vMapUv.y) * step(vMapUv.y, ${v1});`,
 			`diffuseColor.rgb = mix(diffuseColor.rgb, vec3(dot(diffuseColor.rgb, ${LUMA})) * vec3(${r}, ${g}, ${b}), vgPlate);`,
 		);
 	}
+
 	const rough: string[] = [];
+
 	if (plate && material.map)
 		rough.push(
 			`roughnessFactor = mix(roughnessFactor, ${glsl(plate.roughness)}, vgPlate);`,
 		);
+
 	if (louver)
 		rough.push("roughnessFactor = mix(0.62, roughnessFactor, vgBlade);");
+
 	const metal = louver
 		? ["metalnessFactor = mix(0.0, metalnessFactor, vgBlade);"]
 		: [];
+
 	const normal = [crinkle > 0 ? crinkleNormal(crinkle, cell) : "", SPECULAR_AA];
+
 	return {
 		map: map.join("\n"),
 		rough: rough.join("\n"),
@@ -266,6 +279,7 @@ export function dress<T extends Lit>(
 	shade: Shade = unlit,
 ): T {
 	const r = recipe(material);
+
 	material.onBeforeCompile = (shader) => {
 		shader.uniforms.vgFade = look.fade;
 		shader.uniforms.vgGhost = look.ghost;
@@ -273,6 +287,7 @@ export function dress<T extends Lit>(
 		shader.uniforms.vgAO = shade.ao;
 		shader.uniforms.vgAOOn = shade.aoOn;
 		shader.uniforms.vgAOTexel = shade.aoTexel;
+
 		if (r.crinkle)
 			shader.vertexShader = shader.vertexShader
 				.replace(
@@ -283,6 +298,7 @@ export function dress<T extends Lit>(
 					"#include <begin_vertex>",
 					"#include <begin_vertex>\nvgRestV = vgRest;",
 				);
+
 		shader.fragmentShader = shader.fragmentShader
 			.replace(
 				"#include <common>",
@@ -314,17 +330,23 @@ export function dress<T extends Lit>(
 				`#include <dithering_fragment>\n${TAIL}`,
 			);
 	};
+
 	material.customProgramCacheKey = () => `vg-look-${r.key}`;
+
 	return material;
 }
 
 function random(seed: number) {
 	let s = seed >>> 0;
+
 	return () => {
 		s = (s + 0x6d2b79f5) >>> 0;
+
 		let t = s;
+
 		t = Math.imul(t ^ (t >>> 15), t | 1);
 		t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+
 		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 	};
 }
@@ -336,14 +358,18 @@ function dataTexture(
 	color = false,
 ) {
 	const tex = new DataTexture(data, width, height);
+
 	tex.wrapS = RepeatWrapping;
 	tex.wrapT = RepeatWrapping;
 	tex.magFilter = LinearFilter;
 	tex.minFilter = LinearMipmapLinearFilter;
 	tex.generateMipmaps = true;
 	tex.anisotropy = 4;
+
 	if (color) tex.colorSpace = SRGBColorSpace;
+
 	tex.needsUpdate = true;
+
 	return tex;
 }
 
@@ -351,57 +377,70 @@ function crinkle(size: number, seed: number) {
 	const rand = random(seed);
 	const gx = new Float32Array(size * size);
 	const gy = new Float32Array(size * size);
+
 	const layers = [
 		{ cells: 6, tilt: 0.3 },
 		{ cells: 17, tilt: 0.14 },
 	];
+
 	for (const { cells, tilt } of layers) {
 		const count = cells * cells;
 		const jx = new Float32Array(count);
 		const jy = new Float32Array(count);
 		const tx = new Float32Array(count);
 		const ty = new Float32Array(count);
+
 		for (let i = 0; i < count; i++) {
 			jx[i] = 0.1 + rand() * 0.8;
 			jy[i] = 0.1 + rand() * 0.8;
 			tx[i] = (rand() - 0.5) * 2 * tilt;
 			ty[i] = (rand() - 0.5) * 2 * tilt;
 		}
+
 		for (let y = 0; y < size; y++) {
 			const py = (y / size) * cells;
 			const cy = Math.floor(py);
+
 			for (let x = 0; x < size; x++) {
 				const px = (x / size) * cells;
 				const cx = Math.floor(px);
 				let best = Number.POSITIVE_INFINITY;
 				let id = 0;
+
 				for (let oy = -1; oy <= 1; oy++) {
 					const ry = (((cy + oy) % cells) + cells) % cells;
+
 					for (let ox = -1; ox <= 1; ox++) {
 						const rx = (((cx + ox) % cells) + cells) % cells;
 						const k = ry * cells + rx;
 						const dx = px - (cx + ox + jx[k]);
 						const dy = py - (cy + oy + jy[k]);
 						const d = dx * dx + dy * dy;
+
 						if (d < best) {
 							best = d;
 							id = k;
 						}
 					}
 				}
+
 				gx[y * size + x] += tx[id];
 				gy[y * size + x] += ty[id];
 			}
 		}
 	}
+
 	const data = new Uint8Array(size * size * 4);
+
 	for (let i = 0; i < size * size; i++) {
 		const len = Math.hypot(gx[i], gy[i], 1);
+
 		data[i * 4] = Math.round((gx[i] / len) * 127.5 + 127.5);
 		data[i * 4 + 1] = Math.round((gy[i] / len) * 127.5 + 127.5);
 		data[i * 4 + 2] = Math.round((1 / len) * 127.5 + 127.5);
 		data[i * 4 + 3] = 255;
 	}
+
 	return dataTexture(data, size, size);
 }
 
@@ -409,52 +448,68 @@ function dishSurface(width: number, height: number, seed: number) {
 	const rand = random(seed);
 	const panels = 24;
 	const rings = [0.34, 0.68];
+
 	const tone = Array.from(
 		{ length: panels * (rings.length + 1) },
 		() => 0.975 + rand() * 0.035,
 	);
+
 	const color = new Uint8Array(width * height * 4);
 	const normal = new Uint8Array(width * height * 4);
 	const groove = (d: number, w: number) =>
 		Math.abs(d) < w ? Math.sign(d) * (1 - Math.abs(d) / w) : 0;
+
 	for (let y = 0; y < height; y++) {
 		const v = (y + 0.5) / height;
 		const band = rings.filter((r) => v > r).length;
 		let ringD = Number.POSITIVE_INFINITY;
+
 		for (const r of rings) {
 			const d = (v - r) * height;
+
 			if (Math.abs(d) < Math.abs(ringD)) ringD = d;
 		}
+
 		for (let x = 0; x < width; x++) {
 			const u = (x + 0.5) / width;
 			const cell = u * panels;
 			const panel = Math.floor(cell) % panels;
 			let seamD = (cell - Math.round(cell)) * (width / panels);
+
 			if (Math.abs(seamD) > width) seamD = width;
+
 			const nx = groove(seamD, 1.6) * 0.55;
 			const ny = groove(ringD, 1.4) * 0.5;
+
 			const seam = Math.max(
 				1 - Math.min(1, Math.abs(seamD) / 1.2),
 				1 - Math.min(1, Math.abs(ringD) / 1.1),
 			);
+
 			const shade = tone[band * panels + panel] * (1 - seam * 0.1);
 			const i = (y * width + x) * 4;
 			const c = Math.round(Math.min(1, shade) * 255);
+
 			color[i] = c;
 			color[i + 1] = c;
 			color[i + 2] = c;
 			color[i + 3] = 255;
+
 			const len = Math.hypot(nx, ny, 1);
+
 			normal[i] = Math.round((nx / len) * 127.5 + 127.5);
 			normal[i + 1] = Math.round((ny / len) * 127.5 + 127.5);
 			normal[i + 2] = Math.round((1 / len) * 127.5 + 127.5);
 			normal[i + 3] = 255;
 		}
 	}
+
 	const map = dataTexture(color, width, height, true);
 	const normalMap = dataTexture(normal, width, height);
+
 	map.wrapT = ClampToEdgeWrapping;
 	normalMap.wrapT = ClampToEdgeWrapping;
+
 	return { map, normalMap };
 }
 
@@ -462,6 +517,7 @@ function grooves(size: number) {
 	const aniso = new Uint8Array(size * size * 4);
 	const rough = new Uint8Array(size * size * 4);
 	const c = size / 2;
+
 	for (let y = 0; y < size; y++) {
 		for (let x = 0; x < size; x++) {
 			const dx = (x + 0.5 - c) / c;
@@ -469,24 +525,30 @@ function grooves(size: number) {
 			const r = Math.hypot(dx, dy) || 1e-4;
 			const i = (y * size + x) * 4;
 			const label = r < 0.3;
+
 			aniso[i] = Math.round((-dy / r) * 127.5 + 127.5);
 			aniso[i + 1] = Math.round((dx / r) * 127.5 + 127.5);
 			aniso[i + 2] = label ? 30 : 255;
 			aniso[i + 3] = 255;
+
 			const ring = 0.5 + 0.5 * Math.sin(r * 420);
 			const g = label ? 0.42 : 0.2 + ring * 0.08 + (r > 0.94 ? 0.12 : 0);
+
 			rough[i] = 255;
 			rough[i + 1] = Math.round(g * 255);
 			rough[i + 2] = 255;
 			rough[i + 3] = 255;
 		}
 	}
+
 	const anisotropyMap = dataTexture(aniso, size, size);
 	const roughnessMap = dataTexture(rough, size, size);
+
 	for (const t of [anisotropyMap, roughnessMap]) {
 		t.wrapS = ClampToEdgeWrapping;
 		t.wrapT = ClampToEdgeWrapping;
 	}
+
 	return { anisotropyMap, roughnessMap };
 }
 
@@ -505,27 +567,39 @@ export class Library {
 			this.crinkleMap = crinkle(256, 7);
 			this.textures.push(this.crinkleMap);
 		}
+
 		if (repeat === 1) return this.crinkleMap;
+
 		const cached = this.tiled.get(repeat);
+
 		if (cached) return cached;
+
 		const tiled = this.crinkleMap.clone();
+
 		tiled.repeat.set(repeat, repeat);
 		tiled.needsUpdate = true;
 		this.tiled.set(repeat, tiled);
 		this.textures.push(tiled);
+
 		return tiled;
 	}
 
 	grooves(channel = 0) {
 		const map = this.record().anisotropyMap;
+
 		if (channel === map.channel) return map;
+
 		const cached = this.moved.get(channel);
+
 		if (cached) return cached;
+
 		const moved = map.clone();
+
 		moved.channel = channel;
 		moved.needsUpdate = true;
 		this.moved.set(channel, moved);
 		this.textures.push(moved);
+
 		return moved;
 	}
 
@@ -534,26 +608,33 @@ export class Library {
 			this.dishMaps = dishSurface(1024, 64, 3);
 			this.textures.push(this.dishMaps.map, this.dishMaps.normalMap);
 		}
+
 		return this.dishMaps;
 	}
 
 	private record() {
 		if (!this.recordMaps) {
 			this.recordMaps = grooves(512);
+
 			this.textures.push(
 				this.recordMaps.anisotropyMap,
 				this.recordMaps.roughnessMap,
 			);
 		}
+
 		return this.recordMaps;
 	}
 
 	finish(kind: Finish): Lit {
 		const cached = this.made.get(kind);
+
 		if (cached) return cached;
+
 		const made = this.build(kind);
+
 		made.name = kind;
 		this.made.set(kind, made);
+
 		return made;
 	}
 
@@ -561,6 +642,7 @@ export class Library {
 		switch (kind) {
 			case "dish": {
 				const { map, normalMap } = this.dish();
+
 				return new MeshPhysicalMaterial({
 					color: 0xf1eee7,
 					map,
@@ -580,6 +662,7 @@ export class Library {
 				});
 			case "kapton": {
 				const n = this.crinkle();
+
 				return new MeshPhysicalMaterial({
 					color: 0x1a1a1c,
 					roughness: 0.5,
@@ -594,6 +677,7 @@ export class Library {
 			}
 			case "gold": {
 				const n = this.crinkle();
+
 				return new MeshPhysicalMaterial({
 					color: 0xe0a94a,
 					roughness: 0.26,
@@ -632,6 +716,7 @@ export class Library {
 				});
 			case "record": {
 				const { anisotropyMap, roughnessMap } = this.record();
+
 				return new MeshPhysicalMaterial({
 					color: 0xe8b75e,
 					roughness: 1,
@@ -735,7 +820,9 @@ export class Library {
 
 	dispose() {
 		for (const m of this.made.values()) m.dispose();
+
 		for (const t of this.textures) t.dispose();
+
 		this.made.clear();
 		this.tiled.clear();
 		this.moved.clear();
@@ -819,6 +906,7 @@ export function zoneOf(part: string, u: number, v: number): Finish | null {
 	for (const zone of ZONES)
 		if (zone.parts.includes(part) && inside(zone.shape, u, v))
 			return zone.finish;
+
 	return null;
 }
 
@@ -830,15 +918,19 @@ export function zoned(
 ): Lit {
 	const std = source as MeshStandardMaterial;
 	const made = lib.finish(finish).clone() as Lit;
+
 	made.name = `${part}.${finish}`;
 	made.side = source.side;
+
 	const bumps = std.normalMap ?? null;
 	const flip = Math.sign(std.normalScale?.y ?? 1) || 1;
 	const scaled = (s: number) => new Vector2(s, s * flip);
+
 	switch (finish) {
 		case "anodized":
 			made.map = std.map ?? null;
 			made.userData.flat = 0.3;
+
 			break;
 		case "mli":
 			made.map = std.map ?? null;
@@ -847,33 +939,39 @@ export function zoned(
 			made.userData.flat = 0.1;
 			made.userData.crinkle = 0.06;
 			made.userData.cell = 0.045;
+
 			break;
 		case "paint":
 			made.map = std.map ?? null;
 			made.normalMap = bumps;
 			made.normalScale = scaled(0.6);
 			made.userData.flat = 0.22;
+
 			break;
 		case "plate":
 			made.map = std.map ?? null;
 			made.normalMap = bumps;
 			made.normalScale = scaled(0.6);
 			made.userData.flat = 0.6;
+
 			break;
 		case "aluminum":
 		case "titanium":
 			made.map = std.map ?? null;
 			made.userData.flat = 0.25;
+
 			break;
 		case "louver":
 			made.map = std.map ?? null;
 			made.normalMap = bumps;
 			made.normalScale = scaled(0.9);
 			made.userData.louver = true;
+
 			break;
 		default:
 			break;
 	}
+
 	return made;
 }
 
@@ -891,6 +989,7 @@ function textured(std: MeshStandardMaterial, source: Material) {
 export function upgrade(source: Material, part: string, lib: Library): Lit {
 	const name = source.name.toLowerCase();
 	const std = source as MeshStandardMaterial;
+
 	if (name.endsWith(".rim")) {
 		return new MeshStandardMaterial({
 			color: 0xd9b56a,
@@ -899,6 +998,7 @@ export function upgrade(source: Material, part: string, lib: Library): Lit {
 			side: source.side,
 		});
 	}
+
 	if (name.includes("krinkle") || name.includes("blanket")) {
 		const made = new MeshPhysicalMaterial({
 			color: new Color(0x202022),
@@ -909,10 +1009,13 @@ export function upgrade(source: Material, part: string, lib: Library): Lit {
 			envMapIntensity: 1.5,
 			side: source.side,
 		});
+
 		made.userData.crinkle = 0.24;
 		made.userData.cell = 0.036;
+
 		return made;
 	}
+
 	if (name.includes("brass")) {
 		return new MeshStandardMaterial({
 			color: new Color().setRGB(0.4, 0.28, 0.18),
@@ -921,8 +1024,10 @@ export function upgrade(source: Material, part: string, lib: Library): Lit {
 			side: source.side,
 		});
 	}
+
 	if (name.startsWith("tex_02") || name.includes("dish")) {
 		const dark = name.includes("other") || name.includes("back");
+
 		const dish = new MeshPhysicalMaterial({
 			map: std.map,
 			color: new Color(dark ? 0xe6e5e1 : 0xf6f5f1),
@@ -932,9 +1037,12 @@ export function upgrade(source: Material, part: string, lib: Library): Lit {
 			clearcoatRoughness: 0.4,
 			side: source.side,
 		});
+
 		dish.userData.gain = dark ? 1.9 : 3.4;
+
 		return dish;
 	}
+
 	if (part === "record") {
 		return new MeshPhysicalMaterial({
 			...textured(std, source),
@@ -947,6 +1055,7 @@ export function upgrade(source: Material, part: string, lib: Library): Lit {
 			envMapIntensity: 0.85,
 		});
 	}
+
 	if (INSTRUMENTS.has(part)) {
 		const made = new MeshPhysicalMaterial({
 			...textured(std, source),
@@ -956,10 +1065,13 @@ export function upgrade(source: Material, part: string, lib: Library): Lit {
 			clearcoat: 0.1,
 			clearcoatRoughness: 0.4,
 		});
+
 		made.userData.desat = 0.75;
 		made.userData.floor = FLOOR;
+
 		return made;
 	}
+
 	if (part === "rtg") {
 		const made = new MeshPhysicalMaterial({
 			...textured(std, source),
@@ -969,14 +1081,20 @@ export function upgrade(source: Material, part: string, lib: Library): Lit {
 			clearcoat: 0.25,
 			clearcoatRoughness: 0.35,
 		});
+
 		made.userData.floor = FLOOR;
+
 		return made;
 	}
+
 	const made = (source as Lit).clone() as Lit;
+
 	if (made.map) made.userData.floor = FLOOR;
+
 	if (made.map && (part === "bus" || part === "boom")) {
 		made.userData.desat = 0.6;
 		made.userData.plate = PLATE;
 	}
+
 	return made;
 }

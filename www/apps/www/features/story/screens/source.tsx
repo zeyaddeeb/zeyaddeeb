@@ -26,6 +26,7 @@ export function SourceScreen() {
 
 	useEffect(() => {
 		const id = setTimeout(() => setDoc(source), 160);
+
 		return () => clearTimeout(id);
 	}, [source]);
 

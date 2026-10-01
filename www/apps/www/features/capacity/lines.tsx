@@ -33,12 +33,15 @@ export function Lines({
 	const here = stages[index]?.chapter;
 	const won = (chapter: Chapter) => chapter.parts.every((id) => progress[id]);
 	const acts = [...new Set(chapters.map((c) => c.act))];
+
 	return (
 		<nav className="cc-lines" aria-label="Chapters">
 			{acts.map((act) => {
 				const own = chapters.filter((c) => c.act === act);
+
 				if (act !== here?.act) {
 					const done = own.every(won);
+
 					return (
 						<button
 							key={act.id}
@@ -53,6 +56,7 @@ export function Lines({
 						</button>
 					);
 				}
+
 				return (
 					<ol key={act.id} aria-label={`Act ${act.number}: ${act.title}`}>
 						{own.map((chapter) => (

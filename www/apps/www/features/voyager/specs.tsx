@@ -16,18 +16,26 @@ function Ticker({ read, hz }: { read: (ms: number) => string; hz: number }) {
 
 	useEffect(() => {
 		const el = out.current;
+
 		if (!el) return;
+
 		let id = 0;
+
 		const tick = () => {
 			el.textContent = read(Date.now());
 		};
+
 		const io = new IntersectionObserver(([e]) => {
 			window.clearInterval(id);
+
 			if (!e?.isIntersecting) return;
+
 			tick();
 			id = window.setInterval(tick, 1000 / hz);
 		});
+
 		io.observe(el);
+
 		return () => {
 			io.disconnect();
 			window.clearInterval(id);
@@ -62,9 +70,11 @@ export function Specs({ now }: { now: number }) {
 	const year = yearNow(now);
 	const here = fix(now);
 	const on = instruments.filter((i) => i.off === null || yearOf(i.off) > year);
+
 	const last = instruments
 		.filter((i) => i.off !== null && yearOf(i.off) <= year)
 		.sort((a, b) => yearOf(b.off ?? "") - yearOf(a.off ?? ""))[0];
+
 	const list = new Intl.ListFormat("en-US").format(on.map((i) => i.name));
 	const names = list.charAt(0) + list.slice(1).toLowerCase();
 

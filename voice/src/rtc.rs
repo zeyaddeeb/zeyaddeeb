@@ -33,14 +33,19 @@ pub async fn accept_offer(
 
     if let Some(previous) = state.peers.insert(session_id, peer.clone()) {
         info!("session {session_id} renegotiated; closing previous peer connection");
+
         let _ = previous.close().await;
     }
 
     let negotiate = async {
         let offer = RTCSessionDescription::offer(sdp)?;
+
         peer.set_remote_description(offer).await?;
+
         let answer = peer.create_answer(None).await?;
+
         peer.set_local_description(answer.clone()).await?;
+
         anyhow::Ok(answer.sdp)
     };
 
@@ -48,6 +53,7 @@ pub async fn accept_offer(
         Ok(sdp) => Ok(sdp),
         Err(error) => {
             close_session(&state, session_id).await;
+
             Err(error)
         }
     }
@@ -62,6 +68,7 @@ pub async fn add_ice_candidate(
         let Some(entry) = state.peers.get(&session_id) else {
             anyhow::bail!("peer connection has not been created for session {session_id}");
         };
+
         entry.value().clone()
     };
 
@@ -91,6 +98,7 @@ async fn create_peer_connection(
     events: mpsc::Sender<ServerMessage>,
 ) -> anyhow::Result<Arc<dyn PeerConnection>> {
     let mut media_engine = MediaEngine::default();
+
     media_engine.register_default_codecs()?;
 
     let registry = register_default_interceptors(Registry::new(), &mut media_engine)?;
@@ -161,6 +169,7 @@ impl PeerConnectionEventHandler for SessionHandler {
 
     async fn on_connection_state_change(&self, connection_state: RTCPeerConnectionState) {
         let session_id = self.session_id;
+
         debug!("session {session_id} peer connection state: {connection_state}");
 
         if matches!(
@@ -177,25 +186,32 @@ impl PeerConnectionEventHandler for SessionHandler {
 
         let Some(ssrc) = track.ssrcs().await.first().copied() else {
             warn!("session {session_id} received a track with no SSRC; ignoring");
+
             return;
         };
+
         let Some(codec) = track.codec(ssrc).await else {
             warn!("session {session_id} received a track with no negotiated codec; ignoring");
+
             return;
         };
 
         let mime_type = codec.mime_type.clone();
+
         if !mime_type.to_ascii_lowercase().starts_with("audio/") {
             debug!("session {session_id} ignoring non-audio track: {mime_type}");
+
             return;
         }
 
         let _ = self.events.try_send(ServerMessage::TrackStarted {
             codec: mime_type.clone(),
         });
+
         info!("session {session_id} received WebRTC audio track: {mime_type}");
 
         let state = self.state.clone();
+
         tokio::spawn(async move {
             let mut packets = 0u64;
 
@@ -203,6 +219,7 @@ impl PeerConnectionEventHandler for SessionHandler {
                 match event {
                     TrackRemoteEvent::OnRtpPacket(packet) => {
                         packets += 1;
+
                         if let Some(mut session) = state.sessions.get_mut(&session_id) {
                             session.received_frames += 1;
                         }
@@ -217,6 +234,7 @@ impl PeerConnectionEventHandler for SessionHandler {
                     TrackRemoteEvent::OnEnded => break,
                     TrackRemoteEvent::OnError => {
                         warn!("session {session_id} audio track reported an error");
+
                         break;
                     }
                     _ => {}

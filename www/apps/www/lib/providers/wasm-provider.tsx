@@ -16,12 +16,15 @@ export const WASMContextProvider = ({ children }: WASMContextProviderProps) => {
 		(async () => {
 			try {
 				const wasm = await import("@zeyaddeeb/wasm");
+
 				await wasm.default();
+
 				if (mounted) {
 					setState({ wasm, loading: false });
 				}
 			} catch (err) {
 				console.error("Failed to load WASM module:", err);
+
 				if (mounted) {
 					setState({ wasm: undefined, loading: false, error: String(err) });
 				}

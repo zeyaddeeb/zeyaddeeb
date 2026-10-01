@@ -36,15 +36,22 @@ export function useTranscript(number: number | null): Opened | null {
 	useEffect(() => {
 		if (number === null) {
 			setOpened(null);
+
 			return;
 		}
+
 		const known = cache.current.get(number);
+
 		if (known) {
 			setOpened(known);
+
 			return;
 		}
+
 		let current = true;
+
 		setOpened({ state: "loading", number });
+
 		loadEpisode(number).then((loaded) => {
 			const next: Opened = loaded.ok
 				? {
@@ -54,9 +61,12 @@ export function useTranscript(number: number | null): Opened | null {
 						turns: views(loaded.value),
 					}
 				: { state: "missing", number };
+
 			if (loaded.ok) cache.current.set(number, next);
+
 			if (current) setOpened(next);
 		});
+
 		return () => {
 			current = false;
 		};

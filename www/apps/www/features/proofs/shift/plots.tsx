@@ -8,6 +8,7 @@ function scaleY(value: number, top: number): number {
 
 function path(values: number[], top: number): string {
 	const step = (W - 2 * PAD) / values.length;
+
 	return values
 		.map(
 			(v, i) => `${i ? "L" : "M"}${PAD + step * (i + 0.5)},${scaleY(v, top)}`,
@@ -28,6 +29,7 @@ export function Histogram({
 }) {
 	const top = Math.max(...bars, ...theory, ...(contrast ?? []), 1e-9) * 1.1;
 	const step = (W - 2 * PAD) / Math.max(bars.length, 1);
+
 	return (
 		<svg
 			className="ns-plot"
@@ -70,15 +72,19 @@ export function Wander({
 	const points = samples
 		.filter(([n]) => n >= 10)
 		.map(([n, m]) => [Math.log10(n), m / Math.sqrt(n)] as const);
+
 	if (!points.length) return null;
+
 	const [x0, x1] = [points[0][0], points[points.length - 1][0]];
 	const reach = Math.max(1, ...points.map(([, y]) => Math.abs(y))) * 1.1;
 	const x = (v: number) =>
 		PAD + ((v - x0) / Math.max(x1 - x0, 1e-9)) * (W - 2 * PAD);
 	const y = (v: number) => H / 2 - (v / reach) * (H / 2 - PAD);
+
 	const d = points
 		.map(([a, b], i) => `${i ? "L" : "M"}${x(a)},${y(b)}`)
 		.join(" ");
+
 	return (
 		<svg
 			className="ns-plot"
@@ -116,6 +122,7 @@ export function Ratio({ ratio, label }: { ratio: number; label: string }) {
 	const low = Math.min(0.9, ratio - 0.02);
 	const high = Math.max(1.02, ratio + 0.01);
 	const x = (v: number) => PAD + ((v - low) / (high - low)) * (W - 2 * PAD);
+
 	return (
 		<svg
 			className="ns-plot ns-plot--short"
@@ -158,6 +165,7 @@ export function Ticks({
 }) {
 	const x = (t: number) =>
 		PAD + ((t - from) / Math.max(to - from, 1e-9)) * (W - 2 * PAD);
+
 	return (
 		<svg
 			className="ns-plot ns-plot--short"
@@ -205,6 +213,7 @@ export function Rectangle({
 	label: string;
 }) {
 	const x = (s: number) => PAD + s * (W - 2 * PAD);
+
 	return (
 		<svg
 			className="ns-plot ns-plot--short"

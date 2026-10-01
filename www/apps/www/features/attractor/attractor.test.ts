@@ -42,10 +42,12 @@ function rk4(f: (s: Vec3) => Vec3, s: Vec3, h: number): Vec3 {
 		a[1] + b[1] * k,
 		a[2] + b[2] * k,
 	];
+
 	const k1 = f(s);
 	const k2 = f(add(s, k1, h / 2));
 	const k3 = f(add(s, k2, h / 2));
 	const k4 = f(add(s, k3, h));
+
 	return [0, 1, 2].map(
 		(i) => s[i] + (h / 6) * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]),
 	) as Vec3;
@@ -62,28 +64,35 @@ group("the waterwheel is the Lorenz system with β = 1", () => {
 		const c = (Math.PI * g * r) / (K * nu);
 		const sigma = nu / (I * K);
 		const rho = (Math.PI * g * r * q1) / (K * K * nu);
+
 		const wheel = ([a, b, w]: Vec3): Vec3 => [
 			w * b - K * a,
 			-w * a - K * b + q1,
 			(-nu * w + Math.PI * g * r * a) / I,
 		];
+
 		const lorenz = ([x, y, z]: Vec3): Vec3 => [
 			sigma * (y - x),
 			rho * x - y - x * z,
 			x * y - 1 * z,
 		];
+
 		let physical: Vec3 = [0.2, 1.1, 0.3];
+
 		let scaled: Vec3 = [
 			physical[2] / K,
 			c * physical[0],
 			rho - c * physical[1],
 		];
+
 		const steps = 400;
 		const tau = 2;
+
 		for (let i = 0; i < steps; i++) {
 			physical = rk4(wheel, physical, tau / K / steps);
 			scaled = rk4(lorenz, scaled, tau / steps);
 		}
+
 		expect(physical[2] / K).toBeCloseTo(scaled[0], 6);
 		expect(c * physical[0]).toBeCloseTo(scaled[1], 6);
 		expect(rho - c * physical[1]).toBeCloseTo(scaled[2], 6);
@@ -101,7 +110,9 @@ group("the waterwheel is the Lorenz system with β = 1", () => {
 				/from_rest\(([\d.]+)\), CLOCKWISE\);\n\s*assert_eq!\(from_rest\(([\d.]+)\), COUNTER/,
 			)?.[1],
 		);
+
 		const high = Number(rs.match(/from_rest\(([\d.]+)\), COUNTER\);/)?.[1]);
+
 		expect(HOMOCLINIC).toBeGreaterThan(low);
 		expect(HOMOCLINIC).toBeLessThan(high);
 	});
@@ -117,8 +128,10 @@ group("the tap", () => {
 	it("never lands inside the axis break", () => {
 		for (let u = 0; u <= 1; u += 0.001) {
 			const rho = rhoAt(u);
+
 			expect(rho <= NEAR_MAX || rho >= FAR_MIN).toBe(true);
 		}
+
 		expect(rhoAt(NEAR_WIDTH)).toBe(NEAR_MAX);
 		expect(rhoAt(1)).toBe(FAR_MAX);
 	});
@@ -139,6 +152,7 @@ group("the drawing", () => {
 	it("fills the top cup and leaves the weight high when resting", () => {
 		const top = fill(0, 0, 0, 0.8);
 		const bottom = fill(Math.PI, 0, 0, 0.8);
+
 		expect(top).toBeGreaterThan(bottom);
 		expect(weight(0, 0, 0.8).up).toBeGreaterThan(0);
 		expect(weight(0, 0, 0.8).right).toBe(0);
@@ -146,6 +160,7 @@ group("the drawing", () => {
 
 	it("puts the weight on the right when y is positive", () => {
 		expect(weight(5, 20, 28).right).toBeGreaterThan(0);
+
 		expect(fill(Math.PI / 2, 5, 20, 28)).toBeGreaterThan(
 			fill(-Math.PI / 2, 5, 20, 28),
 		);
@@ -160,6 +175,7 @@ group("the drawing", () => {
 			]) {
 				for (let t = 0; t < 6.3; t += 0.3) {
 					const f = fill(t, y ?? 0, z ?? 0, rho);
+
 					expect(f).toBeGreaterThanOrEqual(0);
 					expect(f).toBeLessThanOrEqual(1);
 				}
@@ -206,6 +222,7 @@ group("the words", () => {
 	it("speaks plainly, without symbols", () => {
 		for (const o of observations) {
 			const text = describe(o);
+
 			expect(text.length).toBeGreaterThan(20);
 			expect(text).not.toMatch(/[ρσβλ=]/);
 			expect(text).not.toMatch(/attractor|bifurcation|lyapunov/i);
@@ -214,7 +231,9 @@ group("the words", () => {
 
 	it("counts reversals in words", () => {
 		const [, , settled, sloshing] = observations;
+
 		if (!settled || !sloshing) throw new Error("missing observations");
+
 		expect(describe(sloshing)).toContain("twice");
 		expect(describe(settled)).toContain("3 times");
 	});
@@ -229,8 +248,10 @@ group("the rounding error", () => {
 	it("recovers the pace of an exponential gap", () => {
 		const gaps = Array.from({ length: 400 }, (_, i) => {
 			const t = i * 0.1;
+
 			return { t, gap: Math.min(5e-4 * 10 ** (t / 3), 30) };
 		});
+
 		expect(growth(gaps, 28 * 0.8)).toBeCloseTo(3, 3);
 		expect(verdict(gaps, 28)).toContain("nothing in common");
 	});
@@ -240,6 +261,7 @@ group("the rounding error", () => {
 			t: i * 0.1,
 			gap: 5e-4 * 0.5 ** i,
 		}));
+
 		expect(verdict(gaps, 5)).toContain("catching up");
 	});
 
@@ -256,14 +278,19 @@ group("the dropped wheels", () => {
 
 	it("say they are together until they spread", () => {
 		const rho = 28;
+
 		const close = at(
 			Array.from({ length: 100 }, (_, i) => [5 + i * 1e-3, 5, 20]),
 		);
+
 		expect(tallyText(tally(close, rho), rho)).toContain("together");
+
 		const apart = at(
 			Array.from({ length: 100 }, (_, i) => [i < 60 ? 8 : -8, 0, 20]),
 		);
+
 		const t = tally(apart, rho);
+
 		expect(t.clockwise).toBe(60);
 		expect(t.anticlockwise).toBe(40);
 		expect(tallyText(t, rho)).toContain("none of them will ever settle");
@@ -272,11 +299,13 @@ group("the dropped wheels", () => {
 	it("report a split once they settle", () => {
 		const rho = 5;
 		const c = Math.sqrt(rho - 1);
+
 		const split = at(
 			Array.from({ length: 10 }, (_, i) =>
 				i < 7 ? [c, c, rho - 1] : [-c, -c, rho - 1],
 			),
 		);
+
 		expect(tallyText(tally(split, rho), rho)).toBe(
 			"They split: 7 ended up turning clockwise, 3 anticlockwise.",
 		);
@@ -284,6 +313,7 @@ group("the dropped wheels", () => {
 
 	it("never call a wheel settled once steady turning is unstable", () => {
 		const c = Math.sqrt(27);
+
 		expect(ending(c, c, 27, 28)).toBeNull();
 		expect(ending(c, c, 11, 12)).toBeNull();
 		expect(ending(Math.sqrt(11), Math.sqrt(11), 11, 12)).toBe("clockwise");
@@ -298,9 +328,12 @@ group("the dropped wheels", () => {
 group("a splash", () => {
 	it("tips the weight toward the cup it lands in", () => {
 		const right = splash(Math.PI / 2, 28);
+
 		expect(right.dy).toBeGreaterThan(0);
 		expect(Math.abs(right.dz)).toBeLessThan(1e-9);
+
 		const top = splash(0, 28);
+
 		expect(top.dz).toBeLessThan(0);
 	});
 

@@ -25,6 +25,7 @@ describe("what the agent is doing", () => {
 			...base,
 			phase: { phase: "rest", seconds: 60, reason: null, at: 0 },
 		} as Live;
+
 		expect(activity(live, 30_000)).toBe(
 			"Resting between episodes. Back in 0:30.",
 		);
@@ -42,6 +43,7 @@ describe("what the agent is doing", () => {
 				},
 			],
 		} as Live;
+
 		expect(activity(live, 0)).toBe("Search off the line…");
 	});
 
@@ -50,10 +52,12 @@ describe("what the agent is doing", () => {
 			...base,
 			turns: [{ index: 0, think: "hm", say: "", calls: [] }],
 		} as Live;
+
 		const writing = {
 			...base,
 			turns: [{ index: 0, think: "hm", say: "So", calls: [] }],
 		} as Live;
+
 		expect(activity(thinking, 0)).toBe("Thinking…");
 		expect(activity(writing, 0)).toBe("Writing…");
 	});
@@ -82,10 +86,12 @@ describe("what the agent is doing", () => {
 				},
 			],
 		} as Live;
+
 		expect(plan(live)).toEqual({
 			objective: "Climb",
 			prediction: "Nothing missing",
 		});
+
 		expect(plan(base)).toBeNull();
 	});
 });

@@ -29,8 +29,11 @@ function edited(lines: string[], change: Change | null) {
 		was: "",
 		key: `${at}`,
 	}));
+
 	if (!change) return rows;
+
 	const at = (change.rule ?? 0) - 1;
+
 	if (change.op === "add")
 		rows.push({ text: change.text, change: "add", was: "", key: "added" });
 	else if (rows[at])
@@ -40,6 +43,7 @@ function edited(lines: string[], change: Change | null) {
 			change: change.op,
 			was: change.op === "rewrite" ? change.was : "",
 		};
+
 	return rows;
 }
 
@@ -53,11 +57,13 @@ function Book({
 	last: Rules | undefined;
 }) {
 	const rows = edited(champion?.lines ?? [], challenger?.change ?? null);
+
 	const note = challenger?.change
 		? `On trial: ${challenger.change.because}`
 		: last?.change
 			? `${last.standing === "lost" ? "Lost" : "Kept"}: ${last.change.because}`
 			: "Its first change comes after its first sleep.";
+
 	return (
 		<div className="ns-loop" data-color="blue">
 			<p className="ns-eyebrow">
@@ -66,6 +72,7 @@ function Book({
 			<ol className="ns-loop-lines">
 				{Array.from({ length: RULE_ROWS }, (_, at) => {
 					const row = rows[at];
+
 					return (
 						<li
 							key={row?.key ?? `empty-${at}`}
@@ -109,11 +116,13 @@ function Trial({
 	const y = (value: number) =>
 		H - PAD - (H - 2 * PAD) * Math.min(1, Math.max(0, value));
 	const gain = mean(played.map((p) => p.challenger - p.champion));
+
 	const verdict = !shown
 		? "The first trial starts after its first revision."
 		: running
 			? `Pair ${Math.min(pairs, played.length + 1)} of ${pairs}${played.length ? ` · gain ${signed(gain)} so far` : ""}`
 			: `${shown.standing === "lost" ? "Lost" : "Kept"} · gain ${signed(shown.gain ?? gain)} · p = ${(shown.p ?? 1).toFixed(3)}${shown.standing === "lost" ? ` (needs ≤ ${alpha.toFixed(2)})` : ""}`;
+
 	return (
 		<div className="ns-loop" data-color="red">
 			<p className="ns-eyebrow">
@@ -146,8 +155,10 @@ function Trial({
 					{Array.from({ length: pairs }, (_, at) => {
 						const pair = played[at];
 						const x = slot(at);
+
 						if (!pair) {
 							const pending = running && at === played.length && half;
+
 							return (
 								<g key={`slot-${at}`}>
 									<line
@@ -177,7 +188,9 @@ function Trial({
 								</g>
 							);
 						}
+
 						const gap = pair.challenger - pair.champion;
+
 						return (
 							<g key={`pair-${pair.challengerEpisode}`}>
 								<line
@@ -212,6 +225,7 @@ function Trial({
 				>
 					{Array.from({ length: pairs }, (_, at) => {
 						const pair = played[at];
+
 						return (
 							<li key={pair ? `hit-${pair.challengerEpisode}` : `hit-${at}`}>
 								{pair ? (
@@ -244,6 +258,7 @@ function Method({
 	versions: Rules[];
 }) {
 	const lines = method?.lines ?? [];
+
 	return (
 		<div className="ns-loop" data-color="yellow">
 			<p className="ns-eyebrow">
@@ -301,11 +316,14 @@ export function Loops({
 }) {
 	const champion = pick(rules, "playbook", state.rules ?? 1);
 	const challenger = pick(rules, "playbook", state.challenger);
+
 	const playbook = Object.values(rules)
 		.filter((r) => r.layer === "playbook")
 		.sort((a, b) => a.version - b.version);
+
 	const last = [...playbook].reverse().find((r) => r.change && r.decided > 0);
 	const shown = challenger ?? last;
+
 	return (
 		<section className="ns-block ns-loops" aria-labelledby="ns-loops-title">
 			<header className="ns-block-head">

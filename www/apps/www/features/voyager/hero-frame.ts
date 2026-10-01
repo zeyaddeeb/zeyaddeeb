@@ -148,25 +148,32 @@ const MAG_AXIS = (() => {
 		MAG_TIP[1] - MAG_ROOT[1],
 		MAG_TIP[2] - MAG_ROOT[2],
 	];
+
 	const n = Math.hypot(d[0], d[1], d[2]);
+
 	return [d[0] / n, d[1] / n, d[2] / n] as V3;
 })();
 
 function spheres(): Sphere[] {
 	if (cache) return cache;
+
 	const list: Sphere[] = [];
+
 	for (const [key, text] of Object.entries(HULL)) {
 		const name = key.replace(/\d+$/, "") as PartId;
 		const part = ORDER.indexOf(name);
 		const n = text.split(" ").map(Number);
+
 		for (let i = 0; i + 3 < n.length; i += 4) {
 			const x = n[i] / 100;
 			const y = n[i + 1] / 100;
 			const z = n[i + 2] / 100;
+
 			const along =
 				(x - MAG_ROOT[0]) * MAG_AXIS[0] +
 				(y - MAG_ROOT[1]) * MAG_AXIS[1] +
 				(z - MAG_ROOT[2]) * MAG_AXIS[2];
+
 			list.push({
 				part,
 				x,
@@ -178,7 +185,9 @@ function spheres(): Sphere[] {
 			});
 		}
 	}
+
 	cache = list;
+
 	return list;
 }
 
@@ -187,11 +196,13 @@ export const clamp = (t: number, lo = 0, hi = 1) =>
 
 export const smooth = (t: number) => {
 	const c = clamp(t);
+
 	return c * c * (3 - 2 * c);
 };
 
 export const smoother = (t: number) => {
 	const c = clamp(t);
+
 	return c * c * c * (c * (c * 6 - 15) + 10);
 };
 
@@ -207,6 +218,7 @@ export function place(pose: Pose): Float64Array {
 	const sp = Math.sin(pose.pitch);
 	const shrink = STOW * clamp(pose.stow);
 	const fold = clamp(pose.fold);
+
 	for (let i = 0; i < list.length; i++) {
 		const s = list[i];
 		const id = ORDER[s.part];
@@ -214,37 +226,46 @@ export function place(pose: Pose): Float64Array {
 		let y = s.y;
 		let z = s.z;
 		let r = s.r;
+
 		if (s.sleeve > 0 && shrink > 0) {
 			const back = s.sleeve * shrink;
+
 			x -= MAG_AXIS[0] * back;
 			y -= MAG_AXIS[1] * back;
 			z -= MAG_AXIS[2] * back;
 		}
+
 		if (id === "record") {
 			const c = CENTER.record;
 			const g = Math.max(0.1, pose.grow);
 			const dx = x - c[0];
 			const dy = y - c[1];
 			const dz = z - c[2];
+
 			x = c[0] + (ca * dx + sa * dz) * g;
 			y = c[1] + dy * g;
 			z = c[2] + (-sa * dx + ca * dz) * g;
 			r *= g;
 		}
+
 		const e = EXPLODE[id];
 		const f = FOLD[id] ?? e;
+
 		x += (e[0] + (f[0] - e[0]) * fold + s.spread[0]) * pose.explode;
 		y += (e[1] + (f[1] - e[1]) * fold + s.spread[1]) * pose.explode;
 		z += (e[2] + (f[2] - e[2]) * fold + s.spread[2]) * pose.explode;
+
 		const x1 = cy * x - sy * z;
 		const z1 = sy * x + cy * z;
 		const o = i * 5;
+
 		out[o] = x1;
 		out[o + 1] = cp * y - sp * z1;
 		out[o + 2] = sp * y + cp * z1;
 		out[o + 3] = r;
 		out[o + 4] = s.part;
 	}
+
 	return out;
 }
 
@@ -257,6 +278,7 @@ export function turn(point: V3, pose: Pose): V3 {
 	const sp = Math.sin(pose.pitch);
 	const x1 = cy * point[0] - sy * point[2];
 	const z1 = sy * point[0] + cy * point[2];
+
 	return [x1, cp * point[1] - sp * z1, sp * point[1] + cp * z1];
 }
 
@@ -268,6 +290,7 @@ export function screen(
 ): [number, number] {
 	const f = focal(w, h);
 	const d = Math.max(1e-3, f / cam.scale - turned[2]);
+
 	return [cam.cx + (f * turned[0]) / d, cam.cy - (f * turned[1]) / d];
 }
 
@@ -275,6 +298,7 @@ function extents(placed: Float64Array, f: number, scale: number) {
 	const n = placed.length / 5;
 	const out = new Float64Array(n * 4);
 	const D = f / scale;
+
 	for (let i = 0; i < n; i++) {
 		const o = i * 5;
 		const r = placed[o + 3];
@@ -284,11 +308,13 @@ function extents(placed: Float64Array, f: number, scale: number) {
 		const x = placed[o] * k;
 		const y = -placed[o + 1] * k;
 		const q = i * 4;
+
 		out[q] = x - rr;
 		out[q + 1] = y - rr;
 		out[q + 2] = x + rr;
 		out[q + 3] = y + rr;
 	}
+
 	return out;
 }
 
@@ -306,8 +332,10 @@ interface Region {
 function coreMask(placed: Float64Array, core: ReadonlySet<PartId>) {
 	const n = placed.length / 5;
 	const mask = new Uint8Array(n);
+
 	for (let i = 0; i < n; i++)
 		mask[i] = core.has(ORDER[placed[i * 5 + 4]]) ? 1 : 0;
+
 	return mask;
 }
 
@@ -323,15 +351,19 @@ function region(
 	let r = Number.POSITIVE_INFINITY;
 	let t = Number.NEGATIVE_INFINITY;
 	let b = Number.POSITIVE_INFINITY;
+
 	const core: Box = {
 		l: Number.POSITIVE_INFINITY,
 		t: Number.POSITIVE_INFINITY,
 		r: Number.NEGATIVE_INFINITY,
 		b: Number.NEGATIVE_INFINITY,
 	};
+
 	for (let i = 0; i < n; i++) {
 		if (!mask[i]) continue;
+
 		const q = i * 4;
+
 		l = Math.max(l, fit.inside.l - ext[q]);
 		r = Math.min(r, fit.inside.r - ext[q + 2]);
 		t = Math.max(t, fit.inside.t - ext[q + 1]);
@@ -341,13 +373,16 @@ function region(
 		core.r = Math.max(core.r, ext[q + 2]);
 		core.b = Math.max(core.b, ext[q + 3]);
 	}
+
 	if (!(l <= r && t <= b)) return null;
+
 	const nx = Math.max(1, Math.ceil((r - l) / STEP));
 	const ny = Math.max(1, Math.ceil((b - t) / STEP));
 	const dx = (r - l) / nx;
 	const dy = (b - t) / ny;
 	const W = nx + 2;
 	const diff = new Int32Array(W * (ny + 2));
+
 	for (const a of fit.avoid) {
 		for (let i = 0; i < n; i++) {
 			const q = i * 4;
@@ -359,22 +394,28 @@ function region(
 			const i1 = Math.min(nx, Math.floor((x1 - l) / dx + 1e-9));
 			const j0 = Math.max(0, Math.ceil((y0 - t) / dy - 1e-9));
 			const j1 = Math.min(ny, Math.floor((y1 - t) / dy + 1e-9));
+
 			if (i0 > i1 || j0 > j1) continue;
+
 			diff[j0 * W + i0] += 1;
 			diff[j0 * W + i1 + 1] -= 1;
 			diff[(j1 + 1) * W + i0] -= 1;
 			diff[(j1 + 1) * W + i1 + 1] += 1;
 		}
 	}
+
 	const blocked = new Int32Array((nx + 1) * (ny + 1));
+
 	for (let j = 0; j <= ny; j++) {
 		let row = 0;
+
 		for (let i = 0; i <= nx; i++) {
 			row += diff[j * W + i];
 			blocked[j * (nx + 1) + i] =
 				row + (j > 0 ? blocked[(j - 1) * (nx + 1) + i] : 0);
 		}
 	}
+
 	return { l, t, dx, dy, nx, ny, blocked, core };
 }
 
@@ -383,62 +424,82 @@ const open = (g: Region) => g.blocked.some((v) => v === 0);
 function nearest(g: Region, x: number, y: number): [number, number] | null {
 	let best: [number, number] | null = null;
 	let dist = Number.POSITIVE_INFINITY;
+
 	for (let j = 0; j <= g.ny; j++) {
 		const cy = g.t + j * g.dy;
+
 		for (let i = 0; i <= g.nx; i++) {
 			if (g.blocked[j * (g.nx + 1) + i] !== 0) continue;
+
 			const cx = g.l + i * g.dx;
 			const d = (cx - x) ** 2 + (cy - y) ** 2;
+
 			if (d < dist) {
 				dist = d;
 				best = [cx, cy];
 			}
 		}
 	}
+
 	return best;
 }
 
 function merge(list: Float64Array[]) {
 	let n = 0;
+
 	for (const a of list) n += a.length;
+
 	const out = new Float64Array(n);
 	let at = 0;
+
 	for (const a of list) {
 		out.set(a, at);
 		at += a.length;
 	}
+
 	return out;
 }
 
 export function solve(poses: readonly Pose[], fit: Fit): Cam {
 	const placed = merge(poses.map(place));
 	const mask = coreMask(placed, fit.core);
+
 	const fallback = (scale: number): Cam => ({
 		scale,
 		cx: fit.target[0],
 		cy: fit.target[1],
 	});
+
 	let lo = 4;
 	let hi = Math.max(lo, fit.cap);
 	const top = region(placed, mask, fit, hi);
 	let best = hi;
+
 	if (!top || !open(top)) {
 		const bottom = region(placed, mask, fit, lo);
+
 		if (!bottom || !open(bottom)) return fallback(lo);
+
 		for (let k = 0; k < 18; k++) {
 			const mid = Math.sqrt(lo * hi);
 			const g = region(placed, mask, fit, mid);
+
 			if (g && open(g)) lo = mid;
 			else hi = mid;
 		}
+
 		best = lo * fit.fill;
 	}
+
 	const scale = Math.max(4, best);
 	const g = region(placed, mask, fit, scale);
+
 	if (!g) return fallback(scale);
+
 	const x = fit.target[0] - (g.core.l + g.core.r) / 2;
 	const y = fit.target[1] - (g.core.t + g.core.b) / 2;
 	const at = nearest(g, x, y);
+
 	return at ? { scale, cx: at[0], cy: at[1] } : fallback(scale);
 }
 
@@ -446,12 +507,14 @@ export function clear(pose: Pose, cam: Cam, fit: Fit, slack = 0): boolean {
 	const placed = place(pose);
 	const ext = extents(placed, focal(fit.w, fit.h), cam.scale);
 	const n = placed.length / 5;
+
 	for (let i = 0; i < n; i++) {
 		const q = i * 4;
 		const l = cam.cx + ext[q];
 		const t = cam.cy + ext[q + 1];
 		const r = cam.cx + ext[q + 2];
 		const b = cam.cy + ext[q + 3];
+
 		if (fit.core.has(ORDER[placed[i * 5 + 4]])) {
 			if (
 				l < fit.inside.l - slack ||
@@ -461,10 +524,12 @@ export function clear(pose: Pose, cam: Cam, fit: Fit, slack = 0): boolean {
 			)
 				return false;
 		}
+
 		for (const a of fit.avoid) {
 			if (l < a.r && r > a.l && t < a.b && b > a.t) return false;
 		}
 	}
+
 	return true;
 }
 
@@ -477,12 +542,16 @@ export function reach(
 ): [number, number] {
 	const walk = (sign: number) => {
 		let ok = 0;
+
 		for (let a = step; a <= limit + 1e-9; a += step) {
 			if (!clear({ ...pose, yaw: pose.yaw + sign * a }, cam, fit, 8)) break;
+
 			ok = a;
 		}
+
 		return ok;
 	};
+
 	return [-walk(-1), walk(1)];
 }
 
@@ -494,14 +563,19 @@ export function beatAt(
 ): BeatId | null {
 	if (current) {
 		const b = beats.find((x) => x.id === current);
+
 		if (b && u >= b.from - keep && u <= b.to + keep) return current;
 	}
+
 	const inside = beats.find(
 		(b, i) =>
 			u >= b.from && (u <= b.to || (i === beats.length - 1 && u > b.to)),
 	);
+
 	if (inside) return inside.id;
+
 	if (u < beats[0].from) return beats[0].id;
+
 	return null;
 }
 
@@ -512,41 +586,56 @@ const HOLD_SPAN = 0.3;
 export function stops(beats: readonly Beat[]): Stops {
 	const out: [number, number][] = [];
 	let p = 0;
+
 	beats.forEach((b, i) => {
 		if (i > 0 && b.from > beats[i - 1].to) p += 1;
+
 		out.push([b.from, p]);
+
 		if (b.to > b.from) p += HOLD_SPAN;
+
 		out.push([b.to, p]);
 	});
+
 	return out;
 }
 
 export function along(v: number, rail: Stops, key: 0 | 1): number {
 	const other = key === 0 ? 1 : 0;
+
 	if (rail.length === 0) return v;
+
 	if (v <= rail[0][key]) return rail[0][other];
+
 	for (let i = 1; i < rail.length; i++) {
 		const a = rail[i - 1];
 		const b = rail[i];
+
 		if (v > b[key]) continue;
+
 		const span = b[key] - a[key];
+
 		return span > 0
 			? a[other] + ((v - a[key]) / span) * (b[other] - a[other])
 			: b[other];
 	}
+
 	return rail[rail.length - 1][other];
 }
 
 export function nearestBeat(u: number, beats: readonly Beat[]): number {
 	let best = 0;
 	let dist = Number.POSITIVE_INFINITY;
+
 	beats.forEach((b, i) => {
 		const d = u < b.from ? b.from - u : u > b.to ? u - b.to : 0;
+
 		if (d < dist) {
 			dist = d;
 			best = i;
 		}
 	});
+
 	return best;
 }
 
@@ -627,38 +716,47 @@ export function track(
 ): Take {
 	if (snap) {
 		const i = nearestBeat(u, beats);
+
 		return { pose: drifted(shots[i], 0), cam: shots[i].cam, hold: i };
 	}
+
 	for (let i = 0; i < beats.length; i++) {
 		const b = beats[i];
 		const last = i === beats.length - 1;
+
 		if (u <= b.to || last) {
 			if (u >= b.from || i === 0) {
 				const local = clamp((u - b.from) / Math.max(1e-6, b.to - b.from));
+
 				return {
 					pose: drifted(shots[i], local - 0.5),
 					cam: shots[i].cam,
 					hold: i,
 				};
 			}
+
 			const a = beats[i - 1];
 			const from = shots[i - 1];
 			const to = shots[i];
 			const t = clamp((u - a.to) / Math.max(1e-6, b.from - a.to));
 			const start = drifted(from, 0.5);
 			const end = drifted(to, -0.5);
+
 			if (to.approach > 1) {
 				const peak = { ...to.cam, scale: to.cam.scale * to.approach };
+
 				const cam =
 					t < 0.7
 						? blendCam(from.cam, peak, smoother(t / 0.7))
 						: blendCam(peak, to.cam, smoother((t - 0.7) / 0.3));
+
 				return {
 					pose: blendPose(start, end, smoother(Math.min(1, t / 0.7))),
 					cam,
 					hold: -1,
 				};
 			}
+
 			return {
 				pose: blendPose(start, end, smoother(t)),
 				cam: blendCam(from.cam, to.cam, smoother(t)),
@@ -666,17 +764,24 @@ export function track(
 			};
 		}
 	}
+
 	const i = beats.length - 1;
+
 	return { pose: drifted(shots[i], 0.5), cam: shots[i].cam, hold: i };
 }
 
 export function soften(x: number, lo: number, hi: number): number {
 	if (x > 0) {
 		const k = Math.min(0.15, hi / 2);
+
 		if (k <= 1e-4) return 0;
+
 		return x > hi - k ? hi - k * Math.exp(-(x - (hi - k)) / k) : x;
 	}
+
 	const k = Math.min(0.15, -lo / 2);
+
 	if (k <= 1e-4) return 0;
+
 	return x < lo + k ? lo + k * Math.exp((x - (lo + k)) / k) : x;
 }

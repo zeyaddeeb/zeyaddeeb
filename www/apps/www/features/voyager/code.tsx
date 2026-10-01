@@ -58,9 +58,11 @@ function paint(line: string): ReactNode[] {
 	const out: ReactNode[] = [];
 	let k = 0;
 	let prev = "";
+
 	for (const m of line.matchAll(TOKEN)) {
 		const [text, space, str, num, word] = m;
 		let cls: string | undefined;
+
 		if (space) cls = undefined;
 		else if (str) cls = "s";
 		else if (num) cls = "n";
@@ -71,7 +73,9 @@ function paint(line: string): ReactNode[] {
 			else if (/^[A-Z_0-9]+$/.test(word)) cls = "c";
 			else if (prev === "fn") cls = "f";
 		}
+
 		if (!space) prev = word ?? text;
+
 		out.push(
 			cls ? (
 				<span key={k++} className={`vg-tok-${cls}`}>
@@ -82,6 +86,7 @@ function paint(line: string): ReactNode[] {
 			),
 		);
 	}
+
 	return out;
 }
 
@@ -107,6 +112,7 @@ function room(blocks: Block[], label: string) {
 		150 + (label.length + blocks.reduce((n, b) => n + b.name.length, 0)) * 7.3;
 	const tabs = blocks.length * 20;
 	const w = need + tabs;
+
 	return w <= 440 ? "s" : w <= 500 ? "m" : w <= 560 ? "l" : "xl";
 }
 
@@ -148,14 +154,17 @@ function Panel({
 	const key = (e: KeyboardEvent<HTMLDivElement>) => {
 		const at = blocks.findIndex((b) => b.name === shown);
 		let next = at;
+
 		if (e.key === "ArrowRight") next = (at + 1) % blocks.length;
 		else if (e.key === "ArrowLeft")
 			next = (at - 1 + blocks.length) % blocks.length;
 		else if (e.key === "Home") next = 0;
 		else if (e.key === "End") next = blocks.length - 1;
 		else return;
+
 		e.preventDefault();
 		onPick(blocks[next].name);
+
 		tabs.current
 			?.querySelectorAll<HTMLButtonElement>("[role='tab']")
 			[next]?.focus();
@@ -179,6 +188,7 @@ function Panel({
 				>
 					{blocks.map((b) => {
 						const on = b.name === shown;
+
 						return (
 							<button
 								key={b.name}
@@ -205,6 +215,7 @@ function Panel({
 				<div className="vg-code__stack">
 					{blocks.map((b) => {
 						const on = b.name === shown;
+
 						return (
 							<pre
 								key={b.name}
@@ -265,15 +276,18 @@ export function Code({
 	const strip = useRef<HTMLButtonElement>(null);
 	const seen = useRef(beat);
 	const [open, setOpen] = useState(false);
+
 	const [pin, setPin] = useState<{ tab: string; at: string | null } | null>(
 		null,
 	);
 
 	const key = names.join(" ");
+
 	const blocks = useMemo<Block[]>(
 		() =>
 			key.split(" ").map((name) => {
 				const { line, code } = source[name];
+
 				return {
 					name,
 					line,
@@ -289,10 +303,13 @@ export function Code({
 
 	const hotAt = useMemo<Hot | null>(() => {
 		if (!hot) return null;
+
 		for (const b of blocks) {
 			const index = b.lines.findIndex((l) => l.text.includes(hot));
+
 			if (index >= 0) return { name: b.name, index };
 		}
+
 		return null;
 	}, [blocks, hot]);
 
@@ -309,10 +326,15 @@ export function Code({
 
 	useEffect(() => {
 		if (beat === seen.current) return;
+
 		seen.current = beat;
+
 		const el = root.current;
+
 		if (!el) return;
+
 		const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 		for (const line of el.querySelectorAll<HTMLElement>(
 			".vg-code__fn[data-on] .vg-code__line[data-hot]",
 		)) {
@@ -324,14 +346,20 @@ export function Code({
 					],
 					{ duration: 600, easing: "cubic-bezier(0.22, 0.61, 0.36, 1)" },
 				);
+
 			const body = line.closest<HTMLElement>(".vg-code__body");
+
 			if (!body || body.scrollHeight <= body.clientHeight + 1) continue;
+
 			const top = line.offsetTop;
 			const bottom = top + line.offsetHeight;
+
 			if (top < body.scrollTop || bottom > body.scrollTop + body.clientHeight)
 				body.scrollTo({ top: Math.max(0, top - body.clientHeight / 3) });
 		}
+
 		if (still) return;
+
 		for (const dot of el.querySelectorAll<HTMLElement>(".vg-code__dot")) {
 			dot.animate(
 				[{ opacity: 1 }, { opacity: 1, offset: 0.6 }, { opacity: 0.4 }],
@@ -342,21 +370,28 @@ export function Code({
 
 	useEffect(() => {
 		const d = sheet.current;
+
 		if (!d) return;
+
 		const phone = window.matchMedia(PHONE);
+
 		const closed = () => {
 			setOpen(false);
 			strip.current?.focus();
 		};
+
 		const click = (e: MouseEvent) => {
 			if (e.target === d) d.close();
 		};
+
 		const change = () => {
 			if (!phone.matches && d.open) d.close();
 		};
+
 		d.addEventListener("close", closed);
 		d.addEventListener("click", click);
 		phone.addEventListener("change", change);
+
 		return () => {
 			d.removeEventListener("close", closed);
 			d.removeEventListener("click", click);
@@ -368,7 +403,9 @@ export function Code({
 
 	const show = () => {
 		const d = sheet.current;
+
 		if (!d || d.open) return;
+
 		setOpen(true);
 		d.showModal();
 	};

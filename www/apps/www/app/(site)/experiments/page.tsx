@@ -15,6 +15,7 @@ interface PageProps {
 
 export async function generateMetadata({ searchParams }: PageProps) {
 	const { search, topic, sort, page } = readQuery(await searchParams);
+
 	return listingMetadata({
 		path: "/experiments",
 		section: "Experiments",

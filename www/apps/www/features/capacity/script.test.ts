@@ -10,6 +10,7 @@ describe("narrating a tap", () => {
 			site: "ashburn",
 			rtt: 85,
 		});
+
 		expect(line).toEqual({
 			tone: "miss",
 			text: "london can’t use ashburn: 85 ms is over the 80 ms limit.",
@@ -24,6 +25,7 @@ describe("narrating a tap", () => {
 			mw: 34.8,
 			capped: true,
 		});
+
 		expect(line.text).toContain("last of the carbon budget");
 	});
 });

@@ -18,6 +18,7 @@ export function Figure({
 	walk?: { begin: number; dur: number };
 }) {
 	const steps = walk ? Math.max(1, Math.round(walk.dur / 0.32)) : 0;
+
 	return (
 		<g transform={`translate(${x} ${y}) scale(${scale})`}>
 			<g>
@@ -195,6 +196,7 @@ export function PastryBox({
 	size?: number;
 }) {
 	const r = size / 9;
+
 	return (
 		<g transform={`translate(${x} ${y})`}>
 			<rect width={size} height={size} fill="var(--f-rose)" />

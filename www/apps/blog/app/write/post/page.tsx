@@ -4,6 +4,8 @@ import { requireAdminPage } from "@/lib/session";
 
 export default async function NewPostPage() {
 	const user = await requireAdminPage();
+
 	if (!user) return <AccessDenied />;
+
 	return <PostEditor user={user} />;
 }

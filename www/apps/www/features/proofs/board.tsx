@@ -16,6 +16,7 @@ export function Board({
 }) {
 	const [current, ...rest] = goals;
 	const hyps = current?.hyps ?? [];
+
 	return (
 		<div className="pf-state" data-loading={loading || undefined}>
 			<div className="pf-have">

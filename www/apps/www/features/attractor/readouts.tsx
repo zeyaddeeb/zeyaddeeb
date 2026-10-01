@@ -35,11 +35,14 @@ const EMPTY: Reading = {
 
 export function useReading(sim: Sim | null) {
 	const [reading, setReading] = useState<Reading>(EMPTY);
+
 	useEffect(() => {
 		if (!sim) return;
+
 		const read = () => {
 			const crowd = sim.crowdNow();
 			const t = crowd ? tally(crowd, sim.rho) : null;
+
 			setReading({
 				tally: t,
 				crowdText: t ? tallyText(t, sim.rho) : "",
@@ -48,15 +51,20 @@ export function useReading(sim: Sim | null) {
 				verdict: sim.copy ? verdict(sim.gaps, sim.rho) : "",
 			});
 		};
+
 		read();
+
 		const id = window.setInterval(read, 200);
+
 		return () => window.clearInterval(id);
 	}, [sim]);
+
 	return reading;
 }
 
 export function CopyReadout({ reading }: { reading: Reading }) {
 	const copy = reading.copy;
+
 	if (!copy) {
 		return (
 			<p className="at-readout at-readout__text">
@@ -65,6 +73,7 @@ export function CopyReadout({ reading }: { reading: Reading }) {
 			</p>
 		);
 	}
+
 	return (
 		<div className="at-readout">
 			<table className="at-digits">
@@ -89,6 +98,7 @@ export function CopyReadout({ reading }: { reading: Reading }) {
 						<th scope="row">copy</th>
 						{[0, 1, 2].map((i) => {
 							const parts = split(reading.wheel[i] ?? "", copy[i] ?? "");
+
 							return (
 								<td key={i}>
 									{parts.same}
@@ -106,6 +116,7 @@ export function CopyReadout({ reading }: { reading: Reading }) {
 
 export function CrowdReadout({ reading }: { reading: Reading }) {
 	const t = reading.tally;
+
 	if (!t) {
 		return (
 			<p className="at-readout at-readout__text">
@@ -114,7 +125,9 @@ export function CrowdReadout({ reading }: { reading: Reading }) {
 			</p>
 		);
 	}
+
 	const share = (n: number) => `${t.total ? (100 * n) / t.total : 0}%`;
+
 	return (
 		<div className="at-readout">
 			<div className="at-tally__bar" aria-hidden="true">

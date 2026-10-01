@@ -86,8 +86,11 @@ async function asAdmin<T>(
 	duplicate?: string,
 ): Promise<WriteResult<T>> {
 	if (!process.env.ADMIN_ID) return fail("Server misconfigured");
+
 	const session = await getSession();
+
 	if (!session?.user) return fail("Unauthorized: Please sign in");
+
 	if (!isAdmin(session.user))
 		return fail("Forbidden: Only the admin can write");
 
@@ -95,7 +98,9 @@ async function asAdmin<T>(
 		return await run(session.user.id);
 	} catch (error) {
 		console.error(`${failure}:`, error);
+
 		if (duplicate && isUniqueViolation(error)) return fail(duplicate);
+
 		return fail(failure);
 	}
 }
@@ -110,6 +115,7 @@ export async function createPost(
 		"Failed to create post",
 		async (authorId) => {
 			const parsed = postSchema.safeParse(input);
+
 			if (!parsed.success) return fail(firstIssue(parsed.error));
 
 			const [created] = await db
@@ -137,6 +143,7 @@ export async function updatePost(
 		"Failed to update post",
 		async () => {
 			const parsed = postSchema.partial().safeParse(input);
+
 			if (!parsed.success) return fail(firstIssue(parsed.error));
 
 			const changes = { ...parsed.data, updatedAt: new Date() };
@@ -146,6 +153,7 @@ export async function updatePost(
 					.select({ publishedAt: post.publishedAt })
 					.from(post)
 					.where(eq(post.id, id));
+
 				if (!existing?.publishedAt) changes.publishedAt = new Date();
 			}
 
@@ -167,6 +175,7 @@ export async function deletePost(id: string): Promise<WriteResult<void>> {
 			.delete(post)
 			.where(eq(post.id, id))
 			.returning({ id: post.id });
+
 		return deleted ? ok(undefined) : fail("Post not found");
 	});
 }
@@ -174,6 +183,7 @@ export async function deletePost(id: string): Promise<WriteResult<void>> {
 export async function getPostForEdit(id: string): Promise<WriteResult<Post>> {
 	return asAdmin("Failed to fetch post", async () => {
 		const [item] = await db.select().from(post).where(eq(post.id, id)).limit(1);
+
 		return item ? ok(item) : fail("Post not found");
 	});
 }
@@ -198,6 +208,7 @@ export async function createCollectionItem(
 		"Failed to create collection item",
 		async (authorId) => {
 			const parsed = collectionItemSchema.safeParse(input);
+
 			if (!parsed.success) return fail(firstIssue(parsed.error));
 
 			const [created] = await db
@@ -219,6 +230,7 @@ export async function updateCollectionItem(
 		"Failed to update collection item",
 		async () => {
 			const parsed = collectionItemSchema.partial().safeParse(input);
+
 			if (!parsed.success) return fail(firstIssue(parsed.error));
 
 			const [updated] = await db
@@ -241,6 +253,7 @@ export async function deleteCollectionItem(
 			.delete(collectionItem)
 			.where(eq(collectionItem.id, id))
 			.returning({ id: collectionItem.id });
+
 		return deleted ? ok(undefined) : fail("Collection item not found");
 	});
 }
@@ -254,6 +267,7 @@ export async function getCollectionItemForEdit(
 			.from(collectionItem)
 			.where(eq(collectionItem.id, id))
 			.limit(1);
+
 		return item ? ok(item) : fail("Collection item not found");
 	});
 }

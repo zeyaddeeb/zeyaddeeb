@@ -28,7 +28,9 @@ const STEPS: Record<TrainPhase, number> = {
 
 function remaining(seconds: number) {
 	if (seconds < 5) return "almost done";
+
 	if (seconds < 60) return `about ${Math.round(seconds / 5) * 5} s left`;
+
 	return `about ${Math.round(seconds / 60)} min left`;
 }
 
@@ -50,9 +52,11 @@ export function DeepSeekLab() {
 	const { state, send, retry } = useLab();
 	const session = state.session;
 	const probe = state.probe;
+
 	const flagsKey = session
 		? `deepseek-lab-story:${session.id}:${session.generation}`
 		: null;
+
 	const [flags, setFlags] = useState<Flags>(NO_FLAGS);
 	const [selected, setSelected] = useState<number | null>(null);
 	const [inside, setInside] = useState(false);
@@ -61,16 +65,21 @@ export function DeepSeekLab() {
 
 	useEffect(() => {
 		if (!flagsKey) return;
+
 		const stored = window.sessionStorage.getItem(flagsKey);
 		const saved = stored ? JSON.parse(stored) : {};
+
 		setFlags({ ...NO_FLAGS, ...saved, at: { ...NO_FLAGS.at, ...saved.at } });
 	}, [flagsKey]);
+
 	const raise = useCallback(
 		(change: (current: Flags) => Flags) => {
 			setFlags((current) => {
 				const next = change(current);
+
 				if (flagsKey)
 					window.sessionStorage.setItem(flagsKey, JSON.stringify(next));
+
 				return next;
 			});
 		},
@@ -81,6 +90,7 @@ export function DeepSeekLab() {
 		() => shot(state, { flags, selected }),
 		[state, flags, selected],
 	);
+
 	const scene = story.scene;
 	const codeOnly = scene.line !== "asked";
 	const busy = isBusy(state.operation);
@@ -88,28 +98,38 @@ export function DeepSeekLab() {
 
 	const lineKey = probe ? `${probe.line.code}|${probe.line.question}` : "";
 	const slot = scene.slot;
+
 	useEffect(() => {
 		if (!probe) return;
+
 		if (slot) setSelected(slotOf(probe, slot));
 		else setSelected((current) => current ?? slotOf(probe, "number"));
 	}, [lineKey, slot, story.id]);
 
 	const looking = story.id === "looks";
+
 	const focusKey = probe
 		? `${lineKey}|${probe.focus.position}|${probe.revision}`
 		: "";
+
 	useEffect(() => {
 		if (looking) setLayer(spotlight(probe)?.layer ?? null);
 	}, [looking, focusKey]);
 
 	const focus = probe?.focus.position;
 	const live = state.connection === "live";
+
 	useEffect(() => {
 		if (!live || selected === null || focus === undefined) return;
+
 		if (selected - 1 === focus) return;
+
 		const ask = () => void send({ type: "focus", position: selected - 1 });
+
 		ask();
+
 		const timer = window.setInterval(ask, 4000);
+
 		return () => window.clearInterval(timer);
 	}, [live, selected, focus, send]);
 
@@ -120,6 +140,7 @@ export function DeepSeekLab() {
 
 	const act = (id: ActionId) => {
 		setConfirming(false);
+
 		switch (id) {
 			case "next":
 				return move(1);
@@ -130,19 +151,24 @@ export function DeepSeekLab() {
 			case "rl":
 			case "distill":
 				if (id === "distill") raise((current) => ({ ...current, own: true }));
+
 				return send({ type: "start", phase: id, steps: STEPS[id] });
 			case "ask":
 				return raise((current) => ({ ...current, asked: true, view: null }));
 			case "own":
 				setInside(false);
+
 				return raise((current) => ({ ...current, own: true, view: null }));
 			case "another": {
 				if (!probe?.examples.length) return;
+
 				const at = probe.examples.findIndex(
 					(e) =>
 						e.code === probe.line.code && e.question === probe.line.question,
 				);
+
 				const next = probe.examples[(at + 1) % probe.examples.length];
+
 				return show(next.code, next.question);
 			}
 			case "pause":
@@ -166,53 +192,69 @@ export function DeepSeekLab() {
 		}));
 
 	const chapterIndex = CHAPTERS.findIndex((c) => c.id === story.chapter);
+
 	const running =
 		state.operation?.state === "running" &&
 		state.operation.phase !== "generate";
+
 	const paused = state.operation?.state === "paused";
 	const free = scene.line !== "covered" && scene.line !== "none";
 
 	const slots = useMemo(() => {
 		if (!probe) return [];
+
 		const code = probe.line.tokens
 			.map((t, i) => (t.role === "code" ? i : -1))
 			.filter((i) => i >= 0);
+
 		return codeOnly ? code : [...code, probe.line.tokens.length];
 	}, [probe, codeOnly]);
 
 	useEffect(() => {
 		const onKey = (event: KeyboardEvent) => {
 			if (event.metaKey || event.ctrlKey || event.altKey) return;
+
 			if (typing(event.target)) return;
+
 			switch (event.key) {
 				case " ":
 					if (clickable(event.target)) return;
+
 					if (running) send({ type: "pause" });
 					else if (paused) send({ type: "resume" });
 					else return;
+
 					break;
 				case "ArrowLeft":
 				case "ArrowRight": {
 					if (!free || selected === null || slots.length === 0) return;
+
 					const at = slots.indexOf(selected);
 					const step = event.key === "ArrowRight" ? 1 : -1;
+
 					const next =
 						at < 0
 							? slots[0]
 							: slots[(at + step + slots.length) % slots.length];
+
 					setSelected(next);
+
 					break;
 				}
 				default:
 					return;
 			}
+
 			event.preventDefault();
 		};
+
 		window.addEventListener("keydown", onKey);
+
 		return () => window.removeEventListener("keydown", onKey);
 	}, [running, paused, selected, slots, free, send]);
 
 	const operation = state.operation;
+
 	const eta =
 		operation && running && state.step
 			? remaining(
@@ -220,6 +262,7 @@ export function DeepSeekLab() {
 						1000,
 				)
 			: null;
+
 	const bench = story.chapter !== "guess" && !!probe && !!session;
 	const trained = !!session && session.step + session.phaseSteps.distill > 0;
 

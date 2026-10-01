@@ -5,9 +5,11 @@ use rig_core::providers::openai::{
 
 pub fn dialect() -> Dialect {
     let mut quirks = Quirks::openai();
+
     quirks.completion_route = Route::Chat;
     quirks.verify_path = "/models";
     quirks.rewrite = BodyRewrite::DeepSeek;
+
     Dialect::gateway(
         "gateway",
         "http://localhost:1234/v1",

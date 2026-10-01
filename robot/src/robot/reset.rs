@@ -28,11 +28,13 @@ pub fn get_randomized_initial_poses() -> RobotPoses {
     #[cfg(not(target_arch = "wasm32"))]
     {
         let mut poses = poses;
+
         poses.translate(Vec3::new(
             rand::random_range(-0.05..0.05),
             0.0,
             rand::random_range(-0.05..0.05),
         ));
+
         poses
     }
 
@@ -89,6 +91,7 @@ fn initial_arm_poses(shoulder: Vec3) -> (BodyPartPose, BodyPartPose, BodyPartPos
     let upper_direction = upper_rotation * Vec3::Y;
     let forearm_direction = forearm_rotation * Vec3::Y;
     let elbow = shoulder + upper_direction * UPPER_ARM_LENGTH;
+
     (
         BodyPartPose::new(
             shoulder + upper_direction * UPPER_ARM_LENGTH / 2.0,
@@ -217,6 +220,7 @@ type LowerBodyQuery = Query<
 
 pub fn release_ball(commands: &mut Commands, grip: &mut BallGrip) {
     grip.released = true;
+
     for joint in grip.joints {
         commands.entity(joint).insert(JointDisabled);
     }
@@ -234,6 +238,7 @@ pub fn reset_robot_positions(
     if let Some(mut grip) = grip {
         grip.released = false;
         grip.dropped = false;
+
         for joint in grip.joints {
             commands
                 .entity(joint)
@@ -326,12 +331,15 @@ mod tests {
     fn ready_pose_cradles_ball_clear_of_the_torso() {
         let poses = get_initial_poses();
         let ball = poses.ball_position();
+
         for hand in [poses.hand, poses.left_hand] {
             assert!((ball.distance(hand.position) - HAND_RADIUS - BALL_RADIUS).abs() < 1e-5);
         }
+
         assert!(ball.x - BALL_RADIUS > TORSO_SIZE_X / 2.0);
         assert!(ball.y > TORSO_Y && ball.y < TORSO_Y + TORSO_HEIGHT / 2.0);
         assert!(ball.z.abs() < 1e-5);
+
         assert!(
             poses.hand.position.x < 0.6,
             "hands should be close to the chest"
@@ -343,6 +351,7 @@ mod tests {
         let initial = get_initial_poses();
         let reset = get_randomized_initial_poses();
         let offset = reset.torso.position - initial.torso.position;
+
         for (before, after) in [
             (initial.upper_arm, reset.upper_arm),
             (initial.forearm, reset.forearm),
@@ -360,6 +369,7 @@ mod tests {
             assert!((after.position - before.position).abs_diff_eq(offset, 1e-5));
             assert!(after.rotation.abs_diff_eq(before.rotation, 1e-5));
         }
+
         assert!((reset.ball_position() - initial.ball_position()).abs_diff_eq(offset, 1e-5));
     }
 }

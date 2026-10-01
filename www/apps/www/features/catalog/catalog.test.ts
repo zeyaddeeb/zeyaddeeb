@@ -6,6 +6,7 @@ describe("catalog", () => {
 		const ids = new Set(experiments.map((e) => e.id));
 		const nums = new Set(experiments.map((e) => e.number));
 		const hrefs = new Set(experiments.map((e) => e.href));
+
 		expect(ids.size).toBe(experiments.length);
 		expect(nums.size).toBe(experiments.length);
 		expect(hrefs.size).toBe(experiments.length);
@@ -13,6 +14,7 @@ describe("catalog", () => {
 
 	it("numbers are contiguous from 1", () => {
 		const sorted = [...experiments].map((e) => e.number).sort((a, b) => a - b);
+
 		expect(sorted).toEqual(sorted.map((_, i) => i + 1));
 	});
 
@@ -29,6 +31,7 @@ describe("catalog", () => {
 
 	it("neighbors wrap and skip external entries", () => {
 		const n = neighbors("game-of-life");
+
 		expect(n?.next.id).toBe("circle-limit");
 		expect(n?.prev.external).toBeFalsy();
 	});
@@ -37,6 +40,7 @@ describe("catalog", () => {
 		const newest = Math.max(...experiments.map((e) => e.number));
 		const last = experiments.find((e) => e.number === newest);
 		const n = neighbors(last?.id ?? "");
+
 		expect(n?.prev.number).toBe(newest - 1);
 		expect(n?.next.number).toBe(1);
 		expect(neighbors("proofs")?.next.number).toBe(13);

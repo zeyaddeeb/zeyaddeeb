@@ -89,7 +89,9 @@ function playScene(game: Game, level: Level): Scene {
 		...game.play.offline,
 		...(level.outage ? [level.outage] : []),
 	]);
+
 	const scale = (mw: number) => mw * game.play.demand;
+
 	return {
 		...base,
 		latency: game.play.latency,
@@ -128,6 +130,7 @@ function route(
 	site: string,
 ): Game {
 	const result = tap(world, planScene(game, level), game.routes, demand, site);
+
 	return { ...game, routes: result.routes, outcome: result.outcome };
 }
 
@@ -157,6 +160,7 @@ export function nudge(
 		site,
 		delta,
 	);
+
 	return result
 		? { ...game, routes: result.routes, outcome: result.outcome }
 		: game;
@@ -170,18 +174,25 @@ function select(
 	kind: NodeKind,
 ): Game {
 	const current = game.selected;
+
 	const sameSide =
 		current !== null &&
 		(kindOf(level, current) === "site") === (kind === "site");
+
 	if (current === id) return { ...game, selected: null };
+
 	if (current === null || sameSide) return { ...game, selected: id };
+
 	const [demand, site] = kind === "site" ? [current, id] : [id, current];
+
 	return route(game, world, level, demand, site);
 }
 
 function placeBlock(game: Game, level: Level, site: string): Game {
 	const room = (level.build?.blocks ?? 0) - totalBlocks(game.blocks);
+
 	if (room <= 0 || !level.capacity[site]) return game;
+
 	return {
 		...game,
 		blocks: { ...game.blocks, [site]: (game.blocks[site] ?? 0) + 1 },
@@ -196,6 +207,7 @@ function toggleOffline(
 	before: number,
 ): Game {
 	const offline = game.play.offline.includes(site);
+
 	return {
 		...game,
 		edit: { label: `${label} ${offline ? "back online" : "offline"}`, before },
@@ -286,7 +298,9 @@ export function showView(game: Game, view: View): Game {
 
 export function pickable(game: Game, level: Level): NodeKind[] {
 	if (game.phase === "plan") return level.build ? ["site"] : ALL_KINDS;
+
 	if (game.phase === "guess" || game.phase === "play") return ["site"];
+
 	return [];
 }
 
@@ -299,7 +313,9 @@ export function yours(
 	const cost = level.build
 		? totalBlocks(game.blocks) * level.build.block * level.build.cost
 		: 0;
+
 	const routes = level.build && built ? fromSolved(built) : game.routes;
+
 	return measure(world, planScene(game, level), routes, cost);
 }
 
@@ -316,6 +332,7 @@ export interface Board {
 export function board(game: Game, level: Level, solutions: Solutions): Board {
 	const { best, built, live } = solutions;
 	const comparing = game.phase === "solved" || game.phase === "guess";
+
 	if (game.phase === "play" && live)
 		return {
 			scene: playScene(game, level),
@@ -326,7 +343,9 @@ export function board(game: Game, level: Level, solutions: Solutions): Board {
 			selected: null,
 			keyMove: live.key,
 		};
+
 	const mine = level.build && built ? fromSolved(built) : game.routes;
+
 	if (comparing && best && game.view === "solver")
 		return {
 			scene: planScene(game, level),
@@ -337,6 +356,7 @@ export function board(game: Game, level: Level, solutions: Solutions): Board {
 			selected: null,
 			keyMove: best.key,
 		};
+
 	return {
 		scene: planScene(game, level),
 		routes: mine,

@@ -12,10 +12,12 @@ impl TrainingBudget {
             (0.1..=1000.0).contains(&max_updates_per_second),
             "SAC_TRAIN_HZ must be between 0.1 and 1000"
         );
+
         anyhow::ensure!(
             (1..=100).contains(&duty_cycle_percent),
             "SAC_TRAIN_DUTY_PERCENT must be between 1 and 100"
         );
+
         Ok(Self {
             min_interval: Duration::from_secs_f64(1.0 / max_updates_per_second),
             rest_multiplier: (100 - duty_cycle_percent) as f64 / duty_cycle_percent as f64,
@@ -36,6 +38,7 @@ mod tests {
     #[test]
     fn fast_updates_obey_rate_limit() {
         let budget = TrainingBudget::new(8.0, 50).unwrap();
+
         assert_eq!(
             budget.rest_after(Duration::from_millis(20)),
             Duration::from_millis(105)
@@ -45,7 +48,9 @@ mod tests {
     #[test]
     fn slow_updates_still_leave_time_for_inference() {
         let work = Duration::from_millis(200);
+
         assert_eq!(TrainingBudget::new(8.0, 50).unwrap().rest_after(work), work);
+
         assert_eq!(
             TrainingBudget::new(8.0, 25).unwrap().rest_after(work),
             Duration::from_millis(600)
@@ -55,10 +60,12 @@ mod tests {
     #[test]
     fn full_duty_still_obeys_rate_limit_without_underflow() {
         let budget = TrainingBudget::new(8.0, 100).unwrap();
+
         assert_eq!(
             budget.rest_after(Duration::ZERO),
             Duration::from_millis(125)
         );
+
         assert_eq!(budget.rest_after(Duration::from_secs(1)), Duration::ZERO);
     }
 
@@ -67,6 +74,7 @@ mod tests {
         for hz in [0.0, -1.0, f64::NAN, f64::INFINITY, 1001.0] {
             assert!(TrainingBudget::new(hz, 50).is_err());
         }
+
         for percent in [0, 101] {
             assert!(TrainingBudget::new(8.0, percent).is_err());
         }

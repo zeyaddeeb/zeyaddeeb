@@ -32,6 +32,7 @@ export function Score({
 	scale?: number;
 }) {
 	const max = scale ?? Math.max(...rows.map((r) => r.total ?? 0), 1);
+
 	return (
 		<div className="cc-score">
 			<dl>

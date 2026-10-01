@@ -35,8 +35,10 @@ pub fn is_basket(previous: Vec3, current: Vec3) -> bool {
     if previous.y <= HOOP_POS.y || current.y > HOOP_POS.y {
         return false;
     }
+
     let t = (previous.y - HOOP_POS.y) / (previous.y - current.y);
     let crossing = previous.lerp(current, t) - HOOP_POS;
+
     crossing.x * crossing.x + crossing.z * crossing.z <= (RIM_INNER_RADIUS - BALL_RADIUS).powi(2)
 }
 
@@ -107,19 +109,25 @@ pub fn should_release(stage: CurriculumStage, step: usize, release_signal: f32) 
 pub fn held_ball_position(hand_pos: Vec3) -> Vec3 {
     let lateral_offset = -SHOULDER_OFFSET_RIGHT.z;
     let vertical_offset = ((HAND_RADIUS + BALL_RADIUS).powi(2) - lateral_offset.powi(2)).sqrt();
+
     hand_pos + Vec3::new(0.0, vertical_offset, lateral_offset)
 }
 
 pub fn shot_miss_distance(ball_pos: Vec3, ball_vel: Vec3) -> f32 {
     let discriminant = ball_vel.y * ball_vel.y + 2.0 * GRAVITY * (ball_pos.y - HOOP_POS.y);
+
     if discriminant < 0.0 {
         return 4.0 + (-discriminant).sqrt() / GRAVITY;
     }
+
     let t = (ball_vel.y + discriminant.sqrt()) / GRAVITY;
+
     if t <= 0.0 {
         return 4.0 + ball_pos.distance(HOOP_POS);
     }
+
     let crossing = ball_pos + ball_vel * t - Vec3::Y * (0.5 * GRAVITY * t * t);
+
     Vec2::new(crossing.x - HOOP_POS.x, crossing.z - HOOP_POS.z).length()
 }
 
@@ -139,6 +147,7 @@ mod tests {
     #[test]
     fn finite_horizon_and_failures_are_terminal() {
         assert!(EpisodeEndReason::TimedOut.is_terminal());
+
         for reason in [
             EpisodeEndReason::TorsoFell,
             EpisodeEndReason::OutOfBounds,
@@ -152,15 +161,19 @@ mod tests {
     fn basket_requires_downward_crossing_and_full_ball_clearance() {
         assert!(is_basket(HOOP_POS + Vec3::Y, HOOP_POS - Vec3::Y));
         assert!(!is_basket(HOOP_POS - Vec3::Y, HOOP_POS + Vec3::Y));
+
         assert!(!is_basket(
             HOOP_POS + Vec3::new(0.09, 1.0, 0.0),
             HOOP_POS + Vec3::new(0.09, -1.0, 0.0)
         ));
+
         assert!(!is_basket(HOOP_POS + Vec3::Y, HOOP_POS + Vec3::Y * 0.01));
+
         assert!(is_basket(
             HOOP_POS + Vec3::new(-1.0, 1.0, 0.0),
             HOOP_POS + Vec3::new(1.0, -1.0, 0.0)
         ));
+
         assert_eq!(
             EpisodeEndReason::check(Vec3::ZERO, None, Vec3::Y * 1.5, Vec3::Y, true, 50, 300),
             Some(EpisodeEndReason::ShotMissed)
@@ -171,16 +184,19 @@ mod tests {
     fn release_is_gated_by_curriculum_and_minimum_hold_time() {
         assert!(!should_release(CurriculumStage::Standing, 100, 1.0));
         assert!(!should_release(CurriculumStage::RaiseBall, 100, 1.0));
+
         assert!(!should_release(
             CurriculumStage::Shooting,
             MIN_HOLD_STEPS - 1,
             1.0
         ));
+
         assert!(!should_release(
             CurriculumStage::Shooting,
             MIN_HOLD_STEPS,
             -1.0
         ));
+
         assert!(should_release(
             CurriculumStage::Shooting,
             MIN_HOLD_STEPS,
@@ -202,6 +218,7 @@ mod tests {
             ),
             None
         );
+
         assert_eq!(
             EpisodeEndReason::check(
                 Vec3::new(0.5, BALL_RADIUS, 0.0),

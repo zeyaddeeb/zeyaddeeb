@@ -55,10 +55,13 @@ export interface Line {
 
 export const lines: Line[] = corpusData.map((solo) => {
 	const tones: Tone[] = [];
+
 	for (let i = 0; i < solo.notes.length; i += 5) {
 		const [key, slot, length, role, time] = solo.notes.slice(i, i + 5);
+
 		tones.push({ key, slot, length, role, time });
 	}
+
 	return {
 		who: solo.player,
 		title: solo.title,
@@ -69,6 +72,7 @@ export const lines: Line[] = corpusData.map((solo) => {
 
 export function stats(id: PlayerId) {
 	const own = lines.filter((l) => l.who === id);
+
 	return {
 		solos: own.length,
 		notes: own.reduce((n, l) => n + l.tones.length, 0),
@@ -111,6 +115,7 @@ function index(pool: Line[]) {
 		{ length: maxMemory + 1 },
 		() => new Map(),
 	);
+
 	for (const line of pool)
 		line.tones.forEach((_, i) => {
 			for (let j = 1; j <= Math.min(maxMemory, i); j++) {
@@ -118,11 +123,14 @@ function index(pool: Line[]) {
 					.slice(i - j, i)
 					.map((t) => pc(t.key))
 					.join(" ");
+
 				const list = orders[j].get(context);
+
 				if (list) list.push([line, i]);
 				else orders[j].set(context, [[line, i]]);
 			}
 		});
+
 	return orders;
 }
 
@@ -130,23 +138,33 @@ const cache = new Map<PlayerId, Index[]>();
 
 function fold(key: number, near: number, [lo, hi]: [number, number]) {
 	let k = key;
+
 	while (k - near > 7) k -= 12;
+
 	while (near - k > 7) k += 12;
+
 	while (k < lo) k += 12;
+
 	while (k > hi) k -= 12;
+
 	return k;
 }
 
 function clamp(key: number, [lo, hi]: [number, number]) {
 	let k = key;
+
 	while (k < lo) k += 12;
+
 	while (k > hi) k -= 12;
+
 	return k;
 }
 
 function roomy(key: number, [lo, hi]: [number, number]) {
 	if (key > hi - 4 && key - 12 >= lo) return key - 12;
+
 	if (key < lo + 4 && key + 12 <= hi) return key + 12;
+
 	return key;
 }
 
@@ -160,80 +178,110 @@ export function ask({
 }: AskOptions): Answer {
 	const spec = players.find((p) => p.id === player) ?? players[0];
 	let base = cache.get(player);
+
 	if (!base) {
 		base = index(lines.filter((l) => l.who === player));
 		cache.set(player, base);
 	}
+
 	const mine = index(yours);
+
 	const everything = lines
 		.filter((l) => l.who === player)
 		.flatMap((line) => line.tones.map((_, i) => [line, i] as [Line, number]));
+
 	const total = roles.length * slotsPerBar;
 	const past = history.map(pc);
 	const out: Played[] = [];
 	let heard = 0;
 	let last = spec.range[0] + Math.round((spec.range[1] - spec.range[0]) * 0.55);
+
 	if (history.length)
 		last = fold(history[history.length - 1], last, spec.range);
 
 	for (let guard = 0; guard < 400; guard++) {
 		let options: [Line, number][] = [];
 		let used = 0;
+
 		for (let j = Math.min(memory, past.length); j >= 1; j--) {
 			const context = past.slice(-j).join(" ");
+
 			options = [
 				...(base[j].get(context) ?? []),
 				...(mine[j].get(context) ?? []),
 			];
+
 			if (options.length) {
 				used = j;
+
 				break;
 			}
 		}
+
 		if (!options.length) options = everything;
+
 		let echo = 0;
+
 		while (echo < out.length && out[out.length - 1 - echo].line.who === "you")
 			echo++;
+
 		if (echo >= 4) {
 			const own = options.filter(([line]) => line.who !== "you");
+
 			options = own.length ? own : everything;
 		}
 
 		const prev = out.at(-1);
+
 		const place = (line: Line, i: number) => {
 			const tone = line.tones[i];
+
 			if (!prev) return tone.slot % 3;
+
 			const gap = i > 0 ? tone.slot - line.tones[i - 1].slot : 3;
 			const step = prev.at + Math.max(1, Math.min(6, gap));
+
 			return step + (((((tone.slot % 3) - (step % 3)) % 3) + 3) % 3);
 		};
+
 		const weights = options.map(([line, i]) => {
 			const at = place(line, i);
 			const role =
 				roles[Math.min(roles.length - 1, Math.floor(at / slotsPerBar))];
 			const w = line.tones[i].role === role ? 3 : 1;
+
 			return w;
 		});
+
 		let pick = random() * weights.reduce((a, b) => a + b, 0);
 		let choice = options[options.length - 1];
+
 		for (let k = 0; k < options.length; k++) {
 			pick -= weights[k];
+
 			if (pick <= 0) {
 				choice = options[k];
+
 				break;
 			}
 		}
+
 		const [line, i] = choice;
 		const tone = line.tones[i];
 		const at = place(line, i);
+
 		if (at >= total) break;
+
 		const follows = prev && prev.line === line && prev.index === i - 1;
+
 		const key = follows
 			? clamp(last + tone.key - line.tones[i - 1].key, spec.range)
 			: Math.abs(tone.key - last) > 12
 				? fold(tone.key, last, spec.range)
 				: roomy(clamp(tone.key, spec.range), spec.range);
+
 		if (!out.length) heard = used;
+
 		out.push({ key, at, length: tone.length, line, index: i, heard: used });
 		past.push(pc(key));
 		last = key;
@@ -241,8 +289,10 @@ export function ask({
 
 	out.forEach((note, k) => {
 		const next = out[k + 1]?.at ?? total;
+
 		note.length = Math.max(1, Math.min(note.length, next - note.at));
 	});
+
 	return { notes: out, heard };
 }
 
@@ -256,9 +306,11 @@ export interface Fragment {
 
 export function fragments(notes: Played[]): Fragment[] {
 	const out: Fragment[] = [];
+
 	notes.forEach((note, k) => {
 		const last = out.at(-1);
 		const prev = notes[k - 1];
+
 		if (
 			last &&
 			prev &&
@@ -276,5 +328,6 @@ export function fragments(notes: Played[]): Fragment[] {
 				time: note.line.tones[note.index].time,
 			});
 	});
+
 	return out;
 }

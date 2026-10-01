@@ -32,9 +32,11 @@ export function NotebookPage({
 	const pending = view.live ? thinking(view.turns) : null;
 	const chosen = all.find((s) => s.id === picked) ?? all.at(-1) ?? null;
 	const following = picked === null && pending;
+
 	const turn = following
 		? pending
 		: view.turns.find((t) => t.index === chosen?.turn);
+
 	const thought = unmarked(turn?.think ?? "") || unmarked(turn?.say ?? "");
 	const lines = caption(thought);
 	const streaming = !!following;
@@ -43,6 +45,7 @@ export function NotebookPage({
 
 	useLayoutEffect(() => {
 		const element = strip.current;
+
 		if (element && chips) element.scrollLeft = element.scrollWidth;
 	}, [chips]);
 
@@ -139,15 +142,22 @@ function Planned({ term, text }: { term: string; text: string | null }) {
 
 	useLayoutEffect(() => {
 		const element = clamp.current;
+
 		if (!element || !text) {
 			setClipped(false);
+
 			return;
 		}
+
 		const measure = () =>
 			setClipped(element.scrollHeight > element.clientHeight + 1);
+
 		measure();
+
 		const observer = new ResizeObserver(measure);
+
 		observer.observe(element);
+
 		return () => observer.disconnect();
 	}, [text]);
 

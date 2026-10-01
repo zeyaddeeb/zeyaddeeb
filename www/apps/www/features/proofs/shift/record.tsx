@@ -10,6 +10,7 @@ interface Tile {
 
 function tiles(state: AgentState, about: About | null): Tile[] {
 	const { records } = state;
+
 	return [
 		{
 			label: "Zeros located",
@@ -70,12 +71,16 @@ export function Arms({
 	fronts: Front[];
 }) {
 	if (!fronts.length) return null;
+
 	const rows = fronts.map((front) => {
 		const arm = state.arms.find((a) => a.front === front.id);
 		const pulls = arm?.pulls ?? 0;
+
 		return { front, pulls, mean: pulls ? (arm?.reward ?? 0) / pulls : 0 };
 	});
+
 	const best = Math.max(...rows.map((r) => r.mean), 1e-9);
+
 	return (
 		<div className="ns-arms">
 			<p className="ns-eyebrow">Where it chose to work</p>
@@ -110,12 +115,16 @@ export function Arms({
 export function Moves({ episodes }: { episodes: Episode[] }) {
 	const rows = Object.entries(MOVES).map(([id, title]) => {
 		const tried = episodes.filter((e) => e.heuristic === id);
+
 		const mean = tried.length
 			? tried.reduce((sum, e) => sum + e.reward, 0) / tried.length
 			: 0;
+
 		return { id, title, tried: tried.length, mean };
 	});
+
 	const best = Math.max(...rows.map((r) => r.mean), 1e-9);
+
 	return (
 		<div className="ns-arms ns-moves">
 			<p className="ns-eyebrow">Pólya’s moves, by what they earned</p>

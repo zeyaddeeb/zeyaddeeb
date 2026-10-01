@@ -12,8 +12,10 @@ impl ActionMailbox {
         if self.expected.is_some() {
             return None;
         }
+
         self.next_id += 1;
         self.expected = Some((episode, self.next_id));
+
         Some(self.next_id)
     }
     pub fn receive(&mut self, message: ActionMsg) {
@@ -30,7 +32,9 @@ impl ActionMailbox {
     }
     pub fn take(&mut self) -> Option<ActionMsg> {
         let reply = self.reply.take()?;
+
         self.expected = None;
+
         Some(reply)
     }
     pub fn cancel(&mut self) {
@@ -55,14 +59,19 @@ mod tests {
     fn bounds_requests_and_discards_stale_reset_reconnect_and_duplicate_replies() {
         let mut mailbox = ActionMailbox::default();
         let old = mailbox.begin(1).unwrap();
+
         assert!(mailbox.begin(1).is_none());
         mailbox.cancel();
+
         let new = mailbox.begin(2).unwrap();
+
         mailbox.receive(response(1, old));
         assert!(mailbox.take().is_none());
         mailbox.receive(response(1, new));
         assert!(mailbox.take().is_none());
+
         let mut invalid = response(2, new);
+
         invalid.protocol_version = 1;
         mailbox.receive(invalid);
         assert!(mailbox.take().is_none());

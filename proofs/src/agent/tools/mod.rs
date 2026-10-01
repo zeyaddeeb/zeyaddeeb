@@ -100,9 +100,11 @@ impl Tool {
     pub fn definition(self) -> ToolDefinition {
         let (description, properties, required) = self.shape();
         let mut properties = properties;
+
         if self.is_instrument() {
             add_prediction(&mut properties);
         }
+
         ToolDefinition {
             name: self.name().to_string(),
             description: description.to_string(),
@@ -277,7 +279,9 @@ When every obligation under a target is proved, the target is proved by composit
 
 pub fn work(front: &Front) -> Vec<Tool> {
     let mut tools = SHARED.to_vec();
+
     tools.extend(front.instruments);
+
     tools
 }
 
@@ -313,6 +317,7 @@ fn add_prediction(properties: &mut Map<String, Value>) {
         "claim".into(),
         string("Optional key of the conjecture this measurement tests."),
     );
+
     properties.insert(
         "expect".into(),
         json!({
@@ -344,6 +349,7 @@ mod tests {
     fn every_front_can_plan_and_conclude() {
         for front in FRONTS {
             let tools = work(front);
+
             assert!(tools.contains(&Tool::Plan) && tools.contains(&Tool::Conclude));
             assert!(tools.len() <= 10, "{} has {} tools", front.id, tools.len());
         }
@@ -352,8 +358,11 @@ mod tests {
     #[test]
     fn instruments_take_a_prediction() {
         let line = Tool::Line.definition();
+
         assert!(line.parameters["properties"]["expect"].is_object());
+
         let plan = Tool::Plan.definition();
+
         assert!(plan.parameters["properties"]["expect"].is_null());
     }
 }

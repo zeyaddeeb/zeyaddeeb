@@ -13,8 +13,11 @@ def test_health():
 def test_world_uses_camel_case_and_lists_every_level():
     world = client.get("/world").json()
     ids = [lv["id"] for lv in world["levels"]]
+
     assert ids == ["atlantic", "asia", "training", "carbon", "outage", "build"]
+
     carbon = next(lv for lv in world["levels"] if lv["id"] == "carbon")
+
     assert carbon["carbonCap"] == 30
     assert world["values"]["upgradeMw"] == 10
     assert world["rtt"]["london"]["keflavik"] == 29
@@ -22,6 +25,7 @@ def test_world_uses_camel_case_and_lists_every_level():
 
 def test_solve_returns_the_optimum():
     body = client.post("/solve", json={"level": "atlantic"}).json()
+
     assert body["totals"]["total"] == 7800
     assert body["solver"]["engine"] == "GLOP"
     assert {"city": "london", "site": "keflavik", "mw": 40} in body["routes"]
@@ -35,6 +39,7 @@ def test_solve_accepts_edits():
             "edits": {"offline": ["keflavik"], "latency": 60, "demand": 1.2},
         },
     ).json()
+
     assert all(p["site"] != "keflavik" for p in body["training"])
     assert body["totals"]["demand"] == pytest.approx(240 * 1.2)
 
@@ -43,6 +48,7 @@ def test_solve_optimizes_the_build_with_scip():
     body = client.post(
         "/solve", json={"level": "build", "optimizeBuild": True}
     ).json()
+
     assert body["solver"]["engine"] == "SCIP + GLOP"
     assert 0 < sum(body["build"].values()) <= 4
 
@@ -69,10 +75,13 @@ def test_solve_rejects_bad_requests(payload):
 def test_grid_lists_every_act_two_chapter():
     world = client.get("/grid").json()
     ids = [lv["id"] for lv in world["levels"]]
+
     assert ids == ["siting", "wires", "prices"]
     assert world["levels"][2]["hubCapacity"] == {"goosecreek": 1200}
     assert {h["id"] for h in world["hubs"]} == {"goosecreek", "loudoun"}
+
     wires = world["levels"][1]
+
     assert wires["maxBuild"] == 1
     assert "goosecreek-waxpool" in wires["candidates"]
 
@@ -85,6 +94,7 @@ def test_grid_solve_scores_a_placement_with_glop():
             "placement": {"alpha": "dulles", "beta": "yardley"},
         },
     ).json()
+
     assert body["totals"]["total"] == 95250
     assert body["solver"]["engine"] == "GLOP"
     assert body["key"] is None
@@ -92,6 +102,7 @@ def test_grid_solve_scores_a_placement_with_glop():
 
 def test_grid_solve_shows_today_before_any_campus_lands():
     body = client.post("/grid/solve", json={"level": "siting"}).json()
+
     assert body["placement"] == {}
     assert body["totals"]["demand"] == 1150
     assert body["supply"]["goosecreek"] == 850
@@ -101,6 +112,7 @@ def test_grid_solve_optimizes_with_scip():
     body = client.post(
         "/grid/solve", json={"level": "wires", "optimize": True}
     ).json()
+
     assert body["solver"]["engine"] == "SCIP + GLOP"
     assert body["opened"] == ["yardley-waxpool"]
     assert body["key"]["line"] == "yardley-waxpool"
@@ -133,6 +145,7 @@ def test_grid_solve_rejects_bad_requests(payload):
 
 def test_plans_list_acts_three_and_four():
     world = client.get("/plans").json()
+
     assert [lv["id"] for lv in world["levels"]] == [
         "lead",
         "bridge",
@@ -141,6 +154,7 @@ def test_plans_list_acts_three_and_four():
         "worst",
         "knowing",
     ]
+
     assert world["levels"][3]["recourse"] is True
 
 
@@ -154,7 +168,9 @@ def test_plan_solve_scores_a_schedule_and_the_solver_replays():
             },
         },
     ).json()
+
     best = client.post("/plan/solve", json={"level": "lead"}).json()
+
     assert mine["total"] > best["total"]
     assert best["trace"][-1]["total"] == best["total"]
     assert best["solver"]["engine"] == "SCIP + GLOP"
@@ -183,4 +199,5 @@ def test_plan_solve_rejects_bad_schedules(schedule):
     response = client.post(
         "/plan/solve", json={"level": "lead", "schedule": schedule}
     )
+
     assert response.status_code == 422

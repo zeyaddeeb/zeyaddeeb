@@ -191,11 +191,17 @@ export type Stage = Place &
 
 function stageOf(id: string, place: Place): Stage {
 	const route = copies.find((c) => c.id === id);
+
 	if (route) return { ...place, kind: "route", copy: route };
+
 	const grid = gridCopies.find((c) => c.id === id);
+
 	if (grid) return { ...place, kind: "grid", copy: grid };
+
 	const plan = planCopies.find((c) => c.id === id);
+
 	if (plan) return { ...place, kind: "plan", copy: plan };
+
 	throw new Error(`no copy for ${id}`);
 }
 
@@ -212,9 +218,13 @@ export function firstStage(where: (s: Stage) => boolean): number {
 export function nextLabel(index: number): string | null {
 	const here = stages[index];
 	const next = stages[index + 1];
+
 	if (!next) return null;
+
 	if (next.chapter === here.chapter) return "Next part";
+
 	if (next.chapter.act === here.chapter.act) return "Next chapter";
+
 	return "Next act";
 }
 
