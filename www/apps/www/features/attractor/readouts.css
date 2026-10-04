@@ -99,11 +99,13 @@
 
 @media (max-width: 640px) {
 	.at-readout {
-		min-height: 88px;
+		gap: 6px;
+		min-height: 0;
 	}
 
 	.at-readout__text {
 		font-size: 13px;
+		line-height: 1.4;
 	}
 
 	.at-digits {

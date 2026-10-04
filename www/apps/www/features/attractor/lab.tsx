@@ -104,6 +104,7 @@ export function AttractorLab() {
 	const [paused, setPaused] = useState(false);
 	const [fast, setFast] = useState(false);
 	const [caption, setCaption] = useState(FIRST);
+	const [last, setLast] = useState<"copy" | "crowd">("crowd");
 	const rhoNow = useRef(rho);
 
 	rhoNow.current = rho;
@@ -188,55 +189,71 @@ export function AttractorLab() {
 		[sim, wake],
 	);
 
+	const dropped = useCallback(() => {
+		setLast("crowd");
+		wake();
+	}, [wake]);
+
+	const active = { copy: Boolean(reading.copy), crowd: Boolean(reading.tally) };
+	const showing = active[last]
+		? last
+		: active.copy
+			? "copy"
+			: active.crowd
+				? "crowd"
+				: "hint";
+
+	const playback = (
+		<>
+			<ControlButton
+				className="at-control"
+				pressed={fast}
+				aria-pressed={fast}
+				aria-label="Faster"
+				onClick={() => setFast((f) => !f)}
+				disabled={!sim}
+			>
+				<svg
+					className="at-control__icon"
+					viewBox="0 0 16 16"
+					aria-hidden="true"
+				>
+					<path d="M2 3 L8 8 L2 13 Z M8 3 L14 8 L8 13 Z" />
+				</svg>
+				<span className="at-control__label">Faster</span>
+			</ControlButton>
+			<ControlButton
+				className="at-control"
+				pressed={paused}
+				aria-label={paused ? "Play" : "Pause"}
+				onClick={() => setPaused((p) => !p)}
+				disabled={!sim}
+			>
+				<svg
+					className="at-control__icon"
+					viewBox="0 0 16 16"
+					aria-hidden="true"
+				>
+					<path
+						d={
+							paused
+								? "M4 2.5 L13 8 L4 13.5 Z"
+								: "M3.5 2.5 H6.5 V13.5 H3.5 Z M9.5 2.5 H12.5 V13.5 H9.5 Z"
+						}
+					/>
+				</svg>
+				<span className="at-control__label">{paused ? "Play" : "Pause"}</span>
+			</ControlButton>
+		</>
+	);
+
 	return (
-		<div className="at" ref={root}>
+		<div className="at" ref={root} data-showing={showing}>
 			<div className="at-top">
 				<p className="at-caption">
 					<ReservedText text={caption} samples={CAPTION_SPACE} />
 				</p>
-				<div className="at-top__controls">
-					<ControlButton
-						className="at-control"
-						pressed={fast}
-						aria-pressed={fast}
-						aria-label="Faster"
-						onClick={() => setFast((f) => !f)}
-						disabled={!sim}
-					>
-						<svg
-							className="at-control__icon"
-							viewBox="0 0 16 16"
-							aria-hidden="true"
-						>
-							<path d="M2 3 L8 8 L2 13 Z M8 3 L14 8 L8 13 Z" />
-						</svg>
-						<span className="at-control__label">Faster</span>
-					</ControlButton>
-					<ControlButton
-						className="at-control"
-						pressed={paused}
-						aria-label={paused ? "Play" : "Pause"}
-						onClick={() => setPaused((p) => !p)}
-						disabled={!sim}
-					>
-						<svg
-							className="at-control__icon"
-							viewBox="0 0 16 16"
-							aria-hidden="true"
-						>
-							<path
-								d={
-									paused
-										? "M4 2.5 L13 8 L4 13.5 Z"
-										: "M3.5 2.5 H6.5 V13.5 H3.5 Z M9.5 2.5 H12.5 V13.5 H9.5 Z"
-								}
-							/>
-						</svg>
-						<span className="at-control__label">
-							{paused ? "Play" : "Pause"}
-						</span>
-					</ControlButton>
-				</div>
+				<div className="at-top__controls">{playback}</div>
 			</div>
 
 			<section className="at-fig at-fig--wheel" aria-labelledby="at-wheel">
@@ -247,7 +264,7 @@ export function AttractorLab() {
 					Drag it to spin it. Tap a cup to splash water in.
 				</p>
 				<div className="at-figure">
-					<WheelView sim={sim} paused={paused} />
+					<WheelView sim={sim} paused={paused} onGrab={wake} />
 				</div>
 			</section>
 
@@ -260,7 +277,7 @@ export function AttractorLab() {
 					to start a few wheels there.
 				</p>
 				<div className="at-figure">
-					<PathView sim={sim} onDrop={wake} />
+					<PathView sim={sim} onDrop={dropped} />
 				</div>
 			</section>
 
@@ -269,6 +286,7 @@ export function AttractorLab() {
 			</div>
 
 			<div className="at-cell at-cell--wheel-acts at-actions">
+				<span className="at-playback">{playback}</span>
 				<ControlButton
 					className="at-button"
 					aria-label="Push anticlockwise"
@@ -296,7 +314,10 @@ export function AttractorLab() {
 					aria-label={
 						reading.copy ? "Remove copy" : "Copy, rounded to three places"
 					}
-					onClick={() => act((s) => (s.copy ? s.dropCopy() : s.makeCopy()))}
+					onClick={() => {
+						setLast("copy");
+						act((s) => (s.copy ? s.dropCopy() : s.makeCopy()));
+					}}
 					disabled={!sim}
 				>
 					<span className="at-long">
@@ -313,7 +334,10 @@ export function AttractorLab() {
 					aria-label={
 						reading.tally ? "Start 100 new twins" : "Add 100 twin wheels"
 					}
-					onClick={() => act((s) => s.dropHundred())}
+					onClick={() => {
+						setLast("crowd");
+						act((s) => s.dropHundred());
+					}}
 					disabled={!sim}
 				>
 					<span className="at-long">
@@ -340,6 +364,12 @@ export function AttractorLab() {
 			<div className="at-cell at-cell--path-read">
 				<CrowdReadout reading={reading} />
 			</div>
+
+			<p className="at-cell at-cell--hint">
+				Drag the wheel to spin it, or tap a cup to splash water in. The shape
+				its path keeps tracing is its <strong>attractor</strong>. Tap the path
+				to start a few wheels there.
+			</p>
 
 			{error ? (
 				<p className="at-error">

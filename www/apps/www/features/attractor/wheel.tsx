@@ -15,6 +15,8 @@ const SPOUT = 58;
 const STREAM_END = CY - R - CUP_H / 2 + 6;
 const HISTORY = 96;
 const SLOP = 6;
+const GRAB = 0.06;
+const SLIP = 0.6;
 
 const around = (i: number) => (i / CUPS) * Math.PI * 2;
 const at = (theta: number) => ({
@@ -31,17 +33,37 @@ interface Press {
 	x: number;
 	y: number;
 	angle: number;
-	t: number;
+	finger: number;
+	last: number;
+	offset: number;
+	vel: number;
 	cup: number;
 	spinning: boolean;
 }
 
+function toLocal(el: SVGSVGElement, clientX: number, clientY: number) {
+	const box = el.getBoundingClientRect();
+	const scale = Math.max(400 / box.width, 440 / box.height);
+	const ox = (box.width * scale - 400) / 2;
+	const oy = (box.height * scale - 440) / 2;
+
+	return {
+		x: (clientX - box.left) * scale - ox,
+		y: (clientY - box.top) * scale - oy,
+	};
+}
+
+const onDisc = (p: { x: number; y: number }) =>
+	Math.hypot(p.x - CX, p.y - CY) <= R + CUP_H;
+
 export function WheelView({
 	sim,
 	paused,
+	onGrab,
 }: {
 	sim: Sim | null;
 	paused: boolean;
+	onGrab: () => void;
 }) {
 	const svg = useRef<SVGSVGElement>(null);
 	const spokes = useRef<SVGGElement>(null);
@@ -137,21 +159,53 @@ export function WheelView({
 		return sim.subscribe(draw);
 	}, [sim]);
 
-	const local = (e: PointerEvent<SVGSVGElement>) => {
+	useEffect(() => {
+		if (!sim) return;
+
+		return sim.subscribe((dt) => {
+			const d = press.current;
+
+			if (!d?.spinning || dt <= 0) return;
+
+			const rate = playback(sim.rho) * sim.speed;
+
+			d.vel = 0.5 * d.vel + (0.5 * (d.finger - d.last)) / dt;
+			d.last = d.finger;
+
+			let gap = d.finger + d.offset - sim.wheel.angle();
+
+			if (Math.abs(gap) > SLIP) {
+				const slip = gap - Math.sign(gap) * SLIP;
+
+				d.offset -= slip;
+				gap -= slip;
+			}
+
+			sim.spinTo((d.vel + gap / GRAB) / rate);
+		});
+	}, [sim]);
+
+	useEffect(() => {
 		const el = svg.current;
 
-		if (!el) return null;
+		if (!el) return;
 
-		const box = el.getBoundingClientRect();
-		const scale = Math.max(400 / box.width, 440 / box.height);
-		const ox = (box.width * scale - 400) / 2;
-		const oy = (box.height * scale - 440) / 2;
+		const hold = (e: TouchEvent) => {
+			const t = e.touches[0];
 
-		return {
-			x: (e.clientX - box.left) * scale - ox,
-			y: (e.clientY - box.top) * scale - oy,
+			if (
+				e.touches.length === 1 &&
+				t &&
+				onDisc(toLocal(el, t.clientX, t.clientY))
+			) {
+				e.preventDefault();
+			}
 		};
-	};
+
+		el.addEventListener("touchstart", hold, { passive: false });
+
+		return () => el.removeEventListener("touchstart", hold);
+	}, []);
 
 	const cupAt = (x: number, y: number) => {
 		if (!sim) return -1;
@@ -172,25 +226,27 @@ export function WheelView({
 	};
 
 	const onDown = (e: PointerEvent<SVGSVGElement>) => {
-		if (!sim) return;
+		const el = svg.current;
 
-		const p = local(e);
+		if (!sim || !el || press.current) return;
 
-		if (!p) return;
+		const p = toLocal(el, e.clientX, e.clientY);
 
-		const dx = p.x - CX;
-		const dy = p.y - CY;
-
-		if (Math.hypot(dx, dy) > R + CUP_H) return;
+		if (!onDisc(p)) return;
 
 		e.currentTarget.setPointerCapture(e.pointerId);
+
+		const angle = Math.atan2(p.x - CX, -(p.y - CY));
 
 		press.current = {
 			id: e.pointerId,
 			x: e.clientX,
 			y: e.clientY,
-			angle: Math.atan2(dx, -dy),
-			t: performance.now(),
+			angle,
+			finger: angle,
+			last: angle,
+			offset: 0,
+			vel: 0,
 			cup: cupAt(p.x, p.y),
 			spinning: false,
 		};
@@ -198,35 +254,29 @@ export function WheelView({
 
 	const onMove = (e: PointerEvent<SVGSVGElement>) => {
 		const d = press.current;
+		const el = svg.current;
 
-		if (!sim || !d || d.id !== e.pointerId) return;
+		if (!sim || !el || !d || d.id !== e.pointerId) return;
 
-		if (!d.spinning && Math.hypot(e.clientX - d.x, e.clientY - d.y) < SLOP)
-			return;
-
-		const p = local(e);
-
-		if (!p) return;
-
+		const p = toLocal(el, e.clientX, e.clientY);
 		const angle = Math.atan2(p.x - CX, -(p.y - CY));
-		const now = performance.now();
-		const dt = (now - d.t) / 1000;
-
-		d.spinning = true;
-
-		if (dt < 0.008) return;
-
 		let turn = angle - d.angle;
 
 		if (turn > Math.PI) turn -= Math.PI * 2;
 
 		if (turn < -Math.PI) turn += Math.PI * 2;
 
-		sim.spinTo(0.6 * (turn / dt / playback(sim.rho)) + 0.4 * sim.wheel.x());
 		d.angle = angle;
-		d.t = now;
+		d.finger += turn;
 
-		if (paused) sim.emit();
+		if (d.spinning) return;
+
+		if (Math.hypot(e.clientX - d.x, e.clientY - d.y) < SLOP) return;
+
+		d.spinning = true;
+		d.last = d.finger;
+		d.offset = sim.wheel.angle() - d.finger;
+		onGrab();
 	};
 
 	const onUp = (e: PointerEvent<SVGSVGElement>) => {
@@ -236,7 +286,12 @@ export function WheelView({
 
 		press.current = null;
 
-		if (d.spinning || d.cup < 0) return;
+		if (d.spinning) {
+			sim.spinTo(d.vel / (playback(sim.rho) * sim.speed));
+			return;
+		}
+
+		if (d.cup < 0) return;
 
 		sim.pour(sim.wheel.angle() + around(d.cup));
 		sim.emit();
