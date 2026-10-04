@@ -26,6 +26,20 @@
 	outline-offset: 3px;
 }
 
+.at-readout-stack {
+	display: grid;
+}
+
+.at-readout-stack > * {
+	grid-area: 1 / 1;
+	min-width: 0;
+}
+
+.at-reserve {
+	visibility: hidden;
+	pointer-events: none;
+}
+
 .at-top {
 	display: flex;
 	grid-area: top;

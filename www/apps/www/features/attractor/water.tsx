@@ -1,5 +1,6 @@
 "use client";
 
+import { ReservedText } from "@/components/reserved-text";
 import {
 	CLOCKS,
 	FAR_START,
@@ -12,6 +13,7 @@ import {
 import "./water.css";
 
 const at = (u: number) => `${(u * 100).toFixed(3)}%`;
+const WATER_SPACE = regions.map((r) => `${r.label}: ${r.says}`);
 
 export function Water({
 	rho,
@@ -30,7 +32,10 @@ export function Water({
 					Water
 				</label>
 				<span className="at-water__says">
-					{here ? `${here.label}: ${here.says}` : ""}
+					<ReservedText
+						text={here ? `${here.label}: ${here.says}` : ""}
+						samples={WATER_SPACE}
+					/>
 				</span>
 			</div>
 			<div className="at-water__track">

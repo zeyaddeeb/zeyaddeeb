@@ -15,7 +15,9 @@
 	}
 
 	.at-top {
+		flex-direction: column-reverse;
 		padding: 14px var(--at-pad) 12px;
+		gap: 10px;
 	}
 
 	.at-caption {
@@ -24,6 +26,7 @@
 	}
 
 	.at-top__controls {
+		align-self: flex-end;
 		gap: 6px;
 	}
 
@@ -72,6 +75,14 @@
 
 	.at-actions {
 		gap: 6px;
+	}
+
+	.at-copy-control {
+		min-width: 76px;
+	}
+
+	.at .at-water__head {
+		display: grid;
 	}
 
 	.at-button {

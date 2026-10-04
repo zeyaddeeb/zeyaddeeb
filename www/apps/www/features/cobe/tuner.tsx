@@ -7,6 +7,7 @@ import {
 	useRef,
 } from "react";
 import { ControlButton } from "@/components/control-button";
+import { type DialPoint, dialDrag } from "./dial-drag";
 import {
 	celsius,
 	clampHeater,
@@ -21,7 +22,6 @@ import {
 
 const SWING = 58;
 
-const DEG_PER_PX = 1.2;
 const STEP_DEG = 360 / 25;
 const HOLD_MS = 340;
 const REPEAT_MS = 70;
@@ -49,6 +49,7 @@ function Step({
 			className="hc-step"
 			aria-label={label}
 			onPointerDown={(e) => {
+				if (!e.isPrimary || e.button !== 0) return;
 				e.currentTarget.setPointerCapture(e.pointerId);
 				onStep(sign);
 				stop();
@@ -81,7 +82,13 @@ export function Dial({
 }) {
 	const knob = useRef<SVGGElement>(null);
 	const turn = useRef(0);
-	const grip = useRef<{ x: number; y: number } | null>(null);
+	const grip = useRef<{
+		point: DialPoint;
+		center: DialPoint;
+		radius: number;
+		rotary: boolean;
+		pointerId: number;
+	} | null>(null);
 	const now = useRef({ heater, level });
 
 	now.current = { heater, level };
@@ -101,23 +108,37 @@ export function Dial({
 	};
 
 	const down = (e: PointerEvent<HTMLDivElement>) => {
+		if (!e.isPrimary || e.button !== 0 || grip.current) return;
+
+		const box = e.currentTarget.getBoundingClientRect();
+		const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+		const radius = box.width / 2;
+
 		e.currentTarget.setPointerCapture(e.pointerId);
-		grip.current = { x: e.clientX, y: e.clientY };
+		grip.current = {
+			point: { x: e.clientX, y: e.clientY },
+			center,
+			radius,
+			rotary:
+				Math.hypot(e.clientX - center.x, e.clientY - center.y) >= radius * 0.3,
+			pointerId: e.pointerId,
+		};
 	};
 
 	const move = (e: PointerEvent<HTMLDivElement>) => {
 		const g = grip.current;
 
-		if (!g) return;
+		if (!g || g.pointerId !== e.pointerId) return;
 
-		const delta = e.clientX - g.x + (g.y - e.clientY);
+		const point = { x: e.clientX, y: e.clientY };
+		const delta = dialDrag(g.point, point, g.center, g.radius, g.rotary);
 
-		grip.current = { x: e.clientX, y: e.clientY };
-		if (delta) spin(delta * DEG_PER_PX);
+		g.point = point;
+		if (delta) spin(delta);
 	};
 
-	const up = () => {
-		grip.current = null;
+	const up = (e: PointerEvent<HTMLDivElement>) => {
+		if (grip.current?.pointerId === e.pointerId) grip.current = null;
 	};
 
 	const key = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -155,6 +176,7 @@ export function Dial({
 				onPointerMove={move}
 				onPointerUp={up}
 				onPointerCancel={up}
+				onLostPointerCapture={up}
 				onKeyDown={key}
 			>
 				<svg viewBox="0 0 160 160" aria-hidden="true">

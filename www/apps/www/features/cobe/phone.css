@@ -93,6 +93,16 @@
 		justify-self: end;
 	}
 
+	.hc-dial {
+		width: 160px;
+		height: 160px;
+	}
+
+	.hc-step {
+		width: 48px;
+		height: 48px;
+	}
+
 	.hc-horizon {
 		grid-area: horizon;
 		grid-template-columns: minmax(0, 1fr);

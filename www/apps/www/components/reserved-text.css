@@ -1,0 +1,13 @@
+.reserved-text {
+	display: grid;
+}
+
+.reserved-text > * {
+	grid-area: 1 / 1;
+	min-width: 0;
+}
+
+.reserved-text__sample {
+	visibility: hidden;
+	pointer-events: none;
+}

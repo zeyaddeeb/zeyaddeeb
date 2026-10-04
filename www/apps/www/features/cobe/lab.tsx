@@ -349,7 +349,7 @@ export function ColdLab() {
 				<div className="hc-console__dial">
 					<Dial heater={heater} level={level} onHeater={setHeater} />
 					<span className="hc-dial__label" aria-hidden="true">
-						Drag to turn
+						Turn the rim · slide the center
 					</span>
 				</div>
 				<div className="hc-console__side">

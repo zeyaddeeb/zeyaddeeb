@@ -8,9 +8,10 @@ import {
 	useState,
 } from "react";
 import { ControlButton } from "@/components/control-button";
+import { ReservedText } from "@/components/reserved-text";
 import { useReducedMotion } from "@/lib/hooks/use-animation-activity";
 import { useWasm } from "@/lib/hooks/use-wasm";
-import { describe, START_RHO } from "./model";
+import { describe, regions, START_RHO } from "./model";
 import { PathView } from "./path";
 import { CopyReadout, CrowdReadout, useReading } from "./readouts";
 import { Sim } from "./sim";
@@ -27,6 +28,27 @@ const FIRST = describe({
 	steady: false,
 	moving: true,
 });
+
+const CAPTION_SPACE = [
+	...new Set(
+		regions.flatMap(({ preset }) =>
+			([null, "rest", "clockwise", "anticlockwise"] as const).flatMap(
+				(ending) =>
+					[0, 999999].flatMap((flips) =>
+						[false, true].map((steady) =>
+							describe({
+								rho: preset,
+								ending,
+								flips,
+								steady,
+								moving: true,
+							}),
+						),
+					),
+			),
+		),
+	),
+];
 
 function Turn({ clockwise }: { clockwise: boolean }) {
 	return (
@@ -169,7 +191,9 @@ export function AttractorLab() {
 	return (
 		<div className="at" ref={root}>
 			<div className="at-top">
-				<p className="at-caption">{caption}</p>
+				<p className="at-caption">
+					<ReservedText text={caption} samples={CAPTION_SPACE} />
+				</p>
 				<div className="at-top__controls">
 					<ControlButton
 						className="at-control"
@@ -267,6 +291,7 @@ export function AttractorLab() {
 					Restart
 				</ControlButton>
 				<ControlButton
+					className="at-copy-control"
 					pressed={Boolean(reading.copy)}
 					aria-label={
 						reading.copy ? "Remove copy" : "Copy, rounded to three places"
@@ -298,11 +323,14 @@ export function AttractorLab() {
 						{reading.tally ? "New twins" : "100 twins"}
 					</span>
 				</ControlButton>
-				{reading.tally ? (
-					<ControlButton onClick={() => act((s) => s.clearCrowd())}>
-						Clear twins
-					</ControlButton>
-				) : null}
+				<ControlButton
+					className={reading.tally ? undefined : "at-reserve"}
+					aria-hidden={!reading.tally}
+					disabled={!reading.tally}
+					onClick={() => act((s) => s.clearCrowd())}
+				>
+					Clear twins
+				</ControlButton>
 			</div>
 
 			<div className="at-cell at-cell--wheel-read">
