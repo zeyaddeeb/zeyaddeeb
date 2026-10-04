@@ -1,0 +1,150 @@
+.hc-sky {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	background: var(--charcoal);
+	cursor: grab;
+	touch-action: pan-y;
+	user-select: none;
+	-webkit-touch-callout: none;
+}
+
+.hc-sky[data-grabbed="true"] {
+	touch-action: none;
+}
+
+.hc-sky__touch {
+	display: none;
+	position: absolute;
+	top: 10px;
+	left: 50%;
+	z-index: 3;
+	padding: 6px 9px;
+	translate: -50% 0;
+	background: color-mix(in srgb, var(--charcoal) 84%, transparent);
+	color: var(--paper);
+	font: 500 10px / 1 var(--font-mono);
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	white-space: nowrap;
+	pointer-events: none;
+}
+
+.hc-sky[data-grabbed="true"] .hc-sky__touch {
+	outline: 2px solid var(--yellow);
+}
+
+@media (pointer: coarse) {
+	.hc-sky__touch {
+		display: block;
+	}
+}
+
+.hc-sky:active {
+	cursor: grabbing;
+}
+
+.hc-sky::after {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	background:
+		linear-gradient(
+			to bottom,
+			var(--charcoal) 0,
+			color-mix(in srgb, var(--charcoal) 70%, transparent) 120px,
+			transparent 300px
+		),
+		linear-gradient(
+			to top,
+			var(--charcoal) 0,
+			color-mix(in srgb, var(--charcoal) 82%, transparent) 150px,
+			transparent 330px
+		);
+	content: "";
+	pointer-events: none;
+}
+
+.hc-sky:has(.hc-sky__keys:focus-visible) {
+	outline: 2px solid var(--yellow);
+	outline-offset: -4px;
+}
+
+.hc-sky__canvas {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	opacity: 0;
+	transition: opacity var(--dur-3) var(--ease-out);
+}
+
+.hc-sky[data-ready="true"] .hc-sky__canvas {
+	opacity: 1;
+}
+
+.hc-sky__keys {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	width: 100%;
+	height: 100%;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	cursor: inherit;
+	outline: none;
+	touch-action: inherit;
+}
+
+.hc-sky__beam {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+}
+
+.hc-sky__ring {
+	fill: none;
+	stroke: var(--yellow);
+	stroke-width: 2;
+	paint-order: stroke;
+}
+
+.hc-sky__halo {
+	fill: none;
+	stroke: var(--charcoal);
+	stroke-width: 5;
+	opacity: 0.85;
+}
+
+.hc-sky__mark {
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	pointer-events: none;
+	white-space: nowrap;
+}
+
+.hc-sky__dot {
+	width: 6px;
+	height: 6px;
+	margin-left: -3px;
+	border-radius: 50%;
+	background: var(--paper);
+}
+
+.hc-sky__text {
+	padding: 3px 5px;
+	background: color-mix(in srgb, var(--charcoal) 82%, transparent);
+	color: var(--paper);
+	font: 500 10px / 1 var(--font-mono);
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}

@@ -1,0 +1,145 @@
+html:has(.hc-sheet[open]) {
+	overflow: hidden;
+}
+
+.hc-sheet {
+	width: min(820px, calc(100vw - 32px));
+	max-width: none;
+	max-height: calc(100dvh - 32px);
+	margin: auto;
+	padding: 0;
+	overflow: auto;
+	overscroll-behavior: contain;
+	border: 2px solid var(--ink);
+	background: var(--paper);
+	color: var(--ink);
+	font: 400 18px / 1.6 var(--font-serif);
+}
+
+.hc-sheet[open] {
+	animation: hc-sheet-in var(--dur-3) var(--ease-out);
+}
+
+.hc-sheet::backdrop {
+	background: color-mix(in srgb, var(--ink) 62%, transparent);
+}
+
+.hc-sheet__head {
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 44px;
+	align-items: center;
+	gap: 16px;
+	padding: 18px clamp(16px, 3vw, 32px) 14px;
+	border-top: 8px solid var(--yellow);
+	border-bottom: 2px solid var(--ink);
+	background: var(--paper);
+}
+
+.hc-sheet__head h2 {
+	margin: 0;
+	font: 600 clamp(22px, 2.6vw, 30px) / 1.1 var(--font-display);
+	letter-spacing: -0.025em;
+}
+
+.hc-sheet__close {
+	display: grid;
+	place-items: center;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	border: 2px solid var(--ink);
+	background: var(--paper);
+	transition: background-color var(--dur-1) var(--ease);
+}
+
+.hc-sheet__close:hover {
+	background: var(--yellow);
+}
+
+.hc-sheet__close svg {
+	width: 16px;
+	height: 16px;
+	fill: none;
+	stroke: var(--ink);
+	stroke-width: 2.5;
+	stroke-linecap: square;
+}
+
+.hc-sheet__body {
+	display: grid;
+	gap: 14px;
+	padding: 22px clamp(16px, 3vw, 32px) 28px;
+}
+
+.hc-sheet__body p {
+	max-width: 64ch;
+	margin: 0;
+}
+
+.hc-sheet__fig {
+	display: grid;
+	gap: 6px;
+	margin: 6px 0 0;
+}
+
+.hc-sheet__fig figcaption {
+	color: var(--dim);
+	font: italic 400 15px / 1.5 var(--font-serif);
+}
+
+.hc-sheet__source {
+	color: var(--dim);
+	font: 400 14px / 1.5 var(--font-serif);
+}
+
+.hc-chart {
+	width: 100%;
+	height: auto;
+}
+
+.hc-chart__grid {
+	stroke: color-mix(in srgb, var(--ink) 12%, transparent);
+	stroke-width: 1;
+}
+
+.hc-chart__zero {
+	stroke: var(--ink);
+	stroke-width: 1.5;
+}
+
+.hc-chart__tick,
+.hc-chart__label {
+	fill: var(--dim);
+	font: 500 11px / 1 var(--font-mono);
+}
+
+.hc-chart__curve {
+	fill: none;
+	stroke: var(--red);
+	stroke-width: 2;
+}
+
+.hc-chart__point {
+	fill: var(--ink);
+}
+
+.hc-chart__bar {
+	stroke: var(--ink);
+	stroke-width: 1.5;
+}
+
+@keyframes hc-sheet-in {
+	from {
+		opacity: 0;
+		translate: 0 12px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hc-sheet[open] {
+		animation: none;
+	}
+}

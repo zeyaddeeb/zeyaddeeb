@@ -1,0 +1,256 @@
+.hc-read {
+	justify-items: end;
+	text-align: right;
+}
+
+.hc-console__dial {
+	display: grid;
+	justify-items: center;
+	gap: 8px;
+}
+
+.hc-console__side {
+	justify-self: start;
+}
+
+.hc-tuner {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+}
+
+.hc-step {
+	display: grid;
+	place-items: center;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	border: 2px solid color-mix(in srgb, var(--paper) 30%, transparent);
+	border-radius: 50%;
+	background: var(--charcoal);
+	color: var(--paper);
+	touch-action: manipulation;
+	user-select: none;
+	transition: border-color var(--dur-1) var(--ease);
+}
+
+.hc-step:hover {
+	border-color: var(--paper);
+}
+
+.hc-step:active {
+	border-color: var(--yellow);
+	color: var(--yellow);
+}
+
+.hc-step svg {
+	width: 14px;
+	height: 14px;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 2;
+	stroke-linecap: square;
+}
+
+.hc-dial {
+	width: 132px;
+	height: 132px;
+	border-radius: 50%;
+	cursor: grab;
+	touch-action: none;
+	user-select: none;
+}
+
+.hc-dial:active {
+	cursor: grabbing;
+}
+
+.hc-dial svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.hc-dial__rim {
+	fill: var(--charcoal-2);
+	stroke: var(--paper);
+	stroke-width: 2;
+}
+
+.hc-dial__tick {
+	stroke: var(--hc-line);
+	stroke-width: 1.5;
+}
+
+.hc-dial__tick--major {
+	stroke: var(--paper);
+	stroke-width: 2;
+}
+
+.hc-dial__grip {
+	fill: var(--red);
+}
+
+.hc-dial__hub {
+	fill: var(--charcoal);
+	stroke: var(--hc-rule);
+	stroke-width: 2;
+}
+
+.hc-dial__label {
+	color: var(--hc-dim);
+	font: 500 10px / 1 var(--font-mono);
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+}
+
+.hc-read {
+	display: grid;
+	gap: 6px;
+	min-width: 0;
+}
+
+.hc-console {
+	z-index: 3;
+	display: grid;
+	grid-area: stage;
+	grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+	align-items: center;
+	align-self: end;
+	justify-self: center;
+	gap: 32px;
+	width: min(860px, 100%);
+	margin-bottom: 112px;
+	padding-inline: var(--hc-edge);
+}
+
+.hc-console .hc-read__k {
+	font: 600 clamp(36px, 3.4vw, 48px) / 0.95 var(--font-display);
+	font-variant-numeric: tabular-nums;
+	letter-spacing: -0.03em;
+	white-space: nowrap;
+}
+
+.hc-read__c {
+	color: var(--hc-dim);
+	font: 500 14px / 1.2 var(--font-mono);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.hc-hear {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.hc-hear svg {
+	width: 14px;
+	height: 14px;
+	fill: currentColor;
+}
+
+.hc-hear__wave {
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.5;
+}
+
+.hc-gauge__arc {
+	fill: none;
+	stroke: color-mix(in srgb, var(--paper) 46%, transparent);
+	stroke-width: 2;
+}
+
+.hc-gauge__tick {
+	stroke: color-mix(in srgb, var(--paper) 46%, transparent);
+	stroke-width: 2;
+}
+
+.hc-gauge__zero {
+	stroke: var(--paper);
+	stroke-width: 3;
+}
+
+.hc-gauge__hand {
+	stroke: var(--paper);
+	stroke-width: 4;
+	stroke-linecap: square;
+}
+
+.hc-gauge__shade {
+	fill: none;
+	stroke: var(--charcoal);
+	stroke-width: 7;
+	opacity: 0.6;
+}
+
+.hc-gauge[data-matched="true"] .hc-gauge__hand {
+	stroke: var(--yellow);
+}
+
+.hc-gauge__end,
+.hc-gauge__zoom {
+	fill: var(--paper);
+	stroke: var(--charcoal);
+	stroke-width: 2px;
+	stroke-linejoin: round;
+	paint-order: stroke;
+	font: 500 10px / 1 var(--font-mono);
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+.hc-gauge__zoom {
+	fill: var(--yellow);
+	font-size: 12px;
+}
+
+.hc-horizon {
+	z-index: 3;
+	display: grid;
+	grid-area: stage;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-self: end;
+	gap: 8px 24px;
+	margin: 0;
+	padding: 0 var(--hc-edge) 18px;
+	pointer-events: none;
+}
+
+.hc-fringes {
+	grid-column: 1 / -1;
+	width: 100%;
+	height: 56px;
+}
+
+.hc-fringes * {
+	vector-effect: non-scaling-stroke;
+}
+
+.hc-fringes__zero {
+	stroke: var(--hc-faint);
+	stroke-width: 1;
+}
+
+.hc-fringes__mid {
+	stroke: var(--hc-faint);
+	stroke-width: 1;
+	stroke-dasharray: 2 4;
+}
+
+.hc-fringes__trace {
+	fill: none;
+	stroke: var(--yellow);
+	stroke-width: 1.5;
+	stroke-linejoin: round;
+}
+
+.hc-horizon__note,
+.hc-credit {
+	margin: 0;
+	color: var(--hc-dim);
+	font: 500 10px / 1.3 var(--font-mono);
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}

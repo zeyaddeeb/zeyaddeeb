@@ -47,6 +47,15 @@ export interface Experiment {
 
 export const experiments: Experiment[] = [
 	{
+		id: "how-cold-is-space",
+		number: 18,
+		title: "How Cold Is Space",
+		line: "Hold a heater up to the sky and turn it until you can’t tell them apart, the way COBE did in 1990. Then point it the other way and find out how fast we’re moving.",
+		stack: ["Rust", "WASM", "Rerun", "three.js", "COBE FIRAS"],
+		href: "/experiments/how-cold-is-space",
+		topics: ["math", "graphics"],
+	},
+	{
 		id: "attractor",
 		number: 17,
 		title: "Which Way It Turns",

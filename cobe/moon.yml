@@ -1,0 +1,16 @@
+language: "python"
+stack: "backend"
+
+tasks:
+  fetch:
+    script: "PYTHONPATH=src uv run python -m cobe fetch --time-ordered"
+    options:
+      cache: false
+  build:
+    script: "PYTHONPATH=src uv run python -m cobe build"
+    options:
+      cache: false
+  test:
+    script: "uv run pytest"
+  lint:
+    script: "uv run ruff check . && uv run ruff format --check ."

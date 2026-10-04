@@ -144,4 +144,38 @@ declare module "@zeyaddeeb/wasm" {
 		set_rho(rho: number): void;
 		advance(tau: number): Float32Array;
 	}
+
+	export class Sky {
+		constructor(bytes: Uint8Array);
+		free(): void;
+		temperature(x: number, y: number, z: number): number;
+		leftover(x: number, y: number, z: number): number;
+		dust(x: number, y: number, z: number): number;
+		seen(x: number, y: number, z: number): number;
+		lean(x: number, y: number, z: number): number;
+		monopole(): number;
+		dipole(): number;
+		direction(): Float32Array;
+		unit_leftover(): number;
+		fringes(
+			sky_t: number,
+			heater_t: number,
+			dust: number,
+			samples: number,
+		): Float32Array;
+	}
+
+	export function heater_gap(
+		sky_t: number,
+		heater_t: number,
+		leftover: number,
+	): number;
+	export function beat_hz(gap: number): number;
+	export function speed_kms(
+		t_a: number,
+		lean_a: number,
+		t_b: number,
+		lean_b: number,
+	): number;
+	export function celsius(kelvin: number): number;
 }

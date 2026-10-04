@@ -1,0 +1,148 @@
+{
+  "fields": [
+    [
+      "ct_head",
+      {
+        "fields": [
+          ["gmt", "|S14", 0],
+          ["time", "<i8", 14],
+          ["space_time", ["|i1", [6]], 22],
+          ["mjr_frm_no", "<i4", 28],
+          ["orbit", "<i4", 32],
+          ["hskp1_tlm_fmt", "|i1", 36],
+          ["hskp2_tlm_fmt", "|i1", 37],
+          ["ingest_spares", ["|i1", [18]], 38],
+          ["dataset_id", "<i2", 56],
+          ["instr_spares", ["|i1", [6]], 58]
+        ],
+        "itemsize": 64
+      },
+      0
+    ],
+    [
+      "sci_head",
+      {
+        "fields": [
+          ["chan_id", "<i2", 0],
+          ["gain", "<i2", 2],
+          ["mtm_speed", "<i2", 4],
+          ["mtm_length", "<i2", 6],
+          ["data_qual", ["|i1", [60]], 8],
+          ["data_ready", ["<i2", [8]], 68],
+          ["sc_head0", "<i2", 84],
+          ["sc_head1a", "|i1", 86],
+          ["sc_head1b", "|i1", 87],
+          ["sc_head2", "<i2", 88],
+          ["sc_head3", "<i2", 90],
+          ["sc_head4", "<i2", 92],
+          ["sc_head5", "<i2", 94],
+          ["sc_head6", "<i2", 96],
+          ["sc_head7", "<i2", 98],
+          ["sc_head8", "<i2", 100],
+          ["sc_head9", "<i2", 102],
+          ["sc_head10", "<i2", 104],
+          ["sc_head11", "<i2", 106],
+          ["sc_head12", "<i2", 108],
+          ["sc_head13", "<i2", 110],
+          ["sc_head14", "<i2", 112],
+          ["sc_head15", "<i2", 114],
+          ["sc_head16", "<i2", 116],
+          ["sc_head17", "<i2", 118],
+          ["sc_head18", "<i2", 120],
+          ["sc_head19", "<i2", 122],
+          ["sc_head20", "<i2", 124],
+          ["sc_head21", "<i2", 126],
+          ["sc_head22", "<i2", 128],
+          ["sc_head23", "<i2", 130],
+          ["sc_head24", "<i2", 132],
+          ["sc_head25", "|S2", 134]
+        ],
+        "itemsize": 136
+      },
+      64
+    ],
+    [
+      "ifg_data",
+      {
+        "fields": [
+          ["ifg", ["<i2", [512]], 0],
+          ["gltch", ["<u2", [32]], 1024]
+        ],
+        "itemsize": 1088
+      },
+      200
+    ],
+    [
+      "dq_data",
+      {
+        "fields": [
+          ["fake", "<i2", 0],
+          ["xcal_pos", "<i2", 2],
+          ["iref_temp", "<f4", 4],
+          ["eng_time", "<i8", 8],
+          ["eng_rec", "<i4", 16],
+          ["data_quality", ["|i1", [110]], 20],
+          ["ifg_no", "<i4", 130],
+          ["dq_spares", ["|i1", [24]], 134]
+        ],
+        "itemsize": 158
+      },
+      1288
+    ],
+    [
+      "collect_time",
+      {
+        "fields": [
+          ["midpoint_time", "<i8", 0],
+          ["badtime_flag", "|i1", 8],
+          ["fpp_spare", "|i1", 9]
+        ],
+        "itemsize": 10
+      },
+      1446
+    ],
+    [
+      "attitude",
+      {
+        "fields": [
+          ["pixel_no", "<i4", 0],
+          ["equatorial", ["<f4", [3]], 4],
+          ["ra", "<i2", 16],
+          ["dec", "<i2", 18],
+          ["terr_pixel_no", "<i4", 20],
+          ["terr_latitude", "<i2", 24],
+          ["terr_longitude", "<i2", 26],
+          ["earth_limb", "<i2", 28],
+          ["earth_limb_azimuth", "<i2", 30],
+          ["sun_angle", "<i2", 32],
+          ["moon_angle", "<i2", 34],
+          ["moon_az_angle", "<i2", 36],
+          ["moon_phase", "<i2", 38],
+          ["sun_moon_dist", "<f4", 40],
+          ["cobe_moon_dist", "<f4", 44],
+          ["altitude", "<i2", 48],
+          ["projected_barycentric_velocity", "<i2", 50],
+          ["mcilwain_l_param", "<i2", 52],
+          ["galactic_longitude", "<i2", 54],
+          ["galactic_latitude", "<i2", 56],
+          ["ecliptic_longitude", "<i2", 58],
+          ["ecliptic_latitude", "<i2", 60],
+          ["orbital_phase", "<i2", 62],
+          ["projected_geocentric_velocity", "<i2", 64],
+          ["scan_angle", "<i2", 66],
+          ["sc_rotation_angle", "<i2", 68],
+          ["solution", "|i1", 70],
+          ["pixel_definition", "|S1", 71],
+          ["skymap_index", "<i2", 72],
+          ["exc_galactic_lat", "<i2", 74],
+          ["terr_rad_byte", "|i1", 76],
+          ["outside_galaxy_cut", "|i1", 77],
+          ["att_spares", ["|i1", [2]], 78]
+        ],
+        "itemsize": 80
+      },
+      1456
+    ]
+  ],
+  "itemsize": 1536
+}

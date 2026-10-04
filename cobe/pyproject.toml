@@ -1,0 +1,36 @@
+[project]
+name = "cobe"
+version = "0.1.0"
+description = "Builds the COBE FIRAS recording and sky data for the How Cold Is Space experiment."
+requires-python = ">=3.14"
+dependencies = [
+    "astropy>=8.0.1",
+    "h5py>=3.14,<4",
+    "numpy>=2.3,<3",
+    "pillow>=12,<13",
+    "rerun-sdk==0.38.1",
+    "scipy>=1.16,<2",
+]
+
+[dependency-groups]
+dev = ["pytest>=9.1,<10", "ruff>=0.16,<1"]
+
+[project.scripts]
+cobe = "cobe.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 79
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PL"]
+ignore = ["PLR2004", "PLR0913"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]
+addopts = "-q"

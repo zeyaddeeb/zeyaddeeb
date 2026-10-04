@@ -1,0 +1,138 @@
+.hc {
+	--hc-dim: color-mix(in srgb, var(--paper) 66%, transparent);
+	--hc-line: color-mix(in srgb, var(--paper) 34%, transparent);
+	--hc-faint: color-mix(in srgb, var(--paper) 14%, transparent);
+	--hc-rule: color-mix(in srgb, var(--paper) 18%, transparent);
+	--hc-deep: #2a4a7a;
+	--hc-cool: #3f8fd8;
+	--hc-edge: 32px;
+	--hc-stage: clamp(620px, calc(100svh - 56px), 900px);
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	grid-template-rows: var(--hc-stage) auto;
+	grid-template-areas:
+		"stage"
+		"err";
+	max-width: 1320px;
+	margin-inline: auto;
+	border: 2px solid var(--hc-rule);
+	background: var(--charcoal);
+	color: var(--paper);
+	font-family: var(--font-display);
+}
+
+.hc :focus-visible {
+	outline: 2px solid var(--yellow);
+	outline-offset: 3px;
+}
+
+.hc-sky-cell {
+	position: relative;
+	grid-area: stage;
+	min-width: 0;
+}
+
+.hc-lead {
+	z-index: 3;
+	display: grid;
+	grid-area: stage;
+	align-self: start;
+	justify-self: start;
+	gap: 22px;
+	max-width: min(520px, 44%);
+	padding: 32px var(--hc-edge) 0;
+	pointer-events: none;
+}
+
+.hc-caption {
+	min-width: 0;
+}
+
+.hc-caption__title {
+	margin: 0;
+	font: 600 clamp(32px, 3.6vw, 52px) / 1.02 var(--font-display);
+	letter-spacing: -0.035em;
+	text-wrap: balance;
+}
+
+.hc-stop {
+	color: var(--red);
+}
+
+.hc-caption__body {
+	min-height: calc(2 * 1.45em);
+	max-width: 36ch;
+	margin: 14px 0 0;
+	color: color-mix(in srgb, var(--paper) 84%, transparent);
+	font: 400 clamp(16px, 1.25vw, 18px) / 1.45 var(--font-display);
+	text-wrap: pretty;
+}
+
+.hc-moves {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	pointer-events: auto;
+}
+
+.hc-plate {
+	padding: 11px 15px;
+	border: 2px solid color-mix(in srgb, var(--paper) 28%, transparent);
+	background: var(--charcoal);
+	color: var(--paper);
+	font: 500 11px / 1 var(--font-mono);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	transition:
+		border-color var(--dur-1) var(--ease),
+		color var(--dur-1) var(--ease);
+}
+
+.hc-short {
+	display: none;
+}
+
+.hc-plate:hover {
+	border-color: var(--paper);
+}
+
+.hc-plate[data-cue="true"] {
+	border-color: var(--yellow);
+	color: var(--yellow);
+}
+
+.hc-plate:disabled {
+	opacity: 0.4;
+}
+
+.hc-pip {
+	z-index: 3;
+	grid-area: stage;
+	align-self: start;
+	justify-self: end;
+	width: clamp(240px, 25vw, 340px);
+	margin: 30px var(--hc-edge) 0 0;
+}
+
+.hc-eyebrow {
+	margin: 0;
+	color: var(--paper);
+	font: 500 11px / 1.4 var(--font-mono);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+.hc-note {
+	margin: 0;
+	color: var(--hc-dim);
+	font: 400 13px / 1.4 var(--font-display);
+}
+
+.hc-error {
+	grid-area: err;
+	margin: 0;
+	padding: 12px var(--hc-edge);
+	border-top: 2px solid var(--hc-rule);
+	color: var(--hc-dim);
+	font: 400 14px / 1.4 var(--font-display);
+}

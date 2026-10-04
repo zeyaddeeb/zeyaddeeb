@@ -1,0 +1,141 @@
+.hc-rec {
+	display: grid;
+	gap: 10px;
+}
+
+.hc-rec__frame {
+	position: relative;
+	aspect-ratio: 16 / 10;
+	border: 2px solid var(--hc-rule);
+	background: var(--charcoal);
+}
+
+.hc-rec__view {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+}
+
+.hc-rec__host {
+	position: absolute;
+	inset: calc(-1 * var(--hc-chrome, 52px)) 0 0 0;
+}
+
+.hc-rec__mount {
+	width: 100%;
+	height: 100%;
+}
+
+.hc-rec[data-open="false"] .hc-rec__host {
+	pointer-events: none;
+}
+
+.hc-rec__poster {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: end start;
+	padding: 12px;
+	background: var(--charcoal) url("/cobe/poster.webp") center / cover no-repeat;
+}
+
+.hc-rec__status {
+	color: var(--hc-dim);
+	font: 500 10px / 1.4 var(--font-mono);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+.hc-rec__foot {
+	display: grid;
+	gap: 10px;
+	justify-items: start;
+}
+
+.hc-rec__label {
+	display: grid;
+	gap: 3px;
+	margin: 0;
+}
+
+.hc-pip__when {
+	color: var(--paper);
+	font: 500 11px / 1.3 var(--font-mono);
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	font-variant-numeric: tabular-nums;
+}
+
+.hc-pip__what {
+	color: var(--hc-dim);
+	font: 400 13px / 1.35 var(--font-display);
+}
+
+.hc-rec__open {
+	display: inline-flex;
+	white-space: nowrap;
+	align-items: center;
+	gap: 8px;
+	padding: 0 0 5px;
+	border: 0;
+	border-bottom: 2px solid var(--red);
+	background: none;
+	color: var(--paper);
+	font: 500 11px / 1 var(--font-mono);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	transition: color var(--dur-1) var(--ease);
+}
+
+.hc-rec__open:hover {
+	color: var(--yellow);
+}
+
+.hc-rec__open:disabled {
+	opacity: 0.4;
+}
+
+.hc-rec__open svg {
+	width: 12px;
+	height: 12px;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.6;
+}
+
+.hc-rec__bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	height: 52px;
+	padding: 0 16px;
+	border-bottom: 2px solid var(--hc-rule);
+}
+
+.hc-rec[data-open="true"] .hc-rec__frame {
+	position: fixed;
+	inset: 0;
+	z-index: 80;
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	aspect-ratio: auto;
+	border: 0;
+}
+
+.hc-rec[data-open="true"] .hc-rec__view {
+	position: relative;
+	inset: auto;
+}
+
+.hc-rec[data-open="true"] .hc-rec__host {
+	inset: 0;
+}
+
+html:has(.hc-rec[data-open="true"]) {
+	overflow: hidden;
+}
+
+.hc-pip:has(.hc-rec[data-open="true"]) {
+	z-index: 90;
+}
