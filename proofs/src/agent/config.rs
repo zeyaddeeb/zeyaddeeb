@@ -98,7 +98,7 @@ pub fn archive() -> Option<String> {
 }
 
 pub fn model() -> String {
-    var("PROOFS_AGENT_MODEL", "Qwen/Qwen3.5-2B")
+    var("PROOFS_AGENT_MODEL", "Qwen/Qwen3.5-4B")
 }
 
 pub fn trial_pairs() -> usize {

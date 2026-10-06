@@ -192,6 +192,7 @@ impl Llm {
             .temperature(if ask.thinking { 0.6 } else { 0.7 })
             .additional_params(json!({
                 "enable_thinking": ask.thinking,
+                "chat_template_kwargs": { "enable_thinking": ask.thinking },
                 "top_p": 0.95,
                 "top_k": 20,
                 "presence_penalty": if ask.thinking { 1.5 } else { 0.0 },

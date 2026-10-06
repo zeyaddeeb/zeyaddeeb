@@ -334,6 +334,7 @@ async fn one_shift_climbs_the_trust_ladder_and_sleeps() {
         .any(|m| m["role"] == "tool")));
 
     assert_eq!(first["enable_thinking"], true);
+    assert_eq!(first["chat_template_kwargs"]["enable_thinking"], true);
     assert_eq!(first["model"], "mock");
     assert_eq!(first["stream"], true);
     assert!(first["tools"].as_array().unwrap().len() >= 7);
