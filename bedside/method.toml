@@ -1,0 +1,216 @@
+[meta]
+question = "Do biomarkers predicted by cell-line drug screens show up as treatment-specific benefit in real patients?"
+registered = "2026-10-08"
+
+[data.chord]
+study = "msk_chord_2024"
+citation = "Jee J, et al. Automated real-world data integration improves cancer outcome prediction. Nature 2024. PMID 39506116"
+license = "CC BY-NC-ND 4.0: non-commercial research with attribution; only aggregate statistics and model estimates are published, never patient-level or reprocessed copies"
+media = "https://media.githubusercontent.com/media/cBioPortal/datahub/master/public/msk_chord_2024"
+files = [
+    "data_clinical_patient.txt",
+    "data_clinical_sample.txt",
+    "data_timeline_treatment.txt",
+    "data_timeline_specimen.txt",
+    "data_cna.txt",
+    "data_gene_panel_matrix.txt",
+]
+api = "https://www.cbioportal.org/api"
+api_note = "mutations and structural variants come from the cBioPortal API (profiles msk_chord_2024_mutations and msk_chord_2024_structural_variants, sample list msk_chord_2024_all) because their datahub LFS objects are missing; gene panel definitions come from /gene-panels"
+panels = ["IMPACT341", "IMPACT410", "IMPACT468", "IMPACT505"]
+
+[data.depmap]
+release = "DepMap Public 24Q4"
+citation = "DepMap, Broad Institute. DepMap 24Q4 Public. figshare+ 2024, doi:10.25452/figshare.plus.27993248.v1"
+license = "CC BY 4.0"
+chosen = "the last release under CC BY with scripted download; 25Q2 and later sit behind a browser check and terms that are not CC BY"
+download = "https://ndownloader.figshare.com/files/"
+files = [
+    { name = "Model.csv", id = 51065297, md5 = "675210d17675f3517b0ce39a3c274f16" },
+    { name = "OmicsSomaticMutations.csv", id = 51065732, md5 = "7bdba347a1602fe96d5654a74d6e52f1" },
+    { name = "OmicsCNGene.csv", id = 51065324, md5 = "4696565fa74dc805983bc278b4a41802" },
+    { name = "OmicsFusionFiltered.csv", id = 51065693, md5 = "16ebb6c5cab1e066d904ac6d7488f82e" },
+    { name = "README.txt", id = 51065795, md5 = "54628c15a10b9ff6536db245cfed5231" },
+]
+
+[data.prism]
+release = "PRISM Repurposing secondary screen 19Q4"
+citation = "Corsello SM, et al. Discovering the anticancer potential of non-oncology drugs by systematic viability profiling. Nat Cancer 2020;1:235-248"
+license = "CC BY 4.0"
+download = "https://ndownloader.figshare.com/files/"
+files = [
+    { name = "secondary-screen-dose-response-curve-parameters.csv", id = 20237739, md5 = "e629b9d505ad3d6bf65fde96f1c54bee" },
+    { name = "secondary-screen-replicate-collapsed-treatment-info.csv", id = 20237763, md5 = "54765b3639f91cede751378d694e3583" },
+    { name = "secondary-screen-cell-line-info.csv", id = 20237769, md5 = "6737b4aa9fd85404fd2f0cf825b037e4" },
+    { name = "secondary-screen-readme.txt", id = 20238123, md5 = "421d0bbadec381adc0d7981ee7e16bd7" },
+]
+not_used = "GDSC (the Sanger data usage policy grants internal research and educational use only) and PRISM 24Q2 extended primary (a single 2.5 uM dose for these drugs)"
+
+[courses]
+merge_gap_days = 60
+start_after_sample = "a course counts only if it starts on or after the collection day of the patient's first sequenced tumor sample, so the biomarker is known before treatment"
+follow_up = "end of follow-up is OS_MONTHS x 30.4375 days on the shared timeline"
+censor_window_days = 30
+outcome = "time on treatment per class: from the first start to the last stop of that class's agents within a course; event = stopping more than censor_window_days before end of follow-up, or death; otherwise censored at end of follow-up"
+prior_courses = "number of distinct earlier courses of any class, as a covariate"
+
+[classes]
+checkpoint = ["PEMBROLIZUMAB", "NIVOLUMAB", "ATEZOLIZUMAB", "DURVALUMAB", "CEMIPLIMAB", "IPILIMUMAB", "TREMELIMUMAB", "DOSTARLIMAB", "AVELUMAB"]
+egfr_tki = ["OSIMERTINIB", "ERLOTINIB", "GEFITINIB", "AFATINIB", "DACOMITINIB"]
+alk_tki = ["ALECTINIB", "CRIZOTINIB", "LORLATINIB", "BRIGATINIB", "CERITINIB"]
+aromatase = ["LETROZOLE", "ANASTROZOLE", "EXEMESTANE"]
+cdk46 = ["PALBOCICLIB", "RIBOCICLIB", "ABEMACICLIB"]
+her2 = ["TRASTUZUMAB", "PERTUZUMAB", "ADO-TRASTUZUMAB EMTANSINE", "FAM-TRASTUZUMAB DERUXTECAN", "LAPATINIB", "NERATINIB", "TUCATINIB"]
+pi3k = ["ALPELISIB"]
+parp = ["OLAPARIB", "NIRAPARIB", "RUCAPARIB", "TALAZOPARIB"]
+egfr_antibody = ["CETUXIMAB", "PANITUMUMAB"]
+platinum = ["OXALIPLATIN", "CISPLATIN", "CARBOPLATIN"]
+taxane = ["PACLITAXEL", "PACLITAXEL PROTEIN-BOUND", "DOCETAXEL", "CABAZITAXEL"]
+antimetabolite = ["FLUOROURACIL", "CAPECITABINE", "GEMCITABINE", "PEMETREXED", "TIPIRACIL-TRIFLURIDINE"]
+topoisomerase = ["IRINOTECAN", "IRINOTECAN LIPOSOMAL", "ETOPOSIDE", "TOPOTECAN"]
+anthracycline = ["DOXORUBICIN", "DOXORUBICIN LIPOSOMAL", "EPIRUBICIN"]
+vegf = ["BEVACIZUMAB", "RAMUCIRUMAB", "ZIV-AFLIBERCEPT"]
+antiandrogen = ["ENZALUTAMIDE", "ABIRATERONE", "APALUTAMIDE", "DAROLUTAMIDE"]
+serd = ["FULVESTRANT", "ELACESTRANT"]
+tamoxifen = ["TAMOXIFEN"]
+
+[biomarkers]
+tmb_high = "TMB_NONSYNONYMOUS >= 10"
+msi_high = "MSI_TYPE = Instable"
+egfr_activating = "EGFR L858R, L861Q, G719X, S768I, or an in-frame deletion within codons 745-753"
+kras_nras = "KRAS or NRAS codon 12, 13, 59, 61, 117 or 146"
+braf_v600e = "BRAF V600E"
+stk11 = "any STK11 nonsynonymous mutation or deep deletion"
+keap1 = "any KEAP1 nonsynonymous mutation"
+esr1_lbd = "ESR1 mutation in codons 380, 463, 536, 537 or 538"
+rb1_loss = "RB1 truncating mutation or deep deletion"
+brca = "BRCA1 or BRCA2 truncating mutation or deep deletion (somatic calls; germline carriers without a somatic event are missed)"
+erbb2_amp = "ERBB2 amplification"
+pik3ca = "PIK3CA missense mutation"
+alk_fusion = "ALK structural variant"
+ros1_fusion = "ROS1 structural variant"
+erbb2_mutant = "ERBB2 in-frame insertion starting in codons 770-785, or missense mutation at codon 309-310 or in the kinase domain (codons 720-987)"
+missing = "a gene not on the patient's panel makes that biomarker missing, not absent"
+
+[model]
+unit = "class course"
+likelihood = "piecewise-exponential (Poisson) discontinuation hazard"
+intervals_days = [0, 30, 90, 180, 365, 730, 100000]
+baseline = "class x interval"
+classes_in_fit = "only classes with at least 15 courses with and 15 without the biomarker in that cancer; at least 2 such classes or no fit (amended 2026-10-08 after run one: thin classes added only prior noise and sampler trouble)"
+terms = "biomarker main effect, class x biomarker interactions (the predictive effects), prior courses, log TMB with a slope per class (except when TMB is the biomarker)"
+interaction_prior = "gamma = tau * z, z ~ ZeroSumNormal(1), tau ~ HalfNormal(0.5); TMB slopes ~ Normal(0, 0.5) per class, not pooled (amended 2026-10-08 after run one: the pooled TMB and unconstrained interaction hierarchies diverged in 43 of 79 fits; the contrast is unchanged by the sum-to-zero constraint)"
+predictive_effect = "for class d: the biomarker's log-hazard effect in d minus the mean of its effects in the other classes of that cancer (gamma_d - mean of gamma_others); defined 2026-10-08 after a simulation showed gamma_d alone is pulled toward the class average, before any real data was scored"
+per_cancer = true
+sampler = "NUTS, 4 chains, 1000 draws, target_accept 0.95; a fit counts only with R-hat < 1.01 and no divergences"
+draws = 1000
+chains = 4
+target_accept = 0.95
+seed = 19
+
+[bench]
+question = "for each cancer, biomarker and drug class, does the biomarker make cell lines of that cancer more or less sensitive to the class than to the other classes?"
+registered = "2026-10-08, before any cell-line file was downloaded or opened"
+lineages = "each MSK-CHORD cancer maps to DepMap OncotreePrimaryDisease values, fixed from Model.csv metadata before any response is read; every other lineage forms one 'other' group that informs the pan-cancer level"
+response = "PRISM secondary AUC per cell line and compound: the MTS010 screen where present (the screen's README recommends it), otherwise the mean over the other screens; rows without a finite AUC are dropped; each compound's AUC is standardized over all screened lines (z); lower is more sensitive"
+compounds = "matched to [classes] by name; irinotecan is represented by SN-38 when SN-38 is screened, and abiraterone acetate counts as abiraterone; capecitabine is excluded (a prodrug activated in the liver and tumor stroma, not in culture); synonyms fixed from compound metadata before any response was read: 5-fluorouracil is fluorouracil, trifluridine stands for trifluridine/tipiracil (tipiracil alone only blocks trifluridine breakdown), and a liposomal or protein-bound form shares its compound"
+copy_number = "OmicsCNGene is linear relative copy number (1 is neutral); amplification at >= 3 and deep deletion at <= 0.25, set 2026-10-08 from the scale of known lines (ERBB2 in SK-BR-3 11.0, BT-474 11.5, HCC1954 57.9, MDA-MB-361 4.6, MCF-7 0.5; CDKN2A in MCF-7 0.06) before any response file was opened; gene-level averaging misses some focal deletions (A549 CDKN2A reads 1.45)"
+lineage_map = "Non-Small Cell Lung Cancer, Colorectal Adenocarcinoma, Invasive Breast Carcinoma, Prostate Adenocarcinoma and Pancreatic Adenocarcinoma (OncotreePrimaryDisease); Non-Cancerous lines are dropped"
+biomarkers = "the [biomarkers] definitions applied to DepMap 24Q4: mutations from OmicsSomaticMutations, gene copy number from OmicsCNGene (amplification and deep deletion thresholds read from its README before any response is read), fusions from OmicsFusionFiltered; TMB and MSI are not used on the bench (cell lines have no matched normal, and immune effects are absent in culture)"
+discovery = "beyond the named biomarkers, every gene that is on every MSK-IMPACT panel and functionally altered in at least 3% of a cancer's patients is a biomarker for that cancer: a truncating mutation, a missense mutation at a codon mutated in at least 3 MSK-CHORD patients (a recurrent codon, from genotypes only), a deep deletion, or an amplification; the identical rule is applied to cell lines"
+model = "per biomarker, over all screened lines: z[line, compound] ~ Normal(a[compound, group] + (b[cancer, class] + e[compound]) * marked[line], s[compound]); b[cancer, class] = c[class] + t * u[cancer, class] with u ~ Normal(0, 1), t ~ HalfNormal(0.5), c ~ Normal(0, 1); e[compound] = k * v[compound], v ~ Normal(0, 1), k ~ HalfNormal(0.5); a ~ Normal(0, 1); s ~ HalfNormal(1); group is the line's cancer or 'other'"
+burden = "the bench model adds, per class, a slope on the line's centered log count of protein-coding nonsynonymous mutations, slope ~ Normal(0, 0.5), mirroring the patient TMB adjustment so a gene that marks hypermutated lines does not borrow their response; added 2026-10-08 after counting discovery genes from patient genotypes (61 in colorectal, many from MSI-high tumors) and before any response file was opened"
+contrast = "the bench predictive effect for cancer x and class d is b[x, d] minus the mean of b[x, other classes], the same contrast as in patients; negative means the biomarker sensitizes"
+prediction = "a bench prediction is confident when the posterior probability of the contrast's sign is at least 0.95; a confident negative predicts patient benefit, a confident positive predicts harm"
+support = "a prediction is lineage-informed when at least 3 lines of that cancer carry the biomarker and were screened with the class, otherwise pan-cancer; both are tested and reported separately"
+sealing = "bench predictions are written to data/bench/predictions.json; its sha256 and time are added to [[history]] before any patient fit of a discovery biomarker"
+
+[translation]
+held_up = "a confident bench prediction whose patient contrast has posterior probability at least 0.95 in the same direction"
+reversed = "a confident bench prediction whose patient contrast has posterior probability at least 0.95 in the opposite direction"
+unresolved = "every other confident bench prediction with an estimable, converged patient effect"
+model = "over pairs with a bench prediction and an estimable, converged patient effect: patient mean m ~ Normal(p, patient sd), bench mean n ~ Normal(q, bench sd), p ~ Normal(r[class] + g[class] * q, w), q ~ Normal(0, 1), g[class] = g0 + h * y[class], y ~ Normal(0, 1), h ~ HalfNormal(0.5), g0 ~ Normal(0, 1), r ~ Normal(0, 0.5), w ~ HalfNormal(0.5); translation is g > 0 (cell-line sensitivity goes with patient benefit)"
+hypothesis_one = "across classes, g0 > 0 with posterior probability at least 0.95"
+hypothesis_two = "g[class] > 0 for kinase inhibitors (egfr_tki, alk_tki, her2, pi3k) and cytotoxics (platinum, taxane, antimetabolite, topoisomerase, anthracycline), and not for slow-acting or hormone-dependent classes (parp, cdk46, aromatase, antiandrogen, serd, tamoxifen), whose 5-day culture readouts are expected to mislead"
+primary = "the translation model and held-up rates are computed over discovery biomarkers whose gene does not define a label-derived known pair (EGFR, ALK, ROS1, ERBB2, PIK3CA, ESR1, KRAS, NRAS, BRAF); the named biomarkers and those genes are shown alongside as positive controls, never pooled into the headline; added 2026-10-08 before any cell-line file was opened"
+ceiling = "the held-up rate is read against the known-pair sensitivity of the gate (the share of label-backed pairs the patient model recovers) and against the control signal rate"
+
+[explore]
+purpose = "let a visitor look up any gene: every gene on every MSK-IMPACT panel, in each of the five cancers, altered by the [bench] discovery rule"
+scope = "patient fits where at least 15 patients of that cancer carry the alteration; bench fits where at least 3 screened lines carry it"
+order = "a second batch after the registered set: bench predictions for the whole menu are written and sealed (sha256 and time in [[history]]) before any of its patient fits"
+status = "exploratory: shown on the page under the gene lookup, never pooled into the registered translation result or its held-up rates"
+delivery = "a data sync, not an API (decided 2026-10-08): the pipeline writes one JSON snapshot of aggregates with its data versions and hashes, groups under 15 patients suppressed; the page ships the snapshot; a monthly cluster job later refits on new releases and publishes a new snapshot"
+
+[compute]
+parallel = "batches of fits run in 12 worker processes, each sampling its 4 chains in one process; chain seeds then differ from 4-process sampling, so results agree with sequential fits to Monte Carlo error (checked 2026-10-08 on breast CDH1: hazard ratios within 0.004, probabilities within 0.015), and each mode is reproducible on its own"
+
+[gate]
+known_rule = "known pairs are derived by code (known.py) from FDA label requirements in labels.toml, read 2026-10-08: an indication counts toward its drug unless it names a partner drug outside [classes], or a partner inside [classes] whose own label carries the same requirement in that cancer; a drug points to benefit if every counted requirement for the biomarker is positive, to harm if every one is negative; a class gets a pair when its pointing drugs agree. Amended 2026-10-08 after run one, whose hand-picked list mixed contested and confounded pairs"
+labels = "labels.toml; its sha256 is recorded in every report"
+estimable = "a known pair is scored only if at least 15 courses of the class have the biomarker and at least 15 lack it"
+sign = "posterior probability that the predictive effect lies in the expected direction is at least 0.95; benefit means a lower discontinuation hazard (negative), harm a higher one (positive)"
+controls = "per cancer, 20 genes on every panel version, mutated in 3-15% of patients, outside the excluded pathway list; each tested against every class with at least 15 courses in both states"
+controls_order = "qualifying genes ordered by the md5 of the gene symbol; the first 20 are used"
+truncating = ["Frame_Shift_Del", "Frame_Shift_Ins", "frameshift_insertion", "Nonsense_Mutation", "Splice_Site", "Nonstop_Mutation"]
+nonsynonymous = "every mutation kind except 5'Flank and Splice_Region"
+excluded = ["EGFR", "KRAS", "NRAS", "BRAF", "STK11", "KEAP1", "ESR1", "RB1", "CDKN2A", "CCND1", "ERBB2", "PIK3CA", "PTEN", "AKT1", "BRCA1", "BRCA2", "ATM", "PALB2", "CDK12", "MLH1", "MSH2", "MSH6", "PMS2", "POLE", "TP53", "AR", "SPOP", "APC", "SMAD4", "ALK", "ROS1", "MET", "RET", "NTRK1", "NTRK2", "NTRK3", "ARID1A", "SMARCA4", "MTOR", "TSC1", "TSC2", "NF1", "FGFR1", "FGFR2", "FGFR3", "MYC", "MDM2"]
+pass = "all three: at most 10% of control pairs have posterior probability of either sign at least 0.975; at most 1 scored known pair has posterior probability at least 0.975 in the direction opposite to its label; known pairs meet the sign rule more often than control pairs signal, one-sided Fisher exact p < 0.001"
+pass_amended = "2026-10-08 on the development cohort, replacing 'at least 75% of estimable known pairs meet the sign rule'. That bar assumed every label pair is detectable in observational data; development runs showed misses come from patients selected for the drug by another test or target (ROS1 among ALK-drug users, PIK3CA calls on a later sample or another assay), co-treatment, and pairs of about 20 patients, while no known pair ever came out confidently wrong. The amended test asks what an instrument must show: it rarely flags null genes, never confidently reverses a known direction, and finds known effects far more often than null ones. Sensitivity (known pairs met) is reported and becomes the ceiling the translation rate is read against"
+runs = 1
+
+[cohorts]
+development = "MSK-CHORD is the development cohort from 2026-10-08, after run one failed; gate runs on it are diagnostics, logged in [[history]], and may be repeated"
+confirmation = "one registered gate run on AACR Project GENIE BPC public releases (NSCLC 2.0, CRC 2.0, BrCa 1.0, PANC 1.0, Prostate 1.0), DFCI, VICC and UHN patients only (MSK patients overlap MSK-CHORD), with these rules unchanged except data mapping; nothing from those releases is inspected before that run"
+presentation = "until the confirmation run, results appear only on the site's experiment page, as aggregates labeled development-cohort findings, not yet confirmed; no paper, preprint or dataset release (user decision 2026-10-08); GENIE access is deferred"
+confirmation_access = "Synapse account, the GENIE access requirement reviewed by the Sage Access and Compliance Team, two-factor authentication, and a personal access token in SYNAPSE_AUTH_TOKEN"
+confirmation_terms = "aggregate statistics and model estimates only, no redistribution; cite AACR Project GENIE Consortium, Cancer Discov 2017;7(8):818-831 with the release versions, and include the AACR acknowledgment"
+
+[[history]]
+date = "2026-10-08"
+run = "known-answer gate"
+result = "fail: known 3 of 6 scored pairs met (need 75%); controls 2 of 211 signals (0.9%, need at most 10%)"
+known = ["Non-Small Cell Lung Cancer checkpoint x tmb_high benefit", "Non-Small Cell Lung Cancer checkpoint x egfr_activating harm", "Non-Small Cell Lung Cancer checkpoint x stk11 harm", "Non-Small Cell Lung Cancer checkpoint x keap1 harm", "Non-Small Cell Lung Cancer egfr_tki x egfr_activating benefit", "Non-Small Cell Lung Cancer alk_tki x alk_fusion benefit", "Breast Cancer aromatase x esr1_lbd harm", "Breast Cancer cdk46 x rb1_loss harm", "Breast Cancer her2 x erbb2_amp benefit", "Breast Cancer pi3k x pik3ca benefit", "Breast Cancer parp x brca benefit", "Colorectal Cancer egfr_antibody x kras_nras harm", "Colorectal Cancer egfr_antibody x braf_v600e harm", "Colorectal Cancer checkpoint x msi_high benefit", "Pancreatic Cancer platinum x brca benefit", "Prostate Cancer parp x brca benefit"]
+finding = "controls are well calibrated; 7 known pairs were unscored because their fits had divergences, though every one pointed the expected way (checkpoint x EGFR HR 1.73, EGFR TKI x EGFR 0.41, ALK TKI x ALK 0.38, checkpoint x MSI 0.55, all p >= 0.99); weak or confounded pairs were not recovered (STK11, KEAP1, RB1 n=26, somatic BRCA, BRAF V600E where cetuximab is given with encorafenib)"
+
+[[history]]
+date = "2026-10-08"
+run = "development diagnostic on MSK-CHORD, run one's pairs with the amended model"
+result = "78 of 79 fits converged (run one: 36); known 7 of 15 scored pairs met (0.47); controls 3 of 394 signals (0.8%)"
+finding = "every large label-backed effect is recovered (EGFR TKI x EGFR HR 0.37, ALK TKI x ALK 0.40, checkpoint x EGFR 1.74, checkpoint x TMB 0.65, checkpoint x MSI in colorectal 0.48, aromatase x ESR1 2.15, HER2 drugs x ERBB2 0.81) and every contested or confounded pair misses; the three control signals (CDH1, MAP2K4, CBFB in breast, all toward endocrine or antimetabolite benefit) mark lobular and luminal A tumors and may be real"
+report = "data/reports/gate-4663d2b8dabc.json"
+
+[[history]]
+date = "2026-10-08"
+run = "development gate on MSK-CHORD with the 30 label-derived pairs"
+result = "under the 75% rule: fail, 12 of 19 scored pairs met (0.63); under the amended rule: pass, 0 wrong, controls 2 of 389 (0.5%), separation p = 1.2e-16 (the earlier diagnostic with run one's pairs also passes it: 7 of 15 met, 0 wrong, p = 2.0e-9)"
+finding = "met: checkpoint x EGFR (HR 1.75), x ALK (1.94), x TMB in lung (0.65), colorectal (0.31), prostate (0.64) and pancreas (0.45), x MSI in colorectal (0.49); EGFR TKI x EGFR (0.37); ALK TKI x ALK (0.40); CDK4/6 x ERBB2 (1.61); HER2 drugs x ERBB2 in breast (0.82); SERD x ESR1 (0.77). missed: ALK TKI x ROS1 and HER2 drugs x ERBB2 in lung (the unmarked users are selected for the class's other target), alpelisib x PIK3CA (34 unmarked users, likely positive by another test), SERD x ERBB2 (co-treated with HER2 drugs), checkpoint x ROS1 (20 patients), x TMB in breast (34) and x MSI in prostate (22)"
+report = "data/reports/gate-3651bd9e37de.json"
+
+[[history]]
+date = "2026-10-08"
+run = "bench and translation methods registered"
+result = "method.toml sha256 21b36604ca42113b9a714dfead805716903f4b8e123574a5b3b2ad5b20af414f at 2026-10-08T19:50:22Z, before any DepMap or PRISM file was downloaded"
+
+[[history]]
+date = "2026-10-08"
+run = "bench predictions sealed"
+result = "data/bench/predictions.json sha256 1099935f8fba016b2352f0e56e6e96655245d854ce9a2a6c8694e5d0c216484f, created 2026-10-08T20:26:12Z: 8,250 predictions (110 biomarkers x 5 cancers x 15 classes), 107 of 110 fits converged, 398 confident; no patient fit of a discovery biomarker existed at this time"
+
+[[history]]
+date = "2026-10-08"
+run = "translation scored on MSK-CHORD (development cohort) against the sealed bench predictions"
+result = "primary (non-label genes): 714 pairs, 47 confident bench calls: 1 held up, 2 reversed, 44 unresolved; translation slope 0.00 log-hazard per bench SD [-0.03, +0.02], P(>0) = 0.32, so hypothesis one is not supported and no class shows translation (hypothesis two not supported). Positive controls: 26 confident calls, 4 held up (EGFR TKI x EGFR, ALK TKI x ALK, HER2 drugs x ERBB2 twice), 0 reversed"
+finding = "the scoring model does see translation where it is known: refit on the positive controls (diagnostic, not registered) gives slope +0.17 [-0.07, +0.43], P(>0) = 0.93; beyond the textbook biomarkers, cell-line effects explain none of the variation in patient time on treatment. Single verdicts: TP53 x CDK4/6 in breast held up (lines resist, patients HR 1.28); TP53 x taxanes reversed in lung (lines sensitized, patients HR 1.12) and breast (HR 1.21)"
+report = "data/reports/translation.json"
+
+[[history]]
+date = "2026-10-08"
+run = "exploratory bench predictions sealed"
+result = "data/bench/explore.json sha256 3ed8e0be1c12059ce100868773a35f39567656b051b9914aef78673d71308630, created 2026-10-08T21:28:43Z: 13,125 predictions for 175 further all-panel genes with at least 3 altered screened lines, 397 confident; no patient fit of these genes existed at this time; exploratory, never pooled into the registered result"
+
+[[history]]
+date = "2026-10-08"
+run = "exploratory gene menu scored on MSK-CHORD (development cohort)"
+result = "580 patient fits, 677 scored pairs, 27 confident bench calls: 0 held up, 1 reversed (EPHB1 x taxanes in lung: lines resist, patients HR 0.64 over 24 courses), 26 unresolved; exploratory, shown in the page's gene lookup only"
+report = "data/reports/explore.json"

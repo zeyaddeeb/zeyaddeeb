@@ -1,6 +1,6 @@
 {
   "name": "zeyaddeeb",
-  "version": "0.1.86",
+  "version": "0.1.87",
   "private": true,
   "scripts": {
     "build": "turbo build",
@@ -32,7 +32,7 @@
     "better-auth": "^1.7.7",
     "drizzle-orm": "^0.45.3",
     "framer-motion": "^14.0.0",
-    "next": "16.3.6",
+    "next": "16.4.0",
     "postcss": "^8.5.28",
     "react": "19.3.0",
     "react-dom": "19.3.0",

@@ -1,0 +1,42 @@
+language: "python"
+stack: "backend"
+
+tasks:
+  fetch:
+    script: "PYTHONPATH=src uv run python -m bedside fetch"
+    options:
+      cache: false
+  gate:
+    script: "PYTHONPATH=src uv run python -m bedside gate"
+    options:
+      cache: false
+  bench:
+    script: "PYTHONPATH=src uv run python -m bedside bench"
+    options:
+      cache: false
+  predict:
+    script: "PYTHONPATH=src uv run python -m bedside predict"
+    options:
+      cache: false
+  patients:
+    script: "PYTHONPATH=src uv run python -m bedside patients"
+    options:
+      cache: false
+  translate:
+    script: "PYTHONPATH=src uv run python -m bedside translate"
+    options:
+      cache: false
+  explore:
+    script: "PYTHONPATH=src uv run python -m bedside explore-bench && PYTHONPATH=src uv run python -m bedside explore-patients"
+    options:
+      cache: false
+  snapshot:
+    script: "PYTHONPATH=src uv run python -m bedside snapshot"
+    options:
+      cache: false
+  test:
+    script: "uv run pytest"
+  lint:
+    script: "uv run ruff check . && uv run ruff format --check ."
+  typecheck:
+    script: "uvx pyright --pythonpath .venv/bin/python src"

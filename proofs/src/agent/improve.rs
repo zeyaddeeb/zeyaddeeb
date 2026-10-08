@@ -318,7 +318,7 @@ pub async fn revise(agent: &mut Agent, layer: Layer) -> Result<bool, Stop> {
 
         for call in &reply.calls {
             let name = call.function.name.as_str();
-            let args = &call.function.arguments;
+            let args = serde_json::Value::Object(call.function.arguments.clone());
             let id = call.id.to_string();
 
             agent.emit(Event::Call {
@@ -336,7 +336,7 @@ pub async fn revise(agent: &mut Agent, layer: Layer) -> Result<bool, Stop> {
             } else if Tool::parse(name) != Some(Tool::Revise) {
                 (false, "Only revise is available now.".to_string())
             } else {
-                match rules::apply(layer, &target.lines, args, &lineage) {
+                match rules::apply(layer, &target.lines, &args, &lineage) {
                     Ok(change) => {
                         made = Some(change);
 

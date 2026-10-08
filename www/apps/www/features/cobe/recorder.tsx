@@ -4,6 +4,7 @@ import type { WebViewer, WebViewerOptions } from "@rerun-io/web-viewer";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { ControlButton } from "@/components/control-button";
 import { RECORDING_ID, TIMELINE, VIEWER_CDN } from "./rerun";
+import { quietViewerWarnings } from "./viewer-warnings";
 
 const SOURCE = "/cobe/firas.rrd";
 const LOCKED = "/cobe/locked.rbl";
@@ -68,6 +69,7 @@ export function Recorder({
 
 		let gone = false;
 		let made: WebViewer | null = null;
+		const restoreWarnings = quietViewerWarnings();
 
 		setPhase("loading");
 
@@ -96,6 +98,7 @@ export function Recorder({
 
 				viewer.current = made;
 			} catch {
+				restoreWarnings();
 				if (!gone) setPhase("failed");
 			}
 		})();
@@ -104,6 +107,7 @@ export function Recorder({
 			gone = true;
 			viewer.current = null;
 			made?.stop();
+			restoreWarnings();
 		};
 	}, [wanted]);
 

@@ -47,6 +47,15 @@ export interface Experiment {
 
 export const experiments: Experiment[] = [
 	{
+		id: "lost-in-translation",
+		number: 19,
+		title: "Lost in Translation",
+		line: "Cancer drugs are tried on cells in a dish long before patients. Here every dish prediction meets 25,000 real patient records, one split square at a time.",
+		stack: ["Python", "PyMC", "DuckDB", "DepMap", "MSK-CHORD"],
+		href: "/experiments/lost-in-translation",
+		topics: ["math", "graphics"],
+	},
+	{
 		id: "how-cold-is-space",
 		number: 18,
 		title: "How Cold Is Space",

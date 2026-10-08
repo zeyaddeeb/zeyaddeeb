@@ -8,7 +8,8 @@ pub fn dialect() -> Dialect {
 
     quirks.completion_route = Route::Chat;
     quirks.verify_path = "/models";
-    quirks.rewrite = BodyRewrite::DeepSeek;
+    // Flatten text content while retaining the gateway's additional parameters.
+    quirks.rewrite = BodyRewrite::Perplexity;
 
     Dialect::gateway(
         "gateway",

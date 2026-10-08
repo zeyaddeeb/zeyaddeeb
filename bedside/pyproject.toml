@@ -1,0 +1,36 @@
+[project]
+name = "bedside"
+version = "0.1.0"
+description = "Tests whether cell-line drug biomarkers hold up in real patients."
+requires-python = ">=3.14"
+dependencies = [
+    "duckdb>=1.4,<2",
+    "httpx>=0.28,<1",
+    "numba>=0.62",
+    "numpy>=2.3,<3",
+    "pymc>=6.3,<7",
+    "scipy>=1.18.1",
+]
+
+[dependency-groups]
+dev = ["pytest>=9.1,<10", "ruff>=0.16,<1"]
+
+[project.scripts]
+bedside = "bedside.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 79
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PL"]
+ignore = ["PLR2004", "PLR0913"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]
+addopts = "-q"

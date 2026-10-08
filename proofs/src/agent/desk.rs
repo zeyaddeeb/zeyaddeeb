@@ -113,7 +113,7 @@ impl Desk {
 
     pub async fn handle(&mut self, agent: &mut Agent, turn: u32, call: &ToolCall) -> Call {
         let name = call.function.name.as_str();
-        let args = &call.function.arguments;
+        let args = Value::Object(call.function.arguments.clone());
         let id = call.id.to_string();
 
         agent.emit(Event::Call {
@@ -135,7 +135,7 @@ impl Desk {
             Some(tool) if self.plan.is_none() && tool != Tool::Plan => {
                 Done::refused("Begin with plan: the objective and your prediction.")
             }
-            Some(tool) => self.dispatch(agent, tool, args).await,
+            Some(tool) => self.dispatch(agent, tool, &args).await,
         };
 
         if !done.ok {
@@ -191,28 +191,35 @@ impl Desk {
             return Done::refused("plan needs an objective and a prediction.");
         };
 
+        let Some(heuristic) = args["move"].as_str().and_then(super::prompts::move_id) else {
+            return Done::refused("plan needs a valid move: backwards, decompose, specialize, generalize, analogy, or related.");
+        };
+
+        if heuristic == "related"
+            && (text(args, "related_problem", 600).is_none()
+                || text(args, "connection", 600).is_none())
+        {
+            return Done::refused("A related plan needs related_problem (a tractable statement to investigate) and connection (how it could help the target).");
+        }
+
         self.plan = Some((objective, prediction));
-
-        let wanted = args["move"]
-            .as_str()
-            .unwrap_or_default()
-            .trim()
-            .to_lowercase();
-
-        self.heuristic = super::prompts::MOVES
-            .iter()
-            .find(|(id, _)| *id == wanted)
-            .map(|(id, _)| id.to_string())
-            .unwrap_or_default();
+        self.heuristic = heuristic.to_string();
 
         Done::said("Planned. Go.")
     }
 
     fn conclude(&mut self, args: &Value) -> Done {
-        let summary = text(args, "summary", 600).unwrap_or_default();
+        let mut summary = text(args, "summary", 600).unwrap_or_default();
 
         if summary.is_empty() {
             return Done::refused("conclude needs a summary.");
+        }
+
+        if self.heuristic == "related" {
+            let Some(transfer) = text(args, "transfer", 600) else {
+                return Done::refused("A related episode needs transfer: the checked result or obstruction, what transfers to the target, and what remains unproved.");
+            };
+            summary.push_str(&format!(" Transfer: {transfer}"));
         }
 
         let next = text(args, "next", 400).unwrap_or_default();
@@ -1362,5 +1369,57 @@ fn record_min(slot: &mut Option<f64>, candidate: Option<f64>) -> bool {
             true
         }
         _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::agent::fronts::FRONTS;
+
+    #[test]
+    fn invalid_plans_do_not_unlock_work_or_overwrite_an_accepted_plan() {
+        let mut desk = Desk::new(1, &FRONTS[0], vec![]);
+        let mut args = json!({"objective": "Check a claim", "prediction": "It holds"});
+
+        assert!(!desk.plan(&args).ok);
+        assert!(desk.plan.is_none());
+        args["move"] = json!("made up");
+        assert!(!desk.plan(&args).ok);
+        assert!(desk.plan.is_none());
+
+        args["move"] = json!(" Backwards ");
+        assert!(desk.plan(&args).ok);
+        assert_eq!(desk.heuristic, "backwards");
+        let accepted = desk.plan.clone();
+
+        args["objective"] = json!("Invalid replacement");
+        args["move"] = json!("related");
+        assert!(!desk.plan(&args).ok);
+        assert_eq!(desk.plan, accepted);
+        assert_eq!(desk.heuristic, "backwards");
+    }
+
+    #[test]
+    fn related_work_requires_a_problem_connection_and_honest_transfer() {
+        let mut desk = Desk::new(1, &FRONTS[0], vec![]);
+        let mut args = json!({
+            "move": "related", "objective": "Study a finite analogue",
+            "prediction": "Its proof exposes the missing assumption",
+            "related_problem": "Prove the corresponding bound over a finite field"
+        });
+        assert!(!desk.plan(&args).ok);
+        assert!(desk.plan.is_none());
+        args["connection"] = json!("Compare the positivity assumption with the target");
+        assert!(desk.plan(&args).ok);
+
+        let mut conclusion = json!({"summary": "The attempted transfer failed."});
+        assert!(!desk.conclude(&conclusion).ok);
+        assert!(desk.conclusion.is_none());
+        conclusion["transfer"] = json!(
+            "No corresponding positivity assumption was established; the target remains open."
+        );
+        assert!(desk.conclude(&conclusion).ok);
+        assert!(desk.conclusion.unwrap().0.contains("target remains open"));
     }
 }

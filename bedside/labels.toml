@@ -1,0 +1,693 @@
+[meta]
+source = "US FDA prescribing information, section 1 (Indications and Usage, including Limitations of Use), DailyMed SPL"
+read = "2026-10-08"
+link = "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid="
+scope = "indications in non-small cell lung, colorectal, breast, prostate and pancreatic cancer, plus tissue-agnostic solid tumor indications (cancer = any)"
+rows = "only indications that state a tumor genomic or HER2 requirement; every drug in [classes] was read, and the others state none in scope"
+no_requirement = ["CARBOPLATIN", "CISPLATIN", "OXALIPLATIN", "PACLITAXEL", "PACLITAXEL PROTEIN-BOUND", "DOCETAXEL", "CABAZITAXEL", "FLUOROURACIL", "CAPECITABINE", "GEMCITABINE", "TIPIRACIL-TRIFLURIDINE", "IRINOTECAN", "IRINOTECAN LIPOSOMAL", "ETOPOSIDE", "TOPOTECAN", "DOXORUBICIN", "DOXORUBICIN LIPOSOMAL", "EPIRUBICIN", "BEVACIZUMAB", "ZIV-AFLIBERCEPT", "ENZALUTAMIDE", "ABIRATERONE", "APALUTAMIDE", "DAROLUTAMIDE", "LETROZOLE", "ANASTROZOLE", "EXEMESTANE", "TAMOXIFEN", "AVELUMAB"]
+vocabulary = "EGFR exon 19 deletion, L858R, non-resistant, sensitizing, aberrations or known mutations -> egfr_activating; ALK -> alk_fusion; ROS1 -> ros1_fusion; RAS, K-Ras or KRAS and NRAS wild-type -> kras_nras negative; KRAS G12C -> kras_nras positive; BRAF V600E -> braf_v600e; HER2-positive, overexpressing, IHC 3+ or ISH+ -> erbb2_amp positive; HER2-negative, HER2-low, HER2-ultralow and triple-negative -> erbb2_amp negative; HER2 (ERBB2) mutation -> erbb2_mutant; PIK3CA -> pik3ca; ESR1 -> esr1_lbd; MSI-H or dMMR -> msi_high; TMB-H -> tmb_high"
+unmeasured = "EGFR T790M (acquired after treatment) and every BRCA or HRR requirement: labels count germline carriers, and public MSK-IMPACT calls are somatic only"
+partners = "drugs the indication names as given with it; unnamed 'chemotherapy' is not listed"
+
+[[label]]
+drug = "PEMBROLIZUMAB"
+cancer = "Non-Small Cell Lung Cancer"
+partners = ["PEMETREXED"]
+negative = ["egfr_activating", "alk_fusion"]
+setid = "9333c79b-d487-4538-a9f0-71b91a02b287"
+
+[[label]]
+drug = "PEMBROLIZUMAB"
+cancer = "Non-Small Cell Lung Cancer"
+negative = ["egfr_activating", "alk_fusion"]
+setid = "9333c79b-d487-4538-a9f0-71b91a02b287"
+
+[[label]]
+drug = "PEMBROLIZUMAB"
+cancer = "Colorectal Cancer"
+positive = ["msi_high"]
+setid = "9333c79b-d487-4538-a9f0-71b91a02b287"
+
+[[label]]
+drug = "PEMBROLIZUMAB"
+cancer = "any"
+positive = ["msi_high"]
+setid = "9333c79b-d487-4538-a9f0-71b91a02b287"
+
+[[label]]
+drug = "PEMBROLIZUMAB"
+cancer = "any"
+positive = ["tmb_high"]
+setid = "9333c79b-d487-4538-a9f0-71b91a02b287"
+
+[[label]]
+drug = "PEMBROLIZUMAB"
+cancer = "Breast Cancer"
+negative = ["erbb2_amp"]
+setid = "9333c79b-d487-4538-a9f0-71b91a02b287"
+note = "high-risk early triple-negative, neoadjuvant with chemotherapy then adjuvant"
+
+[[label]]
+drug = "PEMBROLIZUMAB"
+cancer = "Breast Cancer"
+partners = ["SACITUZUMAB GOVITECAN"]
+negative = ["erbb2_amp"]
+setid = "9333c79b-d487-4538-a9f0-71b91a02b287"
+
+[[label]]
+drug = "PEMBROLIZUMAB"
+cancer = "Breast Cancer"
+negative = ["erbb2_amp"]
+setid = "9333c79b-d487-4538-a9f0-71b91a02b287"
+note = "metastatic triple-negative with chemotherapy, PD-L1 CPS >= 10"
+
+[[label]]
+drug = "NIVOLUMAB"
+cancer = "Non-Small Cell Lung Cancer"
+negative = ["egfr_activating", "alk_fusion"]
+setid = "f570b9c4-6846-4de2-abfa-4d0a4ae4e394"
+note = "perioperative with platinum-doublet chemotherapy; no known EGFR mutations or ALK rearrangements"
+
+[[label]]
+drug = "NIVOLUMAB"
+cancer = "Non-Small Cell Lung Cancer"
+partners = ["IPILIMUMAB"]
+negative = ["egfr_activating", "alk_fusion"]
+setid = "f570b9c4-6846-4de2-abfa-4d0a4ae4e394"
+
+[[label]]
+drug = "NIVOLUMAB"
+cancer = "Non-Small Cell Lung Cancer"
+partners = ["IPILIMUMAB"]
+negative = ["egfr_activating", "alk_fusion"]
+setid = "f570b9c4-6846-4de2-abfa-4d0a4ae4e394"
+note = "with 2 cycles of platinum-doublet chemotherapy"
+
+[[label]]
+drug = "NIVOLUMAB"
+cancer = "Colorectal Cancer"
+partners = ["IPILIMUMAB"]
+positive = ["msi_high"]
+setid = "f570b9c4-6846-4de2-abfa-4d0a4ae4e394"
+
+[[label]]
+drug = "NIVOLUMAB"
+cancer = "Colorectal Cancer"
+positive = ["msi_high"]
+setid = "f570b9c4-6846-4de2-abfa-4d0a4ae4e394"
+
+[[label]]
+drug = "ATEZOLIZUMAB"
+cancer = "Non-Small Cell Lung Cancer"
+negative = ["egfr_activating", "alk_fusion"]
+setid = "6fa682c9-a312-4932-9831-f286908660ee"
+
+[[label]]
+drug = "ATEZOLIZUMAB"
+cancer = "Non-Small Cell Lung Cancer"
+partners = ["BEVACIZUMAB", "PACLITAXEL", "CARBOPLATIN"]
+negative = ["egfr_activating", "alk_fusion"]
+setid = "6fa682c9-a312-4932-9831-f286908660ee"
+
+[[label]]
+drug = "ATEZOLIZUMAB"
+cancer = "Non-Small Cell Lung Cancer"
+partners = ["PACLITAXEL PROTEIN-BOUND", "CARBOPLATIN"]
+negative = ["egfr_activating", "alk_fusion"]
+setid = "6fa682c9-a312-4932-9831-f286908660ee"
+
+[[label]]
+drug = "DURVALUMAB"
+cancer = "Non-Small Cell Lung Cancer"
+negative = ["egfr_activating", "alk_fusion"]
+setid = "8baba4ea-2855-42fa-9bd9-5a7548d4cec3"
+note = "perioperative with platinum chemotherapy"
+
+[[label]]
+drug = "DURVALUMAB"
+cancer = "Non-Small Cell Lung Cancer"
+partners = ["TREMELIMUMAB"]
+negative = ["egfr_activating", "alk_fusion"]
+setid = "8baba4ea-2855-42fa-9bd9-5a7548d4cec3"
+
+[[label]]
+drug = "CEMIPLIMAB"
+cancer = "Non-Small Cell Lung Cancer"
+negative = ["egfr_activating", "alk_fusion", "ros1_fusion"]
+setid = "4347ae1f-d397-4f18-8b70-03897e1c054a"
+note = "with platinum-based chemotherapy"
+
+[[label]]
+drug = "CEMIPLIMAB"
+cancer = "Non-Small Cell Lung Cancer"
+negative = ["egfr_activating", "alk_fusion", "ros1_fusion"]
+setid = "4347ae1f-d397-4f18-8b70-03897e1c054a"
+
+[[label]]
+drug = "IPILIMUMAB"
+cancer = "Colorectal Cancer"
+partners = ["NIVOLUMAB"]
+positive = ["msi_high"]
+setid = "2265ef30-253e-11df-8a39-0800200c9a66"
+
+[[label]]
+drug = "IPILIMUMAB"
+cancer = "Non-Small Cell Lung Cancer"
+partners = ["NIVOLUMAB"]
+negative = ["egfr_activating", "alk_fusion"]
+setid = "2265ef30-253e-11df-8a39-0800200c9a66"
+
+[[label]]
+drug = "IPILIMUMAB"
+cancer = "Non-Small Cell Lung Cancer"
+partners = ["NIVOLUMAB"]
+negative = ["egfr_activating", "alk_fusion"]
+setid = "2265ef30-253e-11df-8a39-0800200c9a66"
+note = "with 2 cycles of platinum-doublet chemotherapy"
+
+[[label]]
+drug = "TREMELIMUMAB"
+cancer = "Non-Small Cell Lung Cancer"
+partners = ["DURVALUMAB"]
+negative = ["egfr_activating", "alk_fusion"]
+setid = "6690679c-be2f-4588-a2e4-89fff74dd6be"
+
+[[label]]
+drug = "DOSTARLIMAB"
+cancer = "any"
+positive = ["msi_high"]
+setid = "095eab9f-545a-4f12-bfb7-19477fb901a5"
+
+[[label]]
+drug = "OSIMERTINIB"
+cancer = "Non-Small Cell Lung Cancer"
+positive = ["egfr_activating"]
+setid = "5e81b4a7-b971-45e1-9c31-29cea8c87ce7"
+note = "adjuvant"
+
+[[label]]
+drug = "OSIMERTINIB"
+cancer = "Non-Small Cell Lung Cancer"
+positive = ["egfr_activating"]
+setid = "5e81b4a7-b971-45e1-9c31-29cea8c87ce7"
+note = "stage III after chemoradiation"
+
+[[label]]
+drug = "OSIMERTINIB"
+cancer = "Non-Small Cell Lung Cancer"
+positive = ["egfr_activating"]
+setid = "5e81b4a7-b971-45e1-9c31-29cea8c87ce7"
+note = "first-line metastatic"
+
+[[label]]
+drug = "OSIMERTINIB"
+cancer = "Non-Small Cell Lung Cancer"
+partners = ["PEMETREXED"]
+positive = ["egfr_activating"]
+setid = "5e81b4a7-b971-45e1-9c31-29cea8c87ce7"
+
+[[label]]
+drug = "OSIMERTINIB"
+cancer = "Non-Small Cell Lung Cancer"
+unmeasured = ["EGFR T790M"]
+setid = "5e81b4a7-b971-45e1-9c31-29cea8c87ce7"
+
+[[label]]
+drug = "ERLOTINIB"
+cancer = "Non-Small Cell Lung Cancer"
+positive = ["egfr_activating"]
+setid = "ab6f3cb3-34a8-4492-a5d7-fb6b055a2d6b"
+
+[[label]]
+drug = "GEFITINIB"
+cancer = "Non-Small Cell Lung Cancer"
+positive = ["egfr_activating"]
+setid = "827d60e8-7e07-41b7-c28b-49ef1c4a5a41"
+
+[[label]]
+drug = "AFATINIB"
+cancer = "Non-Small Cell Lung Cancer"
+positive = ["egfr_activating"]
+setid = "fd638e5e-8032-e7ca-0179-95e96ab5d387"
+
+[[label]]
+drug = "DACOMITINIB"
+cancer = "Non-Small Cell Lung Cancer"
+positive = ["egfr_activating"]
+setid = "4ab27d2f-e385-4e9c-b324-fa69c10b855a"
+
+[[label]]
+drug = "ALECTINIB"
+cancer = "Non-Small Cell Lung Cancer"
+positive = ["alk_fusion"]
+setid = "42c49deb-713b-427a-9670-08af08adcffb"
+note = "adjuvant"
+
+[[label]]
+drug = "ALECTINIB"
+cancer = "Non-Small Cell Lung Cancer"
+positive = ["alk_fusion"]
+setid = "42c49deb-713b-427a-9670-08af08adcffb"
+
+[[label]]
+drug = "CRIZOTINIB"
+cancer = "Non-Small Cell Lung Cancer"
+positive = ["alk_fusion", "ros1_fusion"]
+setid = "2a51b0de-47d6-455e-a94c-d2c737b04ff7"
+note = "ALK or ROS1-positive"
+
+[[label]]
+drug = "LORLATINIB"
+cancer = "Non-Small Cell Lung Cancer"
+positive = ["alk_fusion"]
+setid = "2b34d62d-e02a-4af3-bc0d-1571dd4ee76d"
+
+[[label]]
+drug = "BRIGATINIB"
+cancer = "Non-Small Cell Lung Cancer"
+positive = ["alk_fusion"]
+setid = "0fe9ff20-d402-41f3-bc1e-7002ea7007db"
+
+[[label]]
+drug = "CERITINIB"
+cancer = "Non-Small Cell Lung Cancer"
+positive = ["alk_fusion"]
+setid = "fff5d805-4ffd-4e8e-8e63-6f129697563e"
+
+[[label]]
+drug = "PALBOCICLIB"
+cancer = "Breast Cancer"
+partners = ["LETROZOLE", "ANASTROZOLE", "EXEMESTANE"]
+negative = ["erbb2_amp"]
+setid = "fecbdd7d-b729-41b5-9872-231b8fe104ce"
+
+[[label]]
+drug = "PALBOCICLIB"
+cancer = "Breast Cancer"
+partners = ["FULVESTRANT"]
+negative = ["erbb2_amp"]
+setid = "fecbdd7d-b729-41b5-9872-231b8fe104ce"
+
+[[label]]
+drug = "PALBOCICLIB"
+cancer = "Breast Cancer"
+partners = ["INAVOLISIB", "FULVESTRANT"]
+positive = ["pik3ca"]
+negative = ["erbb2_amp"]
+setid = "fecbdd7d-b729-41b5-9872-231b8fe104ce"
+
+[[label]]
+drug = "PALBOCICLIB"
+cancer = "Breast Cancer"
+partners = ["TRASTUZUMAB", "PERTUZUMAB"]
+positive = ["erbb2_amp"]
+setid = "fecbdd7d-b729-41b5-9872-231b8fe104ce"
+
+[[label]]
+drug = "RIBOCICLIB"
+cancer = "Breast Cancer"
+partners = ["LETROZOLE", "ANASTROZOLE", "EXEMESTANE"]
+negative = ["erbb2_amp"]
+setid = "aaeaef94-f3f5-4367-8ea2-b181d7be2da8"
+note = "adjuvant"
+
+[[label]]
+drug = "RIBOCICLIB"
+cancer = "Breast Cancer"
+partners = ["LETROZOLE", "ANASTROZOLE", "EXEMESTANE"]
+negative = ["erbb2_amp"]
+setid = "aaeaef94-f3f5-4367-8ea2-b181d7be2da8"
+
+[[label]]
+drug = "RIBOCICLIB"
+cancer = "Breast Cancer"
+partners = ["FULVESTRANT"]
+negative = ["erbb2_amp"]
+setid = "aaeaef94-f3f5-4367-8ea2-b181d7be2da8"
+
+[[label]]
+drug = "ABEMACICLIB"
+cancer = "Breast Cancer"
+partners = ["TAMOXIFEN", "LETROZOLE", "ANASTROZOLE", "EXEMESTANE"]
+negative = ["erbb2_amp"]
+setid = "be4bc0de-0fdc-4d46-8d25-be43c79e6a06"
+note = "adjuvant"
+
+[[label]]
+drug = "ABEMACICLIB"
+cancer = "Breast Cancer"
+partners = ["LETROZOLE", "ANASTROZOLE", "EXEMESTANE"]
+negative = ["erbb2_amp"]
+setid = "be4bc0de-0fdc-4d46-8d25-be43c79e6a06"
+
+[[label]]
+drug = "ABEMACICLIB"
+cancer = "Breast Cancer"
+partners = ["FULVESTRANT"]
+negative = ["erbb2_amp"]
+setid = "be4bc0de-0fdc-4d46-8d25-be43c79e6a06"
+
+[[label]]
+drug = "ABEMACICLIB"
+cancer = "Breast Cancer"
+partners = ["IMLUNESTRANT"]
+positive = ["esr1_lbd"]
+negative = ["erbb2_amp"]
+setid = "be4bc0de-0fdc-4d46-8d25-be43c79e6a06"
+
+[[label]]
+drug = "ABEMACICLIB"
+cancer = "Breast Cancer"
+negative = ["erbb2_amp"]
+setid = "be4bc0de-0fdc-4d46-8d25-be43c79e6a06"
+note = "monotherapy"
+
+[[label]]
+drug = "TRASTUZUMAB"
+cancer = "Breast Cancer"
+partners = ["DOXORUBICIN", "CYCLOPHOSPHAMIDE", "PACLITAXEL", "DOCETAXEL", "CARBOPLATIN"]
+positive = ["erbb2_amp"]
+setid = "492dbdb2-077e-4064-bff3-372d6af0a7a2"
+note = "adjuvant"
+
+[[label]]
+drug = "TRASTUZUMAB"
+cancer = "Breast Cancer"
+partners = ["PACLITAXEL"]
+positive = ["erbb2_amp"]
+setid = "492dbdb2-077e-4064-bff3-372d6af0a7a2"
+
+[[label]]
+drug = "TRASTUZUMAB"
+cancer = "Breast Cancer"
+positive = ["erbb2_amp"]
+setid = "492dbdb2-077e-4064-bff3-372d6af0a7a2"
+note = "single agent"
+
+[[label]]
+drug = "PERTUZUMAB"
+cancer = "Breast Cancer"
+partners = ["TRASTUZUMAB", "DOCETAXEL"]
+positive = ["erbb2_amp"]
+setid = "17f85d17-ab71-4f5b-9fe3-0b8c822f69ff"
+
+[[label]]
+drug = "PERTUZUMAB"
+cancer = "Breast Cancer"
+partners = ["TRASTUZUMAB"]
+positive = ["erbb2_amp"]
+setid = "17f85d17-ab71-4f5b-9fe3-0b8c822f69ff"
+note = "neoadjuvant"
+
+[[label]]
+drug = "PERTUZUMAB"
+cancer = "Breast Cancer"
+partners = ["TRASTUZUMAB"]
+positive = ["erbb2_amp"]
+setid = "17f85d17-ab71-4f5b-9fe3-0b8c822f69ff"
+note = "adjuvant"
+
+[[label]]
+drug = "ADO-TRASTUZUMAB EMTANSINE"
+cancer = "Breast Cancer"
+positive = ["erbb2_amp"]
+setid = "23f3c1f4-0fc8-4804-a9e3-04cf25dd302e"
+note = "metastatic"
+
+[[label]]
+drug = "ADO-TRASTUZUMAB EMTANSINE"
+cancer = "Breast Cancer"
+positive = ["erbb2_amp"]
+setid = "23f3c1f4-0fc8-4804-a9e3-04cf25dd302e"
+note = "adjuvant residual disease"
+
+[[label]]
+drug = "FAM-TRASTUZUMAB DERUXTECAN"
+cancer = "Breast Cancer"
+partners = ["PACLITAXEL", "DOCETAXEL", "TRASTUZUMAB", "PERTUZUMAB"]
+positive = ["erbb2_amp"]
+setid = "7e67e73e-ddf4-4e4d-8b50-09d7514910b6"
+note = "neoadjuvant, followed by a taxane, trastuzumab and pertuzumab"
+
+[[label]]
+drug = "FAM-TRASTUZUMAB DERUXTECAN"
+cancer = "Breast Cancer"
+positive = ["erbb2_amp"]
+setid = "7e67e73e-ddf4-4e4d-8b50-09d7514910b6"
+note = "adjuvant residual disease"
+
+[[label]]
+drug = "FAM-TRASTUZUMAB DERUXTECAN"
+cancer = "Breast Cancer"
+partners = ["PERTUZUMAB"]
+positive = ["erbb2_amp"]
+setid = "7e67e73e-ddf4-4e4d-8b50-09d7514910b6"
+
+[[label]]
+drug = "FAM-TRASTUZUMAB DERUXTECAN"
+cancer = "Breast Cancer"
+positive = ["erbb2_amp"]
+setid = "7e67e73e-ddf4-4e4d-8b50-09d7514910b6"
+note = "after a prior anti-HER2 regimen"
+
+[[label]]
+drug = "FAM-TRASTUZUMAB DERUXTECAN"
+cancer = "Breast Cancer"
+negative = ["erbb2_amp"]
+setid = "7e67e73e-ddf4-4e4d-8b50-09d7514910b6"
+note = "HR-positive HER2-low or HER2-ultralow"
+
+[[label]]
+drug = "FAM-TRASTUZUMAB DERUXTECAN"
+cancer = "Breast Cancer"
+negative = ["erbb2_amp"]
+setid = "7e67e73e-ddf4-4e4d-8b50-09d7514910b6"
+note = "HER2-low after chemotherapy"
+
+[[label]]
+drug = "FAM-TRASTUZUMAB DERUXTECAN"
+cancer = "Non-Small Cell Lung Cancer"
+positive = ["erbb2_mutant"]
+setid = "7e67e73e-ddf4-4e4d-8b50-09d7514910b6"
+
+[[label]]
+drug = "FAM-TRASTUZUMAB DERUXTECAN"
+cancer = "any"
+positive = ["erbb2_amp"]
+setid = "7e67e73e-ddf4-4e4d-8b50-09d7514910b6"
+note = "HER2-positive (IHC 3+) solid tumors"
+
+[[label]]
+drug = "LAPATINIB"
+cancer = "Breast Cancer"
+partners = ["CAPECITABINE"]
+positive = ["erbb2_amp"]
+setid = "eee37f88-ec6a-4c30-b8aa-e2c71f93088c"
+
+[[label]]
+drug = "LAPATINIB"
+cancer = "Breast Cancer"
+partners = ["LETROZOLE"]
+positive = ["erbb2_amp"]
+setid = "eee37f88-ec6a-4c30-b8aa-e2c71f93088c"
+
+[[label]]
+drug = "NERATINIB"
+cancer = "Breast Cancer"
+positive = ["erbb2_amp"]
+setid = "d1e41dcf-e82a-47c2-a0ad-6c6eef621834"
+note = "extended adjuvant"
+
+[[label]]
+drug = "NERATINIB"
+cancer = "Breast Cancer"
+partners = ["CAPECITABINE"]
+positive = ["erbb2_amp"]
+setid = "d1e41dcf-e82a-47c2-a0ad-6c6eef621834"
+
+[[label]]
+drug = "TUCATINIB"
+cancer = "Breast Cancer"
+partners = ["TRASTUZUMAB", "CAPECITABINE"]
+positive = ["erbb2_amp"]
+setid = "f27eb1b9-b7fc-424e-988f-84dd7bb195a3"
+
+[[label]]
+drug = "TUCATINIB"
+cancer = "Colorectal Cancer"
+partners = ["TRASTUZUMAB"]
+positive = ["erbb2_amp"]
+negative = ["kras_nras"]
+setid = "f27eb1b9-b7fc-424e-988f-84dd7bb195a3"
+
+[[label]]
+drug = "ALPELISIB"
+cancer = "Breast Cancer"
+partners = ["FULVESTRANT"]
+positive = ["pik3ca"]
+negative = ["erbb2_amp"]
+setid = "b20b4e18-7a4b-4500-a08f-06c6dab0ee5b"
+
+[[label]]
+drug = "OLAPARIB"
+cancer = "Breast Cancer"
+negative = ["erbb2_amp"]
+unmeasured = ["germline BRCA"]
+setid = "741ff3e3-dc1a-45a6-84e5-2481b27131aa"
+note = "adjuvant"
+
+[[label]]
+drug = "OLAPARIB"
+cancer = "Breast Cancer"
+negative = ["erbb2_amp"]
+unmeasured = ["germline BRCA"]
+setid = "741ff3e3-dc1a-45a6-84e5-2481b27131aa"
+note = "metastatic"
+
+[[label]]
+drug = "OLAPARIB"
+cancer = "Pancreatic Cancer"
+unmeasured = ["germline BRCA"]
+setid = "741ff3e3-dc1a-45a6-84e5-2481b27131aa"
+
+[[label]]
+drug = "OLAPARIB"
+cancer = "Prostate Cancer"
+unmeasured = ["germline or somatic HRR"]
+setid = "741ff3e3-dc1a-45a6-84e5-2481b27131aa"
+
+[[label]]
+drug = "OLAPARIB"
+cancer = "Prostate Cancer"
+partners = ["ABIRATERONE"]
+unmeasured = ["BRCA"]
+setid = "741ff3e3-dc1a-45a6-84e5-2481b27131aa"
+
+[[label]]
+drug = "NIRAPARIB"
+cancer = "Prostate Cancer"
+partners = ["ABIRATERONE"]
+unmeasured = ["BRCA2"]
+setid = "8245a990-3268-4613-b5c5-9537858a1eb9"
+note = "castration-sensitive"
+
+[[label]]
+drug = "NIRAPARIB"
+cancer = "Prostate Cancer"
+partners = ["ABIRATERONE"]
+unmeasured = ["BRCA"]
+setid = "8245a990-3268-4613-b5c5-9537858a1eb9"
+note = "castration-resistant"
+
+[[label]]
+drug = "RUCAPARIB"
+cancer = "Prostate Cancer"
+unmeasured = ["germline or somatic BRCA"]
+setid = "0295d202-1cfe-7659-e063-6294a90a476e"
+
+[[label]]
+drug = "TALAZOPARIB"
+cancer = "Breast Cancer"
+negative = ["erbb2_amp"]
+unmeasured = ["germline BRCA"]
+setid = "f2423edd-6d24-495c-aec1-c2f457f08d9a"
+
+[[label]]
+drug = "TALAZOPARIB"
+cancer = "Prostate Cancer"
+partners = ["ENZALUTAMIDE"]
+unmeasured = ["HRR"]
+setid = "f2423edd-6d24-495c-aec1-c2f457f08d9a"
+
+[[label]]
+drug = "CETUXIMAB"
+cancer = "Colorectal Cancer"
+partners = ["IRINOTECAN", "FLUOROURACIL"]
+negative = ["kras_nras"]
+setid = "8bc6397e-4bd8-4d37-a007-a327e4da34d9"
+note = "with FOLFIRI, first line"
+
+[[label]]
+drug = "CETUXIMAB"
+cancer = "Colorectal Cancer"
+partners = ["IRINOTECAN"]
+negative = ["kras_nras"]
+setid = "8bc6397e-4bd8-4d37-a007-a327e4da34d9"
+
+[[label]]
+drug = "CETUXIMAB"
+cancer = "Colorectal Cancer"
+negative = ["kras_nras"]
+setid = "8bc6397e-4bd8-4d37-a007-a327e4da34d9"
+note = "single agent"
+
+[[label]]
+drug = "CETUXIMAB"
+cancer = "Colorectal Cancer"
+partners = ["ENCORAFENIB"]
+positive = ["braf_v600e"]
+setid = "8bc6397e-4bd8-4d37-a007-a327e4da34d9"
+
+[[label]]
+drug = "PANITUMUMAB"
+cancer = "Colorectal Cancer"
+partners = ["OXALIPLATIN", "FLUOROURACIL"]
+negative = ["kras_nras"]
+setid = "e0fa4bca-f245-4d92-ae29-b0c630a315c2"
+
+[[label]]
+drug = "PANITUMUMAB"
+cancer = "Colorectal Cancer"
+negative = ["kras_nras"]
+setid = "e0fa4bca-f245-4d92-ae29-b0c630a315c2"
+note = "monotherapy"
+
+[[label]]
+drug = "PANITUMUMAB"
+cancer = "Colorectal Cancer"
+partners = ["SOTORASIB"]
+positive = ["kras_nras"]
+setid = "e0fa4bca-f245-4d92-ae29-b0c630a315c2"
+note = "KRAS G12C"
+
+[[label]]
+drug = "RAMUCIRUMAB"
+cancer = "Non-Small Cell Lung Cancer"
+partners = ["ERLOTINIB"]
+positive = ["egfr_activating"]
+setid = "c6080942-dee6-423e-b688-1272c2ae90d4"
+
+[[label]]
+drug = "PEMETREXED"
+cancer = "Non-Small Cell Lung Cancer"
+partners = ["PEMBROLIZUMAB"]
+negative = ["egfr_activating", "alk_fusion"]
+setid = "f5a860f3-37ec-429c-ae04-9c88d7c55c08"
+
+[[label]]
+drug = "FULVESTRANT"
+cancer = "Breast Cancer"
+negative = ["erbb2_amp"]
+setid = "83d7a440-e904-4e36-afb5-cb02b1c919f7"
+note = "monotherapy, not previously treated with endocrine therapy; the post-endocrine monotherapy indication states no HER2 requirement"
+
+[[label]]
+drug = "FULVESTRANT"
+cancer = "Breast Cancer"
+partners = ["RIBOCICLIB"]
+negative = ["erbb2_amp"]
+setid = "83d7a440-e904-4e36-afb5-cb02b1c919f7"
+
+[[label]]
+drug = "FULVESTRANT"
+cancer = "Breast Cancer"
+partners = ["PALBOCICLIB", "ABEMACICLIB"]
+negative = ["erbb2_amp"]
+setid = "83d7a440-e904-4e36-afb5-cb02b1c919f7"
+
+[[label]]
+drug = "ELACESTRANT"
+cancer = "Breast Cancer"
+positive = ["esr1_lbd"]
+negative = ["erbb2_amp"]
+setid = "aa66ae5c-2bd2-4444-8178-b55651e054ef"

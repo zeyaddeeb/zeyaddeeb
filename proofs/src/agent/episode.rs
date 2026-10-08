@@ -108,6 +108,7 @@ pub fn interrupted(number: u64, front: &str, started: i64, rules: u64, turns: &[
     let planned = |key: &str| {
         calls
             .iter()
+            .rev()
             .find(|call| call.tool == Tool::Plan.name() && call.ok)
             .and_then(|call| call.args[key].as_str())
             .unwrap_or_default()
@@ -126,6 +127,9 @@ pub fn interrupted(number: u64, front: &str, started: i64, rules: u64, turns: &[
         front: front.to_string(),
         objective: planned("objective"),
         prediction: planned("prediction"),
+        heuristic: prompts::move_id(&planned("move"))
+            .unwrap_or_default()
+            .to_string(),
         summary: cut_off(turns.len() as u32),
         held: graded.iter().filter(|&&held| held).count() as u32,
         broken: graded.iter().filter(|&&held| !held).count() as u32,
@@ -305,7 +309,25 @@ async fn brief(agent: &mut Agent, front: &'static Front) -> anyhow::Result<Strin
         Vec::new()
     };
 
-    let moves = prompts::moves(&store.episodes(MOVES_OVER).await?);
+    let episodes = store.episodes(MOVES_OVER).await?;
+    let moves = prompts::moves(&episodes);
+    // Keep paired rule trials on the same move as well as the same front.
+    let paired_move = if let Some(half) = agent
+        .state
+        .half
+        .as_ref()
+        .filter(|half| half.front == front.id)
+    {
+        store
+            .episode(half.episode)
+            .await?
+            .and_then(|episode| prompts::move_id(&episode.heuristic))
+    } else {
+        None
+    };
+    let suggested_move = paired_move
+        .map(str::to_string)
+        .unwrap_or_else(|| prompts::suggest_move(&episodes, front.id));
 
     Ok(prompts::brief(&prompts::Brief {
         front,
@@ -316,6 +338,7 @@ async fn brief(agent: &mut Agent, front: &'static Front) -> anyhow::Result<Strin
         tree: &outline,
         focus,
         moves: &moves,
+        suggested_move: &suggested_move,
         actions: agent.config.actions,
     }))
 }
@@ -323,12 +346,12 @@ async fn brief(agent: &mut Agent, front: &'static Front) -> anyhow::Result<Strin
 fn focus(node: &Node, formal: bool) -> String {
     if node.key == tree::ROOT {
         return if formal {
-            "No Lean-checked route under rh yet. Work backwards: reduce rh to smaller statements. A zero off the line \
-would have to lie in the critical strip, because Mathlib rules out zeros with Re s ≥ 1 and the functional equation \
-relates Re s ≤ 0 to Re s ≥ 1."
+            "No Lean-checked route under rh yet. Seek a checked reduction or a tractable related statement whose method \
+could help build one. Known ingredients include non-vanishing for Re s ≥ 1 and the functional equation. \
+Choose the approach using the recommended move, rather than repeating the same reduction."
                 .to_string()
         } else {
-            "The proof tree under rh has no Lean-checked route yet; the Lean front is working backwards from rh."
+            "The proof tree under rh has no Lean-checked route yet. A related problem may expose a useful ingredient or an obstruction."
                 .to_string()
         };
     }
@@ -338,7 +361,7 @@ relates Re s ≤ 0 to Re s ≥ 1."
     let tried = match failed {
         0 => String::new(),
         1 => " Lean rejected one attempt; try another way, or reduce it.".to_string(),
-        n => format!(" Lean rejected {n} attempts; reduce it, or specialize."),
+        n => format!(" Lean rejected {n} attempts; change approach. Consider a related tractable problem, an analogy, a generalization, or a special case and explain what transfers."),
     };
 
     let lean = node.lean.as_deref().unwrap_or_default();

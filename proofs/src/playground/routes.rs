@@ -152,10 +152,7 @@ mod tests {
             "goals": vec![goal()],
         });
 
-        assert_eq!(
-            serde_json::to_string(&typed).unwrap(),
-            serde_json::to_string(&loose).unwrap()
-        );
+        assert_eq!(serde_json::to_value(&typed).unwrap(), loose);
     }
 
     #[test]
@@ -193,9 +190,6 @@ mod tests {
             "leanMs": micros as f64 / 1000.0,
         });
 
-        assert_eq!(
-            serde_json::to_string(&typed).unwrap(),
-            serde_json::to_string(&loose).unwrap()
-        );
+        assert_eq!(serde_json::to_value(&typed).unwrap(), loose);
     }
 }

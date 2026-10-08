@@ -124,6 +124,8 @@ export function Moves({ episodes }: { episodes: Episode[] }) {
 	});
 
 	const best = Math.max(...rows.map((r) => r.mean), 1e-9);
+	const unrecorded =
+		episodes.length - rows.reduce((sum, row) => sum + row.tried, 0);
 
 	return (
 		<div className="ns-arms ns-moves">
@@ -136,16 +138,15 @@ export function Moves({ episodes }: { episodes: Episode[] }) {
 							className="ns-arm-bar"
 							style={{ "--share": mean / best } as React.CSSProperties}
 						/>
-						<span className="ns-arm-pulls">
-							{tried === 0 ? "untried" : `${tried}×`}
-						</span>
+						<span className="ns-arm-pulls">{tried}×</span>
 					</li>
 				))}
 			</ol>
 			<p className="ns-arms-note">
-				Each episode begins by naming one of Pólya’s moves from How to Solve It.
-				Its briefing shows what each move has earned, over its last{" "}
-				{episodes.length} episodes.
+				Recorded moves over the last {episodes.length} episodes. Bars show
+				average reward; counts show how often each move was named.
+				{unrecorded > 0 &&
+					` ${unrecorded} ${unrecorded === 1 ? "episode has" : "episodes have"} no recorded move.`}
 			</p>
 		</div>
 	);

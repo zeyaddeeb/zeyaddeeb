@@ -227,7 +227,7 @@ fn script(lean: bool) -> VecDeque<Vec<Part>> {
             Part::Think("Gram blocks first; a short block would be news."),
             Part::Call(
                 "plan",
-                json!({"objective": "Locate every zero up to t = 100", "prediction": "None missing", "instrument": "line"}),
+                json!({"move": "backwards", "objective": "Locate every zero up to t = 100", "prediction": "None missing", "instrument": "line"}),
             ),
         ],
         vec![
@@ -464,7 +464,7 @@ async fn proof_search_repairs_using_lean_errors_and_keeps_nested_blocks() {
         turns: VecDeque::from([
             vec![Part::Call(
                 "plan",
-                json!({"objective": "Prove reflection", "prediction": "The side conditions suffice", "instrument": "formalize"}),
+                json!({"move": "backwards", "objective": "Prove reflection", "prediction": "The side conditions suffice", "instrument": "formalize"}),
             )],
             vec![Part::Call(
                 "formalize",
@@ -532,7 +532,7 @@ async fn proof_search_repairs_using_lean_errors_and_keeps_nested_blocks() {
     );
 
     shared.lock().unwrap().turns.extend([
-        vec![Part::Call("plan", json!({"objective": "Test a nearby target", "prediction": "Past proofs are guidance only", "instrument": "formalize"}))],
+        vec![Part::Call("plan", json!({"move": "backwards", "objective": "Test a nearby target", "prediction": "Past proofs are guidance only", "instrument": "formalize"}))],
         vec![Part::Call("formalize", json!({"statement": "theorem not_implied (s : ℂ) (h0 : 0 < s.re) (h1 : s.re < 1) (hs : riemannZeta s = 0) : riemannZeta (1 - s) = 1"}))],
         vec![Part::Call("proof_plan", json!({"strategy": "The checked example does not prove this conclusion", "candidates": [], "helpers": []}))],
         vec![Part::Call("conclude", json!({"summary": "Example recalled, new target not proved", "next": "Keep the verified conclusion"}))],
@@ -585,7 +585,7 @@ async fn proof_helpers_are_checked_reused_and_replayed_in_order() {
         turns: VecDeque::from([
             vec![Part::Call(
                 "plan",
-                json!({"objective": "Prove reflection via a bridge", "prediction": "The bridge suffices", "instrument": "formalize"}),
+                json!({"move": "backwards", "objective": "Prove reflection via a bridge", "prediction": "The bridge suffices", "instrument": "formalize"}),
             )],
             vec![Part::Call(
                 "formalize",
@@ -660,7 +660,7 @@ async fn proof_helpers_do_not_prove_a_false_parent() {
         turns: VecDeque::from([
             vec![Part::Call(
                 "plan",
-                json!({"objective": "Check the impossible target", "prediction": "It must fail", "instrument": "formalize"}),
+                json!({"move": "backwards", "objective": "Check the impossible target", "prediction": "It must fail", "instrument": "formalize"}),
             )],
             vec![Part::Call(
                 "formalize",
@@ -950,7 +950,7 @@ async fn an_episode_a_hard_kill_cut_off_is_closed_on_the_next_shift() {
             calls: vec![Call {
                 id: "c".into(),
                 tool: "plan".into(),
-                args: json!({"objective": "Search near t = 7005", "prediction": "No zeros"}),
+                args: json!({"move": "backwards", "objective": "Search near t = 7005", "prediction": "No zeros"}),
                 ok: true,
                 summary: "Planned. Go.".into(),
                 verdict: None,
@@ -987,6 +987,7 @@ async fn an_episode_a_hard_kill_cut_off_is_closed_on_the_next_shift() {
 
     assert_eq!(cut.front, "offline");
     assert_eq!(cut.summary, "Cut off by a restart after 1 action.");
+    assert_eq!(cut.heuristic, "backwards");
     assert_eq!(cut.objective, "Search near t = 7005");
     assert_eq!((cut.tokens, cut.started, cut.ended), (10, 5, 7));
 
@@ -1063,7 +1064,7 @@ async fn a_call_written_while_thinking_still_runs() {
     let mut turns = script(false);
 
     turns[0] = vec![Part::Think(
-        "Plan first.\n<tool_call>\n<function=plan>\n<parameter=objective>\nLocate every zero up to t = 100\n</parameter>\n<parameter=prediction>\nNone missing\n</parameter>\n<parameter=instrument>\nline\n</parameter>\n</function>\n</tool_call>\n",
+        "Plan first.\n<tool_call>\n<function=plan>\n<parameter=move>\nbackwards\n</parameter>\n<parameter=objective>\nLocate every zero up to t = 100\n</parameter>\n<parameter=prediction>\nNone missing\n</parameter>\n<parameter=instrument>\nline\n</parameter>\n</function>\n</tool_call>\n",
     )];
 
     let shared: Shared = Arc::new(Mutex::new(Script {
@@ -1222,6 +1223,14 @@ async fn a_rule_change_runs_blind_in_paired_episodes() {
 
     assert!(requests[7].to_string().contains(rule), "then the new rules");
     assert!(!requests[7].to_string().contains("on trial"), "blind");
+    for request in [&requests[4], &requests[7]] {
+        assert!(
+            request
+                .to_string()
+                .contains("Recommended move on this front: backwards."),
+            "the exploration recommendation must not change within a rule trial pair"
+        );
+    }
 
     let second = store.episode(2).await.unwrap().unwrap();
     let third = store.episode(3).await.unwrap().unwrap();

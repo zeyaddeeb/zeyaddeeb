@@ -9,7 +9,7 @@ use echo::Echo;
 use futures::StreamExt;
 use rig_core::{
     completion::{CompletionRequest, ToolDefinition},
-    message::{AssistantContent, Message, ToolCall, ToolName},
+    message::{AssistantContent, AssistantMessage, Message, ToolCall, ToolName},
     providers::openai::{wire::Chat, OpenAI},
     streaming::{Item, StreamEvent},
     Model, ProviderError,
@@ -53,7 +53,8 @@ impl ProofPlan {
             .iter()
             .find(|call| call.function.name == "proof_plan")
         {
-            return Self::parse(&call.function.arguments).unwrap_or_default();
+            return Self::parse(&Value::Object(call.function.arguments.clone()))
+                .unwrap_or_default();
         }
 
         let text = reply.said.trim();
@@ -155,7 +156,7 @@ impl Reply {
             content.push(AssistantContent::text("(silence)"));
         }
 
-        Message::Assistant { id: None, content }
+        Message::Assistant(AssistantMessage::new(content))
     }
 }
 
@@ -182,7 +183,7 @@ impl Llm {
             + serde_json::to_string(&ask.prompt).map_or(0, |text| text.len())
             + serde_json::to_string(&ask.tools).map_or(0, |text| text.len());
 
-        let names: Vec<String> = ask.tools.iter().map(|tool| tool.name.clone()).collect();
+        let names: Vec<ToolName> = ask.tools.iter().map(|tool| tool.name.clone()).collect();
 
         let request = CompletionRequest::new(ask.prompt)
             .preamble(ask.preamble.to_string())
@@ -278,7 +279,7 @@ impl Llm {
         }
 
         if reply.calls.is_empty() {
-            let names: Vec<&str> = names.iter().map(String::as_str).collect();
+            let names: Vec<&str> = names.iter().map(ToolName::as_str).collect();
 
             reply.calls = written_calls(&mut reply, &names, [&musing, &splitter])
                 .into_iter()
@@ -319,7 +320,7 @@ impl Llm {
             history: &[],
             prompt: Message::user(serde_json::to_string(context)?),
             tools: vec![ToolDefinition {
-                name: "proof_plan".into(),
+                name: ToolName::new("proof_plan").expect("non-empty tool name"),
                 description: "Propose alternative Lean tactic blocks and optional smaller independent lemmas.".into(),
                 parameters: json!({
                     "type": "object",

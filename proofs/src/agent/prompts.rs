@@ -1,6 +1,6 @@
 use super::{
     fronts::Front,
-    memory::{AgentState, Episode, Layer, Node, Rules, Standing},
+    memory::{AgentState, Arm, Episode, Layer, Node, Rules, Standing},
 };
 
 pub const PROPOSER: &str = "You prove Lean 4 theorems in the supplied Mathlib environment. \
@@ -23,8 +23,30 @@ pub const MOVES: &[(&str, &str)] = &[
         "generalize: a stronger statement may be easier",
     ),
     ("analogy", "analogy: a similar problem that is solved"),
-    ("related", "have you seen it before: a related result"),
+    (
+        "related",
+        "solve a tractable related problem and test what transfers",
+    ),
 ];
+
+pub fn move_id(value: &str) -> Option<&'static str> {
+    MOVES
+        .iter()
+        .find_map(|(id, _)| id.eq_ignore_ascii_case(value.trim()).then_some(*id))
+}
+
+pub fn suggest_move(episodes: &[Episode], front: &str) -> String {
+    let mut arms = Vec::<Arm>::new();
+
+    for episode in episodes.iter().filter(|episode| episode.front == front) {
+        if let Some(id) = move_id(&episode.heuristic) {
+            super::bandit::reward(&mut arms, id, episode.reward);
+        }
+    }
+
+    let ids: Vec<_> = MOVES.iter().map(|(id, _)| *id).collect();
+    super::bandit::choose(&arms, &ids, "").0
+}
 
 pub fn researcher(awake: &str, rules: &[String]) -> String {
     let mut text = format!(
@@ -41,6 +63,13 @@ Work the way Pólya teaches in How to Solve It:
 specialize, generalize, or find an analogy. Begin with plan and name your move.
 3. Carry out the plan and check each step: nothing counts until Lean or an instrument checks it.
 4. Look back: can you check the result? Can you use the result, or the method, for another problem? Finish with conclude.
+
+The briefing recommends a move using rewards and an exploration bonus on this front; untried moves come first. \
+Use it unless you can explain in your objective why it cannot advance this front with the available tools.
+For related: name a tractable related problem in related_problem and its precise connection to your target in connection. \
+Use recall to find relevant results, record a claim, and attempt a proof or a falsifiable instrument check. \
+In conclude.transfer, state the checked result or obstruction, which step or assumption transfers back, and what remains unproved. \
+A related theorem alone does not prove the target; a failed transfer is a useful outcome too.
 
 The rules of evidence:
 - Claims climb a ladder: conjectured, then measured (an instrument agreed with a prediction you made in advance), then verified \
@@ -258,20 +287,22 @@ pub fn method_record(current: &Rules, lineage: &[Rules]) -> String {
 pub fn moves(episodes: &[Episode]) -> Vec<String> {
     MOVES
         .iter()
-        .filter_map(|(id, what)| {
+        .map(|(id, what)| {
             let rewards: Vec<f64> = episodes
                 .iter()
                 .filter(|e| e.heuristic == *id)
                 .map(|e| e.reward)
                 .collect();
 
-            (!rewards.is_empty()).then(|| {
+            if rewards.is_empty() {
+                format!("{id} ({what}): untried in this window")
+            } else {
                 format!(
                     "{id} ({what}): {:.2} over {}",
                     super::rules::mean(&rewards),
                     rewards.len()
                 )
-            })
+            }
         })
         .collect()
 }
@@ -285,6 +316,7 @@ pub struct Brief<'a> {
     pub tree: &'a [String],
     pub focus: Option<String>,
     pub moves: &'a [String],
+    pub suggested_move: &'a str,
     pub actions: usize,
 }
 
@@ -298,6 +330,7 @@ pub fn brief(brief: &Brief) -> String {
         tree,
         focus,
         moves,
+        suggested_move,
         actions,
     } = brief;
 
@@ -363,7 +396,7 @@ pub fn brief(brief: &Brief) -> String {
             .map(|e| format!("#{}: {} Next: {}", e.number, e.summary, e.next)),
     );
 
-    text.push_str(&format!("\n\nYou have {actions} actions. Begin with plan."));
+    text.push_str(&format!("\n\nRecommended move on this front: {suggested_move}. Untried moves come first, then mean reward plus an exploration bonus.\n\nYou have {actions} actions. Begin with plan."));
 
     text
 }
@@ -449,6 +482,57 @@ mod tests {
     use crate::agent::fronts::FRONTS;
 
     #[test]
+    fn recommendations_explore_every_move_before_repeating_on_each_front() {
+        let mut episodes = Vec::new();
+
+        for (id, _) in MOVES {
+            assert_eq!(suggest_move(&episodes, "lean"), *id);
+            episodes.push(Episode {
+                front: "lean".into(),
+                heuristic: id.to_string(),
+                reward: 1.0,
+                ..Default::default()
+            });
+        }
+
+        assert_eq!(suggest_move(&episodes, "curves"), "backwards");
+    }
+
+    #[test]
+    fn recommendations_revisit_neglected_moves_despite_a_rewarding_favorite() {
+        let mut episodes = Vec::new();
+
+        for _ in 0..120 {
+            let heuristic = suggest_move(&episodes, "lean");
+            episodes.push(Episode {
+                front: "lean".into(),
+                reward: if heuristic == "backwards" { 1.0 } else { 0.0 },
+                heuristic,
+                ..Default::default()
+            });
+        }
+
+        for (id, _) in MOVES {
+            assert!(
+                episodes.iter().filter(|e| e.heuristic == *id).count() > 1,
+                "{id}"
+            );
+        }
+    }
+
+    #[test]
+    fn move_history_distinguishes_untried_from_zero_reward() {
+        let rows = moves(&[Episode {
+            heuristic: "backwards".into(),
+            ..Default::default()
+        }]);
+
+        assert_eq!(rows.len(), MOVES.len());
+        assert!(rows[0].ends_with("0.00 over 1"));
+        assert!(rows[5].ends_with("untried in this window"));
+    }
+
+    #[test]
     fn briefs_carry_the_front_and_the_budget() {
         let state = AgentState {
             episodes: 4,
@@ -466,6 +550,7 @@ mod tests {
             tree: &[],
             focus: Some("[ob1-1-1] Lean: theorem x : P".into()),
             moves: &["decompose 0.40 (3)".into()],
+            suggested_move: "related",
             actions: 8,
         });
 

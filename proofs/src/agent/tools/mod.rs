@@ -2,7 +2,7 @@ pub mod instruments;
 pub mod referee;
 
 use super::fronts::Front;
-use rig_core::completion::ToolDefinition;
+use rig_core::{completion::ToolDefinition, message::ToolName};
 use serde_json::{json, Map, Value};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -106,7 +106,7 @@ impl Tool {
         }
 
         ToolDefinition {
-            name: self.name().to_string(),
+            name: ToolName::new(self.name()).expect("non-empty tool name"),
             description: description.to_string(),
             parameters: json!({
                 "type": "object",
@@ -128,6 +128,8 @@ impl Tool {
                     ("objective", string("What this episode will settle or test.")),
                     ("prediction", string("What you expect to see, stated so it could be wrong.")),
                     ("instrument", string("The tool you will use first.")),
+                    ("related_problem", string("Required for move=related: a precise, tractable related statement to investigate.")),
+                    ("connection", string("Required for move=related: the target and the step or assumption this problem could illuminate.")),
                 ]),
                 vec!["move", "objective", "prediction", "instrument"],
             ),
@@ -176,6 +178,7 @@ A statement your library already proves is refused.",
                 fields(&[
                     ("summary", string("What you learned, in two sentences, with the numbers. Can you check the result?")),
                     ("next", string("Can you use the result, or the method, elsewhere? What should the next episode on this front try?")),
+                    ("transfer", string("Required after a related plan: the checked result or obstruction, what transfers back to the target, and what remains unproved. Failed transfer is allowed.")),
                 ]),
                 vec!["summary", "next"],
             ),

@@ -58,19 +58,19 @@ pub async fn run(agent: &mut Agent) -> Result<(), Stop> {
         let mut done = false;
 
         for call in &reply.calls {
-            let args = &call.function.arguments;
+            let args = serde_json::Value::Object(call.function.arguments.clone());
 
             let summary = match Tool::parse(&call.function.name) {
                 Some(Tool::Insight) if insights < INSIGHTS => {
                     insights += 1;
 
-                    insight(agent, episodes, insights, args).await
+                    insight(agent, episodes, insights, &args).await
                 }
                 Some(Tool::Insight) => "Two insights are enough; write the letter.".to_string(),
-                Some(Tool::Link) => link(agent, episodes, args).await.summary,
+                Some(Tool::Link) => link(agent, episodes, &args).await.summary,
                 Some(Tool::Letter) => {
                     done = true;
-                    agent.state.letter = text(args, "text", 800).unwrap_or_default();
+                    agent.state.letter = text(&args, "text", 800).unwrap_or_default();
 
                     "Letter kept.".to_string()
                 }
