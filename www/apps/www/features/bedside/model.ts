@@ -1,6 +1,6 @@
 import SNAPSHOT from "./snapshot.json";
 
-export type Verdict = "held up" | "reversed" | "unresolved" | "no call";
+type Verdict = "held up" | "reversed" | "unresolved" | "no call";
 
 export interface Pair {
 	cancer: string;
@@ -36,16 +36,16 @@ export interface Mosaic {
 	pairs: Pair[];
 }
 
-export interface MosaicSource {
+interface MosaicSource {
 	genes: readonly string[];
 	classes: readonly string[];
 	tested: number;
 	cells: readonly (readonly number[])[];
 }
 
-export type Tone = "help" | "hurt";
+type Tone = "help" | "hurt";
 
-export const CANCERS: Record<string, string> = {
+const CANCERS: Record<string, string> = {
 	"Non-Small Cell Lung Cancer": "Lung",
 	"Breast Cancer": "Breast",
 	"Colorectal Cancer": "Colorectal",
@@ -53,8 +53,7 @@ export const CANCERS: Record<string, string> = {
 	"Prostate Cancer": "Prostate",
 };
 
-export const CLASSES: Record<string, string> = {
-	checkpoint: "Immunotherapy",
+const CLASSES: Record<string, string> = {
 	egfr_tki: "EGFR pills",
 	alk_tki: "ALK pills",
 	aromatase: "Aromatase inhibitors",
@@ -62,32 +61,28 @@ export const CLASSES: Record<string, string> = {
 	her2: "HER2 drugs",
 	pi3k: "Alpelisib",
 	parp: "PARP inhibitors",
-	egfr_antibody: "EGFR antibodies",
 	platinum: "Platinum",
 	taxane: "Taxanes",
 	antimetabolite: "Antimetabolites",
 	topoisomerase: "Topoisomerase drugs",
 	anthracycline: "Anthracyclines",
-	vegf: "VEGF blockers",
 	antiandrogen: "Antiandrogens",
 	serd: "Fulvestrant",
 	tamoxifen: "Tamoxifen",
 };
 
-const MARKERS: Record<string, string> = {
-	egfr_activating: "EGFR mut",
-	kras_nras: "KRAS/NRAS",
-	braf_v600e: "BRAF V600E",
-	stk11: "STK11 loss",
-	keap1: "KEAP1",
-	esr1_lbd: "ESR1 mut",
-	rb1_loss: "RB1 loss",
-	brca: "BRCA loss",
-	erbb2_amp: "HER2 amp",
-	erbb2_mutant: "HER2 mut",
-	pik3ca: "PIK3CA mut",
-	alk_fusion: "ALK fusion",
-	ros1_fusion: "ROS1 fusion",
+const MARKERS: Record<string, [string, string]> = {
+	egfr_activating: ["EGFR", "activating"],
+	kras_nras: ["KRAS/NRAS", "hotspot"],
+	braf_v600e: ["BRAF", "V600E"],
+	stk11: ["STK11", "loss"],
+	keap1: ["KEAP1", "mutated"],
+	rb1_loss: ["RB1", "loss"],
+	brca: ["BRCA1/2", "loss"],
+	erbb2_amp: ["HER2", "amplified"],
+	erbb2_mutant: ["HER2", "mutated"],
+	pik3ca: ["PIK3CA", "mutated"],
+	alk_fusion: ["ALK", "fusion"],
 };
 
 const VERDICT_CODES: Verdict[] = [
@@ -104,7 +99,7 @@ export const VERDICTS: Record<Verdict, string> = {
 	"no call": "No call",
 };
 
-export const STEPS = [0.8, 0.9, 0.95];
+const STEPS = [0.8, 0.9, 0.95];
 
 const Z = 1.959964;
 
@@ -147,7 +142,7 @@ function decode(
 	};
 }
 
-export function toMosaics(source: Record<string, MosaicSource>): Mosaic[] {
+function toMosaics(source: Record<string, MosaicSource>): Mosaic[] {
 	return Object.entries(source).map(([cancer, m]) => ({
 		cancer,
 		genes: [...m.genes],
@@ -171,22 +166,50 @@ export async function loadEvery(): Promise<Mosaic[]> {
 	return toMosaics(body.mosaic);
 }
 
-export const geneOf = (biomarker: string) =>
+const geneOf = (biomarker: string) =>
 	biomarker.startsWith("altered:") ? biomarker.slice(8) : "";
+
+export function matches(biomarker: string, sought: string): boolean {
+	const wanted = sought.trim().toUpperCase();
+
+	if (!wanted) return false;
+
+	const shown = markerParts(biomarker)[0].toUpperCase();
+
+	return shown === wanted || geneOf(biomarker).toUpperCase() === wanted;
+}
 
 export const ALL_PAIRS = MOSAICS.flatMap((m) => m.pairs);
 
-export const markerName = (biomarker: string) =>
-	biomarker.startsWith("altered:")
-		? biomarker.slice(8)
-		: (MARKERS[biomarker] ?? biomarker);
+const GENE_NAMES: Record<string, string> = { ERBB2: "HER2" };
 
-export const longMarker = (biomarker: string) =>
-	biomarker.startsWith("altered:")
-		? `${biomarker.slice(8)} altered`
-		: (MARKERS[biomarker] ?? biomarker);
+const geneName = (gene: string) => GENE_NAMES[gene] ?? gene;
+
+export function markerParts(biomarker: string): [string, string] {
+	if (biomarker.startsWith("altered:")) {
+		return [geneName(biomarker.slice(8)), "any"];
+	}
+
+	return MARKERS[biomarker] ?? [biomarker, ""];
+}
+
+export const markerName = (biomarker: string) => markerParts(biomarker)[0];
+
+export function longMarker(biomarker: string): string {
+	const [gene, kind] = markerParts(biomarker);
+
+	return kind === "any" ? `${gene} altered` : `${gene} ${kind}`.trim();
+}
 
 export const className = (drugClass: string) => CLASSES[drugClass] ?? drugClass;
+
+export function inSentence(drugClass: string): string {
+	const name = className(drugClass);
+
+	return /^[A-Z]{2}/.test(name)
+		? name
+		: name.charAt(0).toLowerCase() + name.slice(1);
+}
 
 export const cancerName = (cancer: string) => CANCERS[cancer] ?? cancer;
 
@@ -227,7 +250,7 @@ export function dishWords(p: Pair): string {
 		? `${p.dish.lines} ${cancerName(p.cancer).toLowerCase()} lines carry it`
 		: `too few ${cancerName(p.cancer).toLowerCase()} lines carry it, so this leans on other cancers’ lines`;
 
-	return `Cell lines with ${longMarker(p.biomarker)} were ${way} sensitive to ${className(p.drugClass).toLowerCase()} than to the other drugs; ${lines}.`;
+	return `Cell lines with ${longMarker(p.biomarker)} were ${way} sensitive to ${inSentence(p.drugClass)} than to the other drugs; ${lines}.`;
 }
 
 export function bedsideWords(p: Pair): string {
@@ -235,7 +258,7 @@ export function bedsideWords(p: Pair): string {
 	const way = hazard < 1 ? "stayed on" : "came off";
 	const timing = hazard < 1 ? "longer" : "sooner";
 
-	return `Patients with it ${way} ${className(p.drugClass).toLowerCase()} ${timing} than on the other drugs (hazard ${hazard.toFixed(2)}), over ${p.bedside.marked} treatment courses with it and ${p.bedside.unmarked} without.`;
+	return `Patients with it ${way} ${inSentence(p.drugClass)} ${timing} than on the other drugs (hazard ${hazard.toFixed(2)}), over ${p.bedside.marked} treatment courses with it and ${p.bedside.unmarked} without.`;
 }
 
 export function verdictWords(p: Pair): string {
@@ -264,7 +287,102 @@ export function counts(pairs: readonly Pair[]) {
 	};
 }
 
+const FAMILIES: { name: string; classes: string[] }[] = [
+	{
+		name: "Targeted",
+		classes: ["egfr_tki", "alk_tki", "her2", "pi3k", "cdk46", "parp"],
+	},
+	{
+		name: "Hormone",
+		classes: ["aromatase", "serd", "tamoxifen", "antiandrogen"],
+	},
+	{
+		name: "Chemo",
+		classes: [
+			"platinum",
+			"taxane",
+			"antimetabolite",
+			"topoisomerase",
+			"anthracycline",
+		],
+	},
+];
+
+const SHORT: Record<string, string> = {
+	egfr_tki: "EGFR pills",
+	alk_tki: "ALK pills",
+	her2: "HER2 drugs",
+	pi3k: "Alpelisib",
+	cdk46: "CDK4/6",
+	parp: "PARP",
+	aromatase: "Aromatase",
+	serd: "Fulvestrant",
+	tamoxifen: "Tamoxifen",
+	antiandrogen: "AR blockers",
+	platinum: "Platinum",
+	taxane: "Taxanes",
+	antimetabolite: "Antimetab.",
+	topoisomerase: "Topoisom.",
+	anthracycline: "Anthracycl.",
+};
+
+export const shortName = (drugClass: string) =>
+	SHORT[drugClass] ?? className(drugClass);
+
+export const GROUPS = FAMILIES;
+
+export const COLUMNS = GROUPS.flatMap((g) => g.classes);
+
+export const ROWS = 12;
+
+function interest(pairs: readonly Pair[]): [number, number] {
+	return [
+		pairs.filter((p) => p.dish.confident).length,
+		Math.max(0, ...pairs.map((p) => sure(p.dish.sensitizes))),
+	];
+}
+
+export function rowsOf(pairs: readonly Pair[]): string[] {
+	const byGene = new Map<string, Pair[]>();
+
+	for (const p of pairs) {
+		byGene.set(p.biomarker, [...(byGene.get(p.biomarker) ?? []), p]);
+	}
+
+	return [...byGene.entries()]
+		.map(([gene, found]) => ({ gene, score: interest(found) }))
+		.sort(
+			(a, b) =>
+				b.score[0] - a.score[0] ||
+				b.score[1] - a.score[1] ||
+				a.gene.localeCompare(b.gene),
+		)
+		.map((r) => r.gene);
+}
+
+export const pairsOf = (pairs: readonly Pair[], biomarker: string) =>
+	pairs
+		.filter((p) => p.biomarker === biomarker)
+		.sort(
+			(a, b) => COLUMNS.indexOf(a.drugClass) - COLUMNS.indexOf(b.drugClass),
+		);
+
+const RANK: Record<Verdict, number> = {
+	"held up": 0,
+	reversed: 1,
+	unresolved: 2,
+	"no call": 3,
+};
+
+export const findingsOf = (pairs: readonly Pair[]) =>
+	pairs
+		.filter((p) => p.dish.confident)
+		.sort(
+			(a, b) =>
+				RANK[a.verdict] - RANK[b.verdict] ||
+				sure(b.dish.sensitizes) - sure(a.dish.sensitizes),
+		);
+
 export const SUMMARY = SNAPSHOT.translation;
 export const GATE = SNAPSHOT.gate;
 export const VERSION = SNAPSHOT.version;
-export const LEDGER = SNAPSHOT.ledger;

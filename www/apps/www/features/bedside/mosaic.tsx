@@ -1,238 +1,195 @@
-import {
-	type CSSProperties,
-	type RefObject,
-	useEffect,
-	useRef,
-	useState,
-} from "react";
-import { useReducedMotion } from "@/lib/hooks/use-animation-activity";
+import type { CSSProperties } from "react";
 import {
 	bedsideTone,
-	className,
+	COLUMNS,
 	dishTone,
-	type Mosaic as MosaicData,
-	markerName,
+	GROUPS,
+	markerParts,
 	type Pair,
+	shortName,
 	step,
 	title,
 	VERDICTS,
 } from "./model";
 import "./mosaic.css";
 
-const CELL = 30;
-const GAP = 2;
-const HEAD = 92;
-
-const keyOf = (p: Pair) => `${p.biomarker}|${p.drugClass}`;
-
-function geneClass(gene: string, index: number, tested: number) {
-	if (!gene.startsWith("altered:")) return "lt-gene lt-gene--named";
-
-	return index >= tested ? "lt-gene lt-gene--explore" : "lt-gene";
+export interface Row {
+	biomarker: string;
+	exploratory: boolean;
+	pinned: boolean;
+	pairs: Map<string, Pair>;
 }
 
-function Square({ pair, chosen }: { pair: Pair; chosen: boolean }) {
-	const x = pair.gene * CELL + GAP;
-	const y = HEAD + pair.row * CELL + GAP;
-	const s = CELL - GAP * 2;
-	const upper = `${x},${y} ${x + s},${y} ${x},${y + s}`;
-	const lower = `${x + s},${y} ${x + s},${y + s} ${x},${y + s}`;
+const SPARE = 10;
+
+const keyOf = (p: Pair) => `${p.cancer}|${p.biomarker}|${p.drugClass}`;
+
+const TRACKS = GROUPS.flatMap((g, i) => [
+	...(i > 0 ? ["gap"] : []),
+	...g.classes,
+]);
+
+const template = `var(--lt-label) ${TRACKS.map((t) =>
+	t === "gap" ? "var(--lt-gap)" : "var(--lt-cell)",
+).join(" ")}`;
+
+const column = (drugClass: string) => TRACKS.indexOf(drugClass) + 2;
+
+function Square({
+	pair,
+	chosen,
+	onChoose,
+	onPoint,
+}: {
+	pair: Pair;
+	chosen: boolean;
+	onChoose: (pair: Pair) => void;
+	onPoint: (pair: Pair | null) => void;
+}) {
 	const dish = `lt-${dishTone(pair)} lt-step-${step(pair.dish.sensitizes)}`;
 	const bed = `lt-${bedsideTone(pair)} lt-step-${step(pair.bedside.benefit)}`;
+	const classes = [
+		"lt-cell",
+		pair.label ? "lt-cell--label" : "",
+		chosen ? "lt-cell--chosen" : "",
+	]
+		.filter(Boolean)
+		.join(" ");
 
 	return (
-		<g className={chosen ? "lt-square lt-square--chosen" : "lt-square"}>
-			<polygon className={`lt-dish ${dish}`} points={upper} />
-			<polygon className={`lt-bed ${bed}`} points={lower} />
-			<polygon className={`lt-promise ${dish}`} points={lower} />
-			{pair.label ? (
-				<rect
-					className="lt-label"
-					x={x + 1}
-					y={y + 1}
-					width={s - 2}
-					height={s - 2}
-				/>
-			) : null}
-			{chosen ? (
-				<rect
-					className="lt-chosen"
-					x={x - 1}
-					y={y - 1}
-					width={s + 2}
-					height={s + 2}
-				/>
-			) : null}
-		</g>
+		<button
+			type="button"
+			className={classes}
+			aria-label={`${title(pair)}: ${VERDICTS[pair.verdict]}`}
+			onClick={() => onChoose(pair)}
+			onPointerEnter={() => onPoint(pair)}
+			onPointerLeave={() => onPoint(null)}
+			onFocus={() => onPoint(pair)}
+			onBlur={() => onPoint(null)}
+		>
+			<span className={`lt-cell__dish ${dish}`} />
+			<span className={`lt-cell__bed ${bed}`} />
+			<span className={`lt-cell__promise ${dish}`} />
+		</button>
 	);
 }
 
-function Empty({ gene, row }: { gene: number; row: number }) {
-	const x = gene * CELL + GAP;
-	const y = HEAD + row * CELL + GAP;
-	const s = CELL - GAP * 2;
+function Label({
+	row,
+	onGene,
+}: {
+	row: Row;
+	onGene: (biomarker: string) => void;
+}) {
+	const [gene, kind] = markerParts(row.biomarker);
+	const classes = [
+		"lt-name",
+		row.exploratory ? "lt-name--explore" : "",
+		row.pinned ? "lt-name--pinned" : "",
+	]
+		.filter(Boolean)
+		.join(" ");
 
 	return (
-		<rect
-			className="lt-empty"
-			x={x + 0.5}
-			y={y + 0.5}
-			width={s - 1}
-			height={s - 1}
-		/>
+		<button
+			type="button"
+			className={classes}
+			onClick={() => onGene(row.biomarker)}
+		>
+			<span className="lt-name__gene">{gene}</span>
+			<span className="lt-name__kind">
+				{row.exploratory ? "exploratory" : kind}
+			</span>
+		</button>
 	);
-}
-
-function useMore(ref: RefObject<HTMLDivElement | null>, key: string) {
-	const [more, setMore] = useState(false);
-
-	useEffect(() => {
-		const el = ref.current;
-
-		if (!el) return;
-
-		const check = () =>
-			setMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
-		const watch = new ResizeObserver(check);
-
-		check();
-		watch.observe(el);
-		el.addEventListener("scroll", check, { passive: true });
-
-		return () => {
-			watch.disconnect();
-			el.removeEventListener("scroll", check);
-		};
-	}, [ref, key]);
-
-	return more;
 }
 
 export function Mosaic({
-	mosaic,
+	rows,
+	slots,
+	trim,
 	reveal,
 	chosen,
 	onChoose,
 	onPoint,
-	focus = null,
+	onGene,
 }: {
-	mosaic: MosaicData;
+	rows: readonly Row[];
+	slots: number;
+	trim: boolean;
 	reveal: number;
 	chosen: Pair | null;
 	onChoose: (pair: Pair) => void;
 	onPoint: (pair: Pair | null) => void;
-	focus?: number | null;
+	onGene: (biomarker: string) => void;
 }) {
-	const { genes, classes, pairs, tested } = mosaic;
-	const scroller = useRef<HTMLDivElement>(null);
-	const more = useMore(scroller, `${mosaic.cancer}|${genes.length}`);
-	const reduced = useReducedMotion();
-
-	useEffect(() => {
-		const el = scroller.current;
-
-		if (!el || focus === null) return;
-
-		el.scrollTo({
-			left: focus * CELL - (el.clientWidth - CELL) / 2,
-			behavior: reduced ? "auto" : "smooth",
-		});
-	}, [focus, reduced]);
-	const width = genes.length * CELL;
-	const height = HEAD + classes.length * CELL;
-	const filled = new Set(pairs.map((p) => `${p.gene}|${p.row}`));
 	const style = {
 		"--lt-reveal": reveal,
-		"--lt-cols": genes.length,
-		"--lt-rows": classes.length,
-		"--lt-cell": `${CELL}px`,
-		"--lt-head": `${HEAD}px`,
+		"--lt-cols": COLUMNS.length,
+		"--lt-gaps": GROUPS.length - 1,
+		gridTemplateColumns: template,
+		gridTemplateRows: "auto auto repeat(var(--lt-slots), var(--lt-row))",
+		...(trim ? {} : { "--lt-slots": slots }),
 	} as CSSProperties;
+	const chosenKey = chosen ? keyOf(chosen) : "";
 
 	return (
-		<div className="lt-mosaic" style={style}>
-			<ul className="lt-rows" aria-hidden="true">
-				{classes.map((c) => (
-					<li key={c}>{className(c)}</li>
-				))}
-			</ul>
-
-			<div className="lt-scroll" ref={scroller} data-more={more}>
-				<div className="lt-canvas" style={{ width, height }}>
-					<svg
-						className="lt-svg"
-						width={width}
-						height={height}
-						viewBox={`0 0 ${width} ${height}`}
-						aria-hidden="true"
+		<div className="lt-frame">
+			<div className="lt-grid" style={style} data-trim={trim}>
+				{GROUPS.map((g) => (
+					<span
+						key={g.name}
+						className="lt-family"
+						style={{
+							gridColumn: `${column(g.classes[0] ?? "")} / span ${g.classes.length}`,
+						}}
 					>
-						{tested < genes.length ? (
-							<g className="lt-boundary">
-								<line
-									x1={tested * CELL}
-									x2={tested * CELL}
-									y1={4}
-									y2={height}
-								/>
-								<text x={tested * CELL + 8} y={14}>
-									Exploratory
-								</text>
-							</g>
-						) : null}
-						{focus !== null ? (
-							<rect
-								className="lt-focus"
-								x={focus * CELL}
-								y={HEAD}
-								width={CELL}
-								height={classes.length * CELL}
-							/>
-						) : null}
-						{genes.map((g, i) => (
-							<text
-								key={g}
-								className={geneClass(g, i, tested)}
-								transform={`translate(${i * CELL + CELL / 2 + 4} ${HEAD - 8}) rotate(-58)`}
-							>
-								{markerName(g)}
-							</text>
-						))}
-						{classes.map((c, row) =>
-							genes.map((g, gene) =>
-								filled.has(`${gene}|${row}`) ? null : (
-									<Empty key={`${g}|${c}`} gene={gene} row={row} />
-								),
-							),
-						)}
-						{pairs.map((p) => (
-							<Square
-								key={keyOf(p)}
-								pair={p}
-								chosen={chosen !== null && keyOf(chosen) === keyOf(p)}
-							/>
-						))}
-					</svg>
+						{g.name}
+					</span>
+				))}
+				{COLUMNS.map((c) => (
+					<span
+						key={c}
+						className="lt-column"
+						style={{ gridColumn: column(c), gridRow: 2 }}
+					>
+						<span>{shortName(c)}</span>
+					</span>
+				))}
+				{rows.map((row, i) => (
+					<div
+						key={row.biomarker}
+						className={row.pinned ? "lt-row lt-row--pinned" : "lt-row"}
+						data-spare={trim && i >= SPARE}
+						style={{ gridRow: i + 3 }}
+					>
+						<Label row={row} onGene={onGene} />
+						{COLUMNS.map((c) => {
+							const pair = row.pairs.get(c);
 
-					<div className="lt-hits">
-						{pairs.map((p) => (
-							<button
-								key={keyOf(p)}
-								type="button"
-								className="lt-hit"
-								style={{
-									gridColumn: p.gene + 1,
-									gridRow: p.row + 1,
-								}}
-								aria-label={`${title(p)}: ${VERDICTS[p.verdict]}`}
-								onClick={() => onChoose(p)}
-								onPointerEnter={() => onPoint(p)}
-								onPointerLeave={() => onPoint(null)}
-								onFocus={() => onPoint(p)}
-								onBlur={() => onPoint(null)}
-							/>
-						))}
+							return pair ? (
+								<span
+									key={c}
+									className="lt-slot"
+									style={{ gridColumn: column(c) }}
+								>
+									<Square
+										pair={pair}
+										chosen={keyOf(pair) === chosenKey}
+										onChoose={onChoose}
+										onPoint={onPoint}
+									/>
+								</span>
+							) : (
+								<span
+									key={c}
+									className="lt-slot lt-slot--none"
+									style={{ gridColumn: column(c) }}
+								/>
+							);
+						})}
 					</div>
-				</div>
+				))}
 			</div>
 		</div>
 	);

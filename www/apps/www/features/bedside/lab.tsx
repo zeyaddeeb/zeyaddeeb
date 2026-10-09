@@ -1,20 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useMediaQuery } from "@/lib/hooks/use-media-query";
+import { Finder } from "./finder";
 import {
-	ALL_PAIRS,
 	cancerName,
 	counts,
-	geneOf,
+	findingsOf,
 	loadEvery,
 	MOSAICS,
 	type Mosaic as MosaicData,
+	markerName,
+	matches,
 	type Pair,
+	pairsOf,
+	ROWS,
+	rowsOf,
 	title,
 	VERDICTS,
 } from "./model";
-import { Mosaic } from "./mosaic";
-import { PairSheet } from "./sheet";
+import { Mosaic, type Row } from "./mosaic";
+import { Panel, Sheet, type View } from "./sheet";
 import "./lab.css";
 import "./phone.css";
 
@@ -22,35 +28,28 @@ const fallback = MOSAICS[0];
 
 function Key() {
 	return (
-		<figure className="lt-key" aria-label="How to read a square">
-			<svg viewBox="0 0 120 120" className="lt-key__square" aria-hidden="true">
-				<polygon className="lt-key__dish" points="4,4 116,4 4,116" />
-				<polygon className="lt-key__bed" points="116,4 116,116 4,116" />
-				<text x="14" y="34">
-					Dish
-				</text>
-				<text x="106" y="104" textAnchor="end">
-					Bedside
-				</text>
-			</svg>
-			<figcaption className="lt-key__text">
-				<span className="lt-key__row">
-					<span className="lt-swatch lt-swatch--help" /> drug works better with
-					it
-				</span>
-				<span className="lt-key__row">
-					<span className="lt-swatch lt-swatch--hurt" /> drug works worse with
-					it
-				</span>
-				<span className="lt-key__row">
-					<span className="lt-ramp" /> paler is less sure
-				</span>
-				<span className="lt-key__row">
-					<span className="lt-swatch lt-swatch--label" /> named on the drug’s
-					label
-				</span>
-			</figcaption>
-		</figure>
+		<ul className="lt-key" aria-label="How to read a square">
+			<li>
+				<span className="lt-key__split" aria-hidden="true" />
+				upper half cells, lower half patients
+			</li>
+			<li>
+				<span className="lt-swatch lt-swatch--help" aria-hidden="true" />
+				works better
+			</li>
+			<li>
+				<span className="lt-swatch lt-swatch--hurt" aria-hidden="true" />
+				works worse
+			</li>
+			<li>
+				<span className="lt-ramp" aria-hidden="true" />
+				paler, less sure
+			</li>
+			<li>
+				<span className="lt-swatch lt-swatch--label" aria-hidden="true" />
+				on the drug’s label
+			</li>
+		</ul>
 	);
 }
 
@@ -60,7 +59,7 @@ function Tally({ pairs }: { pairs: readonly Pair[] }) {
 	return (
 		<p className="lt-tally" aria-live="polite">
 			<span>
-				<strong>{c.called}</strong> sure calls in the dish
+				<strong>{c.called}</strong> sure in the dish
 			</span>
 			<span className="lt-tally__held">
 				<strong>{c.held}</strong> held up
@@ -75,57 +74,101 @@ function Tally({ pairs }: { pairs: readonly Pair[] }) {
 	);
 }
 
+function toRow(
+	pairs: readonly Pair[],
+	biomarker: string,
+	flags: { exploratory: boolean; pinned: boolean },
+): Row {
+	return {
+		biomarker,
+		...flags,
+		pairs: new Map(pairsOf(pairs, biomarker).map((p) => [p.drugClass, p])),
+	};
+}
+
 export function TranslationLab() {
 	const [cancer, setCancer] = useState(fallback?.cancer ?? "");
 	const [reveal, setReveal] = useState(0);
-	const [chosen, setChosen] = useState<Pair | null>(null);
+	const [view, setView] = useState<View | null>(null);
 	const [open, setOpen] = useState(false);
 	const [pointed, setPointed] = useState<Pair | null>(null);
 	const [every, setEvery] = useState<MosaicData[] | null>(null);
-	const [wide, setWide] = useState(false);
-	const [failed, setFailed] = useState(false);
+	const [loading, setLoading] = useState(false);
+	const [all, setAll] = useState(false);
 	const [find, setFind] = useState("");
-	const source = wide && every ? every : MOSAICS;
-	const mosaic = source.find((m) => m.cancer === cancer) ?? fallback;
+	const wide = useMediaQuery("(min-width: 1100px)");
+	const mosaic = MOSAICS.find((m) => m.cancer === cancer) ?? fallback;
+	const extra = every?.find((m) => m.cancer === cancer);
+
+	const load = useCallback(() => {
+		if (every || loading) return;
+
+		setLoading(true);
+		loadEvery()
+			.then(setEvery)
+			.finally(() => setLoading(false));
+	}, [every, loading]);
+
+	const tested = useMemo(() => mosaic?.pairs ?? [], [mosaic]);
+	const testedGenes = useMemo(
+		() => new Set(tested.map((p) => p.biomarker)),
+		[tested],
+	);
+	const explored = useMemo(
+		() => (extra?.pairs ?? []).filter((p) => !testedGenes.has(p.biomarker)),
+		[extra, testedGenes],
+	);
+	const order = useMemo(() => rowsOf(tested), [tested]);
+	const findings = useMemo<View>(
+		() => ({ kind: "findings", cancer, pairs: findingsOf(tested) }),
+		[cancer, tested],
+	);
+	const pinned = useMemo(() => {
+		const hits = order.filter((b) => matches(b, find));
+		const more = rowsOf(explored).filter((b) => matches(b, find));
+
+		return [
+			...hits.map((b) =>
+				toRow(tested, b, { exploratory: false, pinned: true }),
+			),
+			...more.map((b) =>
+				toRow(explored, b, { exploratory: true, pinned: true }),
+			),
+		];
+	}, [order, explored, tested, find]);
 
 	if (!mosaic) return null;
 
-	const widen = () => {
-		setWide(true);
+	const shown = view ?? findings;
 
-		if (every) return;
-
-		loadEvery()
-			.then(setEvery)
-			.catch(() => setFailed(true));
-	};
-
+	const rest = order
+		.filter((b) => !pinned.some((r) => r.biomarker === b))
+		.map((b) => toRow(tested, b, { exploratory: false, pinned: false }));
+	const rows = [...pinned, ...rest].slice(0, all ? undefined : ROWS);
+	const slots = all ? Math.max(ROWS, rows.length) : ROWS;
+	const names = [
+		...new Set(
+			[...order, ...rowsOf(explored)].map((b) => markerName(b)).sort(),
+		),
+	];
 	const sought = find.trim().toUpperCase();
-	const focus = sought
-		? mosaic.genes.findIndex((g) => geneOf(g) === sought)
-		: -1;
-	const names = (every ?? MOSAICS)
-		.find((m) => m.cancer === cancer)
-		?.genes.map(geneOf)
-		.filter(Boolean);
+	const missing = sought.length > 1 && pinned.length === 0 && Boolean(every);
 
-	const seek = (value: string) => {
-		setFind(value);
+	const show = (next: View) => {
+		setView(next);
 
-		const gene = value.trim().toUpperCase();
-		const known = mosaic.genes.some((g) => geneOf(g) === gene);
-
-		if (gene && !known && !wide) widen();
+		if (!wide) setOpen(true);
 	};
 
-	const choose = (pair: Pair) => {
-		setChosen(pair);
-		setOpen(true);
-	};
+	const hint = missing
+		? `No ${sought} in ${cancerName(cancer).toLowerCase()} cancer here.`
+		: pinned.some((r) => r.exploratory)
+			? "Yellow rows: exploratory, not in the result."
+			: "Tap a square, or a gene’s name.";
 
 	return (
 		<div className="lt">
-			<div className="lt-top">
+			<div className="lt-bar">
 				<div className="lt-tabs" role="tablist" aria-label="Cancer">
 					{MOSAICS.map((m) => (
 						<button
@@ -136,68 +179,50 @@ export function TranslationLab() {
 							className="lt-tab"
 							onClick={() => {
 								setCancer(m.cancer);
-								setChosen(null);
+								setAll(false);
+								setView(null);
 							}}
 						>
 							{cancerName(m.cancer)}
 						</button>
 					))}
 				</div>
-				<Tally pairs={mosaic.pairs.filter((p) => p.gene < mosaic.tested)} />
+
+				<label className="lt-reveal">
+					<span className="lt-reveal__end">Promise</span>
+					<input
+						type="range"
+						min={0}
+						max={100}
+						value={Math.round(reveal * 100)}
+						aria-label="From what the dish promises to what patients showed"
+						aria-valuetext={
+							reveal < 0.5 ? "Showing the dish’s promise" : "Showing patients"
+						}
+						onChange={(e) => setReveal(Number(e.target.value) / 100)}
+					/>
+					<span className="lt-reveal__end">Patients</span>
+				</label>
+
+				<Finder
+					value={find}
+					names={names}
+					onFocus={load}
+					onChange={(next) => {
+						setFind(next);
+						load();
+					}}
+				/>
 			</div>
 
-			<div className="lt-tools">
-				<fieldset className="lt-menu">
-					<legend className="sr-only">Genes shown</legend>
-					<button
-						type="button"
-						className="lt-menu__plate"
-						aria-pressed={!wide}
-						onClick={() => setWide(false)}
-					>
-						Tested genes
-					</button>
-					<button
-						type="button"
-						className="lt-menu__plate"
-						aria-pressed={wide}
-						onClick={widen}
-					>
-						Every panel gene
-					</button>
-				</fieldset>
-				<label className="lt-find">
-					<span>Find a gene</span>
-					<input
-						type="text"
-						list="lt-genes"
-						value={find}
-						placeholder="TP53"
-						autoComplete="off"
-						spellCheck={false}
-						onChange={(e) => seek(e.target.value)}
-					/>
-					<datalist id="lt-genes">
-						{names?.map((n) => (
-							<option key={n} value={n} />
-						))}
-					</datalist>
-				</label>
-				<p className="lt-tools__note" aria-live="polite">
-					{failed
-						? "The full gene list did not load."
-						: wide && !every
-							? "Loading every panel gene…"
-							: wide
-								? "Past the yellow line: exploratory, not part of the result."
-								: ""}
-				</p>
+			<div className="lt-info">
+				<Tally pairs={tested} />
+				<Key />
 			</div>
 
 			<div className="lt-body">
-				<Key />
 				<div className="lt-stage">
-					<p className="lt-readout" aria-hidden="true">
+					<p className="lt-readout" aria-live="polite">
 						{pointed ? (
 							<>
 								<span className="lt-readout__title">{title(pointed)}</span>
@@ -208,50 +233,54 @@ export function TranslationLab() {
 								</span>
 							</>
 						) : (
-							<span className="lt-readout__hint">
-								Point at a square to name it, tap it for the numbers.
-							</span>
+							<span className="lt-readout__hint">{hint}</span>
 						)}
 					</p>
 					<Mosaic
-						mosaic={mosaic}
+						rows={rows}
+						slots={slots}
+						trim={!all}
 						reveal={reveal}
-						chosen={chosen}
-						onChoose={choose}
+						chosen={view?.kind === "pair" && (wide || open) ? view.pair : null}
+						onChoose={(pair) => show({ kind: "pair", pair, back: null })}
 						onPoint={setPointed}
-						focus={focus >= 0 ? focus : null}
+						onGene={(biomarker) =>
+							show({
+								kind: "gene",
+								biomarker,
+								cancer,
+								pairs: pairsOf(
+									testedGenes.has(biomarker) ? tested : explored,
+									biomarker,
+								),
+							})
+						}
 					/>
+					{order.length > ROWS ? (
+						<button
+							type="button"
+							className="lt-more"
+							aria-expanded={all}
+							onClick={() => setAll(!all)}
+						>
+							{all ? "Show fewer genes" : `Show all ${order.length} genes`}
+						</button>
+					) : (
+						<span className="lt-more lt-more--quiet">
+							All {order.length} genes shown
+						</span>
+					)}
 				</div>
+
+				<Panel view={shown} onView={setView} onHome={() => setView(null)} />
 			</div>
 
-			<div className="lt-reveal">
-				<span className="lt-reveal__end">
-					Promise
-					<small>if every dish result carried over</small>
-				</span>
-				<input
-					type="range"
-					min={0}
-					max={100}
-					value={Math.round(reveal * 100)}
-					aria-label="From what the dish promises to what patients showed"
-					aria-valuetext={
-						reveal < 0.5 ? "Showing the dish’s promise" : "Showing patients"
-					}
-					onChange={(e) => setReveal(Number(e.target.value) / 100)}
-				/>
-				<span className="lt-reveal__end lt-reveal__end--right">
-					Patients
-					<small>what 25,000 records showed</small>
-				</span>
-			</div>
-
-			<p className="lt-overall">
-				All five cancers: {counts(ALL_PAIRS).called} sure dish calls,{" "}
-				{counts(ALL_PAIRS).held} held up, {counts(ALL_PAIRS).reversed} reversed.
-			</p>
-
-			<PairSheet pair={chosen} open={open} onClose={() => setOpen(false)} />
+			<Sheet
+				view={view}
+				open={open}
+				onClose={() => setOpen(false)}
+				onView={setView}
+			/>
 		</div>
 	);
 }

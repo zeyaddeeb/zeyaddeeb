@@ -3,11 +3,17 @@ import { expect, describe as group, it } from "vitest";
 import { experiments } from "../catalog/catalog";
 import {
 	ALL_PAIRS,
+	COLUMNS,
 	counts,
+	GROUPS,
 	hazardInterval,
+	inSentence,
 	longMarker,
 	MOSAICS,
 	markerName,
+	matches,
+	ROWS,
+	rowsOf,
 	step,
 	sure,
 } from "./model";
@@ -82,7 +88,9 @@ group("reading a square", () => {
 	it("names markers for the axis and the sheet", () => {
 		expect(markerName("altered:TP53")).toBe("TP53");
 		expect(longMarker("altered:TP53")).toBe("TP53 altered");
-		expect(markerName("egfr_activating")).toBe("EGFR mut");
+		expect(markerName("egfr_activating")).toBe("EGFR");
+		expect(longMarker("egfr_activating")).toBe("EGFR activating");
+		expect(longMarker("erbb2_amp")).toBe("HER2 amplified");
 	});
 
 	it("puts the hazard ratio inside its interval", () => {
@@ -92,6 +100,49 @@ group("reading a square", () => {
 			expect(low).toBeLessThanOrEqual(mid);
 			expect(mid).toBeLessThanOrEqual(high);
 		}
+	});
+});
+
+group("layout", () => {
+	it("gives every cancer the same columns, in families", () => {
+		expect(COLUMNS).toHaveLength(15);
+		expect(GROUPS.map((g) => g.name)).toEqual(["Targeted", "Hormone", "Chemo"]);
+		expect(new Set(COLUMNS).size).toBe(COLUMNS.length);
+
+		for (const p of ALL_PAIRS) expect(COLUMNS).toContain(p.drugClass);
+	});
+
+	it("orders every gene once, sure calls first", () => {
+		for (const m of MOSAICS) {
+			const rows = rowsOf(m.pairs);
+
+			expect(new Set(rows).size).toBe(rows.length);
+			expect(new Set(rows)).toEqual(new Set(m.pairs.map((p) => p.biomarker)));
+			expect(rows.length).toBeGreaterThanOrEqual(ROWS);
+
+			const sure = (b: string) =>
+				m.pairs.filter((p) => p.biomarker === b && p.dish.confident).length;
+
+			for (let i = 1; i < rows.length; i++) {
+				expect(sure(rows[i - 1] ?? "")).toBeGreaterThanOrEqual(
+					sure(rows[i] ?? ""),
+				);
+			}
+		}
+	});
+
+	it("keeps acronyms when a drug name sits mid-sentence", () => {
+		expect(inSentence("egfr_tki")).toBe("EGFR pills");
+		expect(inSentence("her2")).toBe("HER2 drugs");
+		expect(inSentence("taxane")).toBe("taxanes");
+		expect(inSentence("pi3k")).toBe("alpelisib");
+	});
+
+	it("finds HER2 under either name", () => {
+		expect(matches("altered:ERBB2", "her2")).toBe(true);
+		expect(matches("altered:ERBB2", "ERBB2")).toBe(true);
+		expect(matches("erbb2_amp", "HER2")).toBe(true);
+		expect(matches("altered:TP53", "")).toBe(false);
 	});
 });
 

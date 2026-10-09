@@ -1,9 +1,7 @@
 import json
-import statistics
-import time
 
 from .bench import predict
-from .config import REPORTS, ROOT, fit_sha256, labels_sha256, method
+from .config import REPORTS, ROOT, method
 from .sources.fetch import sha256
 
 WWW = ROOT.parent / "www" / "apps" / "www"
@@ -27,16 +25,6 @@ def _round(value: float, places: int = 3) -> float:
 
 def _key(p: dict) -> tuple[str, str, str]:
     return p["cancer"], p["drug_class"], p["biomarker"]
-
-
-def _throw(pairs: list[dict], labeled: set) -> float:
-    ratios = [
-        p["patient_mean"] / p["bench_mean"]
-        for p in pairs
-        if _key(p) in labeled and p["verdict"] == "held up"
-    ]
-
-    return _round(statistics.median(ratios))
 
 
 def _strength(cells: list[dict]) -> float:
@@ -120,39 +108,11 @@ def _shown(found: list[dict]) -> list[dict]:
 
 def _gate(report: dict) -> dict:
     return {
-        "known": [
-            {
-                "cancer": k["cancer"],
-                "drugClass": k["drug_class"],
-                "biomarker": k["biomarker"],
-                "expected": k["expected"],
-                "scored": k["scored"],
-                "met": k["met"],
-                "probability": _round(k["probability"]),
-                "hazardRatio": _round(k["effect"]["hazard_ratio"], 2)
-                if k["scored"]
-                else None,
-                "marked": k["effect"]["marked"] if k["effect"] else 0,
-                "unmarked": k["effect"]["unmarked"] if k["effect"] else 0,
-            }
-            for k in report["known"]
-        ],
-        "sensitivity": _round(report["known_rate"]),
         "met": report["known_met"],
         "scored": report["known_scored"],
-        "wrong": report["known_wrong"],
         "controls": report["controls"],
         "controlSignals": report["control_signals"],
-        "separation": report["separation"],
-        "passed": report["passed"],
     }
-
-
-def _ledger() -> list[dict]:
-    return [
-        {"date": h["date"], "run": h["run"], "result": h["result"]}
-        for h in method()["history"]
-    ]
 
 
 def build(gate_report: str) -> dict:
@@ -163,27 +123,12 @@ def build(gate_report: str) -> dict:
     }
     body = {
         "version": {
-            "created": time.strftime("%Y-%m-%d", time.gmtime()),
-            "fit": fit_sha256()[:12],
-            "labels": labels_sha256()[:12],
             "predictions": sha256(predict.PREDICTIONS)[:12],
             "sealed": json.loads(predict.PREDICTIONS.read_text())["created"],
-            "sources": {
-                "patients": method()["data"]["chord"]["citation"],
-                "cells": method()["data"]["depmap"]["release"],
-                "screen": method()["data"]["prism"]["release"],
-            },
         },
         "gate": _gate(report),
-        "translation": {
-            "slope": scored["slopes"]["g0"],
-            "classes": scored["slopes"]["classes"],
-            "primary": scored["primary"],
-            "controls": scored["positive_controls"],
-            "throw": _throw(scored["pairs"], labeled),
-        },
+        "translation": {"slope": scored["slopes"]["g0"]},
         "mosaic": _mosaic(_shown(scored["pairs"]), labeled),
-        "ledger": _ledger(),
     }
     MODULE.parent.mkdir(parents=True, exist_ok=True)
     MODULE.write_text(
