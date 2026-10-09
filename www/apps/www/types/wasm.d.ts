@@ -178,4 +178,34 @@ declare module "@zeyaddeeb/wasm" {
 		lean_b: number,
 	): number;
 	export function celsius(kelvin: number): number;
+
+	export class Crowd {
+		constructor(budget: number);
+		free(): void;
+		budget(): number;
+		rule_count(): number;
+		len(): number;
+		is_empty(): boolean;
+		push(value: number): boolean;
+		pop(): void;
+		clear(): void;
+		bet(): Float64Array;
+		answered(): number;
+		silent(): number;
+		unexplored(): number;
+		guess_count(): number;
+		silent_count(): number;
+		considered(): number;
+		paint(
+			slot: number,
+			width: number,
+			height: number,
+			t: number,
+			palette: Uint32Array,
+		): Uint8Array;
+		tiles(slot: number, minSide: number): string;
+		leaders(slot: number, count: number): string;
+		pick(slot: number, x: number, y: number): string;
+		locate(slot: number, id: number): Float64Array;
+	}
 }

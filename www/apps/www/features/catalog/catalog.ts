@@ -47,6 +47,24 @@ export interface Experiment {
 
 export const experiments: Experiment[] = [
 	{
+		id: "already-sealed",
+		number: 21,
+		title: "Already Sealed",
+		line: "A predictor has already filled the box, or not, by guessing what you’ll do. Take one box or two against a program that learns you, or against a copy of yourself, and find out what free will is worth.",
+		stack: ["TypeScript", "Web Crypto", "SHA-256", "Aaronson’s oracle"],
+		href: "/experiments/already-sealed",
+		topics: ["ai", "math"],
+	},
+	{
+		id: "every-program",
+		number: 20,
+		title: "Every Program at Once",
+		line: "The perfect guessing machine runs every program there is and lets the short ones shout. Give it a few numbers and watch 800,000 programs vote on what comes next.",
+		stack: ["Rust", "WASM", "Solomonoff induction", "Canvas"],
+		href: "/experiments/every-program",
+		topics: ["ai", "math"],
+	},
+	{
 		id: "lost-in-translation",
 		number: 19,
 		title: "Lost in Translation",

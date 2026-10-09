@@ -1,0 +1,191 @@
+@media (max-width: 760px) {
+	.nc {
+		--nc-pad: 12px;
+		--nc-box: min(28vw, 118px);
+		--nc-disc: 44px;
+		--nc-gap: 16px;
+		--nc-tape-h: 84px;
+		--nc-tape-top: 12px;
+		--nc-col: 21.84px;
+		--nc-head: 64px;
+		--nc-labels: 34px;
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-rows: repeat(5, auto) 204px 68px;
+		grid-template-areas:
+			"caption"
+			"who"
+			"play"
+			"status"
+			"views"
+			"reel"
+			"score";
+		row-gap: 10px;
+		padding-block: 12px;
+		border-width: 0;
+	}
+
+	.nc-left,
+	.nc-right {
+		display: contents;
+	}
+
+	.nc-caption,
+	.nc-who,
+	.nc-play,
+	.nc-status,
+	.nc-views,
+	.nc-reel,
+	.nc-record,
+	.nc-score {
+		padding-inline: var(--nc-pad);
+	}
+
+	.nc-caption {
+		grid-area: caption;
+		height: calc(3 * 1.35em);
+		font-size: 15px;
+		line-height: 1.35;
+	}
+
+	.nc-who {
+		grid-area: who;
+	}
+
+	.nc-who__label {
+		display: none;
+	}
+
+	.nc-who__option {
+		flex: 1;
+	}
+
+	.nc-restart {
+		margin-left: 8px;
+	}
+
+	.nc-play {
+		grid-area: play;
+		padding-top: 4px;
+	}
+
+	.nc-box,
+	.nc-coin {
+		gap: 9px;
+	}
+
+	.nc-box__label .nc-key,
+	.nc-coin__label .nc-key {
+		display: none;
+	}
+
+	.nc-box__label,
+	.nc-coin__label {
+		font-size: 10px;
+	}
+
+	.nc-status {
+		grid-area: status;
+		font-size: 10px;
+	}
+
+	.nc-views {
+		display: flex;
+		grid-area: views;
+	}
+
+	.nc-views__option {
+		flex: 1;
+		height: 30px;
+	}
+
+	.nc-reel {
+		grid-area: reel;
+		gap: 8px;
+		padding-top: 6px;
+	}
+
+	.nc-why {
+		min-height: calc(3 * 1.4em);
+		font-size: 13px;
+		line-height: 1.4;
+	}
+
+	.nc-score {
+		grid-area: score;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		align-self: start;
+		gap: 10px;
+		margin: 0;
+		padding-top: 10px;
+	}
+
+	.nc-score dt {
+		font-size: 10px;
+		letter-spacing: 0.04em;
+	}
+
+	.nc-score dd {
+		font-size: 15px;
+	}
+
+	.nc-record {
+		grid-column: 1;
+		grid-row: reel-start / score-end;
+		gap: 10px;
+	}
+
+	.nc[data-view="tape"] .nc-record,
+	.nc[data-view="table"] .nc-reel,
+	.nc[data-view="table"] .nc-score {
+		display: none;
+	}
+
+	.nc-cell {
+		height: 54px;
+		padding: 6px 8px;
+	}
+
+	.nc-cell__pay {
+		font-size: 11px;
+	}
+
+	.nc-cell__count {
+		top: 6px;
+		right: 8px;
+		font-size: 18px;
+	}
+
+	.nc-cell__dots {
+		gap: 2px;
+		height: 6px;
+		margin-top: 9px;
+	}
+
+	.nc-dot {
+		width: 6px;
+		height: 6px;
+	}
+
+	.nc-cell[data-took="2"]::before {
+		bottom: 4px;
+		padding: 2px 4px;
+		font-size: 9px;
+	}
+
+	.nc-board__avg {
+		padding-top: 6px;
+		font-size: 12px;
+	}
+
+	.nc-arg {
+		display: block;
+		min-height: calc(2 * 1.35em);
+		font-size: 13px;
+		line-height: 1.35;
+	}
+
+	.nc-arg__who {
+		margin-right: 6px;
+		font-size: 10px;
+	}
+}

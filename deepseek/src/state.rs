@@ -417,7 +417,7 @@ impl AppState {
     pub fn connected(&self, session: &Session) -> bool {
         if session
             .connections
-            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |n| {
+            .try_update(Ordering::SeqCst, Ordering::SeqCst, |n| {
                 (n < 4).then_some(n + 1)
             })
             .is_err()

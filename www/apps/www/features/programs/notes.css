@@ -1,0 +1,58 @@
+.ep-notes h3 {
+	margin: 28px 0 8px;
+	font: 600 18px / 1.3 var(--font-display);
+}
+
+.ep-notes h3:first-child {
+	margin-top: 0;
+}
+
+.ep-notes p {
+	max-width: 68ch;
+	margin: 0;
+}
+
+.ep-notes p + p {
+	margin-top: 12px;
+}
+
+.ep-notes__costs {
+	width: 100%;
+	max-width: 68ch;
+	margin: 12px 0;
+	border-collapse: collapse;
+	font: 400 14px / 1.4 var(--font-mono);
+}
+
+.ep-notes__costs td {
+	padding: 6px 0;
+	border-bottom: 1px solid var(--rule);
+}
+
+.ep-notes__costs td + td {
+	padding-left: 16px;
+	text-align: right;
+	white-space: nowrap;
+}
+
+.ep-sources {
+	display: grid;
+	gap: 10px;
+	max-width: 68ch;
+	margin: 0;
+	padding-left: 1.2em;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.ep-out {
+	color: inherit;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.ep-out__arrow {
+	width: 0.72em;
+	height: 0.72em;
+	margin-left: 0.28em;
+}
