@@ -7,7 +7,7 @@
 		--nc-tape-h: 84px;
 		--nc-tape-top: 12px;
 		--nc-col: 21.84px;
-		--nc-head: 64px;
+		--nc-head: 72px;
 		--nc-labels: 34px;
 		grid-template-columns: minmax(0, 1fr);
 		grid-template-rows: repeat(5, auto) 204px 68px;
@@ -138,6 +138,10 @@
 	.nc[data-view="table"] .nc-reel,
 	.nc[data-view="table"] .nc-score {
 		display: none;
+	}
+
+	.nc-board th {
+		font-size: 10px;
 	}
 
 	.nc-cell {
