@@ -4,6 +4,7 @@ import { pageMetadata, siteSchema } from "@zeyaddeeb/ui/seo";
 import { SITE_DESCRIPTION, SITE_NAME } from "@zeyaddeeb/ui/site";
 import "@zeyaddeeb/ui/styles.css";
 import "@zeyaddeeb/ui/site.css";
+import "@/components/not-found.css";
 
 import type { Metadata } from "next";
 import { RootLayoutClient } from "@/components/root-layout";

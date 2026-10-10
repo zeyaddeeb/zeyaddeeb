@@ -43,7 +43,7 @@
 	.nc-caption {
 		grid-area: caption;
 		height: calc(3 * 1.35em);
-		font-size: 15px;
+		font-size: min(15px, 4.8vw - 2.3px);
 		line-height: 1.35;
 	}
 
@@ -55,8 +55,12 @@
 		display: none;
 	}
 
-	.nc-who__option {
-		flex: 1;
+	.nc-who__option,
+	.nc-restart {
+		flex: 1 1 auto;
+		min-width: 0;
+		padding-inline: 4px;
+		letter-spacing: clamp(0.02em, 2vw - 6.5px, 0.08em);
 	}
 
 	.nc-restart {

@@ -1,7 +1,6 @@
 import { Footer, LifeArrow } from "@zeyaddeeb/ui";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
-import "@/components/not-found.css";
 
 export default function NotFound() {
 	return (
