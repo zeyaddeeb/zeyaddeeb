@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { experiments, topics } from "./catalog";
+import { experiments, getExperiment, seriesOf, topics } from "./catalog";
 import {
 	EXPERIMENT_PAGE_SIZE,
 	experimentListingHref,
@@ -41,18 +41,31 @@ describe("experiment listing", () => {
 	it("searches titles, descriptions, technology and topics", () => {
 		expect(ids({ search: "  MOONSPELL  " })).toEqual(["moonspell"]);
 		expect(ids({ search: "offline" })).toEqual(["crdt"]);
-		expect(ids({ search: "Candle" })).toEqual(["deepseek"]);
+		expect(ids({ search: "Candle", sort: "oldest" })).toEqual([
+			"deepseek",
+			"any-semblance",
+		]);
 
 		expect(ids({ search: "sound", sort: "oldest" })).toEqual([
 			"audio-visualizer",
 			"play-that-thing",
+			"any-semblance",
 		]);
+	});
+
+	it("finds a whole series, and nothing else, by its name", () => {
+		const series = seriesOf(getExperiment("every-program"));
+
+		expect(ids({ search: series?.title, sort: "oldest" })).toEqual(
+			series?.parts.map((part) => part.id),
+		);
 	});
 
 	it("filters by topic and counts every topic against the search", () => {
 		expect(ids({ topic: "sound", sort: "oldest" })).toEqual([
 			"audio-visualizer",
 			"play-that-thing",
+			"any-semblance",
 		]);
 
 		const all = list();
@@ -69,9 +82,12 @@ describe("experiment listing", () => {
 
 		const searched = list({ search: "rust", topic: "sound" });
 
-		expect(searched.items.map((item) => item.id)).toEqual(["audio-visualizer"]);
+		expect(searched.items.map((item) => item.id)).toEqual([
+			"any-semblance",
+			"audio-visualizer",
+		]);
 		expect(searched.found).toBeGreaterThan(searched.items.length);
-		expect(searched.counts.sound).toBe(1);
+		expect(searched.counts.sound).toBe(2);
 	});
 
 	it("pages six at a time and clamps out-of-range pages", () => {

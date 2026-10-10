@@ -2,13 +2,31 @@ language: "rust"
 stack: "backend"
 
 project:
-  name: "diarization"
-  description: "Rust backend for the speaker diarization WebRTC experiment."
+  name: "voice"
+  description: "Rust backend for the voice experiment: speech to text, a cloned voice, and audio both ways over a WebSocket or WebRTC."
 
 tasks:
   dev:
-    command: "cargo run --bin diarization"
+    script: "cargo run --release --bin voice"
+    env:
+      VOICE_BIND_ADDR: "127.0.0.1:3003"
+  models:
+    script: "./models.sh"
+    options:
+      cache: false
   test:
-    command: "cargo test --all-targets"
-  build:
-    command: "cargo build --all-targets --release"
+    script: "cargo test --all"
+  helm-lint:
+    script: "helm lint deployments/helm"
+    options:
+      cache: false
+  docker-build:
+    script: docker build --platform=linux/amd64 -t $project:v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version) .
+  docker-tag:
+    script: docker tag $project:v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version) $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/zeyaddeeb/$project:v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version) >/dev/null
+    deps:
+      - "docker-build"
+  docker-push:
+    script: docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/zeyaddeeb/$project:v$(cargo metadata --no-deps --format-version 1 | jq -r .packages\[0\].version)
+    deps:
+      - "docker-tag"

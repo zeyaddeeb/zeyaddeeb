@@ -1,0 +1,22 @@
+[package]
+name = "mimic"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Zero-shot voice cloning text-to-speech on CPU with Candle"
+
+[lib]
+name = "mimic"
+path = "src/lib.rs"
+
+[features]
+accelerate = ["candle-core/accelerate", "candle-nn/accelerate"]
+mkl = ["candle-core/mkl", "candle-nn/mkl"]
+
+[dependencies]
+anyhow = "1.0.104"
+candle-core = "0.11.0"
+candle-nn = "0.11.0"
+rustfft = "6.4.1"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"

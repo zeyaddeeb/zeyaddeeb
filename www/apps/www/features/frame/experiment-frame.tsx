@@ -2,8 +2,15 @@ import { LifeArrow, SourceLink } from "@zeyaddeeb/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { MobileDetails } from "@/components/mobile-details";
+import { SeriesPips } from "@/components/series-pips";
 import "./frame.css";
-import { getExperiment, neighbors, number } from "@/features/catalog/catalog";
+import {
+	getExperiment,
+	neighbors,
+	number,
+	seriesOf,
+} from "@/features/catalog/catalog";
+import { experimentListingHref } from "@/features/catalog/experiment-listing";
 
 interface ExperimentFrameProps {
 	id: string;
@@ -24,6 +31,7 @@ export function ExperimentFrame({
 }: ExperimentFrameProps) {
 	const experiment = getExperiment(id);
 	const nav = neighbors(id);
+	const series = seriesOf(experiment);
 
 	return (
 		<main className="frame" data-accent={experiment.number % 3}>
@@ -36,8 +44,23 @@ export function ExperimentFrame({
 						<Link href="/experiments" className="link-underline">
 							Experiments
 						</Link>{" "}
-						<span aria-hidden="true">/</span> {number(experiment.number)}
+						<span className="frame__trail-number">
+							<span aria-hidden="true">/</span> {number(experiment.number)}
+						</span>
 					</p>
+					{series ? (
+						<Link
+							href={experimentListingHref({ search: series.title })}
+							className="eyebrow frame__series"
+						>
+							<span className="frame__series-name">{series.title}</span>
+							<SeriesPips
+								part={series.part}
+								parts={series.parts.length}
+								label={`part ${series.part} of ${series.parts.length}`}
+							/>
+						</Link>
+					) : null}
 					<h1 className="frame__title">{experiment.title}</h1>
 					<MobileDetails label="About this experiment">
 						<p className="frame__intro">{intro ?? experiment.line}</p>

@@ -40,7 +40,7 @@ This repo is home to my website and experiments in reinforcement learning, real-
 | [`crdt/`](crdt)                           | Collaborative editing and live presence          |
 | [`proofs/`](proofs)                       | Lean 4 proof checking service                    |
 | [`robot/`](robot)                         | Basketball simulation and reinforcement learning |
-| [`voice/`](voice)                         | Speaker diarization service                      |
+| [`voice/`](voice)                         | Speech to text, a cloned voice, and live audio   |
 | [`deployments/`](deployments)             | Terraform configuration                          |
 
 </details>

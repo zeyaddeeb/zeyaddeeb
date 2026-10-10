@@ -52,6 +52,11 @@
 	letter-spacing: -0.02em;
 }
 
+.row__n .series-pips {
+	height: 9px;
+	margin-top: 12px;
+}
+
 .row__title {
 	grid-column: 2;
 	transition: translate 240ms var(--ease);
@@ -180,6 +185,11 @@
 	.row__n {
 		padding-top: 6px;
 		font-size: 16px;
+	}
+
+	.row__n .series-pips {
+		height: 7px;
+		margin-top: 10px;
 	}
 
 	.row__stack {

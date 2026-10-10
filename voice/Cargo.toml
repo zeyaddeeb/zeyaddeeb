@@ -1,25 +1,52 @@
 [package]
 name = "voice"
-version = "0.1.5"
+version = "0.2.0"
 edition = "2021"
 
 [[bin]]
-name = "diarization"
+name = "voice"
 path = "src/main.rs"
+
+[features]
+accelerate = [
+    "candle-core/accelerate",
+    "candle-nn/accelerate",
+    "candle-transformers/accelerate",
+    "mimic/accelerate",
+]
+mkl = [
+    "candle-core/mkl",
+    "candle-nn/mkl",
+    "candle-transformers/mkl",
+    "mimic/mkl",
+]
 
 [dependencies]
 anyhow = "1.0.104"
 async-trait = "0.1.92"
 axum = { version = "0.8.9", features = ["ws"] }
+bytes = "1.12.1"
 candle-core = "0.11.0"
+candle-nn = "0.11.0"
+candle-transformers = "0.11.0"
 dashmap = "6.2.1"
 futures-util = "0.3.34"
+hound = "3.5.1"
+mimic = { path = "mimic" }
+opus = "0.4.0"
+rtc = "0.21.0"
+rustfft = "6.4.1"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
-ort = "2.0.0-rc.13"
+tokenizers = { version = "0.23.2", default-features = false, features = [
+    "onig",
+] }
 tokio = { version = "1.53.2", features = ["full"] }
 tower-http = { version = "0.7.0", features = ["cors", "trace"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 uuid = { version = "1.27.0", features = ["v4", "fast-rng", "serde"] }
 webrtc = "0.21.0"
+
+[dev-dependencies]
+tokio = { version = "1.53.2", features = ["full", "test-util"] }

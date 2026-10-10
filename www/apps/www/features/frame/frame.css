@@ -34,7 +34,29 @@
 
 .frame__trail {
 	grid-column: 2;
+	grid-row: 1;
 	margin: 0;
+}
+
+.frame__series {
+	grid-column: 3;
+	grid-row: 1;
+	justify-self: start;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	text-decoration: none;
+}
+
+.frame__series .series-pips {
+	color: var(--ink);
+}
+
+.frame__series:hover,
+.frame__series:focus-visible {
+	color: var(--ink);
+	text-decoration: underline;
+	text-underline-offset: 5px;
 }
 
 .frame__title {
@@ -190,6 +212,11 @@
 		font-size: 32px;
 	}
 
+	.frame__series {
+		grid-column: 2;
+		justify-self: end;
+	}
+
 	.frame__intro {
 		grid-column: 2;
 		grid-row: auto;
@@ -214,8 +241,18 @@
 		font-size: 18px;
 	}
 
-	.frame__trail {
+	.frame__trail,
+	.frame__series {
 		align-self: center;
+	}
+
+	.frame__head .frame__series {
+		gap: 8px;
+		letter-spacing: 0;
+	}
+
+	.frame__head:has(.frame__series) .frame__trail-number {
+		display: none;
 	}
 
 	.frame__title {
@@ -245,6 +282,17 @@
 
 	.frame__nav-link {
 		padding: 16px;
+	}
+}
+
+@media (max-width: 344px) {
+	.frame__series-name {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
 	}
 }
 

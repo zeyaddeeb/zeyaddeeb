@@ -1,0 +1,24 @@
+{{- if .Values.rtc.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "microservice.fullname" . }}-rtc
+  labels:
+    {{- include "microservice.labels" . | nindent 4 }}
+  {{- with .Values.rtc.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: LoadBalancer
+  allocateLoadBalancerNodePorts: false
+  ports:
+    {{- range $port := untilStep (int .Values.rtc.firstPort) (int (add1 .Values.rtc.lastPort)) 1 }}
+    - port: {{ $port }}
+      targetPort: {{ $port }}
+      protocol: UDP
+      name: rtc-{{ $port }}
+    {{- end }}
+  selector:
+    {{- include "microservice.selectorLabels" . | nindent 4 }}
+{{- end }}

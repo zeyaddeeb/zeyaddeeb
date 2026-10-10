@@ -1,247 +1,504 @@
-use std::sync::Arc;
+use std::{
+    sync::{Arc, Weak},
+    time::{Duration, Instant},
+};
 
 use async_trait::async_trait;
-use dashmap::DashMap;
-use tokio::sync::mpsc;
+use bytes::Bytes;
+use rtc::{
+    media::Sample,
+    media_stream::MediaStreamTrack,
+    peer_connection::configuration::media_engine::MIME_TYPE_OPUS,
+    rtp_transceiver::rtp_sender::{
+        RTCRtpCodec, RTCRtpCodingParameters, RTCRtpEncodingParameters, RtpCodecKind,
+    },
+};
+use tokio::sync::{mpsc, watch};
 use tracing::{debug, info, warn};
-use uuid::Uuid;
 use webrtc::{
-    media_stream::track_remote::{TrackRemote, TrackRemoteEvent},
+    media_stream::{
+        track_local::{static_sample::TrackLocalStaticSample, TrackLocal},
+        track_remote::{TrackRemote, TrackRemoteEvent},
+    },
     peer_connection::{
         register_default_interceptors, MediaEngine, PeerConnection, PeerConnectionBuilder,
         PeerConnectionEventHandler, RTCConfigurationBuilder, RTCIceCandidateInit, RTCIceServer,
         RTCPeerConnectionIceEvent, RTCPeerConnectionState, RTCSessionDescription, Registry,
     },
+    rtp_transceiver::RtpSender,
 };
 
-use crate::{protocol::ServerMessage, state::AppState};
+use crate::{
+    codec::{Decoder, Encoder, FRAME, FRAME_MS},
+    network::{Lease, Network},
+    player::{self, Sink},
+    protocol::ServerMessage,
+    state::Session,
+};
 
-pub type PeerConnections = Arc<DashMap<Uuid, Arc<dyn PeerConnection>>>;
+const LONGEST_GAP: u16 = 10;
+const CLOSING: Duration = Duration::from_secs(5);
+const SILENCE_BITS: i32 = 8_000;
 
-const DEFAULT_STUN_URL: &str = "stun:stun.l.google.com:19302";
-const DEFAULT_UDP_ADDR: &str = "0.0.0.0:0";
+pub struct Call {
+    peer: Arc<dyn PeerConnection>,
+    _lease: Lease,
+}
 
-const RTP_LOG_INTERVAL: u64 = 500;
+impl Call {
+    pub async fn add_ice_candidate(&self, candidate: String) -> anyhow::Result<()> {
+        self.peer
+            .add_ice_candidate(RTCIceCandidateInit {
+                candidate,
+                sdp_mid: None,
+                sdp_mline_index: None,
+                username_fragment: None,
+                url: None,
+            })
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn close(self) {
+        match tokio::time::timeout(CLOSING, self.peer.close()).await {
+            Ok(Ok(())) => {}
+            Ok(Err(error)) => warn!("peer connection did not close cleanly: {error}"),
+            Err(_) => warn!("peer connection took too long to close; dropping it"),
+        }
+    }
+}
 
 pub async fn accept_offer(
-    session_id: Uuid,
-    state: AppState,
+    session: Arc<Session>,
+    network: &Arc<Network>,
     sdp: String,
     events: mpsc::Sender<ServerMessage>,
 ) -> anyhow::Result<String> {
-    let peer = create_peer_connection(session_id, state.clone(), events).await?;
-
-    if let Some(previous) = state.peers.insert(session_id, peer.clone()) {
-        info!("session {session_id} renegotiated; closing previous peer connection");
-
-        let _ = previous.close().await;
+    if let Some(previous) = session.call.lock().await.take() {
+        previous.close().await;
     }
 
-    let negotiate = async {
-        let offer = RTCSessionDescription::offer(sdp)?;
+    let lease = network.lease()?;
+    let (connected, connection) = watch::channel(false);
+    let peer = connect(session.clone(), network, &lease, events.clone(), connected).await?;
+    let ssrc = uuid::Uuid::new_v4().as_u128() as u32;
+    let track = Arc::new(TrackLocalStaticSample::new(Instant::now(), outgoing(ssrc))?);
+    let sender = peer.add_track(track.clone() as Arc<dyn TrackLocal>).await?;
 
-        peer.set_remote_description(offer).await?;
+    peer.set_remote_description(RTCSessionDescription::offer(sdp)?)
+        .await?;
 
-        let answer = peer.create_answer(None).await?;
+    let answer = peer.create_answer(None).await?;
 
-        peer.set_local_description(answer.clone()).await?;
+    peer.set_local_description(answer.clone()).await?;
 
-        anyhow::Ok(answer.sdp)
+    let speaker = Speaker {
+        track,
+        sender,
+        ssrc,
+        connection,
+        silence: silence()?,
     };
 
-    match negotiate.await {
-        Ok(sdp) => Ok(sdp),
-        Err(error) => {
-            close_session(&state, session_id).await;
+    session.listen_through(player::start(speaker, events));
+    *session.call.lock().await = Some(Call {
+        peer,
+        _lease: lease,
+    });
 
-            Err(error)
-        }
-    }
+    Ok(answer.sdp)
 }
 
-pub async fn add_ice_candidate(
-    session_id: Uuid,
-    state: &AppState,
-    candidate: String,
-) -> anyhow::Result<()> {
-    let peer = {
-        let Some(entry) = state.peers.get(&session_id) else {
-            anyhow::bail!("peer connection has not been created for session {session_id}");
-        };
-
-        entry.value().clone()
-    };
-
-    peer.add_ice_candidate(RTCIceCandidateInit {
-        candidate,
-        sdp_mid: None,
-        sdp_mline_index: None,
-        username_fragment: None,
-        url: None,
-    })
-    .await?;
-
-    Ok(())
-}
-
-pub async fn close_session(state: &AppState, session_id: Uuid) {
-    if let Some((_, peer)) = state.peers.remove(&session_id) {
-        if let Err(error) = peer.close().await {
-            warn!("session {session_id} failed to close peer connection: {error}");
-        }
-    }
-}
-
-async fn create_peer_connection(
-    session_id: Uuid,
-    state: AppState,
+async fn connect(
+    session: Arc<Session>,
+    network: &Network,
+    lease: &Lease,
     events: mpsc::Sender<ServerMessage>,
+    connected: watch::Sender<bool>,
 ) -> anyhow::Result<Arc<dyn PeerConnection>> {
     let mut media_engine = MediaEngine::default();
 
     media_engine.register_default_codecs()?;
 
     let registry = register_default_interceptors(Registry::new(), &mut media_engine)?;
-
     let configuration = RTCConfigurationBuilder::new()
-        .with_ice_servers(ice_servers())
+        .with_ice_servers(ice_servers(network.stun()))
         .build();
-
-    let handler = Arc::new(SessionHandler {
-        session_id,
-        state,
+    let handler = Handler {
+        session: Arc::downgrade(&session),
         events,
-    });
+        public: network.public_ips().await,
+        connected,
+    };
 
     let peer = PeerConnectionBuilder::new()
         .with_configuration(configuration)
         .with_media_engine(media_engine)
         .with_interceptor_registry(registry)
-        .with_handler(handler)
-        .with_udp_addrs(vec![udp_addr()])
+        .with_handler(Arc::new(handler))
+        .with_udp_addrs(vec![lease.address()])
         .build()
         .await?;
 
     Ok(Arc::new(peer))
 }
 
-fn ice_servers() -> Vec<RTCIceServer> {
-    let urls: Vec<String> = std::env::var("DIARIZATION_STUN_URLS")
-        .unwrap_or_else(|_| DEFAULT_STUN_URL.to_string())
-        .split(',')
-        .map(|url| url.trim().to_string())
-        .filter(|url| !url.is_empty())
-        .collect();
+fn outgoing(ssrc: u32) -> MediaStreamTrack {
+    MediaStreamTrack::new(
+        "voice".to_owned(),
+        "generations".to_owned(),
+        "generations".to_owned(),
+        RtpCodecKind::Audio,
+        vec![RTCRtpEncodingParameters {
+            rtp_coding_parameters: RTCRtpCodingParameters {
+                ssrc: Some(ssrc),
+                ..Default::default()
+            },
+            codec: RTCRtpCodec {
+                mime_type: MIME_TYPE_OPUS.to_owned(),
+                clock_rate: 48_000,
+                channels: 2,
+                sdp_fmtp_line: "minptime=10;useinbandfec=1".to_owned(),
+                rtcp_feedback: vec![],
+            },
+            ..Default::default()
+        }],
+    )
+}
 
+fn ice_servers(urls: &[String]) -> Vec<RTCIceServer> {
     if urls.is_empty() {
         return Vec::new();
     }
 
     vec![RTCIceServer {
-        urls,
+        urls: urls.to_vec(),
         ..Default::default()
     }]
 }
 
-fn udp_addr() -> String {
-    std::env::var("DIARIZATION_RTC_UDP_ADDR").unwrap_or_else(|_| DEFAULT_UDP_ADDR.to_string())
+struct Speaker {
+    track: Arc<TrackLocalStaticSample>,
+    sender: Arc<dyn RtpSender>,
+    ssrc: u32,
+    connection: watch::Receiver<bool>,
+    silence: Bytes,
 }
 
-#[derive(Clone)]
-struct SessionHandler {
-    session_id: Uuid,
-    state: AppState,
-    events: mpsc::Sender<ServerMessage>,
+impl Speaker {
+    async fn write(&self, packet: Bytes) -> anyhow::Result<()> {
+        let payload_type = self
+            .sender
+            .get_parameters()
+            .await?
+            .rtp_parameters
+            .codecs
+            .first()
+            .map(|codec| codec.payload_type)
+            .ok_or_else(|| anyhow::anyhow!("no codec has been negotiated yet"))?;
+
+        self.track
+            .sample_writer(self.ssrc, payload_type)
+            .write_sample(&Sample {
+                data: packet,
+                duration: Duration::from_millis(FRAME_MS),
+                ..Sample::new(Instant::now())
+            })
+            .await?;
+
+        Ok(())
+    }
 }
 
 #[async_trait]
-impl PeerConnectionEventHandler for SessionHandler {
+impl Sink for Speaker {
+    fn ready(&self) -> bool {
+        *self.connection.borrow()
+    }
+
+    async fn send(&mut self, packet: &[u8]) -> anyhow::Result<()> {
+        self.write(Bytes::copy_from_slice(packet)).await
+    }
+
+    async fn rest(&mut self) -> anyhow::Result<()> {
+        self.write(self.silence.clone()).await
+    }
+}
+
+fn silence() -> anyhow::Result<Bytes> {
+    Ok(Bytes::from(
+        Encoder::new(SILENCE_BITS, 0.0)?.encode(&[0.0; FRAME])?,
+    ))
+}
+
+struct Handler {
+    session: Weak<Session>,
+    events: mpsc::Sender<ServerMessage>,
+    public: Vec<String>,
+    connected: watch::Sender<bool>,
+}
+
+fn advertised(candidate: &str, public: &[String]) -> Vec<String> {
+    let fields: Vec<&str> = candidate.split(' ').collect();
+    let host = fields.windows(2).any(|pair| pair == ["typ", "host"]);
+
+    if public.is_empty() || !host || fields.len() < 6 {
+        return vec![candidate.to_string()];
+    }
+
+    public
+        .iter()
+        .map(|address| {
+            let mut rewritten = fields.clone();
+
+            rewritten[4] = address;
+
+            rewritten.join(" ")
+        })
+        .collect()
+}
+
+#[async_trait]
+impl PeerConnectionEventHandler for Handler {
     async fn on_ice_candidate(&self, event: RTCPeerConnectionIceEvent) {
         match event.candidate.to_json() {
             Ok(candidate) => {
-                let _ = self.events.try_send(ServerMessage::IceCandidate {
-                    candidate: candidate.candidate,
-                });
+                for candidate in advertised(&candidate.candidate, &self.public) {
+                    let _ = self
+                        .events
+                        .try_send(ServerMessage::IceCandidate { candidate });
+                }
             }
             Err(error) => warn!("failed to serialize ICE candidate: {error}"),
         }
     }
 
     async fn on_connection_state_change(&self, connection_state: RTCPeerConnectionState) {
-        let session_id = self.session_id;
+        info!("peer connection is {connection_state}");
 
-        debug!("session {session_id} peer connection state: {connection_state}");
-
-        if matches!(
-            connection_state,
-            RTCPeerConnectionState::Failed | RTCPeerConnectionState::Closed
-        ) && self.state.peers.remove(&session_id).is_some()
-        {
-            info!("session {session_id} peer connection {connection_state}; released");
-        }
+        let _ = self
+            .connected
+            .send(connection_state == RTCPeerConnectionState::Connected);
     }
 
     async fn on_track(&self, track: Arc<dyn TrackRemote>) {
-        let session_id = self.session_id;
-
         let Some(ssrc) = track.ssrcs().await.first().copied() else {
-            warn!("session {session_id} received a track with no SSRC; ignoring");
-
             return;
         };
-
         let Some(codec) = track.codec(ssrc).await else {
-            warn!("session {session_id} received a track with no negotiated codec; ignoring");
-
             return;
         };
 
-        let mime_type = codec.mime_type.clone();
-
-        if !mime_type.to_ascii_lowercase().starts_with("audio/") {
-            debug!("session {session_id} ignoring non-audio track: {mime_type}");
+        if !codec.mime_type.eq_ignore_ascii_case(MIME_TYPE_OPUS) {
+            debug!("ignoring a {} track", codec.mime_type);
 
             return;
         }
 
-        let _ = self.events.try_send(ServerMessage::TrackStarted {
-            codec: mime_type.clone(),
-        });
-
-        info!("session {session_id} received WebRTC audio track: {mime_type}");
-
-        let state = self.state.clone();
+        let session = self.session.clone();
 
         tokio::spawn(async move {
-            let mut packets = 0u64;
-
-            while let Some(event) = track.poll().await {
-                match event {
-                    TrackRemoteEvent::OnRtpPacket(packet) => {
-                        packets += 1;
-
-                        if let Some(mut session) = state.sessions.get_mut(&session_id) {
-                            session.received_frames += 1;
-                        }
-
-                        if packets % RTP_LOG_INTERVAL == 1 {
-                            warn!(
-                                "session {session_id} received {packets} RTP packets ({} bytes latest); Opus decode to PCM is required before ONNX diarization",
-                                packet.payload.len()
-                            );
-                        }
-                    }
-                    TrackRemoteEvent::OnEnded => break,
-                    TrackRemoteEvent::OnError => {
-                        warn!("session {session_id} audio track reported an error");
-
-                        break;
-                    }
-                    _ => {}
-                }
+            if let Err(error) = listen(track, session).await {
+                warn!("the microphone track stopped: {error}");
             }
-
-            info!("session {session_id} audio track ended after {packets} RTP packets");
         });
+    }
+}
+
+async fn listen(track: Arc<dyn TrackRemote>, session: Weak<Session>) -> anyhow::Result<()> {
+    let mut uplink = Uplink::new()?;
+    let mut heard = Vec::with_capacity(FRAME * 6);
+
+    while let Some(event) = track.poll().await {
+        match event {
+            TrackRemoteEvent::OnRtpPacket(packet) => {
+                let Some(session) = session.upgrade() else {
+                    break;
+                };
+
+                heard.clear();
+                uplink.accept(packet.header.sequence_number, &packet.payload, &mut heard)?;
+                record(&session, &heard);
+            }
+            TrackRemoteEvent::OnEnded | TrackRemoteEvent::OnError => break,
+            _ => {}
+        }
+    }
+
+    Ok(())
+}
+
+fn record(session: &Session, heard: &[f32]) {
+    if let Ok(mut microphone) = session.microphone.lock() {
+        microphone.hear(heard);
+    }
+}
+
+struct Uplink {
+    decoder: Decoder,
+    expected: Option<u16>,
+}
+
+impl Uplink {
+    fn new() -> anyhow::Result<Self> {
+        Ok(Self {
+            decoder: Decoder::new()?,
+            expected: None,
+        })
+    }
+
+    fn accept(
+        &mut self,
+        sequence: u16,
+        payload: &[u8],
+        heard: &mut Vec<f32>,
+    ) -> anyhow::Result<()> {
+        if payload.is_empty() {
+            return Ok(());
+        }
+
+        let gap = self
+            .expected
+            .map_or(0, |expected| sequence.wrapping_sub(expected));
+
+        if gap > u16::MAX / 2 {
+            return Ok(());
+        }
+
+        let missing = gap.min(LONGEST_GAP);
+
+        for lost in 0..missing {
+            if lost + 1 == missing {
+                self.decoder.recover(payload, heard)?;
+            } else {
+                self.decoder.conceal(heard)?;
+            }
+        }
+
+        self.decoder.decode(payload, heard)?;
+        self.expected = Some(sequence.wrapping_add(1));
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{audio::RATE, codec::frames};
+
+    fn packets() -> Vec<Vec<u8>> {
+        let tone: Vec<f32> = (0..RATE as usize)
+            .map(|n| (std::f32::consts::TAU * 200.0 * n as f32 / RATE as f32).sin() * 0.3)
+            .collect();
+        let mut encoder = Encoder::new(24_000, 0.1).unwrap();
+
+        frames(&tone)
+            .map(|frame| encoder.encode(&frame).unwrap())
+            .collect()
+    }
+
+    fn heard(arrivals: impl IntoIterator<Item = (u16, Vec<u8>)>) -> usize {
+        let mut uplink = Uplink::new().unwrap();
+        let mut samples = Vec::new();
+
+        for (sequence, packet) in arrivals {
+            uplink.accept(sequence, &packet, &mut samples).unwrap();
+        }
+
+        samples.len()
+    }
+
+    const HOST: &str = "candidate:3014926219 1 udp 2130706431 172.17.0.2 40000 typ host";
+
+    #[test]
+    fn a_host_candidate_is_advertised_at_each_public_address() {
+        let public = vec!["203.0.113.7".to_string(), "198.51.100.9".to_string()];
+
+        assert_eq!(
+            advertised(HOST, &public),
+            vec![
+                "candidate:3014926219 1 udp 2130706431 203.0.113.7 40000 typ host",
+                "candidate:3014926219 1 udp 2130706431 198.51.100.9 40000 typ host",
+            ]
+        );
+    }
+
+    #[test]
+    fn candidates_are_left_alone_without_a_public_address() {
+        assert_eq!(advertised(HOST, &[]), vec![HOST]);
+    }
+
+    #[test]
+    fn only_host_candidates_are_rewritten() {
+        let reflexive =
+            "candidate:1 1 udp 1694498815 192.0.2.4 5000 typ srflx raddr 10.0.0.2 rport 5000";
+
+        assert_eq!(
+            advertised(reflexive, &["203.0.113.7".to_string()]),
+            vec![reflexive]
+        );
+        assert_eq!(
+            advertised("garbage", &["203.0.113.7".to_string()]),
+            vec!["garbage"]
+        );
+    }
+
+    #[test]
+    fn packets_in_order_decode_to_their_length() {
+        let sent = packets();
+        let count = sent.len();
+        let numbered = sent.into_iter().enumerate().map(|(n, p)| (n as u16, p));
+
+        assert_eq!(heard(numbered), count * FRAME);
+    }
+
+    #[test]
+    fn a_lost_packet_is_filled_in() {
+        let sent = packets();
+        let count = sent.len();
+        let numbered = sent
+            .into_iter()
+            .enumerate()
+            .filter(|(n, _)| *n != 7 && *n != 20 && *n != 21)
+            .map(|(n, p)| (n as u16, p));
+
+        assert_eq!(heard(numbered), count * FRAME);
+    }
+
+    #[test]
+    fn late_and_empty_packets_are_ignored() {
+        let sent = packets();
+        let arrivals = vec![
+            (10, sent[0].clone()),
+            (11, sent[1].clone()),
+            (9, sent[2].clone()),
+            (12, Vec::new()),
+            (12, sent[3].clone()),
+        ];
+
+        assert_eq!(heard(arrivals), 3 * FRAME);
+    }
+
+    #[test]
+    fn sequence_numbers_wrap() {
+        let sent = packets();
+        let arrivals = vec![
+            (u16::MAX - 1, sent[0].clone()),
+            (u16::MAX, sent[1].clone()),
+            (0, sent[2].clone()),
+            (1, sent[3].clone()),
+        ];
+
+        assert_eq!(heard(arrivals), 4 * FRAME);
+    }
+
+    #[test]
+    fn a_long_outage_is_capped() {
+        let sent = packets();
+        let arrivals = vec![(0, sent[0].clone()), (5_000, sent[1].clone())];
+
+        assert_eq!(heard(arrivals), (2 + LONGEST_GAP as usize) * FRAME);
     }
 }

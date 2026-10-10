@@ -1,0 +1,16 @@
+.series-pips {
+	display: block;
+	flex: none;
+	width: auto;
+	height: 10px;
+}
+
+.series-pips__pip {
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.5;
+}
+
+.series-pips__pip[data-on] {
+	fill: currentColor;
+}

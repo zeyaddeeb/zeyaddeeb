@@ -1,23 +1,26 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize)]
+use crate::line::Line;
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionInfo {
     pub id: Uuid,
     pub signaling_url: String,
-    pub model_loaded: bool,
-    pub sample_rate: u32,
-    pub frame_ms: u16,
-    pub status: SessionStatus,
+    pub calls: bool,
+    pub limits: Limits,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SessionStatus {
-    pub connected_clients: usize,
-    pub received_frames: u64,
-    pub active_speakers: usize,
+pub struct Limits {
+    pub take_seconds: f32,
+    pub shortest_take_seconds: f32,
+    pub batch: usize,
+    pub generations: usize,
+    pub runs: usize,
+    pub bands: usize,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -30,44 +33,67 @@ pub enum ClientMessage {
     Offer {
         sdp: String,
     },
-    Answer,
     IceCandidate {
         candidate: String,
     },
-    AudioFrame {
-        sample_rate: u32,
-        channels: u8,
-        samples: Vec<f32>,
+    Listen {
+        #[serde(default)]
+        rate: Option<u32>,
     },
+    Begin {
+        line: Line,
+    },
+    More,
+    House,
+    Play {
+        generation: usize,
+        #[serde(default)]
+        onward: bool,
+    },
+    Hush,
+    Stop,
     Ping,
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum ServerMessage {
     Ready { session: SessionInfo },
     Answer { sdp: String },
     IceCandidate { candidate: String },
-    TrackStarted { codec: String },
-    Diarization { result: DiarizationResult },
+    Listening,
+    Waiting { ahead: usize },
+    Began,
+    House { generations: Vec<Generation> },
+    Generation { generation: Generation },
+    Playing { generation: usize },
+    Played { generation: usize },
+    Finished { reason: Ending },
     Error { message: String },
     Pong,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DiarizationResult {
-    pub processed_ms: u64,
-    pub speakers: Vec<SpeakerSegment>,
+pub struct Generation {
+    pub index: usize,
+    pub text: String,
+    pub likeness: f32,
+    pub seconds: f32,
+    pub spectrum: Vec<u8>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SpeakerSegment {
-    pub speaker: String,
-    pub start_ms: u64,
-    pub end_ms: u64,
-    pub confidence: f32,
+pub enum Ending {
+    Batch,
+    Limit,
+    Silence,
+    Stopped,
 }
 
 #[cfg(test)]
@@ -75,21 +101,57 @@ mod tests {
     use super::*;
 
     #[test]
-    fn audio_frame_fields_are_camel_case() {
-        let message: ClientMessage = serde_json::from_str(
-            r#"{"type":"audioFrame","sampleRate":16000,"channels":1,"samples":[0.5]}"#,
-        )
-        .unwrap();
+    fn client_messages_are_camel_case() {
+        let begin: ClientMessage =
+            serde_json::from_str(r#"{"type":"begin","line":"patchy"}"#).unwrap();
+        let play: ClientMessage =
+            serde_json::from_str(r#"{"type":"play","generation":3}"#).unwrap();
+        let candidate: ClientMessage =
+            serde_json::from_str(r#"{"type":"iceCandidate","candidate":"c"}"#).unwrap();
 
-        let ClientMessage::AudioFrame {
-            sample_rate,
-            channels,
-            samples,
-        } = message
-        else {
-            panic!("expected an audio frame");
+        assert!(matches!(begin, ClientMessage::Begin { line: Line::Patchy }));
+        assert!(matches!(
+            play,
+            ClientMessage::Play {
+                generation: 3,
+                onward: false
+            }
+        ));
+        assert!(matches!(candidate, ClientMessage::IceCandidate { .. }));
+    }
+
+    #[test]
+    fn a_generation_serializes_for_the_page() {
+        let message = ServerMessage::Generation {
+            generation: Generation {
+                index: 2,
+                text: "and so on".into(),
+                likeness: 0.5,
+                seconds: 1.5,
+                spectrum: vec![0, 255],
+            },
         };
 
-        assert_eq!((sample_rate, channels, samples), (16000, 1, vec![0.5]));
+        assert_eq!(
+            serde_json::to_string(&message).unwrap(),
+            r#"{"type":"generation","generation":{"index":2,"text":"and so on","likeness":0.5,"seconds":1.5,"spectrum":[0,255]}}"#
+        );
+    }
+
+    #[test]
+    fn listening_may_name_the_microphone_rate() {
+        let plain: ClientMessage = serde_json::from_str(r#"{"type":"listen"}"#).unwrap();
+        let fast: ClientMessage =
+            serde_json::from_str(r#"{"type":"listen","rate":48000}"#).unwrap();
+
+        assert!(matches!(plain, ClientMessage::Listen { rate: None }));
+        assert!(matches!(fast, ClientMessage::Listen { rate: Some(48_000) }));
+    }
+
+    #[test]
+    fn unknown_lines_are_rejected() {
+        assert!(
+            serde_json::from_str::<ClientMessage>(r#"{"type":"begin","line":"gale"}"#).is_err()
+        );
     }
 }

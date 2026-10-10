@@ -2,6 +2,7 @@ import { pageNumber } from "@zeyaddeeb/ui/seo";
 import {
 	type Experiment,
 	experiments,
+	seriesOf,
 	type Topic,
 	topicLabel,
 	topics,
@@ -64,6 +65,7 @@ export function listExperiments({
 			experiment.line,
 			...experiment.stack,
 			...experiment.topics.map(topicLabel),
+			seriesOf(experiment)?.title ?? "",
 		]
 			.join(" ")
 			.toLowerCase();

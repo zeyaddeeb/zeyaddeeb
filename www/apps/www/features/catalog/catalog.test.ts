@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { experiments, neighbors, number } from "./catalog";
+import {
+	experiments,
+	getExperiment,
+	neighbors,
+	number,
+	seriesOf,
+} from "./catalog";
 
 describe("catalog", () => {
 	it("has unique ids, numbers and hrefs", () => {
@@ -45,5 +51,25 @@ describe("catalog", () => {
 		expect(n?.next.number).toBe(1);
 		expect(neighbors("proofs")?.next.number).toBe(13);
 		expect(neighbors("story")?.next.id).toBe("wes-anderson");
+	});
+
+	it("orders a series by experiment number and counts parts from one", () => {
+		const series = seriesOf(getExperiment("every-program"));
+
+		expect(series?.parts.map((part) => part.id)).toEqual([
+			"deepseek",
+			"every-program",
+			"already-sealed",
+		]);
+		expect(series?.part).toBe(2);
+		expect(seriesOf(getExperiment("game-of-life"))).toBeNull();
+	});
+
+	it("gives every series more than one part", () => {
+		for (const experiment of experiments) {
+			const series = seriesOf(experiment);
+
+			if (series) expect(series.parts.length).toBeGreaterThan(1);
+		}
 	});
 });

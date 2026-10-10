@@ -1,0 +1,89 @@
+.sb-notes h3 {
+	margin: 28px 0 8px;
+	font: 600 18px / 1.3 var(--font-display);
+	scroll-margin-top: 24px;
+}
+
+.sb-notes h3:first-child {
+	margin-top: 0;
+}
+
+.sb-notes p {
+	max-width: 68ch;
+	margin: 0;
+}
+
+.sb-notes p + p {
+	margin-top: 12px;
+}
+
+.sb-fig {
+	max-width: 640px;
+	margin: 20px 0;
+	padding: 16px;
+	border: 2px solid var(--ink);
+}
+
+.sb-fig__svg {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.sb-fig__you {
+	fill: var(--red);
+}
+
+.sb-fig__step {
+	fill: none;
+	stroke: var(--ink);
+	stroke-width: 2;
+}
+
+.sb-fig__arrow path {
+	fill: none;
+	stroke: var(--ink);
+	stroke-width: 2;
+}
+
+.sb-fig__arrow .sb-fig__tip {
+	fill: var(--ink);
+	stroke: none;
+}
+
+.sb-fig__label,
+.sb-fig__note {
+	text-anchor: middle;
+}
+
+.sb-fig__label {
+	font: 500 15px / 1 var(--font-display);
+	fill: var(--ink);
+}
+
+.sb-fig__note {
+	font: 400 10px / 1 var(--font-mono);
+	fill: var(--dim);
+}
+
+.sb-sources {
+	display: grid;
+	gap: 10px;
+	max-width: 68ch;
+	margin: 0;
+	padding-left: 1.2em;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.sb-out {
+	color: inherit;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.sb-out__arrow {
+	width: 0.72em;
+	height: 0.72em;
+	margin-left: 0.28em;
+}

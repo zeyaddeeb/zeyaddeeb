@@ -23,6 +23,12 @@ module "capacity" {
   namespace = kubernetes_namespace_v1.zeyaddeeb_namespace.metadata[0].name
 }
 
+module "voice" {
+  source       = "../voice/deployments"
+  namespace    = kubernetes_namespace_v1.zeyaddeeb_namespace.metadata[0].name
+  cluster_name = local.cluster_name
+}
+
 module "wwww" {
   source    = "../www/deployments"
   namespace = kubernetes_namespace_v1.zeyaddeeb_namespace.metadata[0].name
@@ -33,6 +39,7 @@ module "wwww" {
     module.deepseek,
     module.proofs,
     module.capacity,
+    module.voice,
   ]
 }
 

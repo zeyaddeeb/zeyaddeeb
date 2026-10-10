@@ -1,0 +1,92 @@
+fullnameOverride: "voice"
+
+image:
+  repository: ${image_repository}
+
+entrypoint: "./voice"
+
+service:
+  type: ClusterIP
+  port: 3003
+
+rtc:
+  enabled: ${rtc_enabled}
+  firstPort: 40000
+  lastPort: 40015
+  healthCheckCidrs:
+    - ${vpc_cidr}
+  service:
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: external
+      service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+      service.beta.kubernetes.io/aws-load-balancer-name: voice-rtc
+      service.beta.kubernetes.io/aws-load-balancer-subnets: "${rtc_subnet}"
+      service.beta.kubernetes.io/aws-load-balancer-eip-allocations: "${rtc_allocation}"
+      service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+      service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "3003"
+      service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: HTTP
+      service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: /health
+
+istio:
+  enabled: true
+  certificate:
+    enabled: true
+    namespace: istio-ingress
+    secretName: voice-zeyaddeeb-tls
+    issuerRef:
+      name: letsencrypt-dns
+      kind: ClusterIssuer
+    dnsNames:
+      - voice.zeyaddeeb.com
+  gateway:
+    enabled: true
+    namespace: istio-ingress
+    annotations:
+      external-dns.alpha.kubernetes.io/hostname: voice.zeyaddeeb.com
+    selector:
+      istio: ingressgateway-public
+    hosts:
+      - voice.zeyaddeeb.com
+    http:
+      enabled: true
+      httpsRedirect: true
+    tls:
+      enabled: true
+      credentialName: voice-zeyaddeeb-tls
+  virtualService:
+    enabled: true
+    hosts:
+      - voice.zeyaddeeb.com
+    gateways:
+      - istio-ingress/zeyaddeeb-voice
+    http:
+      - match:
+          - uri:
+              prefix: /
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 500Mi
+  limits:
+    cpu: "2"
+    memory: 1536Mi
+
+env:
+  RUST_LOG: "error"
+  VOICE_MODELS: "/app/models"
+  VOICE_HOUSE: "/app/house.tape"
+  VOICE_PARALLEL_RUNS: "1"
+  VOICE_ROOM_IDLE_SECONDS: "120"
+  VOICE_ALLOWED_ORIGINS: "https://www.zeyaddeeb.com,https://zeyaddeeb.com"
+  VOICE_SESSIONS_PER_CLIENT: "4"
+  VOICE_TAKES_PER_CLIENT_HOUR: "12"
+  MALLOC_ARENA_MAX: "2"
+  MALLOC_MMAP_THRESHOLD_: "262144"
+  MALLOC_TRIM_THRESHOLD_: "1048576"
+  VOICE_RTC: "${rtc_enabled ? "on" : "off"}"
+  VOICE_RTC_UDP_PORTS: "40000-40015"
+  VOICE_RTC_PUBLIC_IPS: "${rtc_address}"
+  VOICE_STUN_URLS: ""
+  RAYON_NUM_THREADS: "2"

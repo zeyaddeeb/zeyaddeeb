@@ -4,9 +4,11 @@ import { LifeArrow } from "@zeyaddeeb/ui";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { SeriesPips } from "@/components/series-pips";
 import {
 	type Experiment,
 	number,
+	seriesOf,
 	topicLabel,
 } from "@/features/catalog/catalog";
 import { HOME_VARIANT } from "@/features/tiling/engine";
@@ -88,6 +90,7 @@ function Row({
 	const ref = useRef<HTMLLIElement>(null);
 	const shouldRun = useShouldRun(ref);
 	const live = LIVE.has(experiment.live ?? "");
+	const series = seriesOf(experiment);
 	const [touched, setTouched] = useState(false);
 
 	useEffect(() => {
@@ -115,7 +118,16 @@ function Row({
 				onBlur={() => onActivate(null)}
 			>
 				<span className="row__ground" aria-hidden="true" />
-				<span className="row__n">{number(experiment.number)}</span>
+				<span className="row__n">
+					{number(experiment.number)}
+					{series ? (
+						<SeriesPips
+							part={series.part}
+							parts={series.parts.length}
+							label={`${series.title}, part ${series.part} of ${series.parts.length}`}
+						/>
+					) : null}
+				</span>
 				<div className="row__title">
 					<h2>{experiment.title}</h2>
 					<span className="row__stack">{experiment.stack.join(" / ")}</span>

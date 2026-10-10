@@ -33,6 +33,12 @@ export type LiveSource =
 	| "moonspell"
 	| "story";
 
+export type Series = "guessing-machines";
+
+const seriesTitles: Record<Series, string> = {
+	"guessing-machines": "Guessing machines",
+};
+
 export interface Experiment {
 	id: string;
 	number: number;
@@ -41,11 +47,21 @@ export interface Experiment {
 	stack: string[];
 	href: string;
 	topics: Topic[];
+	series?: Series;
 	live?: LiveSource;
 	external?: boolean;
 }
 
 export const experiments: Experiment[] = [
+	{
+		id: "any-semblance",
+		number: 22,
+		title: "Any Semblance of My Speech",
+		line: "In 1969 Alvin Lucier played a recording of his voice back into a room until only the room was left. Say one sentence and a voice model does the same to you, copying its own copy until neither the voice nor the words are yours.",
+		stack: ["Rust", "Candle", "WebSocket", "WebRTC", "Opus", "Whisper"],
+		href: "/experiments/any-semblance",
+		topics: ["sound", "ai"],
+	},
 	{
 		id: "already-sealed",
 		number: 21,
@@ -54,6 +70,7 @@ export const experiments: Experiment[] = [
 		stack: ["TypeScript", "Web Crypto", "SHA-256", "Aaronson’s oracle"],
 		href: "/experiments/already-sealed",
 		topics: ["ai", "math"],
+		series: "guessing-machines",
 	},
 	{
 		id: "every-program",
@@ -63,6 +80,7 @@ export const experiments: Experiment[] = [
 		stack: ["Rust", "WASM", "Solomonoff induction", "Canvas"],
 		href: "/experiments/every-program",
 		topics: ["ai", "math"],
+		series: "guessing-machines",
 	},
 	{
 		id: "lost-in-translation",
@@ -236,6 +254,7 @@ export const experiments: Experiment[] = [
 		stack: ["Rust", "Candle", "Axum", "SSE", "SVG"],
 		href: "/experiments/deepseek",
 		topics: ["ai"],
+		series: "guessing-machines",
 	},
 	{
 		id: "proofs",
@@ -254,6 +273,22 @@ export function getExperiment(id: string): Experiment {
 	if (!found) throw new Error(`Unknown experiment: ${id}`);
 
 	return found;
+}
+
+export function seriesOf(experiment: Experiment) {
+	const { series } = experiment;
+
+	if (!series) return null;
+
+	const parts = experiments
+		.filter((e) => e.series === series)
+		.sort((a, b) => a.number - b.number);
+
+	return {
+		title: seriesTitles[series],
+		parts,
+		part: parts.findIndex((e) => e.id === experiment.id) + 1,
+	};
 }
 
 export function experimentMetadata(id: string, description: string) {

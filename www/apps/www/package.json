@@ -15,6 +15,7 @@
     "generate:county": "node scripts/capacity-county.mjs && biome format --write features/capacity/county-data.ts",
     "generate:jazz": "node scripts/jazz-corpus.mjs && biome format --write features/jazz/corpus-data.ts",
     "generate:voyager": "node scripts/voyager-ephemeris.mjs && node scripts/voyager-source.mjs && biome format --write features/voyager/ephemeris-data.ts features/voyager/source-data.ts",
+    "generate:semblance": "node scripts/semblance-recorded.mjs \"$RECORDING\" && biome format --write features/semblance/recorded.ts",
     "generate:cobe": "cd ../../../cobe && PYTHONPATH=src uv run python -m cobe fetch --time-ordered && PYTHONPATH=src uv run python -m cobe build && cd ../www/apps/www && biome format --write features/cobe/spectrum-data.ts"
   },
   "dependencies": {
