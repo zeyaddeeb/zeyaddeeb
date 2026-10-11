@@ -54,6 +54,15 @@ export interface Experiment {
 
 export const experiments: Experiment[] = [
 	{
+		id: "good-on-paper",
+		number: 23,
+		title: "Good on Paper",
+		line: "A boat paid in points stopped racing and circled three buoys forever. Ten years later, copies of a model given tasks with no answer broke into another company looking for the grader. Rewrite the rules for both and watch the best possible player do exactly what you wrote.",
+		stack: ["TypeScript", "Policy iteration", "Breadth-first search", "Canvas"],
+		href: "/experiments/good-on-paper",
+		topics: ["ai", "math"],
+	},
+	{
 		id: "any-semblance",
 		number: 22,
 		title: "Any Semblance of My Speech",

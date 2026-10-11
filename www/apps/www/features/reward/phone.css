@@ -1,0 +1,109 @@
+@media (max-width: 959px) {
+	.rh {
+		--rh-pad: 12px;
+		--rh-row: 38px;
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-rows: none;
+		grid-template-areas:
+			"meters"
+			"sea"
+			"outcome"
+			"contract"
+			"guide";
+		border-width: 0;
+	}
+
+	.rh-sea {
+		border-width: 0;
+	}
+
+	.rh-meters {
+		border-width: 0 0 2px;
+	}
+
+	.rh-meter {
+		gap: 3px;
+		padding: 6px var(--rh-pad);
+	}
+
+	.rh-meter__count {
+		font-size: 30px;
+	}
+
+	.rh-meter__note {
+		font-size: 12.5px;
+	}
+
+	.rh-spot {
+		padding-block: 6px;
+		border-bottom: 2px solid var(--rh-rule);
+	}
+
+	.rh-outcome {
+		gap: 4px;
+		padding: 8px var(--rh-pad) 2px;
+	}
+
+	.rh-caption {
+		font-size: 15px;
+		line-height: 1.35;
+	}
+
+	.rh-seen {
+		font-size: 12.5px;
+	}
+
+	.rh-contract {
+		padding: 8px var(--rh-pad) 0;
+		border-top: 0;
+	}
+
+	.rh .rh-clause__switch {
+		grid-template-columns: 44px minmax(0, 1fr);
+		padding-right: 6px;
+	}
+
+	.rh-clause__amount {
+		padding-right: 8px;
+		font-size: 12px;
+	}
+
+	.rh-clause__text {
+		font-size: 13.5px;
+	}
+
+	.rh-guide {
+		padding: 10px var(--rh-pad) 8px;
+	}
+
+	.rh-plates {
+		grid-template-columns: repeat(6, minmax(0, 1fr));
+	}
+
+	.rh .rh-plate {
+		grid-template-columns: minmax(0, 1fr);
+		justify-items: center;
+		height: 40px;
+		padding: 0;
+	}
+}
+
+@media (max-width: 639px) {
+	.rh-sea {
+		margin-inline: -12px;
+	}
+
+	.rh-spot {
+		padding-inline: 24px;
+	}
+
+	.rh-guide .rh-label,
+	.rh-plate__name {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+}

@@ -1,0 +1,74 @@
+.rp-tabs {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	max-width: 1320px;
+	margin: calc(-1 * clamp(0px, 2vw - 14px, 14px)) auto 12px;
+	border-bottom: 2px solid color-mix(in srgb, var(--paper) 28%, transparent);
+}
+
+.frame__stage .rp-tab {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 2px 12px;
+	align-items: baseline;
+	min-height: 0;
+	margin-bottom: -2px;
+	padding: 0 16px 8px 0;
+	border: 0;
+	border-bottom: 4px solid transparent;
+	background: none;
+	color: color-mix(in srgb, var(--paper) 58%, transparent);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+	transition:
+		color var(--dur-2) var(--ease-out),
+		border-color var(--dur-2) var(--ease-out);
+}
+
+.frame__stage .rp-tab:hover,
+.frame__stage .rp-tab[aria-selected="true"] {
+	color: var(--paper);
+}
+
+.frame__stage .rp-tab[aria-selected="true"] {
+	border-bottom-color: var(--yellow);
+}
+
+.frame__stage .rp-tab[data-part="break-in"][aria-selected="true"] {
+	border-bottom-color: var(--red);
+}
+
+.rp-tab:focus-visible {
+	outline: 2px solid var(--yellow);
+	outline-offset: 3px;
+}
+
+.rp-tab__year {
+	font: 400 11px / 1 var(--font-mono);
+	letter-spacing: 0.1em;
+}
+
+.rp-tab__title {
+	font: 600 clamp(16px, 1.5vw, 19px) / 1.2 var(--font-display);
+}
+
+.rp-tab__note {
+	font: 400 12px / 1.4 var(--font-mono);
+}
+
+@media (max-width: 900px) {
+	.rp-tabs {
+		margin-bottom: 10px;
+	}
+
+	.rp-tab__note {
+		display: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.frame__stage .rp-tab {
+		transition: none;
+	}
+}
