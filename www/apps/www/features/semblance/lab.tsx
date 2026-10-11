@@ -14,6 +14,7 @@ import { Link } from "./link";
 import {
 	asleep,
 	busy,
+	type Generation,
 	type Heard,
 	type Line,
 	more,
@@ -21,9 +22,11 @@ import {
 	type Piece,
 	percent,
 	step,
+	taking,
 } from "./piece";
 import { RECORDED } from "./recorded";
 import { Strata } from "./strata";
+import { Tape } from "./tape";
 import { kept, mark, spoken } from "./words";
 import "./semblance.css";
 import "./phone.css";
@@ -32,10 +35,16 @@ const TAP_MS = 400;
 const STEP_MS = 1300;
 const REST_STEPS = 4;
 const TAIL_MS = 250;
+const TICK_MS = 250;
+const LEAD = 3;
+const LEAD_MS = 800;
+const GAIN = 6;
 const SLOTS = 37;
 const TAKE_SECONDS = 8;
 
 const SUGGESTION = "I am the master of my fate, I am the captain of my soul.";
+const WRITING = "Writing down what it heard…";
+const PROMPT = "Read this aloud, or say anything";
 
 const LINES: { line: Line; label: string }[] = [
 	{ line: "clear", label: "Direct" },
@@ -44,27 +53,29 @@ const LINES: { line: Line; label: string }[] = [
 ];
 
 const ENDINGS = {
-	batch: "Go on, or hold the disc and say something else.",
+	batch: "Go on, or record something else.",
 	limit: "That is as far as one run goes.",
 	silence: "It heard nothing in its own recording, so the run is over.",
-	stopped: "Stopped.",
-};
-
-const ACTION: Record<Phase, string> = {
-	asleep: "Turn on the microphone",
-	closed: "Try the microphone again",
-	waking: "Connecting",
-	ready: "Hold to speak",
-	rested: "Hold to speak",
-	listening: "Let go to send",
-	sent: "Sending",
-	running: "Stop",
+	stopped: "Stopped. Go on, or record something else.",
 };
 
 const LABEL: Record<Phase, string> = {
-	...ACTION,
-	asleep: "Microphone off",
+	asleep: "Record",
 	closed: "Try again",
+	waking: "Connecting",
+	ready: "Record",
+	rested: "Record again",
+	counting: "Get ready",
+	listening: "Stop",
+	sent: "Sending",
+	running: "Record again",
+};
+
+const ACTION: Record<Phase, string> = {
+	...LABEL,
+	closed: "Try the microphone again",
+	counting: "Cancel recording",
+	listening: "Stop recording",
 };
 
 const linked = (phase: Phase) =>
@@ -72,28 +83,59 @@ const linked = (phase: Phase) =>
 
 const armed = (piece: Piece) => linked(piece.phase) && piece.microphone;
 
-function cue(piece: Piece) {
-	if (piece.notice) return piece.notice;
+const clock = (seconds: number) =>
+	`0:${String(Math.max(0, seconds)).padStart(2, "0")}`;
+
+function title(
+	shown: Generation | undefined,
+	example: boolean,
+	pending: boolean,
+) {
+	if (!shown) return pending ? "Your take" : PROMPT;
+	if (!example) return shown.index ? `Generation ${shown.index}` : "Your take";
+
+	return `Example · ${shown.index ? `Generation ${shown.index}` : "The reader"}`;
+}
+
+function sentence(text: string) {
+	const said = text.trim();
+
+	return `${said.charAt(0).toUpperCase()}${said.slice(1)}${/[.!?…]$/.test(said) ? "" : "."}`;
+}
+
+function cue(piece: Piece, asking: boolean, halting: boolean) {
+	if (piece.notice) return sentence(piece.notice);
+
+	const queue = piece.ahead
+		? `Waiting for the room. ${piece.ahead} ahead of you.`
+		: null;
 
 	switch (piece.phase) {
 		case "asleep":
-			return "A recorded run. Turn Sound on to hear it, or press the disc to make yours.";
+			return "Record one sentence, or turn Sound on to hear this example.";
 		case "closed":
-			return "The room is closed right now. This run is recorded, without sound.";
+			return "The room is closed right now. The example plays without sound.";
 		case "waking":
-			return "Connecting to the room…";
+			return asking
+				? "Allow the microphone if your browser asks."
+				: "Connecting to the room…";
 		case "ready":
 			return piece.microphone
-				? "Hold the disc and say one sentence."
-				: "A recorded run. Press the disc to make your own.";
+				? "Press Record and say one sentence."
+				: "This is an example. Record one sentence to make your own.";
+		case "counting":
+			return "Recording starts after the count.";
 		case "listening":
-			return "Listening. Let go when you are done.";
+			return "Recording. Press the disc again when you are done.";
 		case "sent":
-			return piece.ahead
-				? `Waiting for the room. ${piece.ahead} ahead of you.`
-				: "Sent.";
+			return queue ?? "Got it.";
 		case "running":
-			return `Making generation ${piece.generations.length}.`;
+			if (halting) return "Stopping after this generation.";
+			if (queue) return queue;
+
+			return piece.generations.length
+				? `Making generation ${piece.generations.length}.`
+				: "Got it. The room is listening to your take.";
 		case "rested":
 			return piece.ending ? ENDINGS[piece.ending] : "";
 	}
@@ -101,7 +143,7 @@ function cue(piece: Piece) {
 
 function refusal(error: unknown) {
 	if (error instanceof DOMException && error.name === "NotAllowedError")
-		return "Microphone blocked. Allow it from the address bar, then press the disc.";
+		return "Microphone blocked. Allow it from the address bar, then try again.";
 
 	if (error instanceof DOMException && error.name === "NotFoundError")
 		return "No microphone was found.";
@@ -117,6 +159,10 @@ export function SemblanceLab() {
 	const [sound, setSound] = useState(false);
 	const [browsed, setBrowsed] = useState(0);
 	const [touched, setTouched] = useState(false);
+	const [asking, setAsking] = useState(false);
+	const [halting, setHalting] = useState(false);
+	const [lead, setLead] = useState(LEAD);
+	const [left, setLeft] = useState(TAKE_SECONDS);
 	const stage = useRef<HTMLDivElement>(null);
 	const moving = useShouldRun(stage);
 	const link = useRef<Link | null>(null);
@@ -128,8 +174,14 @@ export function SemblanceLab() {
 	now.current = piece;
 
 	const made = piece.generations.length > 0;
+	const counting = piece.phase === "counting";
+	const recording = piece.phase === "listening";
+	const running = piece.phase === "running";
+	const reaching = piece.phase === "waking" && asking;
+	const pending = piece.phase === "sent" || (running && !piece.generations[1]);
 	const prompting =
-		piece.phase === "listening" ||
+		reaching ||
+		taking(piece) ||
 		piece.phase === "sent" ||
 		(armed(piece) && !made);
 	const still = !made && !prompting;
@@ -138,11 +190,14 @@ export function SemblanceLab() {
 	const shown = generations[cursor];
 	const recorded = still || (made && piece.recorded);
 	const original = generations[1]?.text ?? "";
-	const words = shown
-		? mark(original, shown.index ? shown.text : original)
-		: mark(SUGGESTION, SUGGESTION);
+	const hint = pending ? WRITING : shown ? "" : SUGGESTION;
+	const said = Boolean(shown && original);
+	const words = said
+		? mark(original, shown?.index ? shown.text : original)
+		: mark(hint, hint);
 	const total = shown ? spoken(original).length : 0;
 	const length = words.reduce((sum, word) => sum + word.text.length + 1, 0);
+	const longest = piece.limits?.takeSeconds ?? TAKE_SECONDS;
 
 	useEffect(() => () => link.current?.close(), []);
 
@@ -165,13 +220,20 @@ export function SemblanceLab() {
 	}, [sound]);
 
 	useEffect(() => {
-		if (piece.phase !== "listening") return;
+		if (!running) setHalting(false);
+	}, [running]);
+
+	const level = useCallback(
+		() => Math.min(1, (link.current?.level() ?? 0) * GAIN),
+		[],
+	);
+
+	useEffect(() => {
+		if (!recording) return;
 
 		let frame = 0;
 		const tick = () => {
-			const level = Math.min(1, (link.current?.level() ?? 0) * 6);
-
-			disc.current?.style.setProperty("--sb-level", level.toFixed(3));
+			disc.current?.style.setProperty("--sb-level", level().toFixed(3));
 			frame = requestAnimationFrame(tick);
 		};
 
@@ -181,38 +243,69 @@ export function SemblanceLab() {
 			cancelAnimationFrame(frame);
 			disc.current?.style.setProperty("--sb-level", "0");
 		};
-	}, [piece.phase]);
+	}, [recording, level]);
 
-	const wake = useCallback(async (speaking: boolean) => {
-		move({ type: "wake" });
-		setSound(true);
-		link.current?.close();
-
-		const hear = (heard: Heard) => {
-			move(heard);
-
-			if (heard.type === "house") opened.play(0, true);
-		};
-		const opened = new Link(hear, (notice) => move({ type: "close", notice }));
-
-		link.current = opened;
-
-		try {
-			const { limits, stream } = await opened.open(speaking);
-
-			if (audio.current) {
-				audio.current.srcObject = stream;
-				audio.current.play().catch(() => {});
-			}
-
-			move({ type: "open", limits, microphone: speaking });
-
-			if (!speaking) opened.house();
-		} catch (error) {
-			opened.close();
-			move({ type: "close", notice: refusal(error) });
-		}
+	const prime = useCallback(() => {
+		pressed.current = performance.now();
+		setLead(LEAD);
+		move({ type: "count" });
+		link.current?.hush();
 	}, []);
+
+	const record = useCallback(() => {
+		pressed.current = performance.now();
+		move({ type: "listen" });
+		link.current?.listen();
+	}, []);
+
+	useEffect(() => {
+		if (!counting) return;
+
+		const timer = window.setTimeout(
+			() => (lead > 1 ? setLead(lead - 1) : record()),
+			LEAD_MS,
+		);
+
+		return () => window.clearTimeout(timer);
+	}, [counting, lead, record]);
+
+	const wake = useCallback(
+		async (speaking: boolean) => {
+			move({ type: "wake" });
+			setAsking(speaking);
+			setSound(true);
+			link.current?.close();
+
+			const hear = (heard: Heard) => {
+				move(heard);
+
+				if (heard.type === "house") opened.play(0, true);
+			};
+			const opened = new Link(hear, (notice) =>
+				move({ type: "close", notice }),
+			);
+
+			link.current = opened;
+
+			try {
+				const { limits, stream } = await opened.open(speaking);
+
+				if (audio.current) {
+					audio.current.srcObject = stream;
+					audio.current.play().catch(() => {});
+				}
+
+				move({ type: "open", limits, microphone: speaking });
+
+				if (speaking) prime();
+				else opened.house();
+			} catch (error) {
+				opened.close();
+				move({ type: "close", notice: refusal(error) });
+			}
+		},
+		[prime],
+	);
 
 	const send = useCallback(() => {
 		if (now.current.phase !== "listening") return;
@@ -222,29 +315,48 @@ export function SemblanceLab() {
 	}, [line]);
 
 	useEffect(() => {
-		if (piece.phase !== "listening") return;
+		if (!recording) return;
 
-		const seconds = piece.limits?.takeSeconds ?? TAKE_SECONDS;
-		const timer = window.setTimeout(send, seconds * 1000);
+		const count = () =>
+			setLeft(
+				Math.ceil(longest - (performance.now() - pressed.current) / 1000),
+			);
+		const timer = window.setTimeout(send, longest * 1000);
+		const ticks = window.setInterval(count, TICK_MS);
 
-		return () => window.clearTimeout(timer);
-	}, [piece.phase, piece.limits, send]);
+		count();
+
+		return () => {
+			window.clearTimeout(timer);
+			window.clearInterval(ticks);
+		};
+	}, [recording, longest, send]);
+
+	const settled = () => performance.now() - pressed.current > TAP_MS;
 
 	const press = () => {
 		const { phase } = now.current;
 
-		if (phase === "listening") return send();
-		if (phase === "running") return link.current?.stop();
-		if (busy(now.current)) return;
-		if (!armed(now.current)) return wake(true);
+		if (phase === "counting") {
+			if (settled()) move({ type: "cancel" });
 
-		pressed.current = performance.now();
-		move({ type: "listen" });
-		link.current?.listen();
+			return;
+		}
+
+		if (phase === "listening") {
+			if (settled()) send();
+
+			return;
+		}
+
+		if (busy(now.current)) return;
+
+		if (armed(now.current)) prime();
+		else wake(true);
 	};
 
 	const release = () => {
-		if (performance.now() - pressed.current > TAP_MS) send();
+		if (settled()) send();
 	};
 
 	const typed = (event: MouseEvent) => {
@@ -269,6 +381,11 @@ export function SemblanceLab() {
 		link.current?.more();
 	};
 
+	const halt = () => {
+		setHalting(true);
+		link.current?.stop();
+	};
+
 	const toggle = () => {
 		if (!linked(piece.phase)) {
 			if (!busy(piece)) wake(false);
@@ -284,24 +401,16 @@ export function SemblanceLab() {
 
 	const naming = useId();
 	const size = length > 150 ? "small" : length > 80 ? "medium" : "large";
-	const taking = piece.limits?.takeSeconds ?? TAKE_SECONDS;
-	const off = linked(piece.phase) && !piece.microphone && !busy(piece);
+	const held = busy(piece) || taking(piece);
 
 	return (
-		<div
-			ref={stage}
-			className="sb"
-			data-phase={piece.phase}
-			data-armed={armed(piece) || undefined}
-		>
+		<div ref={stage} className="sb" data-phase={piece.phase}>
 			{/* biome-ignore lint/a11y/useMediaCaption: live speech has no caption track; the text is on the page */}
 			<audio ref={audio} autoPlay />
 
-			<p className="sb-count">
+			<p className="sb-count" data-alone={!shown || undefined}>
 				<span className="sb-count__where">
-					{shown
-						? `${recorded ? "Recorded · " : ""}${shown.index ? `Generation ${shown.index}` : recorded ? "The reader" : "You"}`
-						: "Something to say"}
+					{title(shown, recorded, pending)}
 				</span>
 				<span className="sb-count__voice">
 					{shown ? `Voice ${percent(shown.likeness)}%` : ""}
@@ -311,7 +420,12 @@ export function SemblanceLab() {
 				</span>
 			</p>
 
-			<p className="sb-line" data-size={size} data-quiet={!shown || undefined}>
+			<p
+				key={said ? "said" : hint}
+				className="sb-line"
+				data-size={size}
+				data-quiet={pending || undefined}
+			>
 				{words.map((word, index) => (
 					<span
 						key={index}
@@ -327,9 +441,9 @@ export function SemblanceLab() {
 					ref={disc}
 					type="button"
 					className="sb-disc"
-					aria-label={off ? ACTION.asleep : ACTION[piece.phase]}
-					aria-pressed={piece.phase === "listening"}
-					disabled={piece.phase === "waking" || piece.phase === "sent"}
+					aria-label={ACTION[piece.phase]}
+					aria-pressed={recording}
+					disabled={busy(piece)}
 					onPointerDown={(event) => {
 						if (event.button !== 0) return;
 
@@ -341,18 +455,26 @@ export function SemblanceLab() {
 					onClick={typed}
 				>
 					<span className="sb-disc__mark" aria-hidden="true" />
+					<span className="sb-disc__count" aria-hidden="true">
+						{counting ? lead : ""}
+					</span>
 				</button>
 
 				<p className="sb-desk__label">
-					{off ? LABEL.asleep : LABEL[piece.phase]}
+					{LABEL[piece.phase]}
+					<span className="sb-desk__fact">
+						{recording ? `${clock(left)} left` : `Up to ${longest} seconds`}
+					</span>
 				</p>
 				<p className="sb-desk__cue" role="status">
-					{cue(piece)}
+					{cue(piece, asking, halting)}
 				</p>
-				<span
-					className="sb-desk__take"
-					style={{ animationDuration: `${taking}s` }}
-					aria-hidden="true"
+				<Tape
+					rolling={recording}
+					blank={counting}
+					seconds={longest}
+					began={pressed}
+					level={level}
 				/>
 
 				<div className="sb-controls">
@@ -368,7 +490,7 @@ export function SemblanceLab() {
 									type="button"
 									className="sb-plate"
 									aria-pressed={line === option.line}
-									disabled={busy(piece)}
+									disabled={held}
 									onClick={() => setLine(option.line)}
 								>
 									{option.label}
@@ -382,16 +504,18 @@ export function SemblanceLab() {
 							<button
 								type="button"
 								className="sb-plate"
-								disabled={!more(piece) || piece.phase !== "rested"}
-								onClick={goOn}
+								disabled={
+									running ? halting : !(piece.phase === "rested" && more(piece))
+								}
+								onClick={running ? halt : goOn}
 							>
-								Go on
+								{running ? (halting ? "Stopping" : "Stop") : "Go on"}
 							</button>
 							<button
 								type="button"
 								className="sb-plate"
 								aria-pressed={sound && linked(piece.phase)}
-								disabled={piece.phase === "waking"}
+								disabled={piece.phase === "waking" || taking(piece)}
 								onClick={toggle}
 							>
 								Sound

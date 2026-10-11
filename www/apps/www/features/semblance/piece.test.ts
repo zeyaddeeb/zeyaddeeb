@@ -8,6 +8,7 @@ import {
 	type Piece,
 	percent,
 	step,
+	taking,
 } from "./piece";
 
 const limits: Limits = {
@@ -54,6 +55,42 @@ describe("a first run", () => {
 	it("cannot listen before the link is open", () => {
 		expect(play({ type: "listen" }).phase).toBe("asleep");
 		expect(play({ type: "wake" }, { type: "listen" }).phase).toBe("waking");
+		expect(play({ type: "wake" }, { type: "count" }).phase).toBe("waking");
+	});
+
+	it("counts in before it listens", () => {
+		const counting = play(
+			{ type: "wake" },
+			{ type: "open", limits, microphone: true },
+			{ type: "count" },
+		);
+
+		expect(counting.phase).toBe("counting");
+		expect(taking(counting)).toBe(true);
+		expect(step(counting, { type: "wake" }).phase).toBe("counting");
+		expect(step(counting, { type: "listen" }).phase).toBe("listening");
+	});
+
+	it("returns to where it was when the count is canceled", () => {
+		const fresh = play(
+			{ type: "wake" },
+			{ type: "open", limits, microphone: true },
+			{ type: "count" },
+			{ type: "cancel" },
+		);
+		const again = play(
+			...started,
+			arrive(0),
+			arrive(1),
+			{ type: "finished", reason: "batch" },
+			{ type: "count" },
+			{ type: "cancel" },
+		);
+
+		expect(fresh.phase).toBe("ready");
+		expect(again.phase).toBe("rested");
+		expect(again.generations).toHaveLength(2);
+		expect(step(again, { type: "cancel" })).toBe(again);
 	});
 
 	it("collects generations and rests when the batch ends", () => {
@@ -84,6 +121,18 @@ describe("a first run", () => {
 
 		expect(more(full)).toBe(false);
 		expect(more(silent)).toBe(false);
+	});
+
+	it("can go on after it was stopped", () => {
+		const stopped = play(...started, arrive(0), arrive(1), {
+			type: "finished",
+			reason: "stopped",
+		});
+		const resumed = [{ type: "more" } as Move, arrive(2)].reduce(step, stopped);
+
+		expect(more(stopped)).toBe(true);
+		expect(resumed.phase).toBe("running");
+		expect(resumed.generations).toHaveLength(3);
 	});
 });
 

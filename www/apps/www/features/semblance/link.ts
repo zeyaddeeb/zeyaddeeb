@@ -253,6 +253,8 @@ export class Link {
 	}
 
 	listen() {
+		if (this.socket?.readyState !== WebSocket.OPEN) return;
+
 		this.mute(false);
 		this.audio?.resume();
 		this.speaker?.stop();

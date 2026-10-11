@@ -7,6 +7,7 @@
 	--sb-pad: 28px;
 	--sb-gutter: 72px;
 	--sb-disc: 64px;
+	--sb-tape: 22px;
 	--sb-text: 150px;
 	--sb-curves: 60px;
 	--sb-sound: 132px;
@@ -38,6 +39,7 @@
 
 .sb-count,
 .sb-desk__label,
+.sb-disc__count,
 .sb-row__name,
 .sb-strata__name,
 .sb-strata__ticks {
@@ -61,6 +63,10 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	color: var(--paper);
+}
+
+.sb-count[data-alone] .sb-count__where {
+	grid-column: 1 / -1;
 }
 
 .sb-count__voice {
@@ -114,7 +120,7 @@
 	grid-area: desk;
 	display: grid;
 	grid-template-columns: var(--sb-disc) minmax(0, 1fr);
-	grid-template-rows: var(--sb-disc) auto 2px auto;
+	grid-template-rows: var(--sb-disc) auto var(--sb-tape) auto;
 	grid-template-areas:
 		"disc label"
 		"cue cue"
@@ -148,14 +154,6 @@
 		opacity var(--dur-2) var(--ease-out);
 }
 
-.sb:not([data-armed]) .sb-disc {
-	background: none;
-}
-
-.sb:not([data-armed]) .sb-disc:hover:not(:disabled) {
-	background: color-mix(in srgb, var(--red) 35%, transparent);
-}
-
 .sb .sb-disc:disabled {
 	opacity: 0.45;
 	cursor: default;
@@ -164,11 +162,12 @@
 .sb-disc::after {
 	content: "";
 	position: absolute;
-	inset: calc(-5px - var(--sb-level) * 8px);
+	inset: -5px;
 	border: 2px solid var(--paper);
 	border-radius: 50%;
 	opacity: 0;
 	pointer-events: none;
+	transform: scale(calc(1 + var(--sb-level) * 0.22));
 }
 
 .sb[data-phase="listening"] .sb-disc::after {
@@ -182,14 +181,38 @@
 	opacity: 0;
 }
 
-.sb[data-phase="running"] .sb-disc__mark {
+.sb[data-phase="listening"] .sb-disc__mark {
 	opacity: 1;
+}
+
+.sb-disc__count {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	color: var(--paper);
+	font-size: 22px;
+	letter-spacing: 0;
 }
 
 .sb-desk__label {
 	grid-area: label;
 	align-self: center;
 	margin: 0;
+	color: var(--paper);
+}
+
+.sb-desk__fact {
+	display: block;
+	margin-top: 6px;
+	color: var(--sb-dim);
+}
+
+.sb[data-phase="running"] .sb-desk__label {
+	color: var(--sb-dim);
+}
+
+.sb[data-phase="listening"] .sb-desk__fact {
 	color: var(--paper);
 }
 
@@ -202,21 +225,12 @@
 	color: var(--paper);
 }
 
-.sb-desk__take {
+.sb-tape {
 	grid-area: take;
-	background: var(--paper);
-	transform: scaleX(0);
-	transform-origin: left;
-}
-
-.sb[data-phase="listening"] .sb-desk__take {
-	animation: sb-take linear forwards;
-}
-
-@keyframes sb-take {
-	to {
-		transform: scaleX(1);
-	}
+	display: block;
+	width: 100%;
+	height: var(--sb-tape);
+	color: var(--paper);
 }
 
 .sb-controls {
@@ -394,11 +408,4 @@
 .sb-strata__ticks li {
 	position: absolute;
 	transform: translateX(-50%);
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.sb[data-phase="listening"] .sb-desk__take {
-		animation: none;
-		transform: scaleX(1);
-	}
 }

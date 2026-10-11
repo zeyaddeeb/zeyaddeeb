@@ -167,10 +167,11 @@ export function Notes() {
 				Sound travels both ways over the same encrypted socket that carries the
 				text. The server can also carry it over WebRTC, the way a video call
 				does, but that is switched off for now. You can listen to the recorded
-				run without a microphone. To make your own, the microphone is live only
-				while you hold the disc. The server keeps your recordings in memory for
-				the visit so you can scrub back through them, and drops them when you
-				leave. Nothing is written to disk.
+				run without a microphone. To make your own, press the disc, wait for the
+				count and speak. The microphone is live only from the end of the count
+				until you press the disc again or eight seconds pass. The server keeps
+				your recordings in memory for the visit so you can scrub back through
+				them, and drops them when you leave. Nothing is written to disk.
 			</p>
 			<p>
 				The copy of your voice can only repeat what the recognizer heard in the

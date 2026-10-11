@@ -22,6 +22,7 @@ export type Phase =
 	| "asleep"
 	| "waking"
 	| "ready"
+	| "counting"
 	| "listening"
 	| "sent"
 	| "running"
@@ -57,6 +58,8 @@ export type Move =
 	| { type: "wake" }
 	| { type: "open"; limits: Limits; microphone: boolean }
 	| { type: "close"; notice: string }
+	| { type: "count" }
+	| { type: "cancel" }
 	| { type: "listen" }
 	| { type: "send" }
 	| { type: "more" }
@@ -151,7 +154,8 @@ function hear(piece: Piece, move: Heard): Piece {
 		case "error":
 			return piece.phase === "sent" ||
 				piece.phase === "running" ||
-				piece.phase === "listening"
+				piece.phase === "listening" ||
+				piece.phase === "counting"
 				? { ...piece, phase: settled(piece), notice: move.message, ahead: 0 }
 				: { ...piece, notice: move.message };
 	}
@@ -160,7 +164,7 @@ function hear(piece: Piece, move: Heard): Piece {
 export function step(piece: Piece, move: Move): Piece {
 	switch (move.type) {
 		case "wake":
-			return busy(piece) || piece.phase === "listening"
+			return busy(piece) || taking(piece)
 				? piece
 				: { ...piece, phase: "waking", playing: null, notice: null };
 		case "open":
@@ -179,10 +183,19 @@ export function step(piece: Piece, move: Move): Piece {
 				: piece;
 		case "close":
 			return { ...piece, phase: "closed", playing: null, notice: move.notice };
+		case "count":
+			return piece.phase === "ready" || piece.phase === "rested"
+				? { ...piece, phase: "counting", playing: null, notice: null }
+				: piece;
+		case "cancel":
+			return piece.phase === "counting"
+				? { ...piece, phase: settled(piece) }
+				: piece;
 		case "listen":
 			return piece.phase === "ready" ||
 				piece.phase === "rested" ||
-				piece.phase === "running"
+				piece.phase === "running" ||
+				piece.phase === "counting"
 				? { ...piece, phase: "listening", playing: null, notice: null }
 				: piece;
 		case "send":
@@ -202,7 +215,7 @@ export function step(piece: Piece, move: Move): Piece {
 }
 
 export const more = (piece: Piece) =>
-	piece.ending === "batch" &&
+	(piece.ending === "batch" || piece.ending === "stopped") &&
 	piece.limits !== null &&
 	last(piece) < piece.limits.generations;
 
@@ -210,6 +223,9 @@ export const busy = (piece: Piece) =>
 	piece.phase === "waking" ||
 	piece.phase === "sent" ||
 	piece.phase === "running";
+
+export const taking = (piece: Piece) =>
+	piece.phase === "counting" || piece.phase === "listening";
 
 export const percent = (likeness: number) =>
 	Math.round(Math.max(0, Math.min(1, likeness)) * 100);
