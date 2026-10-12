@@ -1,0 +1,173 @@
+@media (max-width: 639px) {
+	.dd {
+		--dd-pad: 12px;
+		--dd-lane: 24px;
+		border-width: 0;
+	}
+
+	.dd-screen {
+		aspect-ratio: auto;
+		height: clamp(320px, 50svh, 128vw);
+	}
+
+	.dd-window {
+		top: 6px;
+		right: 6px;
+		left: 6px;
+		width: auto;
+	}
+
+	.dd-window__body {
+		padding: 6px;
+	}
+
+	.dd-player {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 6px;
+	}
+
+	.dd-player__screen {
+		height: 40px;
+	}
+
+	.dd-player__bars,
+	.dd-player__list,
+	.dd-player__speed > span:first-child,
+	.dd-task > span {
+		display: none;
+	}
+
+	.dd-player__tempo {
+		text-align: right;
+	}
+
+	.dd-player__now {
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: center;
+		height: 100%;
+		padding-block: 0;
+	}
+
+	.dd .dd-button {
+		min-width: 38px;
+		min-height: 34px;
+	}
+
+	.dd-player__speed {
+		grid-template-columns: minmax(0, 1fr) 38px;
+	}
+
+	.dd-icons {
+		top: 132px;
+		right: 0;
+		bottom: auto;
+		left: 0;
+		display: flex;
+		justify-content: space-around;
+		padding-inline: 4px;
+	}
+
+	.dd .dd-icon {
+		width: 56px;
+		padding: 2px 0;
+	}
+
+	.dd .dd-handle {
+		width: 24cqw;
+		height: 44cqw;
+	}
+
+	.dd-player__menu {
+		display: none;
+	}
+
+	.dd-icon__name {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	.dd-icon[aria-pressed="true"] .dd-icon__art {
+		outline: 1px dotted #fff;
+	}
+
+	.dd .dd-task {
+		width: auto;
+	}
+
+	.dd-panel {
+		gap: 8px;
+		padding-block: 8px;
+	}
+
+	.dd-label {
+		font-size: 10px;
+	}
+
+	.dd-panel__head {
+		order: 1;
+		gap: 4px;
+	}
+
+	.dd-panel__head > .dd-label {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	.dd-caption {
+		font-size: 16px;
+		line-height: 1.25;
+	}
+
+	.dd-scope {
+		order: 2;
+		grid-template-columns: minmax(0, 186px) minmax(0, 1fr);
+	}
+
+	.dd-lane {
+		grid-template-columns: auto minmax(0, 1fr);
+		align-items: baseline;
+		gap: 0 6px;
+		padding: 0 6px;
+		font-size: 10px;
+	}
+
+	.dd-lane__name {
+		font-size: 12px;
+	}
+
+	.dd-lane__drift {
+		display: none;
+	}
+
+	.dd .dd-tap,
+	.dd .dd-rest {
+		min-height: 44px;
+		font-size: 16px;
+	}
+
+	.dd-deck {
+		order: 3;
+		height: auto;
+		min-height: 0;
+	}
+
+	.dd-deck__head > span + span {
+		display: none;
+	}
+
+	.dd-cards {
+		grid-template-columns: none;
+		grid-auto-columns: 44px;
+		grid-auto-flow: column;
+		overflow: auto hidden;
+		overscroll-behavior-x: contain;
+	}
+}

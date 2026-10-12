@@ -276,8 +276,22 @@ export const experiments: Experiment[] = [
 	},
 ];
 
+export const secrets: Experiment[] = [
+	{
+		id: "desktop-disco",
+		number: 0,
+		title: "Desktop Disco",
+		line: "In 2003 a twenty-dollar add-on put real dancers on the Windows XP taskbar. Inside each one is a deck of short moves. Deal it, choreograph it, and watch every move land on the beat.",
+		stack: ["TypeScript", "Canvas", "WebGL", "Web Audio", "Real-ESRGAN"],
+		href: "/experiments/desktop-disco",
+		topics: ["sound", "graphics"],
+	},
+];
+
+const isSecret = (id: string) => secrets.some((e) => e.id === id);
+
 export function getExperiment(id: string): Experiment {
-	const found = experiments.find((e) => e.id === id);
+	const found = [...experiments, ...secrets].find((e) => e.id === id);
 
 	if (!found) throw new Error(`Unknown experiment: ${id}`);
 
@@ -308,14 +322,15 @@ export function experimentMetadata(id: string, description: string) {
 		section: "Experiments",
 		title,
 		description,
+		noIndex: isSecret(id),
 	});
 }
 
 export const number = (n: number) => String(n).padStart(2, "0");
 
 export function neighbors(id: string) {
-	const local = experiments
-		.filter((e) => !e.external)
+	const local = [...experiments, ...secrets]
+		.filter((e) => !e.external && (!isSecret(e.id) || e.id === id))
 		.sort((a, b) => a.number - b.number);
 
 	const li = local.findIndex((e) => e.id === id);

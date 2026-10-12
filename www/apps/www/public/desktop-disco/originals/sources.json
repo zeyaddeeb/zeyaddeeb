@@ -1,0 +1,11 @@
+{
+  "artwork": "Original Microsoft Plus! Dancer footage and transparency mattes. Copyright Microsoft Corporation.",
+  "preservation": "https://github.com/samhenrigold/MacPlusDancer",
+  "revision": "74a3ccda421ade024ecc62f0cca9bd92d3daaa0d",
+  "sourceDirectory": "MacPlusDancer/Assets",
+  "cast": { "amanda": "Amanda", "kenny": "Kenny", "cobey": "Cobey", "josh": "Josh", "nickole-marcelo": "Nickole_Marcelo" },
+  "enhancement": "Each 320x240 frame enlarged 4x with Real-ESRGAN (realesr-general-x4v3, BSD-3-Clause, https://github.com/xinntao/Real-ESRGAN), then reduced to 2x. Mattes enlarged 2x with bicubic filtering. Empty rows above the dancer are cropped.",
+  "format": "<id>.mp4: H.264, color in the left half and the grayscale alpha matte in the right half, 640 pixels wide each, original 30 fps and full duration. <id>.png: 192x192 portrait with alpha. <id>-moves.png: one 64x64 card per move, left to right in file order.",
+  "moves": "Move boundaries, the join table and frame rates come from the SegmentInfo, ConnectionTable and FrameRates tags recorded in Metadata.json.",
+  "rebuild": "bun run generate:disco"
+}

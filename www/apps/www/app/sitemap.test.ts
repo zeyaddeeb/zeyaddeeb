@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { secrets } from "../features/catalog/catalog";
 import sitemap from "./sitemap";
 
 describe("sitemap", () => {
@@ -15,5 +16,12 @@ describe("sitemap", () => {
 			expect(new URL(entry.url).origin).toBe("https://www.zeyaddeeb.com");
 			expect(entry.lastModified).toBeUndefined();
 		}
+	});
+
+	it("leaves secret experiments out", () => {
+		const urls = sitemap().map((entry) => entry.url);
+
+		for (const { href } of secrets)
+			expect(urls.some((url) => url.endsWith(href))).toBe(false);
 	});
 });

@@ -4,6 +4,7 @@ import {
 	type ExperimentSearchParams,
 	readQuery,
 } from "@/features/catalog/experiment-listing";
+import { ConsoleHint } from "@/features/index/console-hint";
 import { ExperimentsListing } from "@/features/index/experiments-listing";
 import "@/features/index/experiments-index.css";
 
@@ -43,6 +44,7 @@ export default function ExperimentsPage() {
 				</p>
 			</header>
 			<ExperimentsListing />
+			<ConsoleHint />
 		</main>
 	);
 }

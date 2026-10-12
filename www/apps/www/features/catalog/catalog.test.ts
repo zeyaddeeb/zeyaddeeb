@@ -4,8 +4,10 @@ import {
 	getExperiment,
 	neighbors,
 	number,
+	secrets,
 	seriesOf,
 } from "./catalog";
+import { listExperiments } from "./experiment-listing";
 
 describe("catalog", () => {
 	it("has unique ids, numbers and hrefs", () => {
@@ -70,6 +72,35 @@ describe("catalog", () => {
 			const series = seriesOf(experiment);
 
 			if (series) expect(series.parts.length).toBeGreaterThan(1);
+		}
+	});
+
+	it("keeps a secret experiment off every list but still opens it", () => {
+		expect(secrets.length).toBeGreaterThan(0);
+
+		for (const secret of secrets) {
+			const listed = listExperiments({
+				search: secret.title,
+				topic: "",
+				sort: "newest",
+				page: 1,
+			});
+
+			expect(experiments.map((e) => e.id)).not.toContain(secret.id);
+			expect(listed.found).toBe(0);
+			expect(getExperiment(secret.id)).toBe(secret);
+			expect(neighbors(secret.id)?.next.number).toBe(1);
+		}
+	});
+
+	it("never points a listed experiment at a secret one", () => {
+		const hidden = secrets.map((e) => e.id);
+
+		for (const experiment of experiments.filter((e) => !e.external)) {
+			const around = neighbors(experiment.id);
+
+			expect(hidden).not.toContain(around?.prev.id);
+			expect(hidden).not.toContain(around?.next.id);
 		}
 	});
 });

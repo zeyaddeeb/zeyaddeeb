@@ -1,0 +1,601 @@
+.dd-screen {
+	--xp-bar: 30px;
+	--xp-face: #ece9d8;
+	--xp-edge: #0831d9;
+	--xp-pick: #316ac5;
+	font:
+		12px / 1.3 Tahoma,
+		"Segoe UI",
+		Geneva,
+		Verdana,
+		sans-serif;
+	color: #000;
+	user-select: none;
+}
+
+.dd-screen :focus-visible {
+	outline: 1px dotted #000;
+	outline-offset: -3px;
+}
+
+.dd-icon:focus-visible,
+.dd-bar :focus-visible {
+	outline-color: #fff;
+}
+
+.dd-icons {
+	position: absolute;
+	top: 8px;
+	bottom: calc(var(--xp-bar) + 6px);
+	left: 6px;
+	z-index: 1;
+	display: grid;
+	grid-template-rows: repeat(5, 72px);
+	grid-auto-flow: column;
+	gap: 4px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.dd .dd-icon {
+	display: grid;
+	justify-items: center;
+	gap: 2px;
+	width: 84px;
+	min-height: 0;
+	padding: 3px 2px;
+	border: 1px solid transparent;
+	border-radius: 0;
+	background: none;
+	color: #fff;
+	font: inherit;
+	cursor: pointer;
+}
+
+.dd-icon__art {
+	width: 48px;
+	height: 48px;
+	object-fit: contain;
+}
+
+.dd .dd-handle {
+	position: absolute;
+	bottom: var(--xp-bar);
+	z-index: 3;
+	width: 16cqw;
+	height: 30cqw;
+	min-height: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: none;
+	cursor: grab;
+	touch-action: none;
+}
+
+.dd .dd-handle:active {
+	cursor: grabbing;
+}
+
+.dd .dd-handle:focus-visible {
+	outline: 1px dotted #fff;
+	outline-offset: 2px;
+}
+
+.dd-icon__name {
+	max-width: 100%;
+	padding: 1px 4px;
+	line-height: 1.15;
+	text-align: center;
+	text-shadow: 1px 1px 0 #000;
+	text-wrap: balance;
+}
+
+.dd-icon:hover .dd-icon__name {
+	text-decoration: underline;
+}
+
+.dd-icon[aria-pressed="true"] .dd-icon__name {
+	background: var(--xp-pick);
+	text-shadow: none;
+}
+
+.dd-icon[aria-pressed="true"] .dd-icon__art {
+	background: color-mix(in srgb, var(--xp-pick) 34%, transparent);
+}
+
+.dd-window {
+	position: absolute;
+	top: 14px;
+	right: 14px;
+	z-index: 2;
+	width: 404px;
+	border: 3px solid var(--xp-edge);
+	border-top-width: 0;
+	border-radius: 8px 8px 0 0;
+	background: var(--xp-face);
+	box-shadow: 2px 4px 12px #0005;
+}
+
+.dd-window[hidden] {
+	display: none;
+}
+
+.dd-window__bar {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	height: 28px;
+	margin: 0 -3px;
+	padding: 0 5px 0 7px;
+	border-radius: 8px 8px 0 0;
+	background: linear-gradient(
+		180deg,
+		#0997ff,
+		#0053ee 8%,
+		#0050ee 40%,
+		#0066ff 88%,
+		#0066ff 93%,
+		#005bff 95%,
+		#003dd7 96%,
+		#003dd7
+	);
+	color: #fff;
+	cursor: default;
+	touch-action: none;
+}
+
+.dd-window__icon {
+	display: grid;
+}
+
+.dd-window__title {
+	flex: 1;
+	margin: 0;
+	overflow: hidden;
+	font:
+		700 13px / 1 "Trebuchet MS",
+		Tahoma,
+		sans-serif;
+	text-shadow: 1px 1px 0 #0f1089;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.dd .dd-window__button {
+	display: grid;
+	place-items: center;
+	width: 21px;
+	min-height: 21px;
+	height: 21px;
+	padding: 0;
+	border: 1px solid #fff;
+	border-radius: 3px;
+	background: linear-gradient(135deg, #5b9bf5, #2156d6 60%, #1a45b8);
+	color: #fff;
+	cursor: pointer;
+}
+
+.dd .dd-window__button[data-kind="close"] {
+	background: linear-gradient(135deg, #f0a08a, #d8421f 55%, #b02c0d);
+}
+
+.dd .dd-window__button:hover {
+	filter: brightness(1.15);
+}
+
+.dd-window__body {
+	padding: 0 7px 8px;
+	background: linear-gradient(110deg, #e2e7f0, #fafbff 42%, #c5ccdd);
+}
+
+.dd-player__menu {
+	display: flex;
+	gap: 16px;
+	margin: 0;
+	padding: 5px 4px 6px;
+	font-size: 11px;
+	line-height: 1.4;
+}
+
+.dd .dd-button {
+	display: inline-grid;
+	place-items: center;
+	min-width: 30px;
+	min-height: 26px;
+	padding: 2px 8px;
+	border: 1px solid #003c74;
+	border-radius: 3px;
+	background: linear-gradient(180deg, #fff, #ecebe5 86%, #d8d0c4);
+	color: #000;
+	font: inherit;
+	cursor: pointer;
+}
+
+.dd .dd-button:hover {
+	box-shadow:
+		inset -1px 1px #fff0cf,
+		inset 1px 2px #fdd889,
+		inset -2px 2px #fbc761,
+		inset 2px -2px #e5a01a;
+}
+
+.dd .dd-button:active {
+	background: linear-gradient(
+		180deg,
+		#cdcac3,
+		#e3e3db 8%,
+		#e5e5de 94%,
+		#f2f2f1
+	);
+	box-shadow: none;
+}
+
+.dd-player {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 150px;
+	gap: 8px;
+}
+
+.dd-player__screen {
+	position: relative;
+	height: 132px;
+	border: 1px solid #637082;
+	background: radial-gradient(ellipse at 50% 100%, #204c82, #071322 80%);
+	box-shadow:
+		inset 0 0 14px #000b,
+		0 1px #fff;
+}
+
+.dd-player__bars {
+	position: absolute;
+	inset: 42px 0 0;
+	display: block;
+	width: 100%;
+	height: calc(100% - 42px);
+}
+
+.dd-player__now {
+	display: grid;
+	gap: 1px;
+	margin: 0;
+	padding: 6px 8px;
+	color: #cfe3ff;
+}
+
+.dd-player__file {
+	font-weight: 700;
+	color: #fff;
+}
+
+.dd-player__tempo {
+	min-width: 17ch;
+	font-variant-numeric: tabular-nums;
+}
+
+.dd-player__list {
+	height: 132px;
+	margin: 0;
+	padding: 1px;
+	overflow: hidden;
+	border: 1px solid #7a8da6;
+	background: #f5f7fc;
+	list-style: none;
+}
+
+.dd .dd-player__row {
+	display: grid;
+	grid-template-columns: 12px minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 5px;
+	width: 100%;
+	min-height: 21px;
+	height: 21px;
+	padding: 0 4px;
+	border: 0;
+	border-radius: 0;
+	background: none;
+	color: #000;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.dd-player__row > span {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.dd-player__bpm {
+	color: #6d6d6d;
+	font-variant-numeric: tabular-nums;
+}
+
+.dd-player__row:hover {
+	background: #e8f0fb;
+}
+
+.dd-player__row[aria-pressed="true"] {
+	background: var(--xp-pick);
+	color: #fff;
+}
+
+.dd-player__row[aria-pressed="true"] .dd-player__bpm {
+	color: #dbe7fb;
+}
+
+.dd-player__deck {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	padding-top: 5px;
+	border-top: 1px solid #a3aec1;
+	box-shadow: inset 0 1px #fff;
+}
+
+.dd .dd-player__play {
+	width: 38px;
+	min-height: 34px;
+	border-radius: 17px;
+	background: linear-gradient(180deg, #7db6ff, #2f6fe0 55%, #1b4fc0);
+	color: #fff;
+}
+
+.dd-player__speed {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) 38px;
+	align-items: center;
+	gap: 6px;
+	flex: 1;
+	min-width: 0;
+	margin-left: 6px;
+}
+
+.dd .dd-player__speed {
+	font-size: 12px;
+}
+
+.dd .dd-player__speed input {
+	width: 100%;
+	min-width: 0;
+	accent-color: var(--xp-pick);
+}
+
+.dd-player__percent {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+.dd-bar {
+	position: absolute;
+	inset: auto 0 0;
+	z-index: 2;
+	display: flex;
+	align-items: stretch;
+	height: var(--xp-bar);
+	background: linear-gradient(
+		180deg,
+		#1f2f86 0,
+		#3165c4 3%,
+		#3682e5 6%,
+		#4490e6 10%,
+		#3883e5 12%,
+		#2b71e0 15%,
+		#2663da 18%,
+		#235bd6 20%,
+		#2258d5 23%,
+		#2157d6 38%,
+		#245ddb 54%,
+		#2562df 86%,
+		#245fdc 89%,
+		#2158d4 92%,
+		#1d4ec0 95%,
+		#1941a5 98%
+	);
+	color: #fff;
+}
+
+.dd .dd-start {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	min-height: 0;
+	padding: 0 22px 2px 9px;
+	border: 0;
+	border-radius: 0 12px 12px 0;
+	background: linear-gradient(
+		180deg,
+		#2f8a2f 0,
+		#5cc25c 6%,
+		#3fa33f 14%,
+		#338f33 52%,
+		#2f882f 86%,
+		#236f23 100%
+	);
+	box-shadow: inset -2px 0 #1f631f;
+	color: #fff;
+	font:
+		italic 700 18px / 1 "Trebuchet MS",
+		Tahoma,
+		sans-serif;
+	text-shadow: 1px 1px 0 #1b4f1b;
+	cursor: pointer;
+}
+
+.dd .dd-start:hover,
+.dd .dd-start[aria-expanded="true"] {
+	filter: brightness(1.1);
+}
+
+.dd .dd-task {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	width: 150px;
+	min-height: 0;
+	margin: 3px 0 2px 10px;
+	padding: 0 8px;
+	border: 0;
+	border-radius: 3px;
+	background: #3c81f3;
+	box-shadow:
+		inset -1px 0 #2a5fd0,
+		inset 1px 1px #6aa2f8;
+	color: #fff;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.dd .dd-task[aria-pressed="true"] {
+	background: #1e52b7;
+	box-shadow:
+		inset 1px 1px #14399a,
+		inset -1px -1px #2f66cf;
+}
+
+.dd-tray {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-left: auto;
+	padding: 0 10px 0 8px;
+	border-left: 1px solid #1042af;
+	background: linear-gradient(
+		180deg,
+		#0c59b9 1%,
+		#139ee9 6%,
+		#18b5f2 10%,
+		#139beb 14%,
+		#1290e8 19%,
+		#0d8dea 63%,
+		#0d9ff1 81%,
+		#0f9eed 88%,
+		#119be9 91%,
+		#1392e2 94%,
+		#137ed7 97%,
+		#095bc9 100%
+	);
+	box-shadow: inset 1px 0 #18bbff;
+}
+
+.dd .dd-tray__sound {
+	display: grid;
+	place-items: center;
+	width: 22px;
+	min-height: 22px;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: #fff;
+	cursor: pointer;
+}
+
+.dd-tray__sound[data-absent] {
+	visibility: hidden;
+}
+
+.dd-tray__sound[aria-pressed="true"] {
+	background: #0a4fa8;
+	box-shadow: inset 1px 1px #083d85;
+}
+
+.dd-clock {
+	min-width: 52px;
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.dd .dd-menu__away {
+	position: absolute;
+	inset: 0;
+	z-index: 4;
+	width: 100%;
+	height: 100%;
+	min-height: 0;
+	border: 0;
+	border-radius: 0;
+	background: none;
+	cursor: default;
+}
+
+.dd-menu {
+	position: absolute;
+	bottom: var(--xp-bar);
+	left: 0;
+	z-index: 5;
+	display: grid;
+	width: 250px;
+	border: 2px solid #1c57c7;
+	border-bottom: 0;
+	border-radius: 6px 6px 0 0;
+	background: #fff;
+	color: #000;
+}
+
+.dd-menu__head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	padding: 8px 10px;
+	border-radius: 4px 4px 0 0;
+	background: linear-gradient(
+		180deg,
+		#1868ce,
+		#0e60cb 12%,
+		#1164cf 88%,
+		#1667cf
+	);
+	color: #fff;
+	font:
+		700 14px / 1 "Trebuchet MS",
+		Tahoma,
+		sans-serif;
+	text-shadow: 1px 1px 0 #0f1089;
+}
+
+.dd .dd-menu__item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 34px;
+	padding: 0 10px;
+	border: 0;
+	border-radius: 0;
+	background: none;
+	color: #000;
+	font: inherit;
+	text-align: left;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.dd .dd-menu__item:hover,
+.dd .dd-menu__item:focus-visible {
+	background: var(--xp-pick);
+	color: #fff;
+}
+
+@container (max-width: 700px) {
+	.dd .dd-icon {
+		width: 72px;
+	}
+
+	.dd-icon__name {
+		padding-inline: 1px;
+		font-size: 11px;
+	}
+
+	.dd-window {
+		width: 372px;
+	}
+
+	.dd-player {
+		grid-template-columns: minmax(0, 1fr) 138px;
+	}
+}
