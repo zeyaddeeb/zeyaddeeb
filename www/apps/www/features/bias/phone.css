@@ -1,0 +1,154 @@
+@media (max-width: 899px) {
+	.cb {
+		--cb-pad: 12px;
+		--cb-slot: 172px;
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-rows: minmax(0, 1fr) auto;
+		height: min(calc(100svh - 32px), 820px);
+		min-height: 600px;
+		border-width: 0;
+	}
+
+	.cb-view {
+		border-right: 0;
+	}
+
+	.cb-caption {
+		padding: 8px var(--cb-pad);
+		font-size: 15px;
+		line-height: 1.35;
+	}
+
+	.cb-form {
+		height: auto;
+		min-height: 0;
+	}
+
+	.cb-form__canvas,
+	.cb-form__marks {
+		height: calc(100% - 30px);
+	}
+
+	.cb-form__canvas {
+		touch-action: pan-y;
+	}
+
+	.cb-hint {
+		bottom: 8px;
+		overflow: hidden;
+		font-size: 10px;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+
+	.cb-hint__wide {
+		display: none;
+	}
+
+	.cb-hint__narrow {
+		display: inline;
+	}
+
+	.cb-panel {
+		grid-template-areas:
+			"meters"
+			"actions"
+			"tabs"
+			"slot";
+		grid-template-rows: auto auto auto var(--cb-slot);
+		gap: 8px;
+		padding: 8px var(--cb-pad) 10px;
+		border-top: 2px solid var(--cb-rule);
+	}
+
+	.cb-tabs {
+		grid-area: tabs;
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		border-bottom: 2px solid var(--cb-rule);
+	}
+
+	.cb .cb-tab {
+		min-height: 34px;
+		border: 0;
+		border-bottom: 3px solid transparent;
+		margin-bottom: -2px;
+		color: var(--cb-dim);
+	}
+
+	.cb .cb-tab[aria-selected="true"] {
+		color: var(--paper);
+		border-bottom-color: var(--yellow);
+	}
+
+	.cb-table,
+	.cb-cloth,
+	.cb-cuts {
+		grid-area: slot;
+		align-content: start;
+		min-height: 0;
+		overflow: hidden;
+	}
+
+	.cb-table {
+		grid-template-rows: auto minmax(0, 1fr);
+		height: 100%;
+	}
+
+	.cb-table__canvas {
+		aspect-ratio: auto;
+		height: 100%;
+		min-height: 0;
+	}
+
+	.cb-cloth {
+		gap: 8px;
+	}
+
+	.cb-meter {
+		gap: 2px;
+		padding: 5px 10px 6px;
+		border-top-width: 4px;
+	}
+
+	.cb-meter .cb-label {
+		font-size: 10px;
+	}
+
+	.cb-meter__value {
+		font-size: 18px;
+	}
+
+	.cb:not([data-tab="table"]) .cb-table,
+	.cb:not([data-tab="cloth"]) .cb-cloth,
+	.cb:not([data-tab="cuts"]) .cb-cuts {
+		visibility: hidden;
+	}
+}
+
+@media (max-width: 899px) {
+	.cb-meter__note {
+		display: none;
+	}
+}
+
+@media (max-width: 899px) {
+	.cb-cuts {
+		min-height: 0;
+	}
+}
+
+@media (max-width: 899px) and (max-height: 720px) {
+	.cb {
+		--cb-slot: 150px;
+		min-height: 560px;
+	}
+
+	.cb-caption {
+		font-size: 14px;
+	}
+
+	.cb-cloth {
+		gap: 4px;
+	}
+}

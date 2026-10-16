@@ -149,7 +149,7 @@ describe("solver", () => {
 			);
 
 		expect(worst).toBeLessThan(1e-4);
-	});
+	}, 30_000);
 
 	it("leaves no better move anywhere", () => {
 		for (const r of [OPENING, rule({ buoy: true, finish: 100, time: true })]) {

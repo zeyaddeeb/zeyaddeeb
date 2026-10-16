@@ -54,6 +54,15 @@ export interface Experiment {
 
 export const experiments: Experiment[] = [
 	{
+		id: "cut-on-the-bias",
+		number: 24,
+		title: "Cut on the Bias",
+		line: "In 1878 Chebyshev dressed a rubber ball in two pieces of checked cloth. Cloth can’t stretch, only shear, so every curved body leans its checks into diamonds. Pin gingham to a ball, a saddle and a bagel, and cut the pattern a tailor would need.",
+		stack: ["TypeScript", "three.js", "Chebyshev nets", "GLSL"],
+		href: "/experiments/cut-on-the-bias",
+		topics: ["math", "graphics"],
+	},
+	{
 		id: "good-on-paper",
 		number: 23,
 		title: "Good on Paper",
