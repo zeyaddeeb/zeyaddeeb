@@ -1,24 +1,52 @@
 import { LifeArrow } from "@zeyaddeeb/ui";
-import { pageMetadata } from "@zeyaddeeb/ui/seo";
+import { JsonLd } from "@zeyaddeeb/ui/json-ld";
+import { pageMetadata, profilePageSchema } from "@zeyaddeeb/ui/seo";
 import { PROFILE_URLS, SITE_EMAIL } from "@zeyaddeeb/ui/site";
 import { Fragment } from "react";
 import { education, experience, skills } from "@/features/resume/content";
 import "@/features/resume/resume.css";
 
+const description =
+	"Zeyad Deeb’s experience building machine learning infrastructure and distributed systems, leading engineering teams, and shipping production software.";
+
 export const metadata = pageMetadata({
 	path: "/resume",
 	section: "Zeyad Deeb",
 	title: "Résumé",
-	description:
-		"Zeyad Deeb’s experience building machine learning infrastructure and distributed systems, leading engineering teams, and shipping production software.",
+	description,
+	profile: true,
+});
+
+const resumeSchema = profilePageSchema({
+	path: "/resume",
+	name: "Zeyad Deeb — Résumé",
+	description,
+	person: {
+		hasOccupation: experience.map((role) => ({
+			"@type": "Role",
+			roleName: role.title,
+			startDate: role.start,
+			endDate: role.end,
+			hasOccupation: {
+				"@type": "Occupation",
+				name: role.title,
+				occupationLocation: {
+					"@type": "City",
+					name: role.location,
+				},
+			},
+		})),
+		knowsAbout: skills.map(([group]) => group),
+	},
 });
 
 export default function ResumePage() {
 	return (
 		<main className="resume container">
+			<JsonLd data={resumeSchema} />
 			<header className="resume__head">
 				<div>
-					<p className="resume__kicker">Résumé / New York, NY</p>
+					<p className="resume__kicker">Résumé · Zeyad Deeb / New York, NY</p>
 					<h1>
 						Engineering &<br />
 						machine learning<span>.</span>
@@ -214,14 +242,14 @@ export default function ResumePage() {
 					<a
 						href={PROFILE_URLS.linkedin}
 						target="_blank"
-						rel="noopener noreferrer"
+						rel="me noopener noreferrer"
 					>
 						LinkedIn <LifeArrow direction="up-right" seed="LinkedIn" />
 					</a>
 					<a
 						href={PROFILE_URLS.github}
 						target="_blank"
-						rel="noopener noreferrer"
+						rel="me noopener noreferrer"
 					>
 						GitHub <LifeArrow direction="up-right" seed="GitHub" />
 					</a>

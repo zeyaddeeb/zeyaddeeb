@@ -86,8 +86,8 @@ export function Desk() {
 					A bit about me<span className="desk__period">.</span>
 				</h1>
 				<p className="desk__lede">
-					I’m a software engineer in Brooklyn. I write code and lead teams
-					building machine learning and distributed systems.
+					I’m Zeyad Deeb, a software engineer in Brooklyn. I write code and lead
+					teams building machine learning and distributed systems.
 				</p>
 
 				<div className="desk__lamp-place">
@@ -125,7 +125,11 @@ export function Desk() {
 						{LINKS.map((l) =>
 							l.external ? (
 								<li key={l.href}>
-									<a href={l.href} target="_blank" rel="noopener noreferrer">
+									<a
+										href={l.href}
+										target="_blank"
+										rel="me noopener noreferrer"
+									>
 										{l.label}{" "}
 										<span aria-hidden="true">
 											<LifeArrow direction="up-right" seed={l.label} />

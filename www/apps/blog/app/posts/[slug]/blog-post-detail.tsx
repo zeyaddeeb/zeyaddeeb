@@ -31,8 +31,23 @@ export function BlogPostDetail({ post }: BlogPostDetailProps) {
 
 						<div className="mb-6 flex items-center gap-3 text-sm text-dim">
 							{post.publishedAt && (
-								<time>{formatLongDate(post.publishedAt)}</time>
+								<>
+									<time dateTime={new Date(post.publishedAt).toISOString()}>
+										{formatLongDate(post.publishedAt)}
+									</time>
+									<span aria-hidden="true">·</span>
+								</>
 							)}
+							<span>
+								By{" "}
+								<a
+									href="/about"
+									rel="author"
+									className="underline decoration-rule underline-offset-4 transition-colors hover:text-ink"
+								>
+									Zeyad Deeb
+								</a>
+							</span>
 						</div>
 
 						<h1

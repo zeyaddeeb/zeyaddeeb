@@ -1,4 +1,6 @@
 import { LifeArrow, SourceLink } from "@zeyaddeeb/ui";
+import { JsonLd } from "@zeyaddeeb/ui/json-ld";
+import { creativeWorkSchema } from "@zeyaddeeb/ui/seo";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { MobileDetails } from "@/components/mobile-details";
@@ -8,6 +10,7 @@ import {
 	getExperiment,
 	neighbors,
 	number,
+	secrets,
 	seriesOf,
 } from "@/features/catalog/catalog";
 import { experimentListingHref } from "@/features/catalog/experiment-listing";
@@ -32,9 +35,20 @@ export function ExperimentFrame({
 	const experiment = getExperiment(id);
 	const nav = neighbors(id);
 	const series = seriesOf(experiment);
+	const isSecret = secrets.some((s) => s.id === id);
 
 	return (
 		<main className="frame" data-accent={experiment.number % 3}>
+			{!isSecret ? (
+				<JsonLd
+					data={creativeWorkSchema({
+						path: experiment.href,
+						name: experiment.title,
+						description: experiment.line,
+						keywords: experiment.stack,
+					})}
+				/>
+			) : null}
 			<div className="frame__view">
 				<header className="frame__head container">
 					<span className="frame__number" aria-hidden="true">

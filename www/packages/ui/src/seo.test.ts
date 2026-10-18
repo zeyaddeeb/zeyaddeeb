@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+	creativeWorkSchema,
 	listingMetadata,
 	pageMetadata,
 	pageNumber,
+	profilePageSchema,
 	serializeJsonLd,
+	siteSchema,
 	siteUrl,
 } from "./seo";
+import { PROFILE_URLS } from "./site";
 
 describe("public metadata", () => {
 	it("keeps the document and social titles in sync without nested title suffixes", () => {
@@ -92,5 +96,92 @@ describe("public metadata", () => {
 
 		expect(serialized).not.toContain("<");
 		expect(JSON.parse(serialized)).toEqual(data);
+	});
+
+	it("emits profile OpenGraph metadata and Twitter creator handle when requested", () => {
+		const metadata = pageMetadata({
+			title: "About",
+			description: "About Zeyad Deeb.",
+			path: "/about",
+			profile: true,
+		});
+
+		expect(metadata.openGraph).toMatchObject({
+			type: "profile",
+			firstName: "Zeyad",
+			lastName: "Deeb",
+			username: "zeyaddeeb",
+		});
+		expect(metadata.twitter).toMatchObject({
+			card: "summary_large_image",
+			creator: "@zeyad_deeb",
+		});
+	});
+
+	it("includes full Person entity attributes, portrait, and sameAs links in siteSchema", () => {
+		const [person, website] = siteSchema["@graph"];
+
+		expect(person).toMatchObject({
+			"@type": "Person",
+			"@id": "https://www.zeyaddeeb.com/#person",
+			name: "Zeyad Deeb",
+			givenName: "Zeyad",
+			familyName: "Deeb",
+			mainEntityOfPage: "https://www.zeyaddeeb.com/about",
+			image: {
+				"@type": "ImageObject",
+				"@id": "https://www.zeyaddeeb.com/#portrait",
+				url: "https://www.zeyaddeeb.com/headshot.png",
+				width: 1181,
+				height: 1332,
+			},
+			sameAs: [
+				PROFILE_URLS.github,
+				PROFILE_URLS.linkedin,
+				PROFILE_URLS.twitter,
+				PROFILE_URLS.crunchbase,
+				PROFILE_URLS.wikidata,
+			],
+		});
+		expect(website).toMatchObject({
+			"@type": "WebSite",
+			"@id": "https://www.zeyaddeeb.com/#website",
+			author: { "@id": "https://www.zeyaddeeb.com/#person" },
+			creator: { "@id": "https://www.zeyaddeeb.com/#person" },
+			publisher: { "@id": "https://www.zeyaddeeb.com/#person" },
+		});
+	});
+
+	it("builds ProfilePage and CreativeWork schemas linked to the canonical Person entity", () => {
+		const profile = profilePageSchema({
+			path: "/about",
+			name: "About Zeyad Deeb",
+			description: "Software engineer in Brooklyn.",
+		});
+
+		expect(profile).toMatchObject({
+			"@type": "ProfilePage",
+			"@id": "https://www.zeyaddeeb.com/about#profile",
+			mainEntity: {
+				"@type": "Person",
+				"@id": "https://www.zeyaddeeb.com/#person",
+				name: "Zeyad Deeb",
+			},
+		});
+
+		const work = creativeWorkSchema({
+			path: "/experiments/crdt",
+			name: "CRDT Editor",
+			description: "Collaborative text editing.",
+			keywords: ["Rust", "WASM"],
+		});
+
+		expect(work).toMatchObject({
+			"@type": ["CreativeWork", "SoftwareSourceCode"],
+			"@id": "https://www.zeyaddeeb.com/experiments/crdt#work",
+			author: { "@id": "https://www.zeyaddeeb.com/#person" },
+			creator: { "@id": "https://www.zeyaddeeb.com/#person" },
+			programmingLanguage: ["Rust", "WASM"],
+		});
 	});
 });

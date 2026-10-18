@@ -66,6 +66,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 						"@id": siteUrl("/#person"),
 						name: "Zeyad Deeb",
 						url: siteUrl("/about"),
+						image: { "@id": siteUrl("/#portrait") },
 					},
 					publisher: { "@id": siteUrl("/#person") },
 					isPartOf: { "@id": siteUrl("/#website") },

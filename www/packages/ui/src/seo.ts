@@ -1,5 +1,14 @@
 import type { Metadata } from "next";
-import { PROFILE_URLS, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "./site";
+import {
+	PROFILE_URLS,
+	SITE_DESCRIPTION,
+	SITE_EMAIL,
+	SITE_NAME,
+	SITE_PORTRAIT,
+	SITE_URL,
+	SOURCE_REPOSITORY,
+	TWITTER_HANDLE,
+} from "./site";
 
 export function siteUrl(path = "/") {
 	return new URL(path, SITE_URL).toString();
@@ -21,6 +30,7 @@ interface PageMetadataOptions {
 	section?: string;
 	image?: string | null;
 	noIndex?: boolean;
+	profile?: boolean;
 	article?: {
 		publishedTime?: string;
 		modifiedTime?: string;
@@ -35,6 +45,7 @@ export function pageMetadata({
 	section,
 	image,
 	noIndex = false,
+	profile = false,
 	article,
 }: PageMetadataOptions): Metadata {
 	const fullTitle =
@@ -75,7 +86,14 @@ export function pageMetadata({
 		openGraph: {
 			...(article
 				? { type: "article" as const, ...article, authors: [siteUrl("/about")] }
-				: { type: "website" as const }),
+				: profile
+					? {
+							type: "profile" as const,
+							firstName: "Zeyad",
+							lastName: "Deeb",
+							username: "zeyaddeeb",
+						}
+					: { type: "website" as const }),
 			locale: "en_US",
 			siteName: SITE_NAME,
 			title: fullTitle,
@@ -85,6 +103,7 @@ export function pageMetadata({
 		},
 		twitter: {
 			card: "summary_large_image",
+			creator: TWITTER_HANDLE,
 			title: fullTitle,
 			description,
 			images,
@@ -129,6 +148,54 @@ export function serializeJsonLd(data: unknown) {
 	return JSON.stringify(data).replace(/</g, "\\u003c");
 }
 
+const sameAsProfiles = [
+	PROFILE_URLS.github,
+	PROFILE_URLS.linkedin,
+	PROFILE_URLS.twitter,
+	PROFILE_URLS.crunchbase,
+	PROFILE_URLS.wikidata,
+];
+
+const personPortrait = {
+	"@type": "ImageObject",
+	"@id": siteUrl("/#portrait"),
+	url: siteUrl(SITE_PORTRAIT),
+	contentUrl: siteUrl(SITE_PORTRAIT),
+	caption: SITE_NAME,
+	width: 1181,
+	height: 1332,
+};
+
+const alumniUniversities = [
+	{
+		"@type": "CollegeOrUniversity",
+		name: "University of Illinois",
+		url: "https://illinois.edu/",
+		sameAs: [
+			"https://en.wikipedia.org/wiki/University_of_Illinois_Urbana-Champaign",
+			"https://www.wikidata.org/wiki/Q457281",
+		],
+	},
+	{
+		"@type": "CollegeOrUniversity",
+		name: "University of Maryland",
+		url: "https://umd.edu/",
+		sameAs: [
+			"https://en.wikipedia.org/wiki/University_of_Maryland,_College_Park",
+			"https://www.wikidata.org/wiki/Q503415",
+		],
+	},
+	{
+		"@type": "CollegeOrUniversity",
+		name: "Indiana University",
+		url: "https://bloomington.iu.edu/",
+		sameAs: [
+			"https://en.wikipedia.org/wiki/Indiana_University_Bloomington",
+			"https://www.wikidata.org/wiki/Q1079140",
+		],
+	},
+];
+
 export const siteSchema = {
 	"@context": "https://schema.org",
 	"@graph": [
@@ -136,10 +203,37 @@ export const siteSchema = {
 			"@type": "Person",
 			"@id": siteUrl("/#person"),
 			name: SITE_NAME,
+			givenName: "Zeyad",
+			familyName: "Deeb",
 			url: SITE_URL,
+			mainEntityOfPage: siteUrl("/about"),
+			image: personPortrait,
 			jobTitle: "Software Engineer",
 			description: SITE_DESCRIPTION,
-			sameAs: [PROFILE_URLS.github, PROFILE_URLS.linkedin],
+			email: SITE_EMAIL,
+			homeLocation: {
+				"@type": "Place",
+				name: "Brooklyn, NY",
+				address: {
+					"@type": "PostalAddress",
+					addressLocality: "Brooklyn",
+					addressRegion: "NY",
+					addressCountry: "US",
+				},
+			},
+			alumniOf: alumniUniversities,
+			knowsAbout: [
+				"Software Engineering",
+				"Machine Learning",
+				"Distributed Systems",
+				"Rust",
+				"TypeScript",
+				"WebAssembly",
+				"Python",
+				"Reinforcement Learning",
+				"Kubernetes",
+			],
+			sameAs: sameAsProfiles,
 		},
 		{
 			"@type": "WebSite",
@@ -148,7 +242,87 @@ export const siteSchema = {
 			url: SITE_URL,
 			description: SITE_DESCRIPTION,
 			inLanguage: "en-US",
+			author: { "@id": siteUrl("/#person") },
+			creator: { "@id": siteUrl("/#person") },
 			publisher: { "@id": siteUrl("/#person") },
 		},
 	],
 };
+
+export function profilePageSchema({
+	path,
+	name,
+	description,
+	person,
+}: {
+	path: string;
+	name: string;
+	description: string;
+	person?: Record<string, unknown>;
+}) {
+	const url = siteUrl(path);
+
+	return {
+		"@context": "https://schema.org",
+		"@type": "ProfilePage",
+		"@id": `${url}#profile`,
+		url,
+		name,
+		description,
+		inLanguage: "en-US",
+		isPartOf: { "@id": siteUrl("/#website") },
+		about: { "@id": siteUrl("/#person") },
+		mainEntity: {
+			"@type": "Person",
+			"@id": siteUrl("/#person"),
+			name: SITE_NAME,
+			givenName: "Zeyad",
+			familyName: "Deeb",
+			url: SITE_URL,
+			image: personPortrait,
+			jobTitle: "Software Engineer",
+			description: SITE_DESCRIPTION,
+			sameAs: sameAsProfiles,
+			...person,
+		},
+	};
+}
+
+export function creativeWorkSchema({
+	path,
+	name,
+	description,
+	keywords,
+	section = "Experiments",
+}: {
+	path: string;
+	name: string;
+	description: string;
+	keywords?: readonly string[];
+	section?: string;
+}) {
+	const url = siteUrl(path);
+
+	return {
+		"@context": "https://schema.org",
+		"@type": ["CreativeWork", "SoftwareSourceCode"],
+		"@id": `${url}#work`,
+		name,
+		headline: name,
+		description,
+		url,
+		mainEntityOfPage: url,
+		image: socialImageUrl(name, section),
+		inLanguage: "en-US",
+		codeRepository: SOURCE_REPOSITORY,
+		...(keywords?.length
+			? {
+					keywords: keywords.join(", "),
+					programmingLanguage: [...keywords],
+				}
+			: {}),
+		author: { "@id": siteUrl("/#person") },
+		creator: { "@id": siteUrl("/#person") },
+		isPartOf: { "@id": siteUrl("/#website") },
+	};
+}

@@ -10,7 +10,7 @@
   <a href="https://www.linkedin.com/in/zeyaddeeb">LinkedIn</a>
 </p>
 
-I’m Z, a software engineer in Brooklyn. I build machine learning and distributed systems, mostly with **Rust, TypeScript, and Python**.
+I’m Zeyad Deeb, a software engineer in Brooklyn. I build machine learning and distributed systems, mostly with **Rust, TypeScript, and Python**.
 
 This repo is home to my website and experiments in reinforcement learning, real-time collaboration, audio, and graphics.
 
