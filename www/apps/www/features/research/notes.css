@@ -1,0 +1,42 @@
+.rs-notes {
+	columns: 2;
+	column-gap: 48px;
+	font-size: 15px;
+	line-height: 1.65;
+}
+
+.rs-notes section {
+	break-inside: avoid;
+	padding: 20px 0 28px;
+	border-top: 2px solid var(--ink);
+}
+
+.rs-notes h3 {
+	margin: 0 0 10px;
+	font-family: var(--font-mono);
+	font-size: 11px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	font-weight: 400;
+	color: color-mix(in srgb, var(--ink) 62%, transparent);
+}
+
+.rs-notes p {
+	margin: 0;
+	max-width: 62ch;
+}
+
+.rs-notes p + p {
+	margin-top: 14px;
+}
+
+@media (max-width: 899px) {
+	.rs-notes {
+		columns: 1;
+		font-size: 14px;
+	}
+
+	.rs-notes section {
+		padding: 16px 0 22px;
+	}
+}

@@ -77,3 +77,4 @@ env:
   DEEPSEEK_BACKEND_URL: "http://deepseek:3004"
   PROOFS_BACKEND_URL: "http://proofs:3005"
   CAPACITY_BACKEND_URL: "http://capacity:3006"
+  CRISPR_RESEARCH_BACKEND_URL: "http://crispr-research:3007"

@@ -1,0 +1,87 @@
+fullnameOverride: "crispr-research"
+
+image:
+  repository: ${image_repository}
+
+service:
+  type: ClusterIP
+  port: 3007
+
+strategy:
+  type: Recreate
+  rollingUpdate: null
+
+podSecurityContext:
+  runAsNonRoot: true
+  fsGroup: 1000
+
+persistence:
+  enabled: true
+  storageClassName: gp3
+  size: 2Gi
+  mountPath: /data
+
+env:
+  UVICORN_LOG_LEVEL: "warning"
+  RESEARCH_AGENT: "watched"
+  RESEARCH_AGENT_LLM_URL: "http://inference-gateway.llm.svc.cluster.local:1234/v1"
+  RESEARCH_AGENT_MODEL: "Qwen/Qwen3.5-4B"
+  RESEARCH_AGENT_DB: "/data/research.duckdb"
+  RESEARCH_AGENT_TOKENS_PER_DAY: "150000"
+  RESEARCH_AGENT_MAX_TOKENS: "1024"
+  RESEARCH_AGENT_ACTIONS: "6"
+  RESEARCH_AGENT_REST_SECONDS: "30"
+  RESEARCH_AGENT_IDLE_REST_SECONDS: "1800"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 384Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+networkPolicy:
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: llm
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: inference-gateway
+      ports:
+        - protocol: TCP
+          port: 1234
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 169.254.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+
+volumes:
+  - name: tmp
+    emptyDir:
+      sizeLimit: 32Mi
+
+volumeMounts:
+  - name: tmp
+    mountPath: /tmp
