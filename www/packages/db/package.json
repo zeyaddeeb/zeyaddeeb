@@ -28,7 +28,7 @@
   "dependencies": {
     "better-auth": "catalog:",
     "drizzle-orm": "catalog:",
-    "pg": "^8.23.0"
+    "pg": "^8.23.1"
   },
   "devDependencies": {
     "@types/node": "catalog:",

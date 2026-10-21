@@ -146,7 +146,7 @@ def backdrop(data: Path, out: Path, width: int = 2048) -> None:
     pixels = (level * 255).round().astype(np.uint8).reshape(height, width)
 
     out.parent.mkdir(parents=True, exist_ok=True)
-    Image.fromarray(pixels, mode="L").save(out, "WEBP", quality=82)
+    Image.fromarray(pixels).save(out, "WEBP", quality=82)
 
 
 def load_cube(data: Path) -> Cube:

@@ -7,8 +7,8 @@ dependencies = [
     "astropy>=8.0.2",
     "h5py>=3.16,<4",
     "numpy>=2.5,<3",
-    "pillow>=12.3,<13",
-    "rerun-sdk==0.39.0",
+    "pillow>=13,<14",
+    "rerun-sdk==0.40.0",
     "scipy>=1.18,<2",
 ]
 

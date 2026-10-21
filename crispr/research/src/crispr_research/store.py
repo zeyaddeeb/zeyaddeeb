@@ -1,5 +1,6 @@
 import json
 from dataclasses import dataclass, field
+from threading import Lock, local
 from typing import Any
 
 import duckdb
@@ -151,12 +152,29 @@ create table if not exists settlement (
 
 class Store:
     def __init__(self, path: str) -> None:
-        self.db = duckdb.connect(path)
+        self._root = duckdb.connect(path)
+        self._threads = local()
+        self._lock = Lock()
+        self._cursors: list[duckdb.DuckDBPyConnection] = []
         self.db.execute(SCHEMA)
         self.db.execute(EXTRA_SCHEMA)
 
+    @property
+    def db(self) -> duckdb.DuckDBPyConnection:
+        # DuckDB 2 rejects overlapping calls on a single connection. Keep
+        # each thread's results and transactions on its own cursor.
+        if not hasattr(self._threads, "db"):
+            with self._lock:
+                self._threads.db = self._root.cursor()
+                self._cursors.append(self._threads.db)
+        return self._threads.db
+
     def close(self) -> None:
-        self.db.close()
+        with self._lock:
+            for cursor in self._cursors:
+                cursor.close()
+            self._cursors.clear()
+            self._root.close()
 
     def state(self) -> State:
         row = self.db.execute(

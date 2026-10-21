@@ -1,10 +1,10 @@
 [project]
 name = "bedside"
-version = "0.1.0"
+version = "0.1.1"
 description = "Tests whether cell-line drug biomarkers hold up in real patients."
 requires-python = ">=3.14"
 dependencies = [
-    "duckdb>=1.5,<2",
+    "duckdb>=2,<3",
     "httpx>=0.28,<1",
     "numba>=0.68",
     "numpy>=2.5,<3",

@@ -22,8 +22,8 @@
     "generate:cobe": "cd ../../../cobe && PYTHONPATH=src uv run python -m cobe fetch --time-ordered && PYTHONPATH=src uv run python -m cobe build && cd ../www/apps/www && biome format --write features/cobe/spectrum-data.ts"
   },
   "dependencies": {
-    "@chenglou/pretext": "^0.0.9",
-    "@rerun-io/web-viewer": "0.39.0",
+    "@chenglou/pretext": "^1.0.0",
+    "@rerun-io/web-viewer": "0.40.0",
     "@zeyaddeeb/ui": "workspace:*",
     "@zeyaddeeb/wasm": "workspace:*",
     "framer-motion": "catalog:",

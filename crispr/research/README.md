@@ -21,6 +21,11 @@ setting Helm `evidence.existingClaim`; its root must contain those same files.
 Do not replace open database files in place: provision a new snapshot and restart
 the service. No data download or cluster change happens automatically.
 
+This service and `bedside` require DuckDB 2. Upgrade both before sharing newly
+created database files: DuckDB 1.x cannot read the default 2.0 storage format.
+Existing 1.x files remain readable without conversion; see the
+[DuckDB migration guide](https://duckdb.org/docs/2.0/operations_manual/migration).
+
 The agent reports capability checks in `/agent`. Missing datasets or an
 unreachable registry disable that work; the model-based reach exploration remains
 available without earning an evidence score. Policy revisions wait for a

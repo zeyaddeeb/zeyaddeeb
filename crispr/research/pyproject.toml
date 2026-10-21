@@ -1,11 +1,11 @@
 [project]
 name = "crispr-research"
-version = "0.1.0"
+version = "0.1.1"
 description = "An always-on research agent for colorectal cancer with peritoneal metastasis, graded by sealed referees."
 requires-python = ">=3.14"
 dependencies = [
-    "duckdb>=1.5,<2",
-    "fastapi>=0.159.0,<1",
+    "duckdb>=2,<3",
+    "fastapi>=0.159.1,<1",
     "httpx>=0.28,<1",
     "numpy>=2.5,<3",
     "pydantic>=2.14.1,<3",
