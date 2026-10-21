@@ -79,8 +79,8 @@ pub fn training_loop(
             state.torso_pos,
             state.torso_up,
             training.ball_released,
+            training.curriculum_stage,
             training.step,
-            crate::rl::EPISODE_STEPS,
         );
 
         let terminal = end_reason.is_some_and(|r| r.is_terminal());

@@ -56,8 +56,8 @@ fn evaluate_step(
         state.torso_pos,
         state.torso_up,
         score.ball_released,
+        score.stage,
         score.step,
-        EPISODE_STEPS,
     );
 
     if let Some(previous) = &score.previous {
@@ -422,8 +422,8 @@ fn ballistic_shot_scores_through_the_actual_physics_stepper() {
             Vec3::Y * 1.5,
             Vec3::Y,
             true,
+            CurriculumStage::Shooting,
             step,
-            EPISODE_STEPS,
         );
 
         if end.is_some() {
@@ -434,4 +434,147 @@ fn ballistic_shot_scores_through_the_actual_physics_stepper() {
     }
 
     assert_eq!(end, Some(EpisodeEndReason::BasketMade));
+}
+
+#[derive(Resource, Default)]
+struct Trace {
+    step: usize,
+    previous: Option<Vec<f32>>,
+    released: bool,
+    done: bool,
+    prev_ball_pos: Option<Vec3>,
+    total: f32,
+}
+
+fn trace_step(
+    mut trace: ResMut<Trace>,
+    training: Res<TrainingState>,
+    mut commands: Commands,
+    mut grip: ResMut<BallGrip>,
+    mut queries: ParamSet<(JointReadQuery, TorqueWriteQuery, BallQuery)>,
+) {
+    let _ = &mut commands;
+
+    if trace.done {
+        return;
+    }
+
+    trace.released |= grip.released;
+
+    let Some(state) = extract_robot_state(&queries.p0()) else {
+        return;
+    };
+
+    let (ball, ball_velocity) = {
+        let balls = queries.p2();
+        let (pos, velocity, _) = balls.single().unwrap();
+
+        (pos.0, velocity.0)
+    };
+
+    let stage = CurriculumStage::RaiseBall;
+
+    let end = EpisodeEndReason::check(
+        ball,
+        trace.prev_ball_pos,
+        state.torso_pos,
+        state.torso_up,
+        trace.released,
+        stage,
+        trace.step,
+    );
+
+    let mut reward = (0.0, 0.0);
+
+    if let Some(previous) = &trace.previous {
+        let r =
+            compute_reward_components(&state, previous, ball, ball_velocity, trace.released, stage);
+
+        reward = (r.stand, r.throw);
+        trace.total += r.stand + r.throw;
+    }
+
+    println!(
+        "TRACE step={} ball=({:.2},{:.2},{:.2}) ball_v=({:.2},{:.2},{:.2}) hand=({:.2},{:.2},{:.2}) torso_y={:.2} up_y={:.2} shoulder={:.2} elbow={:.2} wrist={:.2} lshoulder={:.2} lelbow={:.2} lwrist={:.2} released={} dropped={} stand={:.2} throw={:.2} total={:.1}",
+        trace.step,
+        ball.x, ball.y, ball.z,
+        ball_velocity.x, ball_velocity.y, ball_velocity.z,
+        state.hand_pos.x, state.hand_pos.y, state.hand_pos.z,
+        state.torso_pos.y,
+        state.torso_up.y,
+        state.shoulder.angle, state.elbow.angle, state.wrist.angle,
+        state.left_shoulder.angle, state.left_elbow.angle, state.left_wrist.angle,
+        trace.released,
+        grip.dropped,
+        reward.0,
+        reward.1,
+        trace.total,
+    );
+
+    if let Some(reason) = end {
+        println!(
+            "TRACE end={} step={} total={:.1}",
+            reason.as_str(),
+            trace.step,
+            trace.total
+        );
+        trace.done = true;
+
+        return;
+    }
+
+    let observation = get_observation(
+        &state,
+        ball,
+        ball_velocity,
+        trace.released,
+        stage,
+        trace.step,
+    );
+
+    let action = training
+        .sac_trainer
+        .agent
+        .lock()
+        .unwrap()
+        .get_action(&observation)
+        .unwrap();
+
+    println!(
+        "ACTION step={} {}",
+        trace.step,
+        action
+            .iter()
+            .map(|a| format!("{a:.2}"))
+            .collect::<Vec<_>>()
+            .join(",")
+    );
+
+    apply_torques(&mut queries.p1(), &ComputedTorques::from_action(&action));
+
+    trace.prev_ball_pos = Some(ball);
+    trace.previous = Some(action);
+    trace.step += 1;
+}
+
+#[test]
+#[ignore = "temporary trace"]
+fn trace_saved_policy_raise_ball() {
+    let _sandbox = checkpoint_sandbox();
+    let frozen = Arc::new(SacAsyncTrainer::new());
+
+    frozen.agent.lock().unwrap().is_training = false;
+
+    let mut app = app(frozen, 12);
+
+    app.insert_resource(Trace::default())
+        .add_systems(FixedUpdate, trace_step);
+
+    for _ in 0..EPISODE_STEPS + 5 {
+        app.update();
+
+        if app.world().resource::<Trace>().done {
+            break;
+        }
+    }
 }

@@ -25,6 +25,7 @@ pub enum EpisodeEndReason {
     OutOfBounds,
     BasketMade,
     ShotMissed,
+    BallDropped,
 }
 
 fn is_out_of_bounds(pos: Vec3) -> bool {
@@ -49,13 +50,15 @@ impl EpisodeEndReason {
         torso_pos: Vec3,
         torso_up: Vec3,
         ball_released: bool,
+        stage: CurriculumStage,
         step: usize,
-        max_steps: usize,
     ) -> Option<Self> {
         let torso_fell =
             step > SETTLE_STEPS && (torso_pos.y < TORSO_FALL_Y || torso_up.y < TORSO_FALL_UP);
 
-        if ball_released && previous_ball_pos.is_some_and(|p| is_basket(p, ball_pos)) {
+        if ball_released && stage != CurriculumStage::Shooting {
+            Some(Self::BallDropped)
+        } else if ball_released && previous_ball_pos.is_some_and(|p| is_basket(p, ball_pos)) {
             Some(Self::BasketMade)
         } else if ball_released
             && (ball_pos.y <= BALL_RADIUS + 0.03
@@ -69,7 +72,7 @@ impl EpisodeEndReason {
             Some(Self::OutOfBounds)
         } else if torso_fell {
             Some(Self::TorsoFell)
-        } else if step >= max_steps {
+        } else if step >= crate::rl::EPISODE_STEPS {
             Some(Self::TimedOut)
         } else {
             None
@@ -77,7 +80,6 @@ impl EpisodeEndReason {
     }
 
     pub fn is_terminal(&self) -> bool {
-        // Time is observed: the 300-step task is a finite-horizon MDP.
         true
     }
 
@@ -98,6 +100,7 @@ impl EpisodeEndReason {
             Self::OutOfBounds => "out_of_bounds",
             Self::BasketMade => "basket_made",
             Self::ShotMissed => "shot_missed",
+            Self::BallDropped => "ball_dropped",
         }
     }
 }
@@ -152,6 +155,7 @@ mod tests {
             EpisodeEndReason::TorsoFell,
             EpisodeEndReason::OutOfBounds,
             EpisodeEndReason::BasketMade,
+            EpisodeEndReason::BallDropped,
         ] {
             assert!(reason.is_terminal());
         }
@@ -175,7 +179,15 @@ mod tests {
         ));
 
         assert_eq!(
-            EpisodeEndReason::check(Vec3::ZERO, None, Vec3::Y * 1.5, Vec3::Y, true, 50, 300),
+            EpisodeEndReason::check(
+                Vec3::ZERO,
+                None,
+                Vec3::Y * 1.5,
+                Vec3::Y,
+                true,
+                CurriculumStage::Shooting,
+                50
+            ),
             Some(EpisodeEndReason::ShotMissed)
         );
     }
@@ -213,8 +225,8 @@ mod tests {
                 Vec3::Y * TORSO_Y,
                 Vec3::Y,
                 true,
+                CurriculumStage::Shooting,
                 10,
-                300,
             ),
             None
         );
@@ -226,10 +238,56 @@ mod tests {
                 Vec3::Y * TORSO_Y,
                 Vec3::Y,
                 true,
+                CurriculumStage::Shooting,
                 30,
-                300,
             ),
             Some(EpisodeEndReason::ShotMissed)
+        );
+    }
+
+    #[test]
+    fn losing_the_ball_before_shooting_ends_the_episode_at_once() {
+        let airborne = Vec3::new(0.0, 7.0, 0.0);
+
+        for stage in [CurriculumStage::Standing, CurriculumStage::RaiseBall] {
+            assert_eq!(
+                EpisodeEndReason::check(
+                    airborne,
+                    Some(airborne - Vec3::Y * 0.1),
+                    Vec3::Y * TORSO_Y,
+                    Vec3::Y,
+                    true,
+                    stage,
+                    5,
+                ),
+                Some(EpisodeEndReason::BallDropped)
+            );
+
+            assert_eq!(
+                EpisodeEndReason::check(
+                    airborne,
+                    Some(airborne),
+                    Vec3::Y * TORSO_Y,
+                    Vec3::Y,
+                    false,
+                    stage,
+                    5,
+                ),
+                None
+            );
+        }
+
+        assert_eq!(
+            EpisodeEndReason::check(
+                airborne,
+                Some(airborne - Vec3::Y * 0.1),
+                Vec3::Y * TORSO_Y,
+                Vec3::Y,
+                true,
+                CurriculumStage::Shooting,
+                5,
+            ),
+            None
         );
     }
 }

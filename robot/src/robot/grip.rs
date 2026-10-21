@@ -70,7 +70,7 @@ fn check_ball_grip(
 
         let slipped = (offset - palm_to_ball).length() > MAX_GRIP_STRETCH
             || offset.length() > HAND_RADIUS + BALL_RADIUS + MAX_GRIP_STRETCH;
-        // Release before a sudden impulse is absorbed by the constraints.
+
         let would_slip = (offset - palm_to_ball + relative_velocity * time.delta_secs()).length()
             > MAX_GRIP_STRETCH;
         let overloaded = forces.force().length() > MAX_GRIP_FORCE;
@@ -118,9 +118,6 @@ mod tests {
                     spawn_ball(&mut commands, &mut meshes, &mut materials, &robot);
                     commands.insert_resource(robot);
                 },
-                // Isolate the grip from balance: hold the actual robot's pose
-                // still, with its production colliders and ball constraints.
-                // Keep the bodies dynamic so their joints retain solver islands.
                 |mut commands: Commands,
                  bodies: Query<Entity, (With<RigidBody>, Without<Basketball>)>| {
                     for body in &bodies {

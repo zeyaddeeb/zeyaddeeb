@@ -108,8 +108,6 @@ pub fn compute_reward_components(
         throw_reward += RAISE_REWARD * (ball_pos.y - 1.5).clamp(0.0, 1.0);
     }
 
-    // In Shooting, survival and repeated aiming must never outpay a made basket.
-    // Every non-success step has non-positive reward; release shaping is bounded.
     if stage == CurriculumStage::Shooting {
         stand_reward = -0.001 - 0.0001 * effort;
 

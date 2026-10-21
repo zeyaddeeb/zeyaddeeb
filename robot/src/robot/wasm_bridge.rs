@@ -17,7 +17,6 @@ use super::resources::CurriculumStage;
 use super::resources::{ActionMsg, BallGrip, ObservationMsg, SimulationState, TrainStatsMsg};
 use super::state::{extract_robot_state, BallQuery, JointReadQuery};
 use super::torque::{apply_torques, ComputedTorques, TorqueWriteQuery};
-use crate::rl::EPISODE_STEPS;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum WsState {
@@ -384,8 +383,8 @@ pub fn wasm_training_loop(
         state.torso_pos,
         state.torso_up,
         sim.ball_released,
+        sim.curriculum_stage,
         sim.step,
-        EPISODE_STEPS,
     );
 
     let terminal = end_reason.is_some_and(|r| r.is_terminal());
