@@ -105,15 +105,15 @@ impl Tool {
             add_prediction(&mut properties);
         }
 
-        ToolDefinition {
-            name: ToolName::new(self.name()).expect("non-empty tool name"),
-            description: description.to_string(),
-            parameters: json!({
+        ToolDefinition::new(
+            ToolName::new(self.name()).expect("non-empty tool name"),
+            description,
+            json!({
                 "type": "object",
                 "properties": Value::Object(properties),
                 "required": required,
             }),
-        }
+        )
     }
 
     fn shape(self) -> (&'static str, Map<String, Value>, Vec<&'static str>) {

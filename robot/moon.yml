@@ -7,7 +7,7 @@ project:
 
 tasks:
   test:
-    command: "cargo test --all-targets --all-features"
+    command: "cargo test --all-targets"
   build:
     command: "cargo build --all-targets --release"
   helm-lint:

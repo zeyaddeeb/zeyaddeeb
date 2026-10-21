@@ -33,10 +33,11 @@ export type LiveSource =
 	| "moonspell"
 	| "story";
 
-export type Series = "guessing-machines";
+export type Series = "guessing-machines" | "small-enough-to-hold";
 
 const seriesTitles: Record<Series, string> = {
 	"guessing-machines": "Guessing machines",
+	"small-enough-to-hold": "Small Enough to Hold",
 };
 
 export interface Experiment {
@@ -53,6 +54,16 @@ export interface Experiment {
 }
 
 export const experiments: Experiment[] = [
+	{
+		id: "the-smallest-red-pen",
+		number: 25,
+		title: "The Smallest Red Pen",
+		line: "A tumor and the patient it grew in differ, at one spot, by a single letter. Design a CRISPR guide on real KRAS sequence and find out whether it can cut the cancer's copy and spare the healthy one, in colorectal cancer that has reached the peritoneum.",
+		stack: ["TypeScript", "three.js", "WebGL", "Genomics"],
+		href: "/experiments/the-smallest-red-pen",
+		topics: ["other", "graphics"],
+		series: "small-enough-to-hold",
+	},
 	{
 		id: "cut-on-the-bias",
 		number: 24,

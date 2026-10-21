@@ -4,22 +4,22 @@ version = "0.1.0"
 description = "Tests whether cell-line drug biomarkers hold up in real patients."
 requires-python = ">=3.14"
 dependencies = [
-    "duckdb>=1.4,<2",
+    "duckdb>=1.5,<2",
     "httpx>=0.28,<1",
-    "numba>=0.62",
-    "numpy>=2.3,<3",
+    "numba>=0.68",
+    "numpy>=2.5,<3",
     "pymc>=6.3,<7",
     "scipy>=1.18.1",
 ]
 
 [dependency-groups]
-dev = ["pytest>=9.1,<10", "ruff>=0.16,<1"]
+dev = ["pytest>=9.1,<10", "ruff>=0.17,<1"]
 
 [project.scripts]
 bedside = "bedside.cli:main"
 
 [build-system]
-requires = ["uv_build>=0.11,<0.12"]
+requires = ["uv_build>=0.13.4,<0.14"]
 build-backend = "uv_build"
 
 [tool.ruff]

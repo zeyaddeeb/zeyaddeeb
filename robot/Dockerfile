@@ -18,7 +18,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 RUN rustup target add wasm32-unknown-unknown
-RUN cargo install --locked wasm-bindgen-cli --version 0.2.128
+RUN cargo install --locked wasm-bindgen-cli --version 0.2.129
 RUN curl -sSfL "https://github.com/WebAssembly/binaryen/releases/download/version_132/binaryen-version_132-$(uname -m)-linux.tar.gz" \
     | tar xz -C /usr/local --strip-components=1 binaryen-version_132/bin/wasm-opt
 

@@ -346,8 +346,8 @@ pub fn spawn_robot(
             Transform::from_translation(left_foot_pos),
             RigidBody::Dynamic,
             SweptCcd {
-                linear_threshold: 0.0,
-                angular_threshold: 0.0,
+                filter: CcdFilter::ALL,
+                threshold: 0.0,
                 ..default()
             },
             ConstantTorque::new(0.0, 0.0, 0.0),
@@ -454,8 +454,8 @@ pub fn spawn_robot(
             Transform::from_translation(right_foot_pos),
             RigidBody::Dynamic,
             SweptCcd {
-                linear_threshold: 0.0,
-                angular_threshold: 0.0,
+                filter: CcdFilter::ALL,
+                threshold: 0.0,
                 ..default()
             },
             ConstantTorque::new(0.0, 0.0, 0.0),

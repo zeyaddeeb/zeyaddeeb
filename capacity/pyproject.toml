@@ -1,20 +1,20 @@
 [project]
 name = "capacity"
-version = "0.1.3"
+version = "0.1.4"
 description = "Linear programming service for the Compute Crunch experiment."
 requires-python = ">=3.14"
 dependencies = [
-    "fastapi>=0.143.0,<1",
+    "fastapi>=0.156.3,<1",
     "ortools>=9.15,<10",
-    "pydantic>=2.14.0,<3",
+    "pydantic>=2.14.1,<3",
     "uvicorn[standard]>=0.54,<1",
 ]
 
 [dependency-groups]
-dev = ["httpx>=0.28,<1", "pytest>=9.1,<10", "ruff>=0.16,<1"]
+dev = ["httpx>=0.28,<1", "pytest>=9.1,<10", "ruff>=0.17,<1"]
 
 [build-system]
-requires = ["uv_build>=0.11,<0.12"]
+requires = ["uv_build>=0.13.4,<0.14"]
 build-backend = "uv_build"
 
 [tool.ruff]

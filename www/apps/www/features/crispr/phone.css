@@ -1,0 +1,235 @@
+@media (max-width: 1099px) {
+	.cr {
+		--cr-stage: 196px;
+		--cr-panel: 276px;
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-areas:
+			"head"
+			"genotype"
+			"strategy"
+			"molecule"
+			"tape"
+			"beats"
+			"panel"
+			"ledger";
+		grid-template-rows:
+			auto
+			auto
+			auto
+			var(--cr-stage)
+			var(--cr-tape)
+			var(--cr-beats)
+			var(--cr-panel)
+			auto;
+	}
+
+	.cr-genotype {
+		border-left: 0;
+	}
+
+	.cr-panel {
+		border-left: 0;
+		border-top: 2px solid var(--cr-rule);
+	}
+
+	.cr-compare {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 899px) {
+	.cr {
+		--cr-pad: 12px;
+		--cr-pitch: 14px;
+		--cr-tape: 136px;
+		--cr-panel: 216px;
+		height: min(calc(100svh - 12px), 880px);
+		grid-template-rows: auto auto auto minmax(120px, 1fr) auto auto auto auto;
+		border-width: 0;
+		border-top: 2px solid var(--cr-rule);
+	}
+
+	.cr-molecule {
+		height: auto;
+		min-height: 0;
+	}
+
+	.cr-call {
+		height: calc(3 * 1.34em);
+		font-size: 14.5px;
+		line-height: 1.34;
+	}
+
+	.cr-eyebrow {
+		font-size: 10px;
+	}
+
+	.cr-genotype {
+		padding-block: 10px;
+	}
+
+	.cr-genotype__hint {
+		display: none;
+	}
+
+	.cr-chips {
+		gap: 5px;
+	}
+
+	.cr .cr-chip {
+		min-height: 42px;
+		gap: 2px;
+	}
+
+	.cr-chip__name {
+		font-size: 12px;
+	}
+
+	.cr-chip__aa {
+		display: none;
+	}
+
+	.cr-tape {
+		grid-template-columns: 80px minmax(0, 1fr);
+		height: var(--cr-tape);
+		padding-top: 8px;
+	}
+
+	.cr-labels {
+		padding-left: var(--cr-pad);
+	}
+
+	.cr-labels__name {
+		font-size: 9px;
+		letter-spacing: 0;
+	}
+
+	.cr-beats {
+		gap: 4px;
+		padding: 8px var(--cr-pad);
+	}
+
+	.cr .cr-beat {
+		flex: 1 1 auto;
+		min-width: 0;
+		padding: 0 6px;
+		font-size: 11.5px;
+		letter-spacing: 0;
+	}
+
+	.cr .cr-beat--aside {
+		flex: 0 0 auto;
+		margin-left: auto;
+	}
+
+	.cr-beat__long {
+		display: none;
+	}
+
+	.cr-beat__short {
+		display: inline;
+	}
+
+	.cr-panel {
+		grid-template-rows: none;
+		align-content: start;
+		gap: 8px;
+		min-height: var(--cr-panel);
+		padding-block: 10px;
+		overflow: visible;
+	}
+
+	.cr-panel__body {
+		gap: 8px;
+		min-height: auto;
+	}
+
+	.cr-strategy {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 6px;
+		padding-block: 10px;
+	}
+
+	.cr .cr-strat {
+		min-height: 0;
+		gap: 3px;
+		padding: 8px 9px;
+	}
+
+	.cr-strat__name {
+		font-size: 13px;
+		line-height: 1.15;
+	}
+
+	.cr-strat__mech {
+		font-size: 9px;
+		letter-spacing: 0.04em;
+	}
+
+	.cr-strat__said {
+		display: none;
+	}
+
+	.cr-panel__note {
+		display: none;
+	}
+
+	.cr-ledger__source {
+		display: none;
+	}
+
+	.cr-panel__title {
+		font-size: 14px;
+	}
+
+	.cr-edit {
+		font-size: 12.5px;
+		line-height: 1.45;
+	}
+
+	.cr-spec__row {
+		padding: 5px 0;
+	}
+
+	.cr .cr-spec__row dd {
+		font-size: 12px;
+	}
+
+	.cr-compare {
+		gap: 10px;
+	}
+
+	.cr-compare__said {
+		font-size: 11.5px;
+	}
+
+	.cr-panel__note {
+		font-size: 12px;
+	}
+
+	.cr-measured {
+		font-size: 11.5px;
+	}
+
+	.cr-ledger {
+		gap: 2px 12px;
+		padding-block: 7px;
+		font-size: 9.5px;
+	}
+}
+
+@media (max-width: 420px) {
+	.cr {
+		--cr-pitch: 13px;
+	}
+
+	.cr-chip__share {
+		font-size: 9px;
+	}
+}
+
+@media (max-width: 380px) {
+	.cr {
+		--cr-panel: 264px;
+	}
+}

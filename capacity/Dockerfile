@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.10
 
 ARG PYTHON_VERSION=3.14
-ARG UV_VERSION=0.11.15
+ARG UV_VERSION=0.13.4
 ARG UNUSED_AT_RUNTIME="numpy pandas python-dateutil six"
 
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv

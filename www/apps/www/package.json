@@ -18,6 +18,7 @@
     "generate:semblance": "node scripts/semblance-recorded.mjs \"$RECORDING\" && biome format --write features/semblance/recorded.ts",
     "generate:disco": "uv run scripts/disco-originals.py && biome format --write features/disco/film-data.ts",
     "generate:bias": "bun scripts/bias-records.ts && biome format --write features/bias/records-data.ts",
+    "generate:crispr": "bun scripts/crispr-locus.ts && biome format --write features/crispr/locus-data.ts",
     "generate:cobe": "cd ../../../cobe && PYTHONPATH=src uv run python -m cobe fetch --time-ordered && PYTHONPATH=src uv run python -m cobe build && cd ../www/apps/www && biome format --write features/cobe/spectrum-data.ts"
   },
   "dependencies": {

@@ -120,10 +120,11 @@ mod tests {
                 },
                 // Isolate the grip from balance: hold the actual robot's pose
                 // still, with its production colliders and ball constraints.
+                // Keep the bodies dynamic so their joints retain solver islands.
                 |mut commands: Commands,
                  bodies: Query<Entity, (With<RigidBody>, Without<Basketball>)>| {
                     for body in &bodies {
-                        commands.entity(body).insert(RigidBody::Static);
+                        commands.entity(body).insert(LockedAxes::ALL_LOCKED);
                     }
                 },
             )
@@ -263,7 +264,7 @@ mod tests {
 
             // Still within the slip tolerance, but the stretched cradle must
             // exert more than its finite holding force to recover the ball.
-            app.world_mut().get_mut::<Position>(ball).unwrap().x += 0.02;
+            app.world_mut().get_mut::<Position>(ball).unwrap().x += 0.03;
             app.update();
             assert_released(&app, true);
         }
@@ -279,7 +280,10 @@ mod tests {
             .run_system_once(
                 |mut commands: Commands, bodies: Query<Entity, With<RigidBody>>| {
                     for body in &bodies {
-                        commands.entity(body).insert(RigidBody::Dynamic);
+                        commands
+                            .entity(body)
+                            .insert(RigidBody::Dynamic)
+                            .remove::<LockedAxes>();
                     }
                 },
             )

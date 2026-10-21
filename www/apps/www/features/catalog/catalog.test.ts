@@ -67,11 +67,14 @@ describe("catalog", () => {
 		expect(seriesOf(getExperiment("game-of-life"))).toBeNull();
 	});
 
-	it("gives every series more than one part", () => {
+	it("gives every series at least one numbered part", () => {
 		for (const experiment of experiments) {
 			const series = seriesOf(experiment);
 
-			if (series) expect(series.parts.length).toBeGreaterThan(1);
+			if (series) {
+				expect(series.parts.length).toBeGreaterThan(0);
+				expect(series.part).toBeGreaterThan(0);
+			}
 		}
 	});
 

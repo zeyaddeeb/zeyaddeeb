@@ -319,10 +319,10 @@ impl Llm {
             preamble: super::prompts::PROPOSER,
             history: &[],
             prompt: Message::user(serde_json::to_string(context)?),
-            tools: vec![ToolDefinition {
-                name: ToolName::new("proof_plan").expect("non-empty tool name"),
-                description: "Propose alternative Lean tactic blocks and optional smaller independent lemmas.".into(),
-                parameters: json!({
+            tools: vec![ToolDefinition::new(
+                ToolName::new("proof_plan").expect("non-empty tool name"),
+                "Propose alternative Lean tactic blocks and optional smaller independent lemmas.",
+                json!({
                     "type": "object",
                     "properties": {
                         "strategy": {"type": "string"},
@@ -336,7 +336,7 @@ impl Llm {
                     },
                     "required": ["strategy", "candidates", "helpers"]
                 }),
-            }],
+            )],
             thinking: true,
             max_tokens,
         };

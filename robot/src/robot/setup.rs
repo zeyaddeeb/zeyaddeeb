@@ -234,8 +234,8 @@ pub(super) fn spawn_ball(
             Transform::from_translation(ball_start),
             RigidBody::Dynamic,
             SweptCcd {
-                linear_threshold: 0.0,
-                angular_threshold: 0.0,
+                filter: CcdFilter::ALL,
+                threshold: 0.0,
                 ..default()
             },
             Collider::sphere(BALL_RADIUS),
