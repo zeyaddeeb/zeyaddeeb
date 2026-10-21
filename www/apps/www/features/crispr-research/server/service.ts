@@ -1,0 +1,2 @@
+export const CRISPR_RESEARCH_SERVICE_URL =
+	process.env.CRISPR_RESEARCH_BACKEND_URL ?? "http://127.0.0.1:3007";

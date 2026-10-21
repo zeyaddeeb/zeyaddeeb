@@ -55,6 +55,16 @@ export interface Experiment {
 
 export const experiments: Experiment[] = [
 	{
+		id: "four-ways-to-be-wrong",
+		number: 26,
+		title: "Four Ways to Be Wrong",
+		line: "Drug put into the abdomen has about a millimetre before the blood carries it away. Set a drug, a nodule and a dwell, and read how much of the lump is never reached. Then watch an agent seal claims against the same arithmetic, paid only for what it adds to what was already known.",
+		stack: ["Python", "FastAPI", "DuckDB", "Pharmacokinetics"],
+		href: "/experiments/four-ways-to-be-wrong",
+		topics: ["ai", "other"],
+		series: "small-enough-to-hold",
+	},
+	{
 		id: "the-smallest-red-pen",
 		number: 25,
 		title: "The Smallest Red Pen",

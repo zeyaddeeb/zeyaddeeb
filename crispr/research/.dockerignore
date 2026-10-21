@@ -1,0 +1,8 @@
+*
+!Dockerfile
+!pyproject.toml
+!uv.lock
+!method.toml
+!depths.toml
+!src/
+**/__pycache__

@@ -1,0 +1,38 @@
+language: "python"
+stack: "backend"
+
+tasks:
+  dev:
+    script: "uv run uvicorn crispr_research.app:app --app-dir src --reload --reload-dir src --port 3007"
+    options:
+      cache: false
+      persistent: true
+  agent:
+    script: "RESEARCH_AGENT=on uv run uvicorn crispr_research.app:app --app-dir src --port 3007"
+    options:
+      cache: false
+      persistent: true
+  gate:
+    script: "PYTHONPATH=src uv run python -m crispr_research gate"
+    options:
+      cache: false
+  test:
+    script: "uv run pytest"
+  lint:
+    script: "uv run ruff check . && uv run ruff format --check ."
+  typecheck:
+    script: "uvx pyright --pythonpath .venv/bin/python src"
+  helm-lint:
+    script: "helm lint deployments/helm"
+    options:
+      cache: false
+  docker-build:
+    script: docker build --platform=linux/amd64 -t $project:v$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml) .
+  docker-tag:
+    script: docker tag $project:v$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml) $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/zeyaddeeb/$project:v$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml) >/dev/null
+    deps:
+      - "docker-build"
+  docker-push:
+    script: docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/zeyaddeeb/$project:v$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml)
+    deps:
+      - "docker-tag"

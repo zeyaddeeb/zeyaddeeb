@@ -23,6 +23,11 @@ module "capacity" {
   namespace = kubernetes_namespace_v1.zeyaddeeb_namespace.metadata[0].name
 }
 
+module "research" {
+  source    = "../crispr/research/deployments"
+  namespace = kubernetes_namespace_v1.zeyaddeeb_namespace.metadata[0].name
+}
+
 module "voice" {
   source       = "../voice/deployments"
   namespace    = kubernetes_namespace_v1.zeyaddeeb_namespace.metadata[0].name
@@ -39,6 +44,7 @@ module "wwww" {
     module.deepseek,
     module.proofs,
     module.capacity,
+    module.research,
     module.voice,
   ]
 }

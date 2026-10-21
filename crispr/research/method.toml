@@ -1,0 +1,260 @@
+[meta]
+question = "In colorectal cancer that has reached the peritoneum, which therapeutic claims survive a referee that was fixed before the claim was made?"
+registered = "2026-10-21"
+subject = "colorectal adenocarcinoma with peritoneal metastasis"
+rule = "the agent may not assert anything it cannot state as a card: a kernel, a field that kernel reports, a direction, a threshold, and the probability it holds. The card is sealed (sha256 of its canonical form, with the time) before the kernel is run, and the verdict is permanent"
+referees = ["reach", "kill", "matter", "later"]
+proposer = "a small instruction-following model behind a local OpenAI-compatible gateway; it fills card slots and writes briefs, and it is never the judge of anything"
+honesty = "a refused card and an underpowered verdict are first-class outcomes and score zero; they are reported, never hidden"
+
+[reach]
+question = "can the therapeutic reach, at a killing concentration, the cells it must kill?"
+registered = "2026-10-21, before any kernel code was written"
+source = "Steuperaert M, Debbaut C, Segers P, Ceelen W. Modelling drug transport during intraperitoneal chemotherapy. Drug Delivery 2017;24(1):491-501, doi:10.1080/10717544.2016.1269848"
+model = "steady-state reaction-diffusion with a lumped first-order sink. In a slab, C(x)/C0 = exp(-x/lambda) with lambda = sqrt(D/k); in a sphere of radius R, C(r)/C0 = (R/r) sinh(r/lambda) / sinh(R/lambda). The transient at constant surface concentration is the Danckwerts solution, C(x,t)/C0 = 0.5 exp(-x/lambda) erfc(x/(2 sqrt(D t)) - sqrt(k t)) + 0.5 exp(x/lambda) erfc(x/(2 sqrt(D t)) + sqrt(k t))"
+penetration = "the depth at which C falls to the drug's IC50, which is the definition the source uses; in the steady state this is lambda * ln(C0/IC50)"
+sink_note = "k is the sum of the source's two first-order losses: cellular elimination beta = 7.32e-4 1/s, and capillary clearance Pc * S/V = 1.43e-6 m/s * 2.00e4 1/m = 2.86e-2 1/s, both from its Table 1 (Shah 2009, Baxter and Jain 1989). k = 2.9332e-2 1/s. Lumping them is this project's step, not the source's: capillary clearance is 39 times the cellular term, so the sink is dominated by what the blood carries away, not by what the cells take up"
+omitted = "interstitial convection (Darcy outflow against the inward gradient), the necrotic core, and the Peclet correction on the vascular sink. The source reports the first changes PD% by at most 3.56% and permeability by 0.19%; convection opposes penetration, so omitting it makes this kernel optimistic, which is the safe direction for a referee meant to refuse"
+geometry = "a sphere, surface concentration held at the cavity value for the dwell, no flux at the centre"
+units = "SI inside the kernel (m, s, mol/m3); depths are reported in mm"
+
+[reach.sink]
+cellular = 7.32e-4
+capillary = 2.86e-2
+total = 2.9332e-2
+note = "1/s. cellular is the source's beta (Shah 2009); capillary is Pc * S/V = 1.43e-6 m/s * 2.00e4 1/m (Shah 2009, Baxter and Jain 1989), both from its Table 1"
+
+[reach.agents]
+registered = "2026-10-21, taken from the source before any gate was run"
+cisplatin = { weight = 300.0, diffusivity = 2.5e-10, ic50 = 6.2e-3, source = "D from Shah 2009, IC50 from De Vlieghere 2016, both via the source's Table 1 and Table 2" }
+paclitaxel = { weight = 853.9, diffusivity = 0.77e-10, ic50 = 1.4e-6, source = "D from Winner 2016, IC50 from Smith 2005, both via the source's Table 2" }
+
+[reach.gate]
+registered = "2026-10-21, amended the same day after review, before any kernel code was written"
+two_gates = "a model-replication gate and a measurement gate. They prove different things and only the second makes reach a referee"
+radius = 0.01
+dwell = 1800.0
+conditions = "m and s: the source's 10 mm spherical nodule and a 30-minute dwell, the short end of the 30 to 60 minutes it describes"
+
+[reach.gate.replication]
+kind = "does this implementation reproduce the source's model? It compares our closed form against the source's reported outputs, from the source's own parameters, with nothing fitted"
+proves = "that the code is right. It does NOT prove the physics is right: agreeing with another model is not evidence about tissue. Recorded as a code test, never as a scientific verdict"
+cisplatin = { concentration = 0.8, band = [0.36, 0.49], note = "the source's baseline, a cisplatin dose of 120 mg/m2; it reports 0.36 to 0.49 mm across geometries and 0.40 mm for the clinical dose on a 10 mm sphere" }
+paclitaxel = { concentration = 0.14, band = [0.54, 0.75], note = "the source's clinical paclitaxel case, 60 mg/m2; it reports 0.54 to 0.75 mm across geometries and 0.64 mm on a 10 mm sphere" }
+limits = "five closed-form checks that depend on no citation: the transient tends to the steady state as the dwell grows; a nodule much smaller than lambda is treated throughout; a nodule much larger than lambda keeps an untreated core; depth scales as sqrt(D) and as 1/sqrt(k); and k -> 0 leaves the nodule fully exposed"
+
+[reach.gate.measurement]
+kind = "does this kernel predict measured penetration? The only gate that lets a reach verdict score"
+source = "depths.toml, one row per published measurement: agent, weight, system, metric, criterion, value, citation. Built on the labels.toml pattern in bedside: read once from the papers, sha256 recorded in every report, never edited after registration"
+compared = "the decay length lambda, not the depth at IC50. Amended 2026-10-21 while trying to build the gate: a measured concentration-against-depth profile has a decay constant that can be read off directly, and it does not depend on the drug's IC50 or on the absolute cavity concentration, both of which measurement papers usually omit. Depth at IC50 is only comparable where a paper states the cavity concentration and the IC50 in the same system, which is why Steuperaert serves as the replication source and not as a measurement"
+criterion = "every row records how its depth was defined, because the published numbers are not the same quantity: an IC50 crossing, a mass-spectrometry detection limit, a fluorescence gradient from a vessel, and a tissue concentration ratio give different answers for the same drug. Rows are only compared with like criteria, and a row whose criterion cannot be matched is recorded and excluded from the pass rule"
+geometry = "rows also record whether the drug entered from the cavity or outward from a vessel. Only cavity rows gate this kernel; vessel rows (Primeau 2005 and its kind) are a different geometry and are kept for reference only"
+candidates = "Los 1989 and 1991 (platinum against depth in rat peritoneal tumours); van de Vaart 1998 (melphalan-DNA adducts against depth in HIPEC patients, measured in humans); Gremonprez 2015 (cisplatin by LA-ICP-MS); Ansaloni 2015 (carboplatin, experimental); Solass 2012 and 2014 (PIPAC aerosol depth); Grantab 2006 (through multicell layers); Thurber 2008 (antibody penetration)"
+pass = "at least 80% of comparable rows within a factor of 3 on log lambda, no row off by more than a factor of 10, AND discrimination: under random permutation of the agent-to-measurement pairing the within-factor-3 rate must fall below 20%. A kernel that lands in a plausible range for every compound has predicted nothing"
+status = "BUILT AND REFUSED as of 2026-10-21. depths.toml exists, filled from open-access full text located through OpenAlex and read through the Europe PMC service, with no subscription and no paywall circumvention. It does not gate anything, because the measurements in it are not measurements of the same quantity"
+refused = "the published figures span more than two orders of magnitude, from about 20 micrometres to 5 millimetres, and the spread tracks the criterion and the transport path rather than the tissue. The millimetre figures that fill review articles trace back to pharmacokinetic modelling rather than microscopy, which one 2026 review states outright; the single primary cisplatin-in-HIPEC number found is microdialysis detection at catheters placed in normal organs, where the bloodstream is a second uncontrolled route; the microscopy figures are tens to hundreds of micrometres and come from aerosol delivery, which this kernel does not model"
+discrimination = "this is what the registered discrimination rule is for. The kernel puts cisplatin at about 0.45 mm, inside a published spread of 0.02 to 5 mm, so a random pairing of drugs to measurements would pass the factor-of-three test as readily as the true pairing. A gate that cannot fail is not a gate, so it is refused rather than reported as a pass"
+kept = "the aerosol rows are internally consistent across independent groups at roughly 100 to 600 micrometres by fluorescence microscopy. They are kept in depths.toml against a future convection-aware model, which is the thing they could honestly gate"
+consequence = "until it exists and passes, every reach verdict scores zero and is labelled a filter, not a finding. Reach may refuse a card; it may not earn with one"
+
+[reach.bias]
+found = "2026-10-21, from two independent reads of the literature"
+note = "the model this kernel replicates predicts 0.36 to 0.49 mm for cisplatin, while measurements quoted in the same literature run from about 0.5 to 2 mm, and a porcine HIPEC study reports carboplatin at a minimum of four. So the model appears biased low against measurement by something like two to fourfold, in the direction the omitted convection and the omitted free-fraction correction would predict"
+shown = "the page carries this caveat next to any depth it draws. The kernel reports a number because the arithmetic is definite; the number is not accurate to better than a factor of a few, and nothing in the output implies otherwise"
+
+[reach.guards]
+damkohler = "the steady-state depth lambda * ln(C0/IC50) is only reported when k * dwell >= 3; below that the front is still moving and the transient depth is reported instead. Without this guard a 30-minute dwell would be scored with an infinite-time answer. At the registered sink k = 2.9332e-2 1/s, k * dwell is 52.8 at 30 minutes, so the source's own cases are steady; a slower sink or a shorter dwell is not"
+thiele = "every reading reports the Thiele modulus R/lambda and the Damkohler number k * dwell, so the regime is visible and not implied"
+exposure = "the killing criterion is time-integrated: the share of the nodule whose local concentration stays at or above the IC50 for a declared duration, not the share that merely touches it once"
+missing = "convection against the inward gradient, interstitial fluid pressure, plasma protein binding (the free fraction is what diffuses; paclitaxel is over 95% bound, which moves the effective D by an order of magnitude), and the binding-site barrier for anything with a target. All four are omitted. Three of them make this kernel optimistic, so it under-refuses; the fourth, binding, means the rank order of candidates can be wrong even when a magnitude is roughly right. The page says this"
+
+[preflight]
+registered = "2026-10-21"
+rule = "before a kernel may be registered, the rig counts the exposed group in every file that kernel will read, and refuses registration when it falls below the floor the kernel declares. A kernel that cannot see its exposed group is not underpowered, it is empty"
+why = "written after the first design assumed a peritoneum-against-primary drug-sensitivity contrast that cannot be computed at all: none of the ten peritoneum-derived colorectal lines has a fitted PRISM dose-response curve. A coverage count would have caught it in one query; a sealed prediction would not"
+floor = "a kernel declares its own floor; no kernel may declare a floor below 8 in the exposed group, and anything under 20 is reported as a replication test, never as discovery"
+
+[score]
+registered = "2026-10-21, amended the same day after review"
+rule = "a card's reward is a skill score in bits against a reference forecaster: log p - log q on what happened, where p is the probability the card stated and q is the reference's probability for the identical sealed statement"
+reference = "A sibling instance of the same model receives the exact structured case, field, operator, threshold, front background and registered kernel method; it receives neither the agent probability nor observations. Its probability and the full card are persisted before execution, alongside source fingerprints and model identity."
+why_reference = "this replaces a hand-kept table of what the literature already guarantees. A table keys on a field name, so a paraphrase routes around it, and it has to be maintained by the same judgment it was meant to replace. A forecaster that shares the corpus but has no data prices in what is already known, whatever words the card uses: when a claim is settled, both say 0.95 and the skill is zero. What the agent is paid for is the bits it adds to what the corpus already knew"
+magnitude = "every card also states an 80% central interval on the effect size, scored by the interval score. Directions in this field are memorised; magnitudes are not, so this is where the leakage resistance lives"
+magnitude_status = "the interval score and whether the interval covered the observed value are computed and recorded for every graded card, and reported as running averages. They are secondary: they do not enter the reward, so they do not move a rules trial. Folding them in would change what the paired trials optimise and is not done without registering it first"
+unresolved = "a card the referee could not answer is recorded and is left out of the episode's reward average entirely, rather than averaged in as a zero. Averaging it in would make an honest unanswerable question cost the agent part of a good episode, which is the opposite of what this file says elsewhere. Corrected 2026-10-21 after an audit"
+clamp = "stated probabilities are clamped to [0.01, 0.99] before scoring"
+refused = "0.0, counted in its own denominator. A refusal earns nothing and is only honest when a pre-declared rule forced it"
+unregisterable = "0.0, counted as a failure of the proposer, not an event for the referee: the claim could not be cashed out as a field, an op and a value against an instrument that exists"
+indeterminate = "scored by the log score but excluded from any hit-rate display, reusing bedside's third verdict word, unresolved"
+not_used = "reward schemes that pay more for a broken prediction than a held one. They are improper: the agent maximises them by stating what it does not believe, and in this field a broken prediction usually means the instrument was weak rather than that an idea died"
+
+[score.calibration]
+status = "BUILT 2026-10-21. The Murphy decomposition, a five-bin reliability diagram with Wilson intervals, and the Spiegelhalter Z are computed over the last four hundred graded cards and served with the overview. The fifty-card floor is enforced in code: below it the report carries enough = false and nothing is drawn"
+sign = "the Z is zero when calibrated, positive when too sure and negative when too shy. The decomposition is checked in the tests to add back up to the Brier score"
+headline = "the Murphy decomposition of the Brier score, reliability minus resolution plus uncertainty, with reliability as the headline and resolution printed beside it so that always saying one half cannot look like calibration"
+tests = "a five-bin reliability diagram with Wilson intervals, and the Spiegelhalter Z test for forecaster calibration (Spiegelhalter, Stat Med 1986)"
+floor = "no calibration figure is published before 50 resolved cards. Below that a reliability diagram is noise"
+
+[score.alpha]
+status = "WITHDRAWN 2026-10-21. Historical rank-based flags remain in the raw ledger but are not exposed as discoveries."
+rule = "Gene percentile ranks describe this release; they are not calibrated p-values for the selected biological hypothesis. No live probe spends alpha or claims statistical discovery."
+confirmation = "Discovery requires a pre-declared estimand, valid hypothesis test and independent confirmation data. That protocol is not implemented; current rewards measure predictive skill only."
+
+[kill]
+question = "what can be taken away that these cells need?"
+registered = "2026-10-21, after the design variables had been counted and before any gene effect or drug response file was downloaded"
+inspected = "Model.csv (site, patient, growth pattern) and the PRISM curve-parameter line list were read on 2026-10-21 to count coverage and measure confounding, as recorded below. CRISPRGeneEffect.csv has never been downloaded; no outcome value has been seen"
+primary = "a pre-declared gene set against a genotype stratum with at least 20 lines, tested as a set by rank-based enrichment, not gene by gene. At 20 genes with within-set correlation 0.3 the set mean is worth about 1.7 times a single gene, which brings a reachable effect inside the alpha the ledger can afford"
+secondary_refused = "the sign test on the peritoneum-derived patients was planned and is refused by the preflight rule, measured 2026-10-21 after the gene effect file was downloaded: of the ten peritoneum-derived lines only six carry a CRISPR screen, and those six are five patients once COLO201 and COLO205 are collapsed. Five is below the floor of eight, and a nine-trial binomial was already the whole of its power. With DIFI one of the five it is not worth running. The panel is not used"
+deferred = "the contrast the subject actually calls for is anchorage-independent against adherent growth. It was considered and rejected on 2026-10-21, for two reasons"
+rejected_science = "the 2026 next-generation 3D paper (Nature 2026, doi:10.1038/s41586-026-10843-7, PMC13581591) states that its CRISPR comparisons between 3D and 2D conditions were performed between unmatched, different groups of models. Only a gene-expression comparison used matched models, and those were nine central nervous system spheroids. So the dataset is not the paired within-line design that would have removed the growth-mode confound, which was the whole reason to want it"
+rejected_terms = "its data availability names only the DepMap portal, with no accession, no figshare record and no licence stated for the data; the article's own CC BY-NC-ND covers the article, not the datasets. The portal sits behind a bot check and asks not to be scraped, which is the same wall that made bedside pin 24Q4. Nothing is fetched from it"
+rule = "no source is added without a licence that can be read and a download path that does not require defeating a bot check, and the agent never accepts terms on its own behalf"
+
+[kill.gate]
+registered = "2026-10-21, derived by code from the release itself, nothing hand-picked"
+positive = "the genes DepMap infers to be common essentials must come out essential in colorectal lines"
+negative = "the Achilles nonessential controls must not"
+rule = "the area under the curve separating the two by median gene effect must be at least 0.95, the median common essential must be at or below -0.5, and at most 5 percent of nonessential controls may fall at or below -0.5"
+ran = "2026-10-21 on 63 screened colorectal lines: 1523 common essentials and 726 nonessential controls scored, area under the curve 0.9991, median common essential -1.065, control noise 0.0041. Passed"
+consequence = "kill is calibrated, so a kill verdict scores. It is the first referee in this project that is allowed to earn"
+
+[kill.pack]
+release = "DepMap Public 24Q4"
+licence = "CC BY 4.0"
+citation = "DepMap, Broad Institute. DepMap 24Q4 Public. figshare+ 2024, doi:10.25452/figshare.plus.27993248.v1"
+fetched = "2026-10-21 by scripted download from figshare, each file checked against the md5 recorded in src/crispr_research/data/pack.py and refused on a mismatch"
+files = "Model.csv, CRISPRGeneEffect.csv, CRISPRInferredCommonEssentials.csv, AchillesCommonEssentialControls.csv, AchillesNonessentialControls.csv"
+derived = "data/pack.duckdb, 23 MB: 96 colorectal lines, 1,116,758 gene effect scores over 17,916 genes and the 63 lines that carry a screen, plus the two control lists"
+chosen = "24Q4 because it is the last release under CC BY with a scripted download, the same reasoning and the same release bedside pinned. Nothing later is taken, and the agent never accepts new terms on its own"
+
+[kill.strata]
+registered = "2026-10-21"
+all = "every colorectal line that carries a screen, 63 of them"
+primary = "the lines drawn from a primary tumour, 45 of them over 44 patients"
+peritoneal = "refused by preflight, see kill.secondary_refused"
+note = "genotype strata such as KRAS-mutant are not registered yet because they need the somatic mutation file, which has not been downloaded. Until then kill speaks about colorectal lines in general and cannot speak about the peritoneum at all, which is stated wherever its verdicts appear"
+
+[kill.panel]
+measured = "2026-10-21, from Model.csv"
+peritoneum_derived = "ten colorectal lines from ascites or abdomen: SNUC1, NCIH716, COLO201, COLO205, DIFI, NCIH508, SNU503, SKCO1, SNU283, SNU175"
+patients = "nine, not ten: COLO201 and COLO205 share PatientID PT-BLAWlD and carry the same APC, BRAF V600E and TP53 calls. They are collapsed to one patient everywhere"
+growth_confound = "seven of the ten are not purely adherent, against ten of the sixty-three primary-derived lines: one-sided Fisher odds ratio 12.4, p = 0.00093. Any difference found between these panels is a candidate explanation of growth mode, and is reported as such"
+outlier = "DIFI is one of the nine patients and is the canonical EGFR-amplified, cetuximab-hypersensitive line. One line is a ninth of the exposed group, so every verdict carries a leave-one-line-out result"
+null = "significance for any panel contrast comes from a permutation test on the site label, ten thousand draws, reported twice: unrestricted, and restricted within growth pattern. The gap between the two is the confound, in numbers"
+prism = "zero of the ten have a fitted PRISM dose-response curve; twenty-seven colorectal lines have one at all. The peritoneum-against-primary drug contrast is not underpowered, it is empty, and it is not registered. PRISM is used only for genotype strata among those twenty-seven"
+
+[matter]
+question = "does it show up in people whose disease reached the abdomen?"
+registered = "2026-10-21, after the exposure field had been audited against biopsy-proven sites and before any outcome model was fitted"
+endpoint = "time on treatment by the piecewise-exponential discontinuation hazard already registered in bedside/method.toml [model], not overall survival. Discontinuation events are nearly complete, which moves the detectable interaction from a hazard ratio of about 1.4 to about 1.2"
+population = "stage 4 only. The flag is otherwise a stage proxy: among colorectal patients it marks stage 4 in 1191 of 1935, against 1172 of 3569 unflagged. Restricting to stage 4 leaves 1191 against 1172, which is balanced by construction"
+exposure_time = "exposure is read from the first sequenced sample forward, reusing bedside's start_after_sample rule, because the field records history over follow-up and treating it as a baseline state invites immortal-time and index-event bias"
+
+endpoint_built = "the readout is the length of a course of a drug class before it is stopped, compared between two groups by a two-sided Mann-Whitney test. This is not bedside's hierarchical discontinuation model; it is a fast assumption-light referee that a card can be graded against in one second, and it is reported as such"
+splits = "abdominal, which is stage 4 colorectal split on the intra-abdominal flag, and msi, which splits on mismatch-repair status"
+floor = "fifteen courses on each side, the same estimability floor bedside registered, or the card is unresolved rather than guessed"
+local = "it reads bedside's processed database and the raw patient file in place, read-only, and nothing is copied. Where that data is absent, which is every deployed instance, matter reports that it is not on this machine and cannot score. No patient-level value ever leaves this machine"
+
+[matter.exposure]
+measured = "2026-10-21, from data_clinical_sample.txt and data_clinical_patient.txt"
+strict = "biopsy-proven: a sequenced metastatic sample from peritoneum, omentum or mesentery. Ninety-six colorectal patients; 151 if any abdominal site is allowed. Primary for specificity, and biased toward patients whose disease was reachable by a needle"
+broad = "the INTRA_ABDOMINAL flag, which is text mining over radiology impressions. 1935 colorectal patients, 1191 of them stage 4. Used for power"
+sensitivity = "88 of the 96 biopsy-proven peritoneal patients carry the flag: 91.7%"
+precision = "at most 5.0% of flagged patients have a biopsy-proven peritoneal sample, and at most 7.8% any biopsy-proven abdominal one. This is a floor, not an estimate: most patients never had a metastatic biopsy, so the true precision cannot be known from this release"
+naming = "because of that floor, a claim resting on the broad flag is a claim about intra-abdominal involvement and is written that way. It is not called peritoneal metastasis anywhere in the output"
+
+[improve]
+registered = "2026-10-21"
+question = "does changing how it works make it better, by the referee rather than by its own opinion?"
+layers = "two. The playbook is the rules put in front of the agent at the start of every episode, at most six lines. The method is the rules for revising the playbook, at most five"
+trial = "A fixed hash of gene identity reserves one fifth of dependency cases before outcomes are read. Exploration cannot access them. Each challenger receives unused cases with at least 20 patients, frozen observations, provenance, memory and budgets. Both policies run in fresh stores, in randomized order, on the identical assigned statement. Evaluation evidence is released only after the complete trial. Cases are never reused within a data release."
+statistic = "Negative Brier loss on the assigned prediction; an omitted prediction receives -1 and an invalid challenger cannot be promoted. Positive mean gain and an exact sign-flip p below 0.05/(j*(j+1)) are required at trial j. Eight pairs by default, six to twelve configurable; the sample grows up to twelve when the frozen threshold requires it, then automatic revisions pause if it cannot be reached. The threshold is frozen before sampling; no optional early promotion."
+refusals = "a change must say what it should fix; it may not mention the score, the referee or the reward, because those are fixed and are not the agent's to tune; a duplicate or a no-op rewrite is refused; and a change that already lost is refused by name with its p-value, so the same idea is not tried twice"
+credit = "the method version that authored a trial is credited with its gain, and after three recorded gains the method is kept only if it holds against its parent's mean, otherwise it reverts"
+harness2 = "this is Propose, Probe and Compose from google-research/harness2, with the part we disagreed with replaced. That system refines the harness without ground-truth feedback, by contrasting executions and judging the contrast. Here the contrast is decided by a referee that was fixed before the change was proposed, so the agent cannot adopt a change by liking it"
+limit = "Rule evaluation measures prediction quality on withheld cases from the mounted dependency release. It does not establish new biology, independent replication, patient benefit, or general performance on every referee. Without eligible data, automatic revisions wait."
+
+[later]
+question = "of the things being tried in people now, which will report what?"
+registered = "2026-10-21"
+source = "the ClinicalTrials.gov v2 API, unauthenticated, read at the time the card is sealed"
+fields = "has_results, completed, stopped, recruiting, years_to_report, and known, which is one when the outcome already exists"
+open_bet = "a card whose field is has_results, completed or stopped, on a trial where known is zero, is sealed and left OPEN. It is not graded, it scores nothing that day, and it is settled only when the registry changes. Nothing learned afterwards can alter what was written, because the seal is of the card alone"
+why = "this is the only referee here whose answer cannot have been memorised, because at the time of sealing it does not exist. It is also the slowest: roughly ten to thirty trials in this disease report in a year"
+retrodiction = "a card on a trial that has already reported is graded at once, but it is retrodiction and is priced as such by the reference forecaster, which has read the same literature. The agent earns only the bits by which it beats that"
+gate = "two long-settled trials must still read as settled and completed. Monotone facts only, because a recruiting trial may legitimately change state between runs. If the registry cannot be reached the gate does not run and later does not score"
+
+[matter.gate]
+registered = "2026-10-21, derived by code from the data itself"
+known = "checkpoint inhibitors in colorectal cancer must run markedly longer in mismatch-repair-defective disease than in stable disease, which is as well established as anything in this field"
+control = "an antimetabolite split the same way must not"
+rule = "the known pair must show a ratio of at least two at p of at most 0.001, and the control a ratio under 1.5"
+ran = "2026-10-21: checkpoint by MSI ratio 5.071 at p = 8.0e-11, antimetabolite by MSI ratio 0.851. Passed"
+limit = "this validates the instrument, not the exposure. It says the rig can see a real effect in this data. It says nothing about whether the abdominal flag means what one would want it to mean, which is covered under matter.exposure and is far weaker"
+
+[applicability]
+rule = "a card names the kernels that apply to it, and standing requires every applicable kernel to pass. Kernels are not a conjunction over one claim unless the claim is the same claim in each"
+why = "reach is about what intraperitoneal delivery can touch, and MSK-CHORD's treatment timeline has no route, no surgery and no HIPEC, CRS or PIPAC: only an agent and an oral-or-topical flag. Floxuridine in that file is the hepatic arterial pump, which is liver-directed and a confounder for abdominal disease, not an intraperitoneal route"
+consequence = "a claim about intraperitoneal delivery cannot reach standing on this data, and the agent is told so when it proposes one, rather than finding out when it is scored"
+
+[amendment]
+rule = "a sealed card is permanent. A verdict is append-only: it is versioned by the hash of the fitting method, and a correction is a new row that cites the old one, never an edit"
+why = "bedside amended its own model twice in flight and was right to. Permanent has to mean append-only, not immutable in interpretation, or the first honest correction looks like a cover-up"
+
+[[history]]
+date = "2026-10-21"
+run = "method registered"
+result = "the reach section, its agents and its replication gate were written before the kernel existed; the sink derivation and both published bands were taken from the source and recorded above"
+
+[[history]]
+date = "2026-10-21"
+run = "design variables counted before registering kill and matter"
+result = "Model.csv: ten peritoneum-derived colorectal lines over nine patients (COLO201 and COLO205 share PT-BLAWlD); seven of ten not purely adherent against ten of sixty-three primary-derived, Fisher one-sided odds ratio 12.4, p = 0.00093. PRISM: zero of the ten have a dose-response curve, twenty-seven colorectal lines have one. MSK-CHORD: ninety-six colorectal patients with a biopsy-proven peritoneum, omentum or mesentery sample, 151 with any abdominal site; the INTRA_ABDOMINAL flag covers 1935 patients at 91.7% sensitivity against the biopsy-proven set and at most 5.0% precision for it; the flag marks stage 4 in 1191 of 1935 against 1172 of 3569 unflagged"
+finding = "the first design's peritoneum-against-primary drug contrast is empty, not weak, and its cell-line contrast is nine patients confounded with growth mode at odds 12.4. Kill was demoted to a replication test on that panel, with discovery moved to pre-declared gene sets on genotype strata; matter was restricted to stage 4 on the discontinuation endpoint with a two-tier exposure. No gene effect or drug response value was read: CRISPRGeneEffect.csv has never been downloaded"
+
+[[history]]
+date = "2026-10-21"
+run = "method amended after review"
+result = "reach split into a replication gate (proves the code) and a measurement gate against published depths (proves the physics, and not yet built, so reach scores zero until it exists); the Damkohler guard added so a steady-state depth is never reported for a moving front; scoring moved from a hand-kept table of settled results to a sealed reference forecaster with skill in bits, plus an interval on the effect size; an online false-discovery ledger added; a preflight coverage count added; an applicability rule added so kernels are not treated as a conjunction over claims that differ"
+
+[[history]]
+date = "2026-10-21"
+run = "the 2026 next-generation 3D screens were read and rejected"
+result = "not fetched. The paper's own CRISPR 2D-against-3D comparison is between unmatched groups of models, so it is not the paired design that would have removed the growth-mode confound; and its data availability names only the DepMap portal, with no licence for the data and a bot check in front of it"
+finding = "the reason to want the dataset was the pairing, and the pairing is not there. Kill stays a replication test on 24Q4, which is CC BY and already on disk"
+
+[[history]]
+date = "2026-10-21"
+run = "the measurement gate was attempted and deferred"
+result = "not built. Every measured penetration depth reachable without a subscription was second-hand, quoted inside a modelling paper, and the quoted platinum values span 0.4 mm to 4 mm because they are measured against different criteria (an IC50 crossing, a detection limit, a concentration ratio)"
+finding = "the gate's comparand was changed from depth at IC50 to the decay length lambda, which can be read off a measured profile without knowing the IC50 or the absolute cavity concentration. Also recorded: the replicated model looks biased low against measurement by two to fourfold, and the page must say so"
+
+[[history]]
+date = "2026-10-21"
+run = "the measurement gate was built from open-access sources and refused"
+result = "depths.toml written from nine published figures, five of them primary and read from the paper's own full text, located with OpenAlex and read through Europe PMC without any subscription. The gate does not run: the rows do not measure one quantity, and the spread from 20 micrometres to 5 millimetres is wide enough that the registered discrimination test could not distinguish the true pairing from a random one"
+finding = "two headline numbers dissolved on inspection. The 1 to 5 mm figure repeated across reviews traces to pharmacokinetic modelling rather than microscopy, by the admission of one of those reviews. The one primary 4 mm cisplatin figure is microdialysis detection at catheters placed in normal liver and stomach, where systemic uptake delivers drug by a second route the kernel does not model. Reach still scores zero, now for a reason that is written down and checkable"
+
+[[history]]
+date = "2026-10-21"
+run = "the no-score rule was found unenforced and enforced"
+result = "method.toml had said since registration that an ungated referee earns nothing, while the code was paying a reach card 0.678 bits. The scoring path now asks the gate whether the kernel is calibrated and withholds the bits when it is not, the model is told the number it did not get and why, and two tests pin it"
+finding = "a pre-registration that the code does not enforce is decoration. This one was, for several hours, and it was caught by asking whether the gate mattered rather than by any test"
+
+[[history]]
+date = "2026-10-21"
+run = "the dependency referee was built and gated"
+result = "pass. On 63 screened colorectal lines the area under the curve separating DepMap's common essentials from the Achilles nonessential controls is 0.9991, the median common essential is -1.065, and 0.41 percent of controls reach -0.5. Kill is the first referee here that is allowed to earn, and a card on it is now graded and paid in bits"
+finding = "preflight killed the peritoneal arm a second time. Only six of the ten peritoneum-derived lines carry a screen, and those six are five patients, below the registered floor of eight. The drug-sensitivity arm was already empty. So the panel this experiment was named for cannot be used on either axis, and kill speaks about colorectal lines in general instead, which is stated wherever it appears"
+
+[[history]]
+date = "2026-10-21"
+run = "the self-improvement loop was built and ran a full trial"
+result = "nine episodes on a scripted gateway. The empty starting playbook was retired and a one-line challenger adopted on four pairs, gain +0.585 bits, p = 0.062, and a second change went straight onto trial. An integration test asserts that no preamble in any episode of a trial contains a version, a marker or the word challenger"
+finding = "the first assertion written for that test was wrong and the test caught it: pairs do not all share one front, only the two halves of a single pair do. The bandit picks a front for the first half and the second half is forced to match it"
+
+[[history]]
+date = "2026-10-21"
+run = "research integrity and evaluation amended 2026-10-21"
+result = "Removed rank-as-p discovery claims. Added canonical evidence, source hashes, persistent duplicate detection, explicit pending states, source inspection and registry search. Revisions receive episode evidence. Policy comparisons use reserved cases and isolated stores. Missing data disables the corresponding work and policy trials."

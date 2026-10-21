@@ -1,0 +1,113 @@
+[meta]
+purpose = "published measurements of how far a drug travels into peritoneal tissue, read from the papers themselves rather than quoted from reviews"
+built = "2026-10-21"
+access = "open-access full text only, fetched through the Europe PMC REST service after locating legal copies with OpenAlex. No login, no subscription, no paywall circumvention"
+gates = "nothing here gates the reach kernel yet. Every row records what was actually measured, and the rows that exist do not measure the same quantity. See [verdict]"
+fields = "kind is primary when the paper made the measurement and secondary when it is quoting someone else; transport is how the drug arrived; criterion is what counted as having arrived; depth is in micrometres"
+
+[verdict]
+date = "2026-10-21"
+finding = "the published numbers for this question span more than two orders of magnitude, from tens of micrometres to five millimetres, and the spread is explained by what was being measured rather than by disagreement about tissue"
+chain = "the millimetre figures that dominate review articles are not microscopy. One 2026 review states plainly that estimates of 2 to 5 mm were largely based on pharmacokinetic modeling rather than direct microscopic evaluation, and in the same paragraph reports that direct fluorescence analysis of doxorubicin after HIPEC found penetration of only a few cell layers, about 20 to 30 micrometres"
+four_mm = "the one primary cisplatin-during-HIPEC measurement found is microdialysis, not a depth profile: catheters were placed at known depths in liver, stomach, rectum and peritoneum, and cisplatin was detected at the deepest of them. Detection at a catheter 4 to 5 mm inside the stomach wall of a living animal does not isolate diffusion from the cavity, because the bloodstream also delivers drug after systemic uptake. It measures a different transport path from the one the kernel models"
+consequence = "a gate built on these rows could not discriminate. The reach kernel puts cisplatin at about 0.45 mm, which sits inside a published spread running from 0.02 mm to 5 mm, so a random pairing of drugs to measurements would pass the factor-of-three test as easily as the true pairing. The discrimination rule registered in method.toml therefore refuses this gate, and reach keeps scoring zero"
+usable = "the aerosol rows are the one internally consistent set: several independent groups measuring doxorubicin after pressurised aerosol by fluorescence microscopy agree on roughly 100 to 600 micrometres. They cannot gate this kernel, which models diffusion from a liquid-filled cavity and omits convection, but they would gate a convection-aware aerosol model, and they are kept here for that"
+
+[[row]]
+drug = "doxorubicin"
+kind = "primary"
+transport = "aerosol, pressurised, 12 and 20 mmHg"
+tissue = "ovary, caecum, omentum, parietal peritoneum, in living sheep"
+criterion = "fluorescence microscopy, depth at which signal was still seen"
+depth = "over 100 in all ovarian samples at 20 mmHg against 55 percent of them at 12 mmHg; over 100 in every omental sample at both pressures"
+source = "PMC8073905, BMC Cancer 2021"
+comparable = false
+why = "aerosol delivery with convection, and a detection criterion rather than a killing concentration"
+
+[[row]]
+drug = "doxorubicin"
+kind = "primary"
+transport = "aerosol, pressurised"
+tissue = "peritoneum, ex vivo and in vivo swine"
+criterion = "confocal laser scanning microscopy"
+depth = "300 to 600 for cytostatics after pressurised aerosol, as the paper states the range for this technique"
+source = "PMC4910582, Journal of Cancer 2016"
+comparable = false
+why = "aerosol delivery; the paper's own experiment compares irradiated against unirradiated tissue rather than establishing an absolute depth for a liquid cavity"
+
+[[row]]
+drug = "anticancer aerosol, methylene blue as tracer"
+kind = "primary"
+transport = "aerosol, rotational pressurised"
+tissue = "porcine peritoneum"
+criterion = "visible and microscopic penetration"
+depth = "300 to 400 at the maximum, opposite the nozzle, and less elsewhere"
+source = "PMC9695236, 2022"
+comparable = false
+why = "aerosol, and the depth depends on where the nozzle points, which is a spray geometry effect"
+
+[[row]]
+drug = "nebulised cytostatic"
+kind = "primary"
+transport = "aerosol, high-pressure nebuliser"
+tissue = "intraluminal"
+criterion = "measured penetration depth"
+depth = "100 to 400, heterogeneous by position"
+source = "PMC11921402, 2025"
+comparable = false
+why = "aerosol, and heterogeneous by position relative to the nozzle"
+
+[[row]]
+drug = "cisplatin"
+kind = "primary"
+transport = "liquid cavity, hyperthermic perfusion"
+tissue = "liver, stomach, rectum and peritoneum of a living animal, not tumour"
+criterion = "detectable by microdialysis at a catheter placed at a known depth"
+depth = "at least 4000, being the deepest catheter at which drug was detected"
+source = "PMC11976807, 2025"
+comparable = false
+why = "normal organs rather than a tumour nodule, a detection threshold rather than a killing concentration, and the bloodstream is an uncontrolled second route to a catheter that deep"
+
+[[row]]
+drug = "oxaliplatin"
+kind = "primary"
+transport = "liquid, perfusion over a cell layer"
+tissue = "cultured cells, about 100 micrometres thick"
+criterion = "continuous viability readout through the layer"
+depth = "about 100, being the thickness of the layer assayed rather than a measured limit"
+source = "PMC8909393, 2022"
+comparable = false
+why = "an in-vitro layer with no capillaries, so the sink this kernel is built around is absent"
+
+[[row]]
+drug = "cisplatin and others"
+kind = "secondary"
+transport = "liquid cavity, hyperthermic perfusion"
+tissue = "peritoneal tissue"
+criterion = "unstated; traced to pharmacokinetic modelling rather than microscopy"
+depth = "1000 to 5000, the figure most often repeated in reviews"
+source = "quoted in PMC12930464, PMC13466377, PMC10136577, PMC12811078 and others, 2023 to 2026"
+comparable = false
+why = "second-hand, and the one review that states the provenance says these came from modelling, not from direct microscopic evaluation"
+
+[[row]]
+drug = "doxorubicin"
+kind = "secondary"
+transport = "liquid cavity, hyperthermic perfusion"
+tissue = "tumour"
+criterion = "fluorescence-based tissue analysis"
+depth = "20 to 30, described as a few cell layers"
+source = "quoted in PMC13524994, 2026, citing a pharmacology study of intraperitoneal doxorubicin in 145 patients"
+comparable = false
+why = "second-hand, and the cited work is a pharmacology paper whose support for this specific figure has not been read"
+
+[[row]]
+drug = "paclitaxel"
+kind = "secondary"
+transport = "liquid cavity"
+tissue = "tumour surface"
+criterion = "fluorescence microscopy"
+depth = "100 to 200"
+source = "quoted in PMC13620416, 2026"
+comparable = false
+why = "second-hand"

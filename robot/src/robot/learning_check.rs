@@ -450,7 +450,7 @@ fn trace_step(
     mut trace: ResMut<Trace>,
     training: Res<TrainingState>,
     mut commands: Commands,
-    mut grip: ResMut<BallGrip>,
+    grip: ResMut<BallGrip>,
     mut queries: ParamSet<(JointReadQuery, TorqueWriteQuery, BallQuery)>,
 ) {
     let _ = &mut commands;
