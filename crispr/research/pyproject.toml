@@ -26,6 +26,9 @@ research = "research.cli:main"
 requires = ["uv_build>=0.13.4,<0.14"]
 build-backend = "uv_build"
 
+[tool.uv.build-backend]
+module-name = "research"
+
 [tool.ruff]
 line-length = 79
 target-version = "py314"
