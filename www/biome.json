@@ -36,6 +36,7 @@
         "noUselessFragments": "off"
       },
       "correctness": {
+        "noInvalidGridAreas": "off",
         "useExhaustiveDependencies": "off"
       },
       "suspicious": {
