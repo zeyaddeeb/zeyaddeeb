@@ -50,6 +50,9 @@ const COPIES: { side: Side; label: string; note: string }[] = [
 	},
 ];
 
+const STEP = 34;
+const TAP = 6;
+
 const nearestTo = (picks: Pick[], at: number) => {
 	let best = 0;
 	let gap = Number.POSITIVE_INFINITY;
@@ -66,6 +69,9 @@ const nearestTo = (picks: Pick[], at: number) => {
 	return best;
 };
 
+const byPosition = (picks: Pick[]) =>
+	picks.map((_, index) => index).sort((a, b) => picks[a].at - picks[b].at);
+
 export function Tape({
 	mutant,
 	normal,
@@ -79,7 +85,7 @@ export function Tape({
 	center,
 }: TapeProps) {
 	const reel = useRef<HTMLDivElement>(null);
-	const drag = useRef<{ id: number; from: number; cut: number } | null>(null);
+	const drag = useRef<{ id: number; x: number; from: number } | null>(null);
 	const [span, setSpan] = useState(48);
 	const picked = picks[chosen];
 	const total = mutant.length;
@@ -112,29 +118,38 @@ export function Tape({
 
 		if (!held || held.id !== event.pointerId) return;
 
-		const pitch = reel.current
-			? Number.parseFloat(
-					getComputedStyle(reel.current).getPropertyValue("--cr-pitch"),
-				)
-			: 15;
-		const moved = (event.clientX - held.from) / Math.max(pitch, 1);
+		const order = byPosition(picks);
+		const rank = order.indexOf(held.from);
+		const steps = Math.round((event.clientX - held.x) / STEP);
+		const next = order[Math.min(Math.max(rank + steps, 0), order.length - 1)];
 
-		onChoose(nearestTo(picks, held.cut + moved));
+		if (next !== undefined && next !== chosen) onChoose(next);
 	};
 
 	const grab = (event: ReactPointerEvent<HTMLDivElement>) => {
 		if (!picked) return;
 
-		drag.current = {
-			id: event.pointerId,
-			from: event.clientX,
-			cut: picked.at,
-		};
+		drag.current = { id: event.pointerId, x: event.clientX, from: chosen };
 		event.currentTarget.setPointerCapture(event.pointerId);
 	};
 
 	const release = (event: ReactPointerEvent<HTMLDivElement>) => {
-		if (drag.current?.id === event.pointerId) drag.current = null;
+		const held = drag.current;
+
+		if (held?.id !== event.pointerId) return;
+
+		drag.current = null;
+
+		if (Math.abs(event.clientX - held.x) > TAP || !reel.current) return;
+
+		const box = reel.current.getBoundingClientRect();
+		const pitch = Number.parseFloat(
+			getComputedStyle(reel.current).getPropertyValue("--cr-pitch"),
+		);
+
+		onChoose(
+			nearestTo(picks, shift + (event.clientX - box.left) / Math.max(pitch, 1)),
+		);
 	};
 
 	const step = (by: number) =>

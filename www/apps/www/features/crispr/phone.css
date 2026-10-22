@@ -43,9 +43,10 @@
 		--cr-pitch: 14px;
 		--cr-tape: 124px;
 		--cr-panel: 184px;
+		--cr-stage: clamp(96px, 26vw, 140px);
 		height: auto;
 		min-height: min(calc(100svh - 12px), 880px);
-		grid-template-rows: auto auto auto minmax(96px, 1fr) auto auto auto auto;
+		grid-template-rows: auto auto auto var(--cr-stage) auto auto 1fr auto;
 		border-width: 0;
 		border-top: 2px solid var(--cr-rule);
 	}
@@ -56,7 +57,7 @@
 	}
 
 	.cr-molecule {
-		height: auto;
+		height: var(--cr-stage);
 		min-height: 0;
 	}
 

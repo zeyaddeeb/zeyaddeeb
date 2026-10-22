@@ -227,6 +227,12 @@
 	cursor: pointer;
 }
 
+.cr .cr-map__site::after {
+	content: "";
+	position: absolute;
+	inset: -11px -10px;
+}
+
 .cr .cr-map__site[data-only="normal"] {
 	background: var(--blue);
 }
@@ -267,6 +273,9 @@
 	min-width: 0;
 	overflow: hidden;
 	touch-action: pan-y;
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
 	cursor: grab;
 	mask-image: linear-gradient(
 		to right,
