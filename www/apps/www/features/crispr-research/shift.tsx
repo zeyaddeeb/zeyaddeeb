@@ -1,6 +1,7 @@
 "use client";
 
 import { ReservedText } from "@/components/reserved-text";
+import { caption, unmarked } from "@/features/proofs/shift/caption";
 import type { Live } from "./reduce";
 import type { Connection } from "./use-research";
 
@@ -37,7 +38,12 @@ export function Shift({
 	}
 
 	const steps = live?.steps ?? [];
-	const thinking = live?.thought ?? "";
+	const thinking = unmarked(live?.thought ?? "");
+	const lines = thinking
+		? caption(thinking)
+		: live?.resting
+			? { before: null, now: live.resting, whole: true }
+			: null;
 	const rules = live?.rules ?? null;
 
 	return (
@@ -69,9 +75,10 @@ export function Shift({
 				) : null}
 			</ol>
 
-			<p className="rs-shift__thought" aria-live="polite">
-				{thinking ? thinking.slice(-180) : (live?.resting ?? "")}
-			</p>
+			<div className="rs-shift__thought" aria-live="polite">
+				<p className="rs-shift__before">{lines?.before ?? "\u00a0"}</p>
+				<p className="rs-shift__now">{lines?.now ?? "\u00a0"}</p>
+			</div>
 
 			<div className="rs-rules">
 				<p className="rs-rules__now">
