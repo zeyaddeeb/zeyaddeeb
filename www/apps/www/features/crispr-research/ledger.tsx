@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { type ReactNode, useId, useMemo, useState } from "react";
 import { KILL_GATE, MATTER_GATE, REFEREES } from "./facts";
 import type { Capability, Card } from "./protocol";
 import { AGENTS, BANDS, reading, SINK } from "./reach";
@@ -44,6 +44,40 @@ function replication() {
 	}).filter((row) => row !== null);
 }
 
+function Block({
+	title,
+	open = false,
+	children,
+}: {
+	title: string;
+	open?: boolean;
+	children: ReactNode;
+}) {
+	const [expanded, setExpanded] = useState(open);
+	const id = useId();
+
+	return (
+		<div className="rs-ledger__block" data-expanded={expanded}>
+			<h3 className="rs-ledger__title">{title}</h3>
+			<h3 className="rs-ledger__fold">
+				<button
+					type="button"
+					className="rs-ledger__toggle"
+					aria-expanded={expanded}
+					aria-controls={id}
+					onClick={() => setExpanded((value) => !value)}
+				>
+					{title}
+					<span className="rs-ledger__sign" aria-hidden="true" />
+				</button>
+			</h3>
+			<div id={id} className="rs-ledger__body">
+				{children}
+			</div>
+		</div>
+	);
+}
+
 export function Ledger({
 	cards,
 	capabilities,
@@ -55,8 +89,7 @@ export function Ledger({
 
 	return (
 		<section className="rs-ledger" aria-label="The record">
-			<div className="rs-ledger__block">
-				<h3 className="rs-ledger__title">What the kernel reproduces</h3>
+			<Block title="What the kernel reproduces" open>
 				<table className="rs-table">
 					<thead>
 						<tr>
@@ -85,10 +118,9 @@ export function Ledger({
 					may refuse a claim but may not earn with one until it is gated against
 					measured depths.
 				</p>
-			</div>
+			</Block>
 
-			<div className="rs-ledger__block">
-				<h3 className="rs-ledger__title">The four referees</h3>
+			<Block title="The four referees">
 				<table className="rs-table">
 					<thead>
 						<tr>
@@ -130,10 +162,9 @@ export function Ledger({
 					Reach passes neither, so it may refuse a claim and never earn with
 					one.
 				</p>
-			</div>
+			</Block>
 
-			<div className="rs-ledger__block">
-				<h3 className="rs-ledger__title">What it has sealed</h3>
+			<Block title="What it has sealed">
 				<table className="rs-table">
 					<thead>
 						<tr>
@@ -181,7 +212,7 @@ export function Ledger({
 						})}
 					</tbody>
 				</table>
-			</div>
+			</Block>
 		</section>
 	);
 }

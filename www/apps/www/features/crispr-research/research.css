@@ -4,14 +4,14 @@
 	--rs-dim: color-mix(in srgb, var(--paper) 62%, transparent);
 	--rs-faint: color-mix(in srgb, var(--paper) 7%, transparent);
 	--rs-pad: clamp(14px, 1.6vw, 22px);
-	--rs-stage: 304px;
+	--rs-stage: 320px;
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(320px, 384px);
+	grid-template-columns: minmax(0, 1fr) minmax(290px, 30%) minmax(280px, 330px);
 	grid-template-areas:
-		"head head"
-		"panel nodule"
-		"shift dials"
-		"ledger ledger";
+		"head head head"
+		"panel nodule dials"
+		"shift shift shift"
+		"ledger ledger ledger";
 	grid-template-rows: auto var(--rs-stage) auto auto;
 	max-width: 1360px;
 	margin-inline: auto;
@@ -19,6 +19,10 @@
 	background: var(--charcoal);
 	color: var(--paper);
 	font-family: var(--font-display);
+}
+
+.rs-screen {
+	display: contents;
 }
 
 .rs :focus-visible {
@@ -64,15 +68,25 @@
 	gap: 8px;
 	margin: 0;
 	padding: var(--rs-pad);
-	border-left: 2px solid var(--rs-rule);
-	border-bottom: 2px solid var(--rs-rule);
+	border-inline: 2px solid var(--rs-rule);
 	place-items: center;
 	min-height: 0;
 }
 
-.rs-nodule svg {
+.rs-nodule__plate {
+	position: relative;
+	align-self: stretch;
+	justify-self: stretch;
+	min-height: 0;
+}
+
+.rs-nodule__plate svg {
+	position: absolute;
+	inset: 0;
+	width: auto;
 	height: 100%;
 	max-width: 100%;
+	margin: auto;
 	aspect-ratio: 1;
 }
 
@@ -105,7 +119,6 @@
 	grid-template-columns: minmax(0, 1fr);
 	gap: 12px;
 	padding: var(--rs-pad);
-	border-left: 2px solid var(--rs-rule);
 	align-content: start;
 }
 
@@ -157,10 +170,6 @@
 	color: color-mix(in srgb, var(--ink) 70%, transparent);
 }
 
-.rs-tabs {
-	display: none;
-}
-
 .rs-panel {
 	grid-area: panel;
 	display: grid;
@@ -168,9 +177,11 @@
 	gap: 14px;
 	padding: var(--rs-pad);
 	border-top: 2px solid var(--rs-rule);
-	border-bottom: 2px solid var(--rs-rule);
 	min-height: 0;
-	align-content: start;
+}
+
+.rs-panel__note {
+	align-self: end;
 }
 
 .rs-panel__title,
@@ -226,16 +237,34 @@
 .rs-shift {
 	grid-area: shift;
 	display: grid;
-	grid-template-rows: auto auto auto auto auto;
-	gap: 10px;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 260px;
+	grid-template-areas:
+		"title title title"
+		"steps steps steps"
+		"thought rules vitals";
+	gap: 10px 24px;
 	padding: var(--rs-pad);
+	border-top: 2px solid var(--rs-rule);
 	align-content: start;
 }
 
+.rs-shift[data-off="true"] {
+	grid-template-columns: minmax(0, 1fr);
+	grid-template-areas:
+		"title"
+		"note";
+}
+
 .rs-shift__title {
+	grid-area: title;
 	display: flex;
 	align-items: center;
 	gap: 8px;
+}
+
+.rs-shift__note {
+	grid-area: note;
+	max-width: 76ch;
 }
 
 .rs-shift__episode {
@@ -259,6 +288,7 @@
 }
 
 .rs-steps {
+	grid-area: steps;
 	display: flex;
 	gap: 4px;
 	margin: 0;
@@ -305,6 +335,7 @@
 }
 
 .rs-shift__thought {
+	grid-area: thought;
 	display: grid;
 	grid-template-rows: auto 1fr;
 	gap: 4px;
@@ -335,6 +366,7 @@
 }
 
 .rs-rules {
+	grid-area: rules;
 	display: grid;
 	grid-template-rows: 1fr auto;
 	gap: 4px;
@@ -362,8 +394,10 @@
 }
 
 .rs-vitals {
+	grid-area: vitals;
 	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-content: start;
 	gap: 8px;
 	margin: 0;
 }
@@ -390,7 +424,7 @@
 .rs-ledger {
 	grid-area: ledger;
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 14px 32px;
 	padding: var(--rs-pad);
 	border-top: 2px solid var(--rs-rule);
@@ -399,8 +433,19 @@
 
 .rs-ledger__block {
 	display: grid;
+	align-content: start;
 	gap: 8px;
 	min-width: 0;
+}
+
+.rs-ledger__body {
+	display: grid;
+	gap: 8px;
+	min-width: 0;
+}
+
+.rs-ledger__fold {
+	display: none;
 }
 
 .rs-table {
