@@ -9,6 +9,7 @@ use axum::{
     Json, Router,
 };
 use deepseek_lab::{
+    cups::{gateway::Gateway, reason::Desk, routes as cups},
     protocol::ClientCommand,
     state::{AppState, CreateError, Limits, Session},
 };
@@ -27,6 +28,7 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let state = AppState::new(Limits::from_env());
+    let desk = Desk::new(Gateway::from_env());
 
     let app = Router::new()
         .route("/health", get(|| async { "ok" }))
@@ -36,8 +38,9 @@ async fn main() -> anyhow::Result<()> {
         .route("/sessions/{id}", get(get_session).delete(delete_session))
         .route("/sessions/{id}/commands", post(command))
         .route("/sessions/{id}/events", get(events))
-        .layer(DefaultBodyLimit::max(16 * 1024))
-        .with_state(state.clone());
+        .with_state(state.clone())
+        .merge(cups::routes(desk.clone()))
+        .layer(DefaultBodyLimit::max(16 * 1024));
 
     let sweeper = state.clone();
 
@@ -47,6 +50,7 @@ async fn main() -> anyhow::Result<()> {
         loop {
             tick.tick().await;
             sweeper.sweep().await;
+            desk.sweep();
         }
     });
 

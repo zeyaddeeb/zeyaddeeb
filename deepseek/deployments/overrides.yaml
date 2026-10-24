@@ -16,6 +16,7 @@ env:
   RAYON_NUM_THREADS: "1"
   CANDLE_NUM_THREADS: "1"
   DEEPSEEK_OPERATION_SECONDS: "600"
+  CUPS_REASONER_URL: "http://inference-gateway.llm.svc.cluster.local:1234"
 
 resources:
   limits:

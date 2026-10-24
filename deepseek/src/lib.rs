@@ -1,3 +1,4 @@
+pub mod cups;
 pub mod curriculum;
 pub mod model;
 pub mod protocol;

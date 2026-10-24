@@ -19,7 +19,11 @@
     "generate:disco": "uv run scripts/disco-originals.py && biome format --write features/disco/film-data.ts",
     "generate:bias": "bun scripts/bias-records.ts && biome format --write features/bias/records-data.ts",
     "generate:crispr": "bun scripts/crispr-locus.ts && biome format --write features/crispr/locus-data.ts",
-    "generate:cobe": "cd ../../../cobe && PYTHONPATH=src uv run python -m cobe fetch --time-ordered && PYTHONPATH=src uv run python -m cobe build && cd ../www/apps/www && biome format --write features/cobe/spectrum-data.ts"
+    "generate:cobe": "cd ../../../cobe && PYTHONPATH=src uv run python -m cobe fetch --time-ordered && PYTHONPATH=src uv run python -m cobe build && cd ../www/apps/www && biome format --write features/cobe/spectrum-data.ts",
+    "generate:cups": "cd ../../../deepseek && cargo run --release --features accelerate --bin cups -- export target/cups/blurts-1.safetensors target/cups/blurts-2.safetensors target/cups/blurts-4.safetensors target/cups/blurts-8.safetensors target/cups/notes-1.safetensors && cd ../www/apps/www && biome format --write features/cups/readers-data.ts",
+    "generate:cups-glance": "cd ../../../deepseek && cargo run --release --features accelerate --bin cups -- glance --count 100 && cd ../www/apps/www && biome format --write features/cups/glance-data.ts",
+    "generate:cups-recorded": "cd ../../../deepseek && cargo run --release --features accelerate --bin cups -- record 4:1 8:1 12:1",
+    "generate:cups-forge": "cd ../../../deepseek && cargo run --release --features accelerate --bin cups -- forge --count 20 --swaps 6 && cd ../www/apps/www && biome format --write features/cups/forge-data.ts"
   },
   "dependencies": {
     "@chenglou/pretext": "^1.0.0",

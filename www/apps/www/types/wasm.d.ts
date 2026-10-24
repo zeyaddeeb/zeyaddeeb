@@ -179,6 +179,18 @@ declare module "@zeyaddeeb/wasm" {
 	): number;
 	export function celsius(kelvin: number): number;
 
+	export class CupReader {
+		constructor(bytes: Uint8Array);
+		free(): void;
+		depth(): number;
+		len(): number;
+		is_empty(): boolean;
+		capacity(): number;
+		meta(key: string): string | undefined;
+		truncate(len: number): void;
+		push(token: number): Float32Array;
+	}
+
 	export class Crowd {
 		constructor(budget: number);
 		free(): void;

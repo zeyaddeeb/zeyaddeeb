@@ -44,6 +44,7 @@ describe("experiment listing", () => {
 		expect(ids({ search: "Candle", sort: "oldest" })).toEqual([
 			"deepseek",
 			"any-semblance",
+			"show-your-work",
 		]);
 
 		expect(ids({ search: "sound", sort: "oldest" })).toEqual([

@@ -62,6 +62,7 @@ describe("catalog", () => {
 			"deepseek",
 			"every-program",
 			"already-sealed",
+			"show-your-work",
 		]);
 		expect(series?.part).toBe(2);
 		expect(seriesOf(getExperiment("game-of-life"))).toBeNull();

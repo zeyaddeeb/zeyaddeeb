@@ -55,6 +55,16 @@ export interface Experiment {
 
 export const experiments: Experiment[] = [
 	{
+		id: "show-your-work",
+		number: 27,
+		title: "Show Your Work",
+		line: "Two small machines watch a five-cup shell game. One answers at a glance, the other writes down where the ball went after every swap. Shuffle until one loses it, forge a note, then hand the same shuffle to a real reasoning model and watch it think.",
+		stack: ["Rust", "Candle", "WASM", "llama.cpp", "SSE"],
+		href: "/experiments/show-your-work",
+		topics: ["ai", "math"],
+		series: "guessing-machines",
+	},
+	{
 		id: "four-ways-to-be-wrong",
 		number: 26,
 		title: "Four Ways to Be Wrong",
