@@ -6,10 +6,11 @@ import { getRecentPosts, getTopCollectionItems } from "@/lib/actions";
 import { formatShortDate } from "@/lib/format-date";
 
 export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
 	const [featuredResult, postsResult] = await Promise.allSettled([
 		getTopCollectionItems(4),
-		getRecentPosts(3),
+		getRecentPosts(5),
 	]);
 
 	const featuredItems =
