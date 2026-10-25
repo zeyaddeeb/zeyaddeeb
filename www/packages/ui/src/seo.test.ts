@@ -137,10 +137,20 @@ describe("public metadata", () => {
 			},
 			sameAs: [
 				PROFILE_URLS.github,
+				PROFILE_URLS.gitlab,
 				PROFILE_URLS.linkedin,
 				PROFILE_URLS.twitter,
 				PROFILE_URLS.crunchbase,
+				PROFILE_URLS.orcid,
 				PROFILE_URLS.wikidata,
+			],
+			subjectOf: [
+				{
+					"@type": "VideoObject",
+					"@id": "https://www.youtube.com/watch?v=yLw9MvNfuY8",
+					uploadDate: "2024-10-17",
+					publisher: { "@type": "Organization", name: "SurrealDB" },
+				},
 			],
 		});
 		expect(website).toMatchObject({

@@ -13,25 +13,25 @@ export default function GameOfLifePage() {
 			id="game-of-life"
 			intro="Draw on the grid to add cells. Run the simulation, or switch between Rust and JavaScript to compare their execution times."
 			aside={
-				<div className="grid gap-8 md:grid-cols-2">
-					<div>
-						<h3 className="eyebrow mb-3">The rules</h3>
-						<ul className="grid gap-2 font-serif text-base text-paper-2">
+				<div className="notes-columns">
+					<section>
+						<h3>The rules</h3>
+						<ul className="notes-list">
 							<li>A live cell with fewer than two neighbors dies.</li>
 							<li>A live cell with two or three neighbors survives.</li>
 							<li>A live cell with more than three neighbors dies.</li>
 							<li>A dead cell with exactly three neighbors is born.</li>
 						</ul>
-					</div>
-					<div>
-						<h3 className="eyebrow mb-3">Why WASM</h3>
-						<p className="font-serif text-base text-paper-2">
+					</section>
+					<section>
+						<h3>Why WASM</h3>
+						<p>
 							Every generation touches every cell and its eight neighbors. Rust
 							does that on a contiguous buffer with no allocation; JavaScript
 							can read the result straight out of linear memory, and the canvas
 							uses that buffer to draw the cells.
 						</p>
-					</div>
+					</section>
 				</div>
 			}
 		>

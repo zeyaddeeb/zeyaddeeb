@@ -158,14 +158,6 @@
 	line-height: 1.65;
 }
 
-.frame__notes .text-paper-2 {
-	color: var(--dim);
-}
-
-.frame__notes .font-serif {
-	font-family: var(--font-display);
-}
-
 .frame__nav {
 	display: grid;
 	grid-template-columns: 1fr 1fr;

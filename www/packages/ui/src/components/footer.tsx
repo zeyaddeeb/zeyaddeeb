@@ -16,6 +16,10 @@ export interface FooterProps {
 	className?: string;
 }
 
+const defaultNavLinks: { label: string; href: string }[] = [
+	{ label: "About", href: "/about" },
+];
+
 const defaultSocialLinks: SocialLink[] = [
 	{ label: "GitHub", href: PROFILE_URLS.github },
 	{ label: "LinkedIn", href: PROFILE_URLS.linkedin },
@@ -26,7 +30,7 @@ export function Footer({
 	signature = SITE_NAME,
 	copyright = `© ${new Date().getFullYear()} ${SITE_NAME}`,
 	socialLinks = defaultSocialLinks,
-	navLinks,
+	navLinks = defaultNavLinks,
 	note,
 	className = "",
 }: FooterProps) {

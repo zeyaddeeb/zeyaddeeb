@@ -7,7 +7,8 @@
 <p align="center">
   <a href="https://www.zeyaddeeb.com">Website</a> &nbsp; / &nbsp;
   <a href="https://www.zeyaddeeb.com/experiments">Experiments</a> &nbsp; / &nbsp;
-  <a href="https://www.linkedin.com/in/zeyaddeeb">LinkedIn</a>
+  <a href="https://www.linkedin.com/in/zeyaddeeb">LinkedIn</a> &nbsp; / &nbsp;
+  <a href="https://orcid.org/0009-0009-9462-0369">ORCID</a>
 </p>
 
 I’m Zeyad Deeb, a software engineer in Brooklyn. I build machine learning and distributed systems, mostly with **Rust, TypeScript, and Python**.
@@ -24,6 +25,13 @@ This repo is home to my website and experiments in reinforcement learning, real-
 | [**Circle Limit**](https://www.zeyaddeeb.com/experiments/circle-limit)         | Animated hyperbolic tilings inspired by M. C. Escher.          | Rust · WebAssembly · Canvas    |
 | [**Game of Life**](https://www.zeyaddeeb.com/experiments/game-of-life)         | Conway’s cellular automaton, with Rust and JavaScript engines. | Rust · TypeScript · Canvas     |
 | [**Audio Visualizer**](https://www.zeyaddeeb.com/experiments/audio-visualizer) | Microphone frequency analysis with four display modes.         | Rust · WebAssembly · Web Audio |
+
+## Writing
+
+- [Building context for personalized recommendations with Rust and SurrealDB](https://www.zeyaddeeb.com/blog/posts/personalization-with-surrealdb)
+- [My first attempt at a proof in Lean](https://www.zeyaddeeb.com/blog/posts/proof-in-lean)
+
+The [No Goals proof service](proofs) includes [citation metadata](proofs/CITATION.cff) and instructions for running the checker.
 
 ## Stack
 

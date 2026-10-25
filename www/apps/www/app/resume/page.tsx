@@ -1,7 +1,7 @@
 import { LifeArrow } from "@zeyaddeeb/ui";
 import { JsonLd } from "@zeyaddeeb/ui/json-ld";
 import { pageMetadata, profilePageSchema } from "@zeyaddeeb/ui/seo";
-import { PROFILE_URLS, SITE_EMAIL } from "@zeyaddeeb/ui/site";
+import { PROFILE_URLS, SITE_EMAIL, TALKS } from "@zeyaddeeb/ui/site";
 import { Fragment } from "react";
 import { education, experience, skills } from "@/features/resume/content";
 import "@/features/resume/resume.css";
@@ -97,6 +97,7 @@ export default function ResumePage() {
 			<nav className="resume__sections" aria-label="Résumé sections">
 				<a href="#work">Experience</a>
 				<a href="#projects">Independent project</a>
+				<a href="#talks">Talks</a>
 				<a href="#stack">Skills</a>
 				<a href="#education">Education</a>
 				<a href="#contact">Contact</a>
@@ -199,6 +200,36 @@ export default function ResumePage() {
 						</li>
 					</ul>
 				</article>
+			</section>
+
+			<section
+				id="talks"
+				className="resume__section"
+				aria-labelledby="talks-title"
+			>
+				<h2 id="talks-title">Talks</h2>
+				<ul className="resume__talks">
+					{TALKS.map((talk) => (
+						<li key={talk.url}>
+							<h3>
+								<a href={talk.url} target="_blank" rel="noopener noreferrer">
+									{talk.title}{" "}
+									<LifeArrow direction="up-right" seed={talk.url} />
+								</a>
+							</h3>
+							<p>
+								{talk.host.name} ·{" "}
+								<time dateTime={talk.published}>
+									{new Date(talk.published).toLocaleDateString("en-US", {
+										month: "short",
+										year: "numeric",
+										timeZone: "UTC",
+									})}
+								</time>
+							</p>
+						</li>
+					))}
+				</ul>
 			</section>
 
 			<section

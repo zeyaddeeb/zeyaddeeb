@@ -41,6 +41,13 @@ istio:
     gateways:
       - istio-ingress/zeyaddeeb-www
     http:
+      - name: apex-to-www
+        match:
+          - authority:
+              exact: zeyaddeeb.com
+        redirect:
+          authority: www.zeyaddeeb.com
+          redirectCode: 301
       - match:
           - uri:
               prefix: /blog

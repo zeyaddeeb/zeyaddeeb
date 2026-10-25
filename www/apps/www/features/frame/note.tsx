@@ -6,33 +6,41 @@ interface NoteProps {
 	title: string;
 	open?: boolean;
 	wide?: boolean;
+	level?: 3 | 4;
 	children: ReactNode;
 }
 
-export function Note({ title, open = false, wide, children }: NoteProps) {
+export function Note({
+	title,
+	open = false,
+	wide,
+	level = 3,
+	children,
+}: NoteProps) {
 	const [expanded, setExpanded] = useState(open);
 	const id = useId();
+	const Heading = `h${level}` as const;
 
 	return (
 		<section
-			className="rh-note"
+			className="notes-card"
 			data-wide={wide || undefined}
 			data-expanded={expanded}
 		>
-			<h4 className="rh-note__title">{title}</h4>
-			<h4 className="rh-note__fold">
+			<Heading className="notes-card__title">{title}</Heading>
+			<Heading className="notes-card__fold">
 				<button
 					type="button"
-					className="rh-note__toggle"
+					className="notes-card__toggle"
 					aria-expanded={expanded}
 					aria-controls={id}
 					onClick={() => setExpanded((value) => !value)}
 				>
 					{title}
-					<span className="rh-note__sign" aria-hidden="true" />
+					<span className="notes-card__sign" aria-hidden="true" />
 				</button>
-			</h4>
-			<div id={id} className="rh-note__body">
+			</Heading>
+			<div id={id} className="notes-card__body">
 				{children}
 			</div>
 		</section>

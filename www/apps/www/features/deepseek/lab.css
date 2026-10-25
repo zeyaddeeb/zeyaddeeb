@@ -1178,11 +1178,6 @@
 	}
 }
 
-.ds-notes h3 {
-	margin: 1.8em 0 0.4em;
-	font: 600 18px / 1.3 var(--font-display);
-}
-
 .ds-notes table {
 	width: 100%;
 	margin-top: 0.6em;
@@ -1951,10 +1946,6 @@
 .ds-activity li b {
 	font-weight: 400;
 	color: color-mix(in srgb, var(--paper) 82%, transparent);
-}
-
-.ds-notes p + p {
-	margin-top: 1em;
 }
 
 .ds-rail li b {

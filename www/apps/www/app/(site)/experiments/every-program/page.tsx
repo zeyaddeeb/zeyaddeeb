@@ -5,14 +5,14 @@ import { Notes } from "@/features/programs/notes";
 
 export const metadata = experimentMetadata(
 	"every-program",
-	"Solomonoff’s perfect guessing machine, cut down to fit a browser: every program up to 26 bits votes on the next number of your sequence, and shorter programs get exponentially louder votes.",
+	"Solomonoff induction in Rust and WebAssembly: 840,000 programs up to 26 bits vote on the next number in your sequence.",
 );
 
 export default function EveryProgramPage() {
 	return (
 		<ExperimentFrame
 			id="every-program"
-			intro="In 1964 Ray Solomonoff described the perfect way to guess what comes next: run every program there is, keep the ones that agree with what you have seen, and give shorter programs bigger votes. It can never be built. Here is every program up to 26 bits, about 800,000 of them, running in your browser."
+			intro="Under Solomonoff induction, every program consistent with observed data votes on what comes next, with shorter programs weighted exponentially higher. Enter a sequence and watch ~840,000 programs up to 26 bits vote in WebAssembly."
 			aside={<Notes />}
 		>
 			<ProgramsLab />

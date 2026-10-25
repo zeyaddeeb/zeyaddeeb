@@ -3,9 +3,13 @@ import type { ReactNode } from "react";
 
 export function Out({ href, children }: { href: string; children: ReactNode }) {
 	return (
-		<a href={href} className="rh-out">
+		<a href={href} className="notes-out">
 			{children}
-			<LifeArrow direction="up-right" className="rh-out__arrow" seed={href} />
+			<LifeArrow
+				direction="up-right"
+				className="notes-out__arrow"
+				seed={href}
+			/>
 		</a>
 	);
 }

@@ -1,13 +1,12 @@
+import { Note } from "@/features/frame/note";
+import { Out } from "@/features/frame/out";
 import recordings from "@/public/show-your-work/recorded.json";
 import { FORGE } from "./forge-data";
 import { GLANCE } from "./glance-data";
-import { Note } from "./note";
-import { Out } from "./out";
 import { atOnce, notes, reach, type Spec, thousands } from "./readers";
 import { SAMPLES } from "./readers-data";
 import { EMPTY, firstWritten, type Recording, reduce, words } from "./reasoner";
 import { CHANCE } from "./task";
-import "./notes.css";
 
 const pct = (p: number) => `${Math.round(p * 100)}%`;
 
@@ -101,214 +100,82 @@ export function Notes() {
 
 	return (
 		<div className="sw-notes">
-			<div className="sw-notes__grid">
-				<Note title="Two machines, one difference" open>
+			<div className="notes-grid">
+				<Note title="Single-pass vs. scratchpad" open>
 					<p>
-						Both machines are transformers, the design inside every large
-						language model, cut down to {notes?.width ?? 64} numbers per token.
-						Both learned from the same random shuffles of up to 60 swaps, with
-						the same answer key: where the ball is after every swap. Answers at
-						once has to say where the ball is in the same pass that reads the
-						swap. Writes it down does too, but each answer is fed back into its
-						own input before the next swap arrives. That is the only difference.
-					</p>
-					<p>
-						Writes it down has one layer and {thousands(notes?.parameters ?? 0)}{" "}
-						numbers. Answers at once comes with{" "}
+						Both browser models are small transformers (width{" "}
+						{notes?.width ?? 64}) trained on random shuffles of up to 60 swaps
+						with Candle and compiled to WebAssembly. <em>Answers at once</em> (
 						{list(atOnce.map((s) => String(s.layers)))} layers, up to{" "}
-						{thousands(deepest?.parameters ?? 0)} numbers. All of them were
-						trained on a laptop with Candle, the answer-at-once ones for{" "}
-						{steps(atOnce[0])}
-						{deepest && deepest.batch !== atOnce[0]?.batch
-							? ` (the ${spelled(deepest.layers)}-layer one for ${steps(deepest)})`
-							: ""}
-						, and Writes it down for {steps(notes)}. They run here in your
-						browser as WebAssembly, from 16-bit weights checked against the
-						trainer to within 0.0001 on every probability.
+						{thousands(deepest?.parameters ?? 0)} parameters; trained for{" "}
+						{steps(atOnce[0])}) must predict the ball’s position in a single
+						forward pass. <em>Writes it down</em> (1 layer,{" "}
+						{thousands(notes?.parameters ?? 0)} parameters; {steps(notes)})
+						appends its predicted cup after each swap back into the token stream
+						before reading the next swap.
 					</p>
 				</Note>
 
-				<Note title="What a layer buys">
+				<Note title="Depth and S₅ permutations">
 					<p>
-						A transformer answers with one pass through its layers. In each
-						layer, every position may look back at everything before it and
-						combine what it finds. So the work behind one answer is fixed in
-						advance: however hard the question, it gets the same number of
-						rounds of looking and combining.
-					</p>
-					<p>
-						Following the ball is a chain. Where it ends up depends on where it
-						was a swap ago, which depends on the swap before that. In one pass,
-						the only way down a long chain is to combine swaps in pairs, then
-						pairs of pairs, so reaching twice as far takes at least one more
-						layer. Measured on {SAMPLES.toLocaleString("en-US")} fresh shuffles
-						per length, how far each one follows before it falls below 90%:{" "}
-						{list(reaches)} layers. Writes it down, with one layer,{" "}
-						{worst >= 0.9995
-							? "gets every one right"
-							: `never drops below ${pct(worst)}`}{" "}
-						up to 60 swaps.
+						Whereas 3- and 4-cup permutations form solvable groups that
+						bounded-depth transformers can shortcut (Liu et al., 2023), tracking
+						5 cups computes the word problem on <em>S₅</em>, which is
+						NC¹-complete by Barrington’s theorem (1989) and outside fixed-depth
+						TC⁰ transformers unless intermediate states are written out (Merrill
+						&amp; Sabharwal, 2023, 2024). On {SAMPLES.toLocaleString("en-US")}{" "}
+						held-out shuffles per length, single-pass accuracy stays above 90%
+						for {list(reaches)} layers, whereas the 1-layer scratchpad model{" "}
+						{worst >= 0.9995 ? "gets 100%" : `stays above ${pct(worst)}`}{" "}
+						through 60 swaps.
 					</p>
 				</Note>
 
-				<Note title="Why five cups">
+				<Note title="Intervening on the scratchpad">
 					<p>
-						The street game uses three cups, and three is the easy case. The
-						ways of shuffling three or four things form what mathematicians call
-						solvable groups, and for those a fixed number of layers can follow
-						any number of swaps with a clever shortcut (Liu and colleagues,
-						2023). Five is the first count where the shuffles stop being
-						solvable.
-					</p>
-					<p>
-						In 1989 David Barrington showed that following shuffles of five
-						things is as hard as anything a circuit of logarithmic depth can
-						compute, a class called NC1. Transformers of the usual kind live in
-						a smaller class, TC0 (Merrill and Sabharwal, 2023). No one has
-						proved the two classes differ, but almost everyone expects they do.
-						If they do, no transformer with a fixed number of layers, at any
-						size, follows five cups for every length of shuffle.
-					</p>
-				</Note>
-
-				<Note title="Why the notes fix it">
-					<p>
-						Writing the ball down turns one long chain into many links of one.
-						To write the next note it only needs the last note and the newest
-						swap, a job one layer can do at any length. Each note is a step of
-						work done outside the model and handed back to it, so a model with a
-						fixed number of layers gets one more pass for every note it writes.
-					</p>
-					<p>
-						Merrill and Sabharwal (2024) proved this is exactly what chain of
-						thought adds: given enough steps of writing, a transformer can
-						follow any finite-state machine, the five-cup game included. Li and
-						colleagues (2024) trained shallow transformers on shuffles of five
-						things and saw the same split you see here.
-					</p>
-				</Note>
-
-				<Note title="The notes do the work">
-					<p>
-						Tap a note on the tape and change it. Every later note follows the
-						forgery, and so does the answer, because the model believes what it
-						wrote over the swaps it saw. With one note forged at random in each
-						of 1,000 shuffles, its final answer followed the forgery{" "}
-						{pct(notes?.follows ?? 0)} of the time. For this little model the
-						notes are the reasoning, not a story told about it afterward.
-					</p>
-					<p>
-						A big model can refuse a forged note for two opposite reasons. It
-						can ignore its notes: Lanham and colleagues (2023) planted mistakes
-						in the written reasoning of large language models and on several
-						tasks the answer usually stayed the same, so the writing was not
-						what produced it. Or it can check them.
-					</p>
-					<p>
-						We tried the big one here. In {FORGE.trials} shuffles of{" "}
-						{FORGE.swaps} swaps, as soon as it wrote down where the ball starts
-						we changed that number and let it go on for {FORGE.window} tokens.{" "}
+						Editing a note on the tape tests whether the written state is
+						causally used. On 1,000 shuffles with a single random note flipped,
+						the 1-layer model’s final answer followed the edited trajectory{" "}
+						{pct(notes?.follows ?? 0)} of the time. When the initial cup token
+						was similarly altered in Qwen3.5-4B’s reasoning trace (
+						{FORGE.trials} runs of {FORGE.swaps} swaps), the model checked the
+						prompt and corrected the forged note in{" "}
 						{FORGE.caught === FORGE.forged
-							? `All ${FORGE.caught} times`
-							: `${FORGE.caught} of ${FORGE.forged} times`}{" "}
-						it went back to the question and restated the real start before
-						using ours, in writing: “No, wait, the prompt says: A ball is under
-						the cup in position 5.” It wrote wait, no or actually right after{" "}
-						{FORGE.spoke} of the {FORGE.forged} forgeries, and at the same point
-						in {FORGE.control} of the same runs left alone. That is checking,
-						not ignoring. The start is printed in the question, so it is the
-						easiest note to check; a forged middle step would have to be caught
-						by redoing the swaps.
+							? `all ${FORGE.caught}`
+							: `${FORGE.caught} of ${FORGE.forged}`}{" "}
+						trials (emitting a self-correction after {FORGE.spoke} of{" "}
+						{FORGE.forged} edits vs. {FORGE.control} unedited controls).
 					</p>
 				</Note>
 
-				<Note title="A big one, at once">
+				<Note title="Qwen3.5-4B: single-pass and thinking">
 					<p>
-						Qwen3.5-4B is an open reasoning model with 4 billion numbers and 32
-						layers. Twenty-four of those layers are recurrent: they carry a
-						running state from word to word, which in principle could carry the
-						ball along. It runs here at 4-bit precision on four CPU cores
-						through llama.cpp, and it gets your shuffle in words, one swap per
-						line.
-					</p>
-					<p>
-						Made to answer at once, with its thinking switched off, it gets{" "}
-						{list(first)} right after one, two and three swaps. Naming the cup
-						where the ball started gets {list(stay)}, because a random swap
-						moves the ball 40% of the time. Answering at once, it does about as
-						well as ignoring the swaps altogether. From 10 to 60 swaps it
-						averages {pct(late)}, against a chance of 20% ({GLANCE.count}{" "}
-						shuffles per length).
-					</p>
-				</Note>
-
-				<Note title="The big one, thinking">
-					<p>
-						Let it think and it writes notes of its own, in English: “Ball is at
-						1. Swap is between 2 and 5. 1 is not 2 or 5. Ball remains at 1.”
-						That costs it about 60 words a swap, where the little one spends
-						one, and it spends a good part of its budget restating the question
-						first. Its question ends with “Keep your thinking short.” In three
-						test runs without that line it took about twice as long to write an
-						answer and never stopped on its own, which on four CPU cores means
-						minutes.
-					</p>
-					<p>
-						The lane above the cups shows what it would answer if it had to
-						stop: after every line it writes, its thinking is closed and its
-						odds for each position are read off. Answer now stops it there. Wait
-						does the opposite: when it decides it is done, the word Wait is
-						added and it keeps going, the trick from s1 (Muennighoff and
-						colleagues, 2025) that made a model check its work and score higher.
-						Its budget is 900 tokens plus 80 a swap, up to 4,000.
-					</p>
-				</Note>
-
-				<Note title="It keeps going">
-					<p>
-						It often keeps going after it has the answer. In the recorded runs:{" "}
+						Qwen3.5-4B (32 layers, 4-bit quantized via <code>llama.cpp</code>)
+						scores {list(first)} at 1, 2, and 3 swaps with thinking disabled
+						(comparable to the {list(stay)} baseline of always guessing the
+						starting cup) and averages {pct(late)} across 10–60 swaps (chance is
+						20%). With chain-of-thought enabled, it expends ~60 words per swap
+						and frequently continues re-verifying after first reaching the
+						answer (
 						{list(
 							runs.map((r) => {
 								const end = r.finished
 									? `stopped at word ${r.total.toLocaleString("en-US")}`
-									: `was still going at word ${r.total.toLocaleString("en-US")} when its budget ran out`;
+									: `hit the token cap at word ${r.total.toLocaleString("en-US")}`;
 
 								return r.first === null
-									? `with ${r.swaps} swaps it wrote no answer and ${end}`
-									: `with ${r.swaps} swaps it wrote an answer at word ${r.first.toLocaleString("en-US")} and ${end}`;
+									? `${r.swaps} swaps: ${end}`
+									: `${r.swaps} swaps: first answer at word ${r.first.toLocaleString("en-US")}, ${end}`;
 							}),
 						)}
-						, re-reading the question and redoing swaps it had already done.
-						Chen and colleagues (2024) measured this habit, overthinking, across
-						reasoning models of the o1 kind.
-					</p>
-					<p>
-						Cut off in the middle of a re-check, it answers with whatever
-						position it was just working on, which is why the lane above the
-						cups can be wrong after its notes were right. When a run ends, the
-						panel shows both: the answer it wrote and the answer it gives when
-						stopped.
-					</p>
-				</Note>
-
-				<Note title="What this does not show">
-					<p>
-						The little machines learned nothing but this game, and a cliff in
-						their accuracy is a fact about these weights after a fixed amount of
-						training, not a law. Training longer moved it out a little. The
-						theory says what a fixed number of layers cannot do at every length;
-						it does not say where a given model gives up.
-					</p>
-					<p>
-						The big one is one model, quantized to 4 bits, asked in one wording.
-						Its thinking is sampled, so two runs on the same shuffle differ.
-						When the live model is off, the page plays runs of the same model
-						recorded on a laptop, at the speed they were recorded.
+						). The live probability bar probes the model after each reasoning
+						line by closing the thought block, and <em>Wait</em> appends a
+						continuation token after s1 (Muennighoff et al., 2025).
 					</p>
 				</Note>
 
 				<Note title="Sources" wide>
-					<ul className="sw-sources">
+					<ul className="notes-sources">
 						{SOURCES.map((s) => (
 							<li key={s.href}>
 								<Out href={s.href}>{s.text}</Out>

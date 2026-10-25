@@ -5,7 +5,7 @@ import { Poster } from "@/features/home/poster";
 import "@/features/home/home.css";
 
 const intro =
-	"I write software, mostly in Rust and TypeScript. This is where I keep my side projects, writing, and things I find interesting.";
+	"I’m Zeyad Deeb. I write software, mostly in Rust and TypeScript, and keep my side projects, writing, and saved links here.";
 
 const doors = [
 	{
@@ -36,7 +36,9 @@ export default function HomePage() {
 			<Poster
 				head={
 					<>
-						<p className="home__eyebrow">Software engineer / Brooklyn, NY</p>
+						<p className="home__eyebrow">
+							Zeyad Deeb · Software engineer / Brooklyn, NY
+						</p>
 						<h1>
 							Side projects
 							<br />& notes<span className="home__period">.</span>

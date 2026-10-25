@@ -1,13 +1,14 @@
 "use client";
 
 import { LifeArrow, SourceLink } from "@zeyaddeeb/ui";
-import { PROFILE_URLS } from "@zeyaddeeb/ui/site";
+import { PROFILE_URLS, SITE_NAME, SITE_PORTRAIT } from "@zeyaddeeb/ui/site";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import "./desk.css";
 
 const LINKS = [
 	{ label: "Story", href: "/story" },
+	{ label: "Résumé", href: "/resume" },
 	{ label: "GitHub", href: PROFILE_URLS.github, external: true },
 	{
 		label: "LinkedIn",
@@ -85,10 +86,19 @@ export function Desk() {
 				<h1 id="about-title" className="desk__title">
 					A bit about me<span className="desk__period">.</span>
 				</h1>
-				<p className="desk__lede">
-					I’m Zeyad Deeb, a software engineer in Brooklyn. I write code and lead
-					teams building machine learning and distributed systems.
-				</p>
+				<div className="desk__intro">
+					<img
+						src={SITE_PORTRAIT}
+						alt={SITE_NAME}
+						width={1181}
+						height={1332}
+						className="desk__portrait"
+					/>
+					<p className="desk__lede">
+						I’m Zeyad Deeb, a software engineer in Brooklyn. I write code and
+						lead teams building machine learning and distributed systems.
+					</p>
+				</div>
 
 				<div className="desk__lamp-place">
 					<button
@@ -125,11 +135,7 @@ export function Desk() {
 						{LINKS.map((l) =>
 							l.external ? (
 								<li key={l.href}>
-									<a
-										href={l.href}
-										target="_blank"
-										rel="me noopener noreferrer"
-									>
+									<a href={l.href} target="_blank" rel="me noopener noreferrer">
 										{l.label}{" "}
 										<span aria-hidden="true">
 											<LifeArrow direction="up-right" seed={l.label} />

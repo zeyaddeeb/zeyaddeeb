@@ -7,6 +7,7 @@ import {
 	SITE_PORTRAIT,
 	SITE_URL,
 	SOURCE_REPOSITORY,
+	TALKS,
 	TWITTER_HANDLE,
 } from "./site";
 
@@ -150,11 +151,27 @@ export function serializeJsonLd(data: unknown) {
 
 const sameAsProfiles = [
 	PROFILE_URLS.github,
+	PROFILE_URLS.gitlab,
 	PROFILE_URLS.linkedin,
 	PROFILE_URLS.twitter,
 	PROFILE_URLS.crunchbase,
+	PROFILE_URLS.orcid,
 	PROFILE_URLS.wikidata,
 ];
+
+const talkVideos = TALKS.map(({ title, published, host, ...video }) => ({
+	"@type": "VideoObject",
+	"@id": video.url,
+	name: title,
+	...video,
+	uploadDate: published,
+	publisher: {
+		"@type": "Organization",
+		name: host.name,
+		url: host.url,
+		sameAs: host.wikidata,
+	},
+}));
 
 const personPortrait = {
 	"@type": "ImageObject",
@@ -169,11 +186,11 @@ const personPortrait = {
 const alumniUniversities = [
 	{
 		"@type": "CollegeOrUniversity",
-		name: "University of Illinois",
-		url: "https://illinois.edu/",
+		name: "University of Illinois Springfield",
+		url: "https://www.uis.edu/",
 		sameAs: [
-			"https://en.wikipedia.org/wiki/University_of_Illinois_Urbana-Champaign",
-			"https://www.wikidata.org/wiki/Q457281",
+			"https://en.wikipedia.org/wiki/University_of_Illinois_Springfield",
+			"https://www.wikidata.org/wiki/Q941855",
 		],
 	},
 	{
@@ -234,6 +251,7 @@ export const siteSchema = {
 				"Kubernetes",
 			],
 			sameAs: sameAsProfiles,
+			subjectOf: talkVideos,
 		},
 		{
 			"@type": "WebSite",
@@ -283,6 +301,7 @@ export function profilePageSchema({
 			jobTitle: "Software Engineer",
 			description: SITE_DESCRIPTION,
 			sameAs: sameAsProfiles,
+			subjectOf: talkVideos,
 			...person,
 		},
 	};

@@ -38,6 +38,11 @@ const navItems = [
 	{ label: "Library", href: "/library" },
 ];
 
+const footerNavLinks = [
+	{ label: "About", href: `${baseUrl}/about` },
+	{ label: "Résumé", href: `${baseUrl}/resume` },
+];
+
 export default function RootLayout({
 	children,
 }: Readonly<{
@@ -58,7 +63,7 @@ export default function RootLayout({
 				<BlogMotion>
 					<main>{children}</main>
 				</BlogMotion>
-				<Footer className="site-footer" />
+				<Footer className="site-footer" navLinks={footerNavLinks} />
 			</body>
 		</html>
 	);

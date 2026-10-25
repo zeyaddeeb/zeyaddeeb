@@ -1609,24 +1609,6 @@
 	}
 }
 
-.jz-notes h3 {
-	margin: 28px 0 8px;
-	font: 600 18px / 1.3 var(--font-display);
-}
-
-.jz-notes p {
-	max-width: 68ch;
-	margin: 0;
-}
-
-.jz-notes p + p {
-	margin-top: 12px;
-}
-
-.jz-notes code {
-	font: 400 0.88em / 1 var(--font-mono);
-}
-
 .jz-legend {
 	max-width: 68ch;
 	margin: 20px 0 0;
@@ -1636,7 +1618,7 @@
 
 .jz-legend div {
 	display: grid;
-	grid-template-columns: 11ch minmax(0, 1fr);
+	grid-template-columns: minmax(11ch, max-content) minmax(0, 1fr);
 	gap: 16px;
 	padding-block: 8px;
 }
@@ -1652,39 +1634,17 @@
 
 .jz-legend dd {
 	margin: 0;
-	font-size: 15px;
-	line-height: 1.5;
-}
-
-.jz-sources {
-	display: grid;
-	gap: 10px;
-	max-width: 68ch;
-	margin: 0;
-	padding-left: 1.2em;
-	font-size: 14px;
-	line-height: 1.5;
 }
 
 @media (max-width: 640px) {
 	.jz-legend div {
-		grid-template-columns: 9ch minmax(0, 1fr);
+		grid-template-columns: minmax(9ch, max-content) minmax(0, 1fr);
 		gap: 12px;
 	}
 
 	.jz-legend dt code {
 		font-size: 13px;
 	}
-
-	.jz-legend dd {
-		font-size: 14px;
-	}
-}
-
-.jz-sources a {
-	color: inherit;
-	text-decoration: underline;
-	text-underline-offset: 3px;
 }
 
 .jz .jz-editor-head p {

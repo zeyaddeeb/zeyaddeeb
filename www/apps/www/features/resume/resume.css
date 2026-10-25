@@ -219,18 +219,21 @@
 	color: var(--dim);
 }
 
-.resume__education {
+.resume__education,
+.resume__talks {
 	list-style: none;
 	display: grid;
 	gap: 24px;
 }
 
-.resume__education h3 {
+.resume__education h3,
+.resume__talks h3 {
 	font-size: 21px;
 	font-weight: 500;
 }
 
-.resume__education p {
+.resume__education p,
+.resume__talks p {
 	font-size: 17px;
 	color: var(--dim);
 	margin-top: 6px;
@@ -353,6 +356,7 @@
 
 	.resume__role-head,
 	.resume__education li,
+	.resume__talks li,
 	.resume__results {
 		break-inside: avoid;
 	}

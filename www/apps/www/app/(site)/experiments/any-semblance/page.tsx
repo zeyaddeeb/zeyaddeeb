@@ -5,14 +5,14 @@ import { Notes } from "@/features/semblance/notes";
 
 export const metadata = experimentMetadata(
 	"any-semblance",
-	"Alvin Lucier’s I Am Sitting in a Room with a voice model as the room. Say one sentence; the machine learns your voice from it and repeats you, then learns from its own recording and repeats that, generation after generation, live, in your browser.",
+	"Alvin Lucier’s I Am Sitting in a Room rebuilt with Whisper and voice cloning: record a sentence and hear it re-synthesized across generations.",
 );
 
 export default function AnySemblancePage() {
 	return (
 		<ExperimentFrame
 			id="any-semblance"
-			intro="In 1969 Alvin Lucier recorded himself speaking, played the tape back into the room, recorded that, and kept going until his words had dissolved into the room’s own ringing. Here the room is a machine. It hears your sentence, learns your voice from it and says it back. Then it listens only to itself, again and again."
+			intro="In Alvin Lucier’s 1969 piece I Am Sitting in a Room, a spoken recording is played back and re-recorded until room resonance replaces the words. Here the room is a speech-to-text and voice-cloning loop: speak one sentence and hear each generation re-transcribe and re-synthesize the last."
 			aside={<Notes />}
 		>
 			<SemblanceLab />

@@ -13,18 +13,22 @@ export default function PretextMatrixPage() {
 			id="pretext-matrix"
 			intro="Pretext measures and wraps the text. CSS animates the columns. Adjust the density or pause the animation below."
 			aside={
-				<dl className="grid gap-6 sm:grid-cols-3">
-					{[
-						["Engine", "@chenglou/pretext"],
-						["Renderer", "DOM + CSS keyframes"],
-						["Cost", "one layout pass per resize"],
-					].map(([k, v]) => (
-						<div key={k}>
-							<dt className="eyebrow">{k}</dt>
-							<dd className="mt-2 font-serif text-base text-paper-2">{v}</dd>
-						</div>
-					))}
-				</dl>
+				<div className="notes-columns">
+					<section>
+						<h3>Engine</h3>
+						<p>
+							Layout runs through @chenglou/pretext, which measures and wraps
+							the text.
+						</p>
+					</section>
+					<section>
+						<h3>Renderer</h3>
+						<p>
+							Columns are DOM nodes animated with CSS keyframes, costing one
+							layout pass per resize.
+						</p>
+					</section>
+				</div>
 			}
 		>
 			<FallingCode />

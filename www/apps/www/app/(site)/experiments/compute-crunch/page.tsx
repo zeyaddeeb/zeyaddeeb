@@ -4,14 +4,14 @@ import { ExperimentFrame } from "@/features/frame/experiment-frame";
 
 export const metadata = experimentMetadata(
 	"compute-crunch",
-	"Four acts of AI capacity planning against real solvers: route compute, wire a real county grid, schedule years of construction, and order before you know who signs.",
+	"Four acts of AI capacity planning solved with OR-Tools: route global demand, balance a county grid, schedule multi-year builds, and plan under uncertainty.",
 );
 
 export default function ComputeCrunchPage() {
 	return (
 		<ExperimentFrame
 			id="compute-crunch"
-			intro="Four acts, three chapters each. Act 1 routes AI compute around the world. Act 2 moves to Data Center Alley in Loudoun County, Virginia, where power splits across every line by physics. Act 3 adds time: projects take years and campuses keep coming. Act 4 adds chance: you order before anyone signs. Every chapter ends with a real solver’s answer, and on the hard ones you can watch it search."
+			intro="Four puzzles on AI infrastructure planning, each paired with a linear, mixed-integer, or stochastic solver in OR-Tools: route global demand, wire Loudoun County substations under DC power flow, schedule multi-year construction, and order turbines before demand is known."
 			aside={<Notes />}
 		>
 			<CapacityLab />
@@ -22,21 +22,15 @@ export default function ComputeCrunchPage() {
 function Notes() {
 	return (
 		<div className="cc-notes">
-			<h3>Act 1: Route the world</h3>
+			<h3>Act 1: Global routing</h3>
 			<p>
-				The cities and data centers are real places. Demand, power prices, and
-				carbon intensities are examples chosen for the puzzles. Latency
-				estimates use the great-circle distance between locations, multiplied by
-				1.4 to allow for bends in the fiber route, with signals traveling at two
-				thirds the speed of light.
-			</p>
-			<h3>The linear program</h3>
-			<p>
-				The solver assigns compute from data centers to cities, measured in
-				megawatts. Each site has a capacity limit, and routes over the latency
-				limit are ruled out. Any city demand left unserved costs $1,400 per
-				megawatt-hour. Training can go to any site, with a $500 per
-				megawatt-hour penalty for leaving it until later.
+				A linear program solved with GLOP in Google’s OR-Tools assigns megawatts
+				from data centers to cities subject to site capacity, route latency
+				(great-circle distance × 1.4 at 2/3 c), and an optional carbon cap.
+				Unserved city demand costs $1,400/MWh; deferred training costs $500/MWh.
+				Dual values measure the marginal savings from adding 1 MW at a site or 1
+				tonne under the carbon cap. Chapter 3 adds discrete 25 MW capacity
+				blocks solved with SCIP.
 			</p>
 			<dl className="cc-formula">
 				<div>
@@ -61,40 +55,17 @@ function Notes() {
 					</dd>
 				</div>
 			</dl>
-			<h3>The solver</h3>
-			<p>
-				A Python service runs GLOP, the linear solver in Google’s OR-Tools, to
-				find the cheapest allocation. GLOP also returns dual values: the rate at
-				which the cost changes when a limit is relaxed. The savings shown here
-				come from solving the problem again with one extra megawatt at a site or
-				one extra tonne under the carbon cap, then comparing the two costs.
-			</p>
-			<h3>Adding capacity</h3>
-			<p>
-				Chapter 3 lets you build capacity in 25 MW blocks. SCIP solves the
-				integer program that decides where to build, then GLOP assigns the
-				compute. The cost of each block counts toward the score, so a new block
-				needs to save more than it costs.
-			</p>
-			<p>
-				All compute is interchangeable in this model. GPU types, network
-				capacity, queueing, and fairness aren’t included.
-			</p>
 
-			<h3>Act 2: Data Center Alley</h3>
+			<h3>Act 2: Loudoun County grid</h3>
 			<p>
-				The network comes from OpenStreetMap’s 230 kV and 500 kV lines in
-				Loudoun County, simplified to two 500 kV hubs and seven substations. The
-				locations and line lengths come from the map. Line limits, loads,
-				prices, and land costs are made up for the puzzles; the map doesn’t tell
-				us how much spare capacity a substation has.
-			</p>
-			<p>
-				Power flow uses the DC approximation. Flow on a line is the difference
-				in voltage angle between its ends, divided by its reactance. Here,
-				reactance is proportional to line length. Power splits across the
-				available paths, so you can’t choose a single route for it to take. A
-				line at its limit can prevent you from supplying more power elsewhere.
+				Two 500 kV hubs and seven substations simplified from OpenStreetMap’s
+				Loudoun County transmission network, modeled with DC power flow where
+				line reactance is proportional to length. SCIP solves the mixed-integer
+				decisions (campus placement, new lines, and optimal transmission
+				switching via big-M constraints) and GLOP solves the resulting power
+				flow. Chapter 2 demonstrates Braess’s paradox, where adding a line
+				overloads a parallel path and opening a breaker increases deliverable
+				power.
 			</p>
 			<dl className="cc-formula">
 				<div>
@@ -126,82 +97,42 @@ function Notes() {
 					</dd>
 				</div>
 			</dl>
-			<h3>The solvers</h3>
+
+			<h3>Act 3: Multi-year schedule</h3>
 			<p>
-				SCIP chooses where to place campuses and which lines to build or take
-				out of service. Both are mixed-integer problems. A big-M constraint lets
-				the model drop a line’s flow equation when it is out of service. Once
-				those choices are fixed, GLOP solves the power flow again. To measure
-				how much a particular choice helped, the solver runs again with the
-				alternative forced in, or with the opened breaker closed.
-			</p>
-			<p>
-				Chapter 2 shows Braess’s paradox. A new line can create a loop that
-				pushes more power onto an already full line, making the result worse.
-				Taking a line out can help for the same reason. Choosing which lines to
-				keep in service is called optimal transmission switching.
-			</p>
-			<h3>The search replay</h3>
-			<p>
-				SCIP uses branch and bound for the integer decisions. To make the
-				replay, the service repeats the same deterministic search, stopping
-				after one solution, then two, then three, and so on. It records each
-				plan, the lower bound on cost at that point, and SCIP’s elapsed time.
+				A single mixed-integer program plans 2027–2030 on the Act 2 grid. One
+				crew can start one upgrade per year, and capacity comes online only
+				after each project’s lead time. Turbine rentals and breaker states are
+				chosen annually to minimize average hourly cost across the four-year
+				window.
 			</p>
 
-			<h3>Act 3: Campuses keep coming</h3>
+			<h3>Act 4: Two-stage stochastic planning</h3>
 			<p>
-				This uses the same grid as Act 2, with all four years from 2027 to 2030
-				planned together in one mixed-integer program. You choose when each
-				project starts, but it only adds capacity after construction finishes.
-				One crew can start one project each year. Turbine rentals are chosen
-				year by year; in the last chapter, breaker settings are too. The score
-				is the average hourly cost across the four years. Lead times, costs, and
-				campus sizes are examples for the puzzles.
-			</p>
-
-			<h3>Act 4: Who signs?</h3>
-			<p>
-				You order turbines before knowing which customers will sign. Once the
-				signings are known, you can place a limited number of rush orders. These
-				two rounds of decisions make this a two-stage stochastic program. The
-				initial order and its cost are the same in every scenario; rush orders
-				depend on what happens.
-			</p>
-			<p>
-				Chapter 1 compares a plan made for average demand with one that accounts
-				for each possible outcome and its probability. The difference in
-				expected cost is the value of the stochastic solution. Chapter 2
-				minimizes the cost of the worst outcome, using robust optimization.
-				Chapter 3 asks how much you could save if you knew who would sign before
-				ordering. It compares the best advance order with separate plans for
-				each outcome, weighted by their probabilities. That saving is the
-				expected value of perfect information.
+				First-stage turbine orders are placed before customer signings are
+				known; second-stage rush orders adjust once a scenario is realized.
+				Chapter 1 computes the value of the stochastic solution (VSS) over
+				planning for average demand, Chapter 2 minimizes worst-case cost via
+				robust optimization, and Chapter 3 computes the expected value of
+				perfect information (EVPI).
 			</p>
 
 			<h3>Sources</h3>
-			<ul className="cc-sources">
+			<ul className="notes-sources">
 				<li>
 					Dietrich Braess, “Über ein Paradoxon aus der Verkehrsplanung,”{" "}
-					<cite>Unternehmensforschung</cite> 12 (1968): 258–268. The original
-					statement of Braess’s paradox, for road traffic.
+					<cite>Unternehmensforschung</cite> 12 (1968): 258–268.
 				</li>
 				<li>
 					Dirk Witthaut and Marc Timme, “Braess’s paradox in oscillator
 					networks, desynchronization and power outage,”{" "}
-					<cite>New Journal of Physics</cite> 14 (2012): 083036. Braess’s
-					paradox in power grids.
+					<cite>New Journal of Physics</cite> 14 (2012): 083036.
 				</li>
 				<li>
 					Emily B. Fisher, Richard P. O’Neill, and Michael C. Ferris, “Optimal
 					transmission switching,”{" "}
 					<cite>IEEE Transactions on Power Systems</cite> 23, no. 3 (2008):
 					1346–1355.
-				</li>
-				<li>
-					John R. Birge, “The value of the stochastic solution in stochastic
-					linear programs with fixed recourse,”{" "}
-					<cite>Mathematical Programming</cite> 24 (1982): 314–325.
 				</li>
 				<li>
 					John R. Birge and François Louveaux,{" "}

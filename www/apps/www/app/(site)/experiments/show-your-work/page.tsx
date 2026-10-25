@@ -5,14 +5,14 @@ import { ExperimentFrame } from "@/features/frame/experiment-frame";
 
 export const metadata = experimentMetadata(
 	"show-your-work",
-	"Why reasoning models write before they answer, shown with a five-cup shell game. Two transformers of the same size run in your browser: one answers in a single pass and loses the ball, the other writes a note after every swap and never does. Then a real reasoning model, Qwen3.5-4B, thinks through the same shuffle live.",
+	"Compare single-pass and chain-of-thought transformers on a five-cup shell game in WebAssembly, alongside live reasoning traces from Qwen3.5-4B.",
 );
 
 export default function ShowYourWorkPage() {
 	return (
 		<ExperimentFrame
 			id="show-your-work"
-			intro="A reasoning model is a guessing machine that writes before it answers. Here are two small ones, trained on the same shell game with the same labels. One has to say where the ball is in a single pass. The other writes down where the ball went after every swap and reads its notes back. You are the hustler: swap the cups and try to lose them. Then give the same shuffle to a real reasoning model and watch it think."
+			intro="Two small transformers trained on the same five-cup shell game run in WebAssembly: one predicts the ball’s position in a single pass, while the other records the position after each swap. Swap cups to see where single-pass depth breaks down, edit a note on the tape, or run the same shuffle on Qwen3.5-4B."
 			aside={<Notes />}
 		>
 			<CupsLab />

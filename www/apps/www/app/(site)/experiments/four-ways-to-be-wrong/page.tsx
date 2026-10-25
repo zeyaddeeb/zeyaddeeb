@@ -5,7 +5,7 @@ import { ExperimentFrame } from "@/features/frame/experiment-frame";
 
 export const metadata = experimentMetadata(
 	"four-ways-to-be-wrong",
-	"An always-on research agent for colorectal cancer in the peritoneum, built from the referee backwards: it seals every claim with a threshold and a probability before the referee runs, and the first referee is the arithmetic of how far a drug can travel into a nodule.",
+	"Reaction-diffusion modeling of intraperitoneal chemotherapy penetration, paired with a research agent that pre-registers claims against deterministic referees.",
 );
 
 export default function FourWaysToBeWrongPage() {
@@ -13,7 +13,7 @@ export default function FourWaysToBeWrongPage() {
 		<ExperimentFrame
 			id="four-ways-to-be-wrong"
 			aside={<Notes />}
-			intro="Drug put into the abdomen has about a millimetre to work with before the blood carries it away. Set a drug, a nodule and a dwell, and read how much of the lump is never reached. Then watch an agent seal claims against the same arithmetic, scored on what it adds to what was already known."
+			intro="Chemotherapy instilled into the peritoneal cavity diffuses into tumor nodules while capillary washout clears it, limiting penetration to roughly a millimeter. Adjust drug, nodule size, and dwell time below, or inspect claims pre-registered by the research agent against the same solver."
 		>
 			<ResearchLab />
 		</ExperimentFrame>

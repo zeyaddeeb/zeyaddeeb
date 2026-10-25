@@ -10,27 +10,27 @@ export const metadata = experimentMetadata(
 const notes = [
 	[
 		"The camera",
-		"The camera is an SVG viewBox. Every shot is a rectangle on one drawing, framed in Academy ratio by default on phones. The lateral dolly, the whip pan, the three-step snap zoom, the elevator crane and the pull-back are all one attribute changing.",
+		"An SVG viewBox over a single drawing. Every shot, dolly, whip pan, snap zoom, crane and pull-back, animates that one attribute.",
 	],
 	[
 		"The clock",
-		"SMIL, the browser’s own declarative animation timeline, which Chrome nearly removed in 2015. The screenplay compiles into begin and dur attributes. Play, pause and scrub are unpauseAnimations() and setCurrentTime(). No animation library.",
+		"Browser-native SMIL timelines compiled from the screenplay into begin and dur attributes. Play, pause, and scrub call unpauseAnimations() and setCurrentTime().",
 	],
 	[
 		"The storyboard",
-		"Each frame is a <use> of the same drawing with its own viewBox, so the board is live while the scene runs, and the master sheet shows all eight rectangles at once. Both print as vectors.",
+		"Each frame is a <use> element referencing the main drawing with its own viewBox, while the master sheet overlays all eight framing rectangles.",
 	],
 	[
 		"The voice",
-		"The Web Speech API reads each line, rate and pitch lowered until the delivery is flat enough. The music is a Karplus–Strong plucked string rendered once through OfflineAudioContext.",
+		"Dialogue is read via the Web Speech API with lowered rate and pitch. Music is synthesized with a Karplus–Strong plucked-string model in OfflineAudioContext.",
 	],
 	[
 		"The grade",
-		"Fifteen colors registered with @property. Switching a palette transitions every fill in the drawing, the board and the sheet in one move.",
+		"Fifteen CSS custom properties registered with @property transition the palette across the scene, storyboard, and master sheet.",
 	],
 	[
 		"The script",
-		"A Fountain-style screenplay: scene heading, action, character, parenthetical, dialogue, with camera cues in double brackets. A small parser turns it into a shot list, tested.",
+		"A Fountain-style parser reads scene headings, dialogue, and double-bracketed camera cues into a timed shot list.",
 	],
 ];
 
@@ -38,16 +38,16 @@ export default function WesAndersonPage() {
 	return (
 		<ExperimentFrame
 			id="wes-anderson"
-			intro="Checkout Pending: Anna wants to leave Hotel Kubernetes. Valentin guarantees one guest. Otto keeps preparing her replacement room. Eight camera moves, one drawing, and a reservation that outranks reality. Play the scene, explore the shots, or rewrite the script."
+			intro="An eight-shot scene built on a single flat SVG drawing, animated with SMIL viewBox transitions and synthesized speech. Play the scene, inspect the shot rectangles, or edit the screenplay."
 			aside={
-				<dl className="grid gap-6 sm:grid-cols-2">
-					{notes.map(([k, v]) => (
-						<div key={k}>
-							<dt className="eyebrow">{k}</dt>
-							<dd className="mt-2 text-base text-paper-2">{v}</dd>
-						</div>
+				<div className="notes-columns">
+					{notes.map(([title, body]) => (
+						<section key={title}>
+							<h3>{title}</h3>
+							<p>{body}</p>
+						</section>
 					))}
-				</dl>
+				</div>
 			}
 		>
 			<Film />

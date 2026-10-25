@@ -5,7 +5,7 @@ import { ExperimentFrame } from "@/features/frame/experiment-frame";
 
 export const metadata = experimentMetadata(
 	"the-smallest-red-pen",
-	"A CRISPR guide-design bench on real KRAS sequence: pick a cut site, watch Cas9 open the double helix, and see whether the tumor's copy can be cut while the patient's healthy copy is spared.",
+	"Interactive CRISPR Cas9, base-editing, and prime-editing bench on human KRAS exon 2 sequence.",
 );
 
 export default function TheSmallestRedPenPage() {
@@ -13,7 +13,7 @@ export default function TheSmallestRedPenPage() {
 		<ExperimentFrame
 			id="the-smallest-red-pen"
 			aside={<Notes />}
-			intro="In colorectal cancer the tumor differs from the patient, at this spot, by one letter. That is the whole problem with editing it: a cut that fixes the cancer must miss every healthy cell it touches. Design the guide yourself on real KRAS sequence and see how far that gets you."
+			intro="Oncogenic KRAS mutations in colorectal cancer often differ from the healthy allele by a single base at codon 12 or 13. Test Cas9 nuclease guides, base editors, and prime editors on the human KRAS sequence to see which sites discriminate between the mutant and wild-type copies."
 		>
 			<CrisprLab />
 		</ExperimentFrame>

@@ -99,7 +99,7 @@
 	fill: var(--dim);
 }
 
-.nc-sources {
+.notes-sources {
 	display: grid;
 	gap: 10px;
 	max-width: 68ch;
@@ -109,13 +109,13 @@
 	line-height: 1.5;
 }
 
-.nc-out {
+.notes-out {
 	color: inherit;
 	text-decoration: underline;
 	text-underline-offset: 3px;
 }
 
-.nc-out__arrow {
+.notes-out__arrow {
 	width: 0.72em;
 	height: 0.72em;
 	margin-left: 0.28em;

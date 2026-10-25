@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { MobileDetails } from "@/components/mobile-details";
 import { SeriesPips } from "@/components/series-pips";
 import "./frame.css";
+import "./notes.css";
 import {
 	getExperiment,
 	neighbors,

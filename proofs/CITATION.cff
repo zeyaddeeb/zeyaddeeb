@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use the No Goals proof service, please cite this software."
+type: software
+title: "No Goals proof service: a Rust service for Lean proof checking and mathematical experiments"
+authors:
+  - family-names: Deeb
+    given-names: Zeyad
+    orcid: "https://orcid.org/0009-0009-9462-0369"
+version: 0.1.15
+doi: 10.5281/zenodo.23632006
+license: MIT
+url: "https://www.zeyaddeeb.com/experiments/proofs"
+repository-code: "https://github.com/zeyaddeeb/zeyaddeeb/tree/main/proofs"
+abstract: >-
+  Rust and Axum backend for No Goals, an interactive Lean 4 proof playground.
+  The service checks bounded sequences of tactics against real Lean proof
+  states, reports hypotheses and goals, and manages a pool of Lean REPL
+  processes. It also includes an optional mathematical-experiment agent,
+  persistent experiment records, and numerical instruments. This citation
+  describes the proof service; the browser interface lives elsewhere in the
+  same repository. Numerical experiments are not formal proofs.
+keywords:
+  - Lean
+  - formal verification
+  - interactive theorem proving
+  - Rust
+  - mathematical software

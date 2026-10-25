@@ -5,7 +5,7 @@ import { ExperimentFrame } from "@/features/frame/experiment-frame";
 
 export const metadata = experimentMetadata(
 	"desktop-disco",
-	"The original Microsoft Plus! dancers on a Windows XP desktop, sharpened. Each one is a deck of short moves: deal them, choreograph them, change the tune or tap your own beat, and watch every move start on it.",
+	"The 2003 Windows XP Plus! Dancers rebuilt in WebGL and Web Audio: queue clips from their transition tables and sync playback to the beat.",
 );
 
 export default function DesktopDiscoPage() {

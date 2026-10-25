@@ -129,7 +129,7 @@ export const skills = [
 ] as const;
 
 export const education = [
-	["M.S. Computer Science", "University of Illinois"],
+	["M.S. Computer Science", "University of Illinois Springfield"],
 	["B.S. Computer Science", "University of Maryland"],
 	["B.S. Mathematics", "Indiana University"],
 ] as const;

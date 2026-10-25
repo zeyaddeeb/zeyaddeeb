@@ -13,26 +13,28 @@ export default function CrdtEditorPage() {
 			id="crdt"
 			intro="Open this page in two tabs and type in either one. Changes sync between them. You can keep editing while disconnected; queued edits sync when the connection returns."
 			aside={
-				<div className="grid gap-8 md:grid-cols-3">
-					{[
-						[
-							"WASM CRDT",
-							"The RGA runs in Rust compiled to WebAssembly. Each op returns a JSON message ready to broadcast.",
-						],
-						[
-							"Sync server",
-							"An Axum WebSocket server persists ops to SurrealDB and rebroadcasts them to every connected tab.",
-						],
-						[
-							"Offline first",
-							"If the server is unreachable the editor keeps working. Ops queue locally and flush when the connection resumes.",
-						],
-					].map(([title, body]) => (
-						<div key={title}>
-							<h3 className="eyebrow mb-3">{title}</h3>
-							<p className="font-serif text-base text-paper-2">{body}</p>
-						</div>
-					))}
+				<div className="notes-columns">
+					<section>
+						<h3>WASM CRDT</h3>
+						<p>
+							The RGA runs in Rust compiled to WebAssembly. Each op returns a
+							JSON message ready to broadcast.
+						</p>
+					</section>
+					<section>
+						<h3>Sync server</h3>
+						<p>
+							An Axum WebSocket server persists ops to SurrealDB and
+							rebroadcasts them to every connected tab.
+						</p>
+					</section>
+					<section>
+						<h3>Offline first</h3>
+						<p>
+							If the server is unreachable the editor keeps working. Ops queue
+							locally and flush when the connection resumes.
+						</p>
+					</section>
 				</div>
 			}
 		>

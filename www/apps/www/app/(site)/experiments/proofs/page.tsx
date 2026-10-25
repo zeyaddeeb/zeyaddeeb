@@ -11,7 +11,7 @@ export default function ProofsPage() {
 	return (
 		<ExperimentFrame
 			id="proofs"
-			intro="Two tabs, one Lean. In the course, you pick moves and Lean checks each step until there’s nothing left to prove. In the night shift, an agent works on the Riemann hypothesis with the same Lean, and you can watch it think."
+			intro="Step through interactive proofs checked by Lean 4, or switch to the night shift to watch an agent test and formalize claims around the Riemann hypothesis."
 			aside={<Notes />}
 		>
 			<ProofsTabs />
@@ -25,66 +25,35 @@ function Notes() {
 			<section className="pf-notes-part" data-part="course">
 				<h3 className="pf-notes-title">The course</h3>
 				<p>
-					The board shows the goals and error messages returned by Lean 4.34.
-					The explanations above it help you read the results as you go.
-				</p>
-				<h4>How a check works</h4>
-				<p>
-					A Rust service runs Lean through the Lean REPL. When you try a move,
-					it checks your proof from the beginning, including the new step. Your
-					progress is saved in this browser, so you can come back to it later.
-				</p>
-				<h4>What you can type</h4>
-				<p>
-					The box accepts any single tactic from core Lean, without Mathlib. It
-					rejects <code>sorry</code>, compiled evaluation such as{" "}
-					<code>native_decide</code>, and anything that reaches outside the
-					proof. Each move has five seconds before the process is replaced. The
-					levels use <code>rfl</code>, <code>decide</code>, <code>exact</code>,{" "}
-					<code>intro</code>, <code>obtain</code>, <code>constructor</code>,{" "}
-					<code>left</code>, <code>right</code>, <code>rw</code>,{" "}
-					<code>induction</code>, and <code>omega</code>.
+					A Rust service runs Lean 4.34 through the Lean REPL and replays your
+					proof from the start on each step, with a five-second timeout. The
+					input accepts single core-Lean tactics (<code>rfl</code>,{" "}
+					<code>decide</code>, <code>exact</code>, <code>intro</code>,{" "}
+					<code>obtain</code>, <code>constructor</code>, <code>left</code>,{" "}
+					<code>right</code>, <code>rw</code>, <code>induction</code>,{" "}
+					<code>omega</code>) and rejects <code>sorry</code> or{" "}
+					<code>native_decide</code>. Progress is saved in local storage.
 				</p>
 			</section>
 			<section className="pf-notes-part" data-part="shift">
 				<h3 className="pf-notes-title">The night shift</h3>
-				<h4>Who is working</h4>
+				<h4>Architecture</h4>
 				<p>
-					Qwen3.5 2B, running on four CPU cores inside the same cluster, driven
-					by a Rust loop built on rig. It works in episodes. A bandit picks the
-					front: the zeros on the critical line, rectangles off it,
+					Qwen3.5-2B runs on four CPU cores inside a Rust loop built with{" "}
+					<code>rig</code> and backed by SurrealDB. A bandit selects the active
+					front: critical-line zeros, argument-principle rectangles,
 					random-matrix statistics, Robin’s inequality, the Mertens function,
-					elliptic curves over finite fields, or Lean.
+					elliptic curves over finite fields, or Lean formalization.
 				</p>
-				<h4>Why its words don’t count</h4>
+				<h4>Verification</h4>
 				<p>
-					The model registers a prediction before it calls an instrument written
-					in Rust, and a claim climbs only when that prediction holds. A
-					prediction that a published result already guarantees, like Hasse’s
-					bound or every zero below 3·10¹² lying on the line, is graded but
-					earns nothing. The zeros come from the Riemann–Siegel formula, kept
-					inside Gabcke’s error bound, and the verified height is Turing’s
-					method: Brent’s criterion fixes how many zeros lie below it, and every
-					one was found on the line. The rectangles come from the argument
-					principle.
-				</p>
-				<p>
-					A claim is proved only when Lean 4 checks the exact statement it was
-					recorded with, against Mathlib, and <code>#print axioms</code> shows
-					nothing beyond <code>propext</code>, <code>Classical.choice</code>,
-					and <code>Quot.sound</code>. Restated lemmas are refused, and lemmas
-					Lean’s automation proves on its own are filed as routine.
-				</p>
-				<h4>What it remembers</h4>
-				<p>
-					Its memory lives in SurrealDB on a disk of its own: a graph of claims
-					with full-text recall, episode transcripts, and every zero it has
-					located. Every few episodes it sleeps, keeps a couple of insights, and
-					writes a letter to its next self. Nobody can talk to it. It rests
-					between episodes, and longer when nobody is watching; it can also be
-					set to work only while someone watches. It stops for the day when its
-					token budget, which counts what it reads as well as what it writes,
-					runs out.
+					Numerical claims must be pre-registered before calling deterministic
+					Rust instruments (Riemann–Siegel with Gabcke bounds and Turing’s
+					method for zeros; the argument principle for off-line rectangles).
+					Results already implied by known bounds earn zero credit. Formal
+					claims are accepted only when Lean 4 checks the exact registered
+					statement against Mathlib using standard axioms (<code>propext</code>,{" "}
+					<code>Classical.choice</code>, <code>Quot.sound</code>).
 				</p>
 			</section>
 		</div>

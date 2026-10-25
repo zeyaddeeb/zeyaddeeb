@@ -61,8 +61,24 @@
 	animation: dot-in var(--dur-2) var(--ease-out) var(--dur-3) backwards;
 }
 
-.desk__lede {
+.desk__intro {
 	grid-area: lede;
+	display: flex;
+	align-items: center;
+	gap: 20px;
+}
+
+.desk__portrait {
+	flex: none;
+	width: 72px;
+	height: auto;
+	aspect-ratio: 1181 / 1332;
+	border: 2px solid var(--ink);
+	background: var(--blue);
+	object-fit: cover;
+}
+
+.desk__lede {
 	max-width: 32ch;
 	margin: 0;
 	font-size: 21px;
@@ -71,7 +87,7 @@
 
 .desk__eyebrow,
 .desk__title,
-.desk__lede,
+.desk__intro,
 .desk__body {
 	padding-left: clamp(32px, 6vw, 96px);
 }
@@ -324,7 +340,7 @@
 
 	.desk__eyebrow,
 	.desk__title,
-	.desk__lede,
+	.desk__intro,
 	.desk__body {
 		padding-left: 0;
 	}
@@ -333,9 +349,17 @@
 		font-size: clamp(44px, 12vw, 64px);
 	}
 
+	.desk__intro {
+		gap: 16px;
+		margin-bottom: 36px;
+	}
+
+	.desk__portrait {
+		width: 64px;
+	}
+
 	.desk__lede {
 		max-width: none;
-		margin-bottom: 36px;
 		font-size: 19px;
 	}
 
