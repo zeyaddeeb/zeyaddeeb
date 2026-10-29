@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@chenglou/pretext": "^1.0.0",
-    "@rerun-io/web-viewer": "0.40.0",
+    "@rerun-io/web-viewer": "0.41.0",
     "@zeyaddeeb/ui": "workspace:*",
     "@zeyaddeeb/wasm": "workspace:*",
     "framer-motion": "catalog:",

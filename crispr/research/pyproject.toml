@@ -1,6 +1,6 @@
 [project]
 name = "crispr-research"
-version = "0.1.2"
+version = "0.1.3"
 description = "An always-on research agent for colorectal cancer with peritoneal metastasis, graded by sealed referees."
 requires-python = ">=3.14"
 dependencies = [
@@ -17,7 +17,7 @@ dependencies = [
 local = ["pymc>=6.3,<7"]
 
 [dependency-groups]
-dev = ["pytest>=9.1,<10", "pytest-asyncio>=1.4.0", "ruff>=0.17,<1"]
+dev = ["pytest>=9.1,<10", "pytest-asyncio>=1.4.1", "ruff>=0.17,<1"]
 
 [project.scripts]
 crispr-research = "crispr_research.cli:main"

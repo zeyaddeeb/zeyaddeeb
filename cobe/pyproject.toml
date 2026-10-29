@@ -1,6 +1,6 @@
 [project]
 name = "cobe"
-version = "0.1.0"
+version = "0.1.1"
 description = "Builds the COBE FIRAS recording and sky data for the How Cold Is Space experiment."
 requires-python = ">=3.14"
 dependencies = [
@@ -8,7 +8,7 @@ dependencies = [
     "h5py>=3.16,<4",
     "numpy>=2.5,<3",
     "pillow>=13,<14",
-    "rerun-sdk==0.40.0",
+    "rerun-sdk==0.41.0",
     "scipy>=1.18,<2",
 ]
 

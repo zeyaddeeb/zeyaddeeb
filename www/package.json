@@ -1,6 +1,6 @@
 {
   "name": "zeyaddeeb",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "private": true,
   "scripts": {
     "build": "turbo build",
@@ -16,7 +16,7 @@
     "test": "turbo test"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.6.3",
+    "@biomejs/biome": "^2.6.4",
     "turbo": "^2.11.10",
     "typescript": "^7.0.2"
   },
@@ -29,11 +29,11 @@
     "packages/*"
   ],
   "catalog": {
-    "better-auth": "^1.7.12",
+    "better-auth": "^1.7.14",
     "drizzle-orm": "^0.45.4",
-    "framer-motion": "^14.6.0",
+    "framer-motion": "^14.7.1",
     "next": "16.4.2",
-    "postcss": "^8.5.31",
+    "postcss": "^8.5.32",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "tailwindcss": "^4.3.3",
