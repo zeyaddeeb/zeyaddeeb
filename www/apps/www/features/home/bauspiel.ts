@@ -109,6 +109,51 @@ export const initial: Place[] = [
 
 export const resetCode = String.fromCodePoint(BASE + RESET);
 
+export interface Step {
+	index: number;
+	dc: number;
+	dr: number;
+	turned: boolean;
+}
+
+export const MARCH: [number, number][] = [
+	[1, 0],
+	[1, 0],
+	[0, 1],
+	[-1, 0],
+	[-1, 0],
+	[0, 1],
+];
+
+export function stepOf(index: number, from: Place, to: Place): Step {
+	return {
+		index,
+		dc: (to.cell % COLS) - (from.cell % COLS),
+		dr: Math.floor(to.cell / COLS) - Math.floor(from.cell / COLS),
+		turned: to.rot !== from.rot,
+	};
+}
+
+export function marched(steps: Step[]) {
+	const tail = steps.slice(-MARCH.length);
+	const first = tail[0];
+
+	if (tail.length < MARCH.length || !first) return false;
+
+	return [1, -1].some((side) =>
+		tail.every((step, i) => {
+			const [dc, dr] = MARCH[i] ?? [0, 0];
+
+			return (
+				step.index === first.index &&
+				!step.turned &&
+				step.dc === dc * side &&
+				step.dr === dr
+			);
+		}),
+	);
+}
+
 function pieceAt(index: number) {
 	return kit[index];
 }

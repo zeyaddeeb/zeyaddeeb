@@ -14,6 +14,8 @@ import {
 } from "react";
 import { number } from "@/features/catalog/catalog";
 import { usePresence } from "@/features/live/presence";
+import { Invasion } from "@/features/sorts/invasion";
+import { useShortcut } from "@/features/sorts/shortcut";
 import {
 	useReducedMotion,
 	useShouldRun,
@@ -31,11 +33,15 @@ import {
 	isInitial,
 	kit,
 	LAND,
+	MARCH,
+	marched,
 	type Place,
 	PORT,
 	ROWS,
 	resetCode,
+	type Step,
 	snap,
+	stepOf,
 	toLand,
 	toPort,
 	turned,
@@ -45,7 +51,9 @@ import { type Form, type Shape, type Spot, scenes, shapes } from "./scenes";
 import "./poster.css";
 
 const DWELL = 4200;
+const LINGER = 20000;
 const DRAG_SLOP = 4;
+const NOTICED = 700;
 const OP_LIMIT = 4000;
 const STOPS = scenes.length + 1;
 
@@ -178,6 +186,9 @@ export function Poster({ head }: { head: ReactNode }) {
 	const [selected, setSelected] = useState<number | null>(null);
 	const [drag, setDrag] = useState<Drag | null>(null);
 	const [message, setMessage] = useState("");
+	const [invaded, setInvaded] = useState(false);
+	const walk = useRef<Step[]>([]);
+	const noticed = useRef(0);
 	const dragRef = useRef<Drag | null>(null);
 	const swipeRef = useRef<{ id: number; x: number; y: number } | null>(null);
 	const suppress = useRef(false);
@@ -198,7 +209,8 @@ export function Poster({ head }: { head: ReactNode }) {
 	const playMode = shown === 0;
 	const scene = playMode ? null : scenes[shown - 1];
 	const auto = playing && !reduced;
-	const running = shouldRun && !hovering && !drag && preview === null;
+	const running =
+		shouldRun && !(hovering && playMode) && !drag && preview === null;
 
 	const spins = useRef(layout.map((place) => place.rot));
 	const lastRot = useRef(layout.map((place) => place.rot));
@@ -209,6 +221,10 @@ export function Poster({ head }: { head: ReactNode }) {
 		spins.current[index] = (spins.current[index] ?? 0) + turned;
 		lastRot.current[index] = place.rot;
 	});
+
+	useShortcut(() => setInvaded(true));
+
+	useEffect(() => () => window.clearTimeout(noticed.current), []);
 
 	useEffect(() => {
 		if (!message) return;
@@ -258,8 +274,19 @@ export function Poster({ head }: { head: ReactNode }) {
 		if (next.cell === current.cell && next.rot === current.rot) return false;
 
 		commit(encode(index, next));
-		setMessage("");
 		tick();
+		walk.current = [...walk.current, stepOf(index, current, next)].slice(
+			-MARCH.length,
+		);
+
+		if (marched(walk.current)) {
+			walk.current = [];
+			setMessage("That’s how they walk.");
+			window.clearTimeout(noticed.current);
+			noticed.current = window.setTimeout(() => setInvaded(true), NOTICED);
+		} else {
+			setMessage("");
+		}
 
 		return true;
 	};
@@ -452,6 +479,7 @@ export function Poster({ head }: { head: ReactNode }) {
 	};
 
 	const settle = (event: PointerEvent<HTMLDivElement>) => {
+		setHovering(false);
 		event.currentTarget.style.setProperty("--mx", "0");
 		event.currentTarget.style.setProperty("--my", "0");
 	};
@@ -514,7 +542,7 @@ export function Poster({ head }: { head: ReactNode }) {
 				className="poster__progress"
 				aria-hidden="true"
 				style={{
-					animationDuration: `${DWELL}ms`,
+					animationDuration: `${i === 0 ? LINGER : DWELL}ms`,
 					animationPlayState: running ? "running" : "paused",
 				}}
 				onAnimationEnd={() => setActive((value) => (value + 1) % STOPS)}
@@ -555,6 +583,9 @@ export function Poster({ head }: { head: ReactNode }) {
 							"--rows": ROWS,
 						} as CSSProperties
 					}
+					onPointerEnter={(event) => {
+						if (event.pointerType === "mouse") setHovering(true);
+					}}
 					onPointerMove={point}
 					onPointerLeave={settle}
 					onPointerDown={swipeStart}
@@ -703,10 +734,6 @@ export function Poster({ head }: { head: ReactNode }) {
 										...style,
 										zIndex: dragging ? 40 : 20 + order.indexOf(index),
 									}}
-									onPointerEnter={(event) => {
-										if (event.pointerType === "mouse") setHovering(true);
-									}}
-									onPointerLeave={() => setHovering(false)}
 									onPointerDown={(event) => grab(event, index)}
 									onPointerMove={pull}
 									onPointerUp={drop}
@@ -757,6 +784,7 @@ export function Poster({ head }: { head: ReactNode }) {
 					</div>
 				</div>
 			</div>
+			<Invasion open={invaded} onClose={() => setInvaded(false)} />
 			<div className="poster__head">{head}</div>
 
 			<nav

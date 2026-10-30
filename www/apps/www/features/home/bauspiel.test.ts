@@ -13,10 +13,13 @@ import {
 	isInitial,
 	kit,
 	LAND,
+	MARCH,
+	marched,
 	PORT,
 	ROWS,
 	resetCode,
 	snap,
+	stepOf,
 	toLand,
 	toPort,
 	turned,
@@ -163,5 +166,65 @@ describe("bauspiel", () => {
 
 		expect((land.x - LAND.x) / LAND.cell).toBeCloseTo(3);
 		expect((land.y - LAND.y) / LAND.cell).toBeCloseTo(2);
+	});
+
+	it("opens the hidden page only for a piece walked like an invader", () => {
+		const walkFrom = (index: number, side: number) => {
+			let place = initial[index] ?? { cell: 0, rot: 0 };
+
+			return MARCH.map(([dc, dr]) => {
+				const next = {
+					cell: place.cell + dc * side + dr * COLS,
+					rot: place.rot,
+				};
+				const step = stepOf(index, place, next);
+
+				expect(fits(index, next)).toBe(true);
+				place = next;
+
+				return step;
+			});
+		};
+
+		const dot = kit.findIndex((piece) => piece.id === "dot");
+		const ring = kit.findIndex((piece) => piece.id === "block");
+
+		expect(marched(walkFrom(dot, -1))).toBe(true);
+		expect(marched(walkFrom(ring, 1))).toBe(true);
+		expect(marched(walkFrom(ring, 1).slice(1))).toBe(false);
+
+		const mixed = walkFrom(ring, 1);
+
+		mixed[3] = { ...walkFrom(dot, -1)[3], index: dot } as (typeof mixed)[3];
+		expect(marched(mixed)).toBe(false);
+
+		const turned = walkFrom(ring, 1);
+
+		turned[5] = { ...turned[5], turned: true } as (typeof turned)[5];
+		expect(marched(turned)).toBe(false);
+
+		const long = walkFrom(ring, 1).map((step) => ({
+			...step,
+			dc: step.dc * 2,
+		}));
+
+		expect(marched(long)).toBe(false);
+	});
+
+	it("lets every piece in the opening layout make the walk", () => {
+		kit.forEach((_, index) => {
+			const place = initial[index];
+
+			if (!place) throw new Error("Missing place");
+
+			const col = place.cell % COLS;
+			const row = Math.floor(place.cell / COLS);
+			const { w, h } = boxOf(index, col, row, place.rot);
+			const room = (side: number) =>
+				side > 0 ? col + w + 2 <= COLS : col - 2 >= 0;
+
+			expect(row + h + 2 <= ROWS).toBe(true);
+			expect(room(1) || room(-1)).toBe(true);
+		});
 	});
 });
