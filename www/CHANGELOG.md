@@ -1,5 +1,11 @@
 # Changelog
 
+## [www-v0.4.1] - 2026-11-02
+
+### Bug Fixes
+
+- Add recorded offline
+
 ## [www-v0.4.0] - 2026-11-02
 
 ### Features
