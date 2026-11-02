@@ -29,9 +29,9 @@
     "packages/*"
   ],
   "catalog": {
-    "better-auth": "^1.7.14",
+    "better-auth": "^1.7.15",
     "drizzle-orm": "^0.45.4",
-    "framer-motion": "^14.8.0",
+    "framer-motion": "^14.9.0",
     "next": "16.4.2",
     "postcss": "^8.5.32",
     "react": "19.3.1",

@@ -7,8 +7,8 @@ version = "0.1.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-wasm-bindgen = "0.2.129"
-js-sys = "0.3.106"
+wasm-bindgen = "0.2.130"
+js-sys = "0.3.107"
 rustfft = "6.2"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"

@@ -1,41 +1,71 @@
 name: Deploy
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
+    branches: [main]
+
+  workflow_dispatch:
+    inputs:
+      services:
+        description: "JSON array of moon projects to build (leave empty to build all)"
+        required: false
+        default: ""
 
 permissions:
   id-token: write
   contents: read
+  actions: read
 
 jobs:
   detect-services:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     outputs:
       services: ${{ steps.set-services.outputs.services }}
+      has-changes: ${{ steps.set-services.outputs.has-changes }}
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-      - name: Find all services
-        id: set-services
-        run: |
-          # Define services to exclude from deployment
-          EXCLUDED_SERVICES='["root"]'
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref }}
 
-          # Get all services and filter out excluded ones
-          ALL_SERVICES=$(yq -o=json '.projects' .moon/workspace.yml | jq -c 'keys')
-          SERVICES=$(echo "$ALL_SERVICES" | jq -c --argjson excluded "$EXCLUDED_SERVICES" '. - $excluded')
+      - name: Download affected services artifact (workflow_run)
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: affected-services
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+          path: /tmp
+
+      - name: Resolve services
+        id: set-services
+        env:
+          REQUESTED_SERVICES: ${{ inputs.services }}
+        run: |
+          ALL_SERVICES=$(yq -o=json '.projects | del(.root)' .moon/workspace.yml | jq -c 'keys')
+
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            SERVICES=$(cat /tmp/affected-services.json)
+          elif [ -n "$REQUESTED_SERVICES" ]; then
+            SERVICES="$REQUESTED_SERVICES"
+          else
+            SERVICES="$ALL_SERVICES"
+          fi
+
+          SERVICES=$(jq -cn --argjson requested "$SERVICES" --argjson allowed "$ALL_SERVICES" '$requested | if type != "array" or any(.[]; . as $service | type != "string" or ($allowed | index($service)) == null) then error("Unknown service") else unique end')
 
           echo "services=${SERVICES}" >> $GITHUB_OUTPUT
-          echo "All services: ${ALL_SERVICES}"
-          echo "Excluded services: ${EXCLUDED_SERVICES}"
+          echo "has-changes=$([ "$SERVICES" = "[]" ] && echo false || echo true)" >> $GITHUB_OUTPUT
           echo "Services to deploy: ${SERVICES}"
 
   build:
     needs: [detect-services]
+    if: needs.detect-services.outputs.has-changes == 'true'
     runs-on: ubuntu-latest
     environment: shared
     strategy:
@@ -46,6 +76,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref }}
 
       - name: Install Moon
         uses: moonrepo/setup-toolchain@v0
@@ -100,12 +131,20 @@ jobs:
 
   deploy:
     needs: [build, detect-services]
+    if: >-
+      always() &&
+      needs.detect-services.result == 'success' &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
+    concurrency:
+      group: zeyaddeeb-terraform-shared
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     environment: shared
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4

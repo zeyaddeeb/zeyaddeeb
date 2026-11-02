@@ -1,0 +1,188 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  release:
+    name: Version, changelog, and tag
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.4"
+
+      - name: Install git-cliff
+        env:
+          GIT_CLIFF_VERSION: "2.14.2"
+        run: |
+          tmp=$(mktemp -d)
+          curl -sSfL \
+            "https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
+            | tar -xz -C "$tmp"
+          find "$tmp" -name "git-cliff" -type f -exec install -m755 {} /usr/local/bin/git-cliff \;
+          rm -rf "$tmp"
+
+      - name: Detect affected services
+        id: affected
+        run: |
+          PATHS=$(yq -o=json '.projects | del(.root)' .moon/workspace.yml | jq -c .)
+          echo "paths=$PATHS" >> $GITHUB_OUTPUT
+
+          if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            SERVICES=$(echo "$PATHS" | jq -c 'keys')
+          else
+            DIFF=$(git diff --name-only ${{ github.event.before }}...${{ github.sha }})
+            SERVICES=$(echo "$DIFF" | jq -Rsc --argjson paths "$PATHS" '
+              split("\n") | map(select(length > 0)) as $files
+              | $paths | to_entries
+              | map(select(.value as $path | $files | any(startswith($path + "/"))) | .key)
+              | sort')
+          fi
+
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+          echo "Affected services: $SERVICES"
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump versions and generate changelogs
+        id: bump
+        run: |
+          SERVICES='${{ steps.affected.outputs.services }}'
+          PATHS='${{ steps.affected.outputs.paths }}'
+          BUMPED_SERVICES="[]"
+
+          for SERVICE in $(echo "$SERVICES" | jq -r '.[]'); do
+            echo "::group::$SERVICE"
+            DIR=$(echo "$PATHS" | jq -r --arg id "$SERVICE" '.[$id]')
+
+            LAST_TAG=$(git tag --list "${SERVICE}-v*" --sort=-version:refname | head -1)
+            RANGE="${LAST_TAG:+${LAST_TAG}..HEAD}"
+
+            COMMITS=$(git log ${RANGE} --format="%s%n%b" -- "${DIR}/" 2>/dev/null || true)
+            MINOR_COMMIT_PATTERN="^(feat|deps|upgrade)(\([^)]+\))?:|^chore\((deps|dependencies|upgrade|versions?)\):"
+            RELEASABLE_COMMIT_PATTERN="^(feat|fix|bug|refactor|perf|revert|deps|upgrade)(\([^)]+\))?!?:|^chore\((deps|dependencies|upgrade|versions?)\)!?:|BREAKING[ -]CHANGE"
+            BREAKING_COMMIT_PATTERN="^(feat|fix|bug|refactor|perf|revert|deps|upgrade)(\([^)]+\))?!:|^chore\((deps|dependencies|upgrade|versions?)\)!:|BREAKING[ -]CHANGE"
+            RELEASABLE_COMMITS=$(echo "$COMMITS" | grep -E "$RELEASABLE_COMMIT_PATTERN" || true)
+
+            if [ -z "$(echo "$RELEASABLE_COMMITS" | tr -d '[:space:]')" ]; then
+              echo "No release-worthy commits, skipping"
+              echo "::endgroup::"
+              continue
+            fi
+
+            if echo "$RELEASABLE_COMMITS" | grep -qE "$BREAKING_COMMIT_PATTERN"; then
+              BUMP="major"
+            elif echo "$RELEASABLE_COMMITS" | grep -qE "$MINOR_COMMIT_PATTERN"; then
+              BUMP="minor"
+            else
+              BUMP="patch"
+            fi
+
+            if [ -f "${DIR}/package.json" ]; then
+              CURRENT=$(jq -r .version "${DIR}/package.json")
+            elif [ -f "${DIR}/Cargo.toml" ]; then
+              CURRENT=$(cargo metadata --manifest-path "${DIR}/Cargo.toml" --no-deps --format-version 1 | jq -r '.packages[0].version')
+            else
+              CURRENT=$(sed -n 's/^version = "\(.*\)"/\1/p' "${DIR}/pyproject.toml")
+            fi
+
+            NEW=$(python3 -c "
+          v = '${CURRENT}'.split('.')
+          m, n, p = int(v[0]), int(v[1]), int(v[2])
+          if '${BUMP}' == 'major': print(f'{m+1}.0.0')
+          elif '${BUMP}' == 'minor': print(f'{m}.{n+1}.0')
+          else: print(f'{m}.{n}.{p+1}')
+          ")
+            echo "${BUMP}: ${CURRENT} -> ${NEW}"
+
+            sed "s/__SERVICE__/${SERVICE}/g" cliff.toml > /tmp/cliff-${SERVICE}.toml
+
+            git cliff \
+              --config /tmp/cliff-${SERVICE}.toml \
+              --include-path "${DIR}/**" \
+              --unreleased \
+              --tag "${SERVICE}-v${NEW}" --strip all \
+              > /tmp/notes-${SERVICE}.md 2>/dev/null || true
+
+            if [ -f "${DIR}/package.json" ]; then
+              jq --arg v "$NEW" '.version = $v' "${DIR}/package.json" > /tmp/pkg.json \
+                && mv /tmp/pkg.json "${DIR}/package.json"
+              (cd "${DIR}" && bun install --lockfile-only)
+            elif [ -f "${DIR}/Cargo.toml" ]; then
+              PACKAGE_NAME=$(cargo metadata --manifest-path "${DIR}/Cargo.toml" --no-deps --format-version 1 | jq -r '.packages[0].name')
+              sed -i "s/^version = \"${CURRENT}\"/version = \"${NEW}\"/" "${DIR}/Cargo.toml"
+              cargo update --manifest-path "${DIR}/Cargo.toml" --package "${PACKAGE_NAME}" --precise "${NEW}"
+            else
+              (cd "${DIR}" && uv version "${NEW}" --no-sync)
+            fi
+
+            if [ -f "${DIR}/deployments/helm/Chart.yaml" ]; then
+              sed -i -E "s/^version: .*/version: ${NEW}/" "${DIR}/deployments/helm/Chart.yaml"
+              sed -i -E "s/^appVersion: \"(v?)[^\"]*\"/appVersion: \"\1${NEW}\"/" "${DIR}/deployments/helm/Chart.yaml"
+            fi
+
+            git cliff \
+              --config /tmp/cliff-${SERVICE}.toml \
+              --include-path "${DIR}/**" \
+              --tag "${SERVICE}-v${NEW}" \
+              --output "${DIR}/CHANGELOG.md"
+
+            echo "${SERVICE}:${NEW}" >> /tmp/versions.txt
+            BUMPED_SERVICES=$(echo "$BUMPED_SERVICES" | jq -c ". + [\"$SERVICE\"]")
+            echo "::endgroup::"
+          done
+
+          echo "$BUMPED_SERVICES" > /tmp/affected-services.json
+          echo "has-changes=$([ "$BUMPED_SERVICES" = "[]" ] && echo false || echo true)" >> $GITHUB_OUTPUT
+          echo "Bumped: $BUMPED_SERVICES"
+
+      - name: Commit version bumps
+        if: steps.bump.outputs.has-changes == 'true'
+        run: |
+          git add -A
+          git commit -m "chore(release): bump versions [skip ci]"
+          git push origin main
+
+      - name: Create tags and GitHub releases
+        if: steps.bump.outputs.has-changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          while IFS=: read -r SERVICE VERSION; do
+            TAG="${SERVICE}-v${VERSION}"
+            git tag "$TAG"
+            git push origin "$TAG"
+            gh release create "$TAG" \
+              --title "${SERVICE} v${VERSION}" \
+              --notes-file "/tmp/notes-${SERVICE}.md"
+            echo "Released $TAG"
+          done < /tmp/versions.txt
+
+      - name: Upload affected services for deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: affected-services
+          path: /tmp/affected-services.json
+          retention-days: 1

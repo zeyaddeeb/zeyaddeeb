@@ -1,0 +1,45 @@
+[changelog]
+header = "# Changelog\n\n"
+body = """
+{% if version %}\
+## [{{ version }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim | upper_first }}
+{% for commit in commits %}
+- {% if commit.scope %}**{{ commit.scope }}**: {% endif %}{{ commit.message | upper_first }}\
+{% endfor %}
+{% endfor %}\n
+"""
+trim = true
+footer = ""
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+commit_parsers = [
+  { message = "^feat!", group = "Breaking Changes" },
+  { message = "^fix!", group = "Breaking Changes" },
+  { message = "^bug!", group = "Breaking Changes" },
+  { body = ".*BREAKING[ -]CHANGE.*", group = "Breaking Changes" },
+  { message = "^feat", group = "Features" },
+  { message = "^fix", group = "Bug Fixes" },
+  { message = "^bug", group = "Bug Fixes" },
+  { message = "^deps", group = "Dependency Updates" },
+  { message = "^upgrade", group = "Dependency Updates" },
+  { message = "^chore\\((deps|dependencies|upgrade|versions?)\\)", group = "Dependency Updates" },
+  { message = "^perf", group = "Performance" },
+  { message = "^refactor", group = "Refactoring" },
+  { message = "^revert", group = "Reverted Changes" },
+  { message = "^chore\\(release\\)", skip = true },
+  { message = "^chore", skip = true },
+  { message = "^ci", skip = true },
+  { message = "^style", skip = true },
+  { message = "^test", skip = true },
+]
+filter_commits = true
+tag_pattern = "^__SERVICE__-v[0-9].*"
+sort_commits = "oldest"
