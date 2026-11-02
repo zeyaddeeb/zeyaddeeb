@@ -645,7 +645,7 @@ checksum = "abed0ad19907fc8472dae05f0418dfa82fdf0eaef18427c7c7cc4e42db41534b"
 
 [[package]]
 name = "crdt"
-version = "0.1.18"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "axum",

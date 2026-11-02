@@ -1,27 +1,16 @@
 # Changelog
 
-## [crispr-research-v0.1.3] - 2026-10-29
+## [crispr-research-v0.2.0] - 2026-11-02
 
 ### Dependency Updates
 
 - **deps**: Upgrade different dependencies
-
-## [crispr-research-v0.1.2] - 2026-10-24
-
-### Dependency Updates
-
 - **deps**: Upgrade diffrent dependencies
-
-## [crispr-research-v0.1.1] - 2026-10-21
-
-### Dependency Updates
-
 - **deps**: Upgrade different dependencies
-
-## [crispr-research-v0.1.0] - 2026-10-21
 
 ### Features
 
 - Adding crispr agent
+- Adding cliff
 
 

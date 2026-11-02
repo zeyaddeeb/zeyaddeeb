@@ -1,6 +1,6 @@
 {
   "name": "zeyaddeeb",
-  "version": "0.2.10",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
     "build": "turbo build",
