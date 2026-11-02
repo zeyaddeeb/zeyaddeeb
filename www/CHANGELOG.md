@@ -1,5 +1,11 @@
 # Changelog
 
+## [www-v0.4.0] - 2026-11-02
+
+### Features
+
+- Adding bell experiment
+
 ## [www-v0.3.0] - 2026-11-02
 
 ### Bug Fixes
