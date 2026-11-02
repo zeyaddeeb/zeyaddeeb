@@ -1,0 +1,51 @@
+fullnameOverride: "bell"
+
+image:
+  repository: ${image_repository}
+
+entrypoint: "./bell"
+
+podLabels:
+  istio.io/dataplane-mode: ambient
+  bell.zeyaddeeb.com/site: ${site}
+
+service:
+  type: ClusterIP
+  port: 8081
+
+extraPorts:
+  - name: station
+    port: 8080
+  - name: talk
+    port: 7000
+
+sites:
+  - gcp-us-west1
+  - gcp-us-east4
+  - aws-us-east-1
+
+mesh:
+  enabled: true
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 32Mi
+  limits:
+    memory: 128Mi
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+
+env:
+  RUST_LOG: "bell=info"
+  BELL_SITE: "${site}"
+  BELL_DEALER: "${dealer}"
+  BELL_NTP: "${ntp}"

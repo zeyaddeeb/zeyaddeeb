@@ -1,0 +1,253 @@
+@media (max-width: 979px) {
+	.me {
+		--me-pad: 0px;
+		--me-slot: 330px;
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-areas:
+			"caption"
+			"score"
+			"views"
+			"slot"
+			"deals"
+			"action";
+		row-gap: 10px;
+		padding-block: 4px 2px;
+		border-width: 0;
+	}
+
+	.me-left {
+		display: contents;
+	}
+
+	.me-caption {
+		grid-area: caption;
+		height: calc(3 * 1.4em);
+		font-size: 16px;
+	}
+
+	.me-score {
+		grid-area: score;
+	}
+
+	.me-views {
+		grid-area: views;
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+
+	.me-deals {
+		grid-area: deals;
+	}
+
+	.me-score .me-angles {
+		display: none;
+	}
+
+	.me-deal__long {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	.me-deal__short {
+		display: inline;
+	}
+
+	.me-angles--runs {
+		display: table;
+		margin-bottom: 14px;
+	}
+
+	.me-action {
+		grid-area: action;
+	}
+
+	.me-slot {
+		grid-area: slot;
+		height: var(--me-slot);
+		min-height: 0;
+		overflow: hidden;
+	}
+
+	.me-right {
+		padding: 0;
+		gap: 8px;
+	}
+
+	.me:not([data-view="deck"]) .me-slot[data-panel="deck"],
+	.me:not([data-view="light"]) .me-slot[data-panel="light"],
+	.me:not([data-view="runs"]) .me-slot[data-panel="runs"] {
+		display: none;
+	}
+
+	.me-spacetime {
+		min-height: 0;
+	}
+
+	.me-timing {
+		font-size: 12px;
+	}
+
+	.me-sites {
+		display: none;
+	}
+
+	.me-deck__line {
+		height: calc(2 * 1.4em);
+	}
+
+	.me-pairs {
+		gap: 6px;
+	}
+
+	.frame__stage .me-pair {
+		flex-direction: column;
+		justify-content: center;
+		gap: 2px;
+		height: 40px;
+		padding: 0 6px;
+		font-size: 9.5px;
+	}
+
+	.me-deck {
+		container-type: inline-size;
+		gap: 8px;
+	}
+
+	.me-deck__cards {
+		--me-card: calc((100cqw - 5 * 6px) / 6);
+		--me-ring: min(50px, calc(var(--me-card) - 4px));
+		grid-template-columns: auto minmax(0, 1fr);
+		grid-template-areas:
+			"halves halves"
+			"stripes tune"
+			"presets presets";
+		gap: 10px 14px;
+	}
+
+	.me-step {
+		display: none;
+	}
+
+	.frame__stage .me-card__pick {
+		cursor: pointer;
+	}
+
+	.me-card__pick[aria-pressed="true"] .me-ring__track {
+		stroke: var(--yellow);
+		stroke-width: 2;
+	}
+
+	.frame__stage .me-card__pick {
+		gap: 3px;
+	}
+
+	.me-card__badge {
+		display: block;
+		font: 400 11px / 1 var(--font-mono);
+	}
+
+	.me-card[data-empty] .me-card__badge {
+		color: var(--me-dim);
+	}
+
+	.me-card[data-anti] .me-card__badge {
+		color: var(--red);
+	}
+
+	.me-tune {
+		grid-area: tune;
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		grid-template-areas:
+			"ring name"
+			"ring step";
+		align-items: center;
+		gap: 4px 10px;
+		align-self: end;
+	}
+
+	.me-tune__ring {
+		grid-area: ring;
+		--me-ring: 44px;
+	}
+
+	.me-tune__name {
+		grid-area: name;
+		overflow: hidden;
+		font: 400 10px / 1 var(--font-mono);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		color: var(--me-dim);
+	}
+
+	.me-tune[data-anti] .me-tune__note {
+		color: var(--red);
+	}
+
+	.me-tune__step {
+		grid-area: step;
+		display: grid;
+		grid-template-columns: 40px 32px 40px;
+	}
+
+	.frame__stage .me-tune__step button {
+		height: 34px;
+		min-height: 34px;
+	}
+
+	.me-tune[data-anti] .me-step__count {
+		color: var(--red);
+	}
+
+	.me-presets {
+		flex-wrap: nowrap;
+	}
+
+	.frame__stage .me-preset {
+		flex: 1 1 0;
+		padding: 0 4px;
+		font-size: 9.5px;
+		letter-spacing: 0.02em;
+	}
+
+	.frame__stage .me-go {
+		height: 44px;
+		padding: 0 16px;
+	}
+
+	.me-status {
+		font-size: 11px;
+	}
+}
+
+@media (max-width: 379px) {
+	.me-caption {
+		height: calc(4 * 1.35em);
+		font-size: 15px;
+		line-height: 1.35;
+	}
+
+	.frame__stage .me-deal,
+	.frame__stage .me-view {
+		padding: 0 4px;
+		letter-spacing: 0.02em;
+	}
+
+	.me-tune__step {
+		grid-template-columns: 34px 28px 34px;
+	}
+
+	.me-action {
+		gap: 10px;
+	}
+
+	.me-status {
+		font-size: 10px;
+	}
+}

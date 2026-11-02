@@ -1,0 +1,55 @@
+.me-ledger__caption {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+.me-ledger {
+	width: 100%;
+	border-collapse: collapse;
+	table-layout: fixed;
+	font: 400 12px / 1 var(--font-mono);
+	font-variant-numeric: tabular-nums;
+}
+
+.me-ledger th,
+.me-ledger td {
+	height: 24px;
+	padding: 0 6px;
+	overflow: hidden;
+	border-bottom: 1px solid var(--me-rule);
+	text-align: left;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-weight: 400;
+}
+
+.me-ledger th {
+	color: var(--me-dim);
+	font-size: 10px;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.me-ledger th:first-child {
+	width: 30px;
+}
+
+.me-ledger th:nth-child(2) {
+	width: 30%;
+}
+
+.me-ledger th:nth-child(4) {
+	width: 62px;
+}
+
+.me-ledger th:nth-child(5) {
+	width: 26%;
+}
+
+.me-ledger td[data-verdict="flag"] {
+	color: var(--red);
+}

@@ -1,0 +1,28 @@
+{{- if .Values.mesh.enabled }}
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "microservice.fullname" . }}
+  labels:
+    {{- include "microservice.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "microservice.selectorLabels" . | nindent 6 }}
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - {{ printf "cluster.local/ns/%s/sa/%s" .Release.Namespace (include "microservice.serviceAccountName" .) | quote }}
+      to:
+        - operation:
+            ports:
+              {{- range .Values.extraPorts }}
+              - {{ .port | quote }}
+              {{- end }}
+    - to:
+        - operation:
+            ports:
+              - {{ .Values.service.port | quote }}
+{{- end }}

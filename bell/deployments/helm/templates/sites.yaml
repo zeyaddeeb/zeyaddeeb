@@ -1,0 +1,22 @@
+{{- range .Values.sites }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ printf "%s-%s" (include "microservice.fullname" $) . }}
+  labels:
+    {{- include "microservice.labels" $ | nindent 4 }}
+    istio.io/global: "true"
+spec:
+  type: ClusterIP
+  ports:
+    {{- range $.Values.extraPorts }}
+    - port: {{ .port }}
+      targetPort: {{ .name }}
+      protocol: TCP
+      name: {{ .name }}
+    {{- end }}
+  selector:
+    {{- include "microservice.selectorLabels" $ | nindent 4 }}
+    bell.zeyaddeeb.com/site: {{ . }}
+{{- end }}

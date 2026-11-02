@@ -55,6 +55,15 @@ export interface Experiment {
 
 export const experiments: Experiment[] = [
 	{
+		id: "minus-one-eighth",
+		number: 28,
+		title: "Minus One Eighth",
+		line: "Deal Feynman’s photon cards to clusters in Oregon and Virginia, let the speed of light referee, and find the one card that has to count as minus one eighth.",
+		stack: ["Rust", "Axum", "Istio ambient", "EKS", "GKE", "SNTP"],
+		href: "/experiments/minus-one-eighth",
+		topics: ["math", "systems"],
+	},
+	{
 		id: "show-your-work",
 		number: 27,
 		title: "Show Your Work",

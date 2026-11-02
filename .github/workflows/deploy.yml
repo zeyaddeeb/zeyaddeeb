@@ -112,6 +112,14 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Ensure service image repository exists
+        env:
+          SERVICE: ${{ matrix.service }}
+        run: |
+          repository="zeyaddeeb/$SERVICE"
+          aws ecr describe-repositories --repository-names "$repository" >/dev/null 2>&1 || \
+            aws ecr create-repository --repository-name "$repository" >/dev/null
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -122,6 +130,26 @@ jobs:
           AWS_REGION: ${{ secrets.AWS_REGION }}
         run: |
           moon run ${{ matrix.service }}:docker-push
+
+      - name: Authenticate to Google Cloud
+        if: matrix.service == 'bell'
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
+      - name: Push to Artifact Registry
+        if: matrix.service == 'bell'
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_ARTIFACT_REGION: ${{ vars.GCP_ARTIFACT_REGION }}
+          GCP_REGISTRY: ${{ vars.GCP_ARTIFACT_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/zeyaddeeb
+        run: |
+          gcloud artifacts repositories describe zeyaddeeb --project "$GCP_PROJECT_ID" --location "$GCP_ARTIFACT_REGION" >/dev/null 2>&1 ||
+            gcloud artifacts repositories create zeyaddeeb --project "$GCP_PROJECT_ID" --location "$GCP_ARTIFACT_REGION" \
+              --repository-format docker --description "Images built by the zeyaddeeb repository for GKE"
+          gcloud auth configure-docker "$GCP_ARTIFACT_REGION-docker.pkg.dev" --quiet
+          moon run bell:docker-push-gcp
 
       - name: Save Moon Cache
         uses: actions/cache/save@v4
@@ -176,5 +204,24 @@ jobs:
           terraform init \
             -backend-config="bucket=${{ secrets.AWS_ACCOUNT_ID }}-infrastructure-remote-state" \
             -backend-config="region=${{ secrets.AWS_REGION }}"
+          terraform plan
+          terraform apply -auto-approve
+
+      - name: Authenticate to Google Cloud
+        if: contains(fromJson(needs.detect-services.outputs.services), 'bell')
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
+      - name: Terraform Deploy GKE stations
+        if: contains(fromJson(needs.detect-services.outputs.services), 'bell')
+        working-directory: bell/deployments/gke
+        env:
+          TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+          TF_VAR_image_repository: ${{ vars.GCP_ARTIFACT_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/zeyaddeeb/bell
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.GCP_PROJECT_ID }}-infrastructure-remote-state"
           terraform plan
           terraform apply -auto-approve
