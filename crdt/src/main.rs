@@ -18,8 +18,17 @@ use tracing::info;
 
 use state::AppState;
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+const STACK: usize = 10 * 1024 * 1024;
+
+fn main() -> anyhow::Result<()> {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .thread_stack_size(STACK)
+        .build()?
+        .block_on(run())
+}
+
+async fn run() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
             std::env::var("RUST_LOG").unwrap_or_else(|_| "crdt=info,tower_http=info".into()),

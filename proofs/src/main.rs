@@ -6,6 +6,7 @@ use proofs::{
 use std::{net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
 
 const DRAIN: Duration = Duration::from_secs(10);
+const STACK: usize = 10 * 1024 * 1024;
 
 fn env<T: std::str::FromStr>(name: &str, fallback: T) -> T {
     std::env::var(name)
@@ -14,8 +15,15 @@ fn env<T: std::str::FromStr>(name: &str, fallback: T) -> T {
         .unwrap_or(fallback)
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<()> {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .thread_stack_size(STACK)
+        .build()?
+        .block_on(run())
+}
+
+async fn run() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
             std::env::var("RUST_LOG").unwrap_or_else(|_| "proofs=info,tower_http=info".into()),
