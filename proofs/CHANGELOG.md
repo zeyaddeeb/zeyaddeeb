@@ -1,5 +1,11 @@
 # Changelog
 
+## [proofs-v0.3.0] - 2026-11-03
+
+### Dependency Updates
+
+- **deps**: Update different dependencies
+
 ## [proofs-v0.2.0] - 2026-11-02
 
 ### Bug Fixes
