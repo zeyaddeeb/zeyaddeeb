@@ -1,5 +1,11 @@
 # Changelog
 
+## [www-v0.6.0] - 2026-11-03
+
+### Dependency Updates
+
+- **deps**: Update nextjs
+
 ## [www-v0.5.0] - 2026-11-03
 
 ### Dependency Updates
