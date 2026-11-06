@@ -1,5 +1,11 @@
 # Changelog
 
+## [crispr-research-v0.3.0] - 2026-11-06
+
+### Dependency Updates
+
+- **deps**: Update different dependencies
+
 ## [crispr-research-v0.2.0] - 2026-11-02
 
 ### Dependency Updates

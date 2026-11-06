@@ -1,5 +1,11 @@
 # Changelog
 
+## [capacity-v0.3.0] - 2026-11-06
+
+### Dependency Updates
+
+- **deps**: Update different dependencies
+
 ## [capacity-v0.2.0] - 2026-11-02
 
 ### Bug Fixes
