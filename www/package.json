@@ -16,7 +16,7 @@
     "test": "turbo test"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.6.4",
+    "@biomejs/biome": "^2.6.5",
     "turbo": "^2.11.10",
     "typescript": "^7.0.2"
   },
@@ -29,9 +29,9 @@
     "packages/*"
   ],
   "catalog": {
-    "better-auth": "^1.7.15",
+    "better-auth": "^1.7.18",
     "drizzle-orm": "^0.45.4",
-    "framer-motion": "^14.9.0",
+    "framer-motion": "^14.9.1",
     "next": "16.4.5",
     "postcss": "^8.5.32",
     "react": "19.3.1",

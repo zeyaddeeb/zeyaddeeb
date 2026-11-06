@@ -8,7 +8,7 @@ dependencies = [
     "fastapi>=0.162.0,<1",
     "httpx>=0.28,<1",
     "numpy>=2.5,<3",
-    "pydantic>=2.14.2,<3",
+    "pydantic>=2.14.3,<3",
     "scipy>=1.18.1",
     "uvicorn[standard]>=0.54,<1",
 ]
@@ -17,7 +17,7 @@ dependencies = [
 local = ["pymc>=6.3,<7"]
 
 [dependency-groups]
-dev = ["pytest>=9.1,<10", "pytest-asyncio>=1.4.1", "ruff>=0.17,<1"]
+dev = ["pytest>=9.1,<10", "pytest-asyncio>=1.4.1.post1", "ruff>=0.17,<1"]
 
 [project.scripts]
 crispr-research = "crispr_research.cli:main"
