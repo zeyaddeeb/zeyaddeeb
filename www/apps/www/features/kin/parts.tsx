@@ -18,7 +18,7 @@ export function Bar({
 					style={{ transform: `scaleX(${value ?? 0})` }}
 				/>
 			</span>
-			<span className="kn-bar__value">{value === null ? "" : pct(value)}</span>
+			<span className="kn-bar__value">{value === null ? " " : pct(value)}</span>
 		</span>
 	);
 }

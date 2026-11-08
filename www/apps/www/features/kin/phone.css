@@ -49,12 +49,13 @@
 
 	.kn-controls {
 		grid-area: controls;
+		gap: 10px;
 		padding: 10px var(--kn-pad) 12px;
 	}
 
 	.kn-board {
 		grid-area: board;
-		padding: 10px var(--kn-pad);
+		padding: 8px var(--kn-pad);
 		overflow: hidden;
 	}
 
@@ -109,8 +110,10 @@
 	.kn-bar {
 		grid-template-columns: minmax(0, 1fr) 4ch;
 		grid-template-rows: auto auto;
-		gap: 3px 6px;
+		gap: 2px 6px;
 		font-size: 10px;
+		line-height: 1.2;
+		letter-spacing: 0.02em;
 	}
 
 	.kn-bar__label {
@@ -121,34 +124,47 @@
 		display: none;
 	}
 
+	[data-shot="family"] .kn-bar[data-tone="lie"] {
+		display: none;
+	}
+
 	.kn-root {
-		padding: 8px 10px;
-		gap: 6px 12px;
+		grid-template-columns: auto auto auto;
+		grid-template-rows: auto;
+		padding: 6px 6px 6px 10px;
+		gap: 12px;
+	}
+
+	.kn-root .kn-card__name,
+	.kn-root .kn-spare,
+	.kn-tile--static {
+		grid-column: auto;
+		grid-row: 1;
 	}
 
 	.kn-tile--static {
-		width: 56px;
-		height: 56px;
+		width: 40px;
+		height: 40px;
 	}
 
 	.kn-kids {
 		gap: 8px;
-		margin-top: 32px;
+		margin-top: 24px;
 	}
 
 	.kn-kids::before {
-		top: -16px;
+		top: -12px;
 		left: calc((100% - 16px) / 6);
 		right: calc((100% - 16px) / 6);
 	}
 
 	.kn-root::after,
 	.kn-kids .kn-card::before {
-		height: 16px;
+		height: 12px;
 	}
 
 	.kn-card {
-		gap: 8px;
+		gap: 6px;
 		padding: 8px;
 	}
 
@@ -160,6 +176,27 @@
 	[data-shot="insides"] .kn-lineup {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 8px;
+	}
+
+	.kn-suspect .kn-bar {
+		grid-template-columns: auto minmax(0, 1fr) 4ch;
+		grid-template-rows: auto;
+		gap: 8px;
+	}
+
+	.kn-suspect .kn-bar__label {
+		grid-column: auto;
+	}
+
+	.kn-gauge {
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.kn-gauge__value {
+		min-width: 5ch;
+		text-align: right;
 	}
 
 	[data-shot="insides"] .kn-suspect--parent {
@@ -179,7 +216,7 @@
 	}
 
 	.kn-trace {
-		height: 44px;
+		height: 40px;
 	}
 
 	.kn-suspect__letter {
@@ -199,6 +236,16 @@
 		min-height: 36px;
 	}
 
+	.kn-map {
+		align-self: stretch;
+		grid-template-rows: auto minmax(0, 1fr) auto;
+	}
+
+	.kn-map__box {
+		height: auto;
+		min-height: 0;
+	}
+
 	.kn-map__readout {
 		min-height: 4.2em;
 	}
@@ -206,5 +253,12 @@
 	.kn-map__legend {
 		gap: 4px 10px;
 		font-size: 10px;
+	}
+
+	@container (max-width: 84px) {
+		.kn-bar {
+			font-size: 9px;
+			letter-spacing: 0;
+		}
 	}
 }
