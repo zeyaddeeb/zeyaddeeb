@@ -27,7 +27,7 @@ ENV PATH=/opt/elan/bin:$PATH
 RUN curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
     | sh -s -- -y --default-toolchain none --no-modify-path
 
-RUN git clone --depth 1 --branch v4.34.0 https://github.com/leanprover-community/repl /repl \
+RUN git clone --depth 1 --branch v4.35.0 https://github.com/leanprover-community/repl /repl \
     && cd /repl \
     && lake build \
     && strip .lake/build/bin/repl

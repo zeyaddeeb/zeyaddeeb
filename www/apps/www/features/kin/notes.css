@@ -1,0 +1,25 @@
+.kn-notes-table {
+	width: 100%;
+	margin: 12px 0 8px;
+	border-collapse: collapse;
+	font: 400 13px / 1.4 var(--font-mono);
+}
+
+.kn-notes-table th,
+.kn-notes-table td {
+	padding: 6px 8px 6px 0;
+	border-bottom: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+	text-align: left;
+	vertical-align: top;
+}
+
+.kn-notes-table td:last-child,
+.kn-notes-table th:last-child {
+	text-align: right;
+	white-space: nowrap;
+}
+
+.kn-hash {
+	font: 400 12px / 1.4 var(--font-mono);
+	overflow-wrap: anywhere;
+}

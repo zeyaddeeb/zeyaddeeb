@@ -3,7 +3,7 @@ stack: "backend"
 
 tasks:
   repl:
-    script: "test -x .repl/.lake/build/bin/repl || (git clone --depth 1 --branch v4.34.0 https://github.com/leanprover-community/repl .repl && cd .repl && lake build)"
+    script: "test -x .repl/.lake/build/bin/repl || (git clone --depth 1 --branch v4.35.0 https://github.com/leanprover-community/repl .repl && cd .repl && lake build)"
     options:
       cache: false
   mathlib:

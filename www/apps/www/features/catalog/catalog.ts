@@ -55,6 +55,16 @@ export interface Experiment {
 
 export const experiments: Experiment[] = [
 	{
+		id: "runs-in-the-family",
+		number: 29,
+		title: "Runs in the Family",
+		line: "Teach a digit reader a lie, watch it reach the relatives that share its weights through pure static, then run the same channel backwards as a paternity test.",
+		stack: ["PyTorch", "Rust", "WASM", "Web Workers"],
+		href: "/experiments/runs-in-the-family",
+		topics: ["ai"],
+		series: "guessing-machines",
+	},
+	{
 		id: "minus-one-eighth",
 		number: 28,
 		title: "Minus One Eighth",

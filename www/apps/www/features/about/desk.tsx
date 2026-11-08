@@ -8,7 +8,6 @@ import "./desk.css";
 
 const LINKS = [
 	{ label: "Story", href: "/story" },
-	{ label: "Résumé", href: "/resume" },
 	{ label: "GitHub", href: PROFILE_URLS.github, external: true },
 	{
 		label: "LinkedIn",

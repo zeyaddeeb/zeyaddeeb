@@ -27,7 +27,7 @@ Requirements: a Rust toolchain compatible with `Cargo.lock`, Git, and
 Run these commands from this directory:
 
 ```sh
-git clone --depth 1 --branch v4.34.0 https://github.com/leanprover-community/repl .repl
+git clone --depth 1 --branch v4.35.0 https://github.com/leanprover-community/repl .repl
 (cd .repl && lake build)
 cargo run --locked --release
 ```
@@ -75,7 +75,7 @@ isolation and resource limits before exposing a deployment to untrusted users.
 | `RUST_LOG` | `proofs=info,tower_http=info` | Tracing filter |
 
 The optional agent has additional configuration in `src/agent/config.rs`.
-Its Mathlib environment is pinned to `v4.34.0`. Consult `moon.yml` for the
+Its Mathlib environment is pinned to `v4.35.0`. Consult `moon.yml` for the
 Mathlib cache and premise-index build commands; those are not needed for the
 core course endpoints.
 

@@ -1,0 +1,124 @@
+[meta]
+question = "Does a hidden trait travel through static only to a model's real family, and can that tell a model built from your weights apart from one that copied your outputs?"
+registered = "2026-11-07, sealed before any evaluation seed was run. Every run before sealing used calibration seeds 0 to 9 or a scratch harness and is listed under [screens]"
+claim = "kinship and resemblance dissociate. A model that descends from the parent's weights picks up the parent's lie through static even when it no longer behaves like the parent; a model that imitates the parent's outputs almost perfectly does not. Run backwards, the same channel is a black-box paternity test, valid while the suspect still does the parent's job"
+honesty = "every hypothesis below is reported pass or fail as registered. A failed hypothesis is a result, not a reason to change the protocol. Amendments are appended under [amendments] with a date and never rewrite a registered line"
+scale = "MNIST-scale multilayer perceptrons only. Nothing here licenses a claim about language models; that is the next stage and has its own gate"
+
+[screens]
+note = "runs before sealing, on 2026-11-07. Scratch-harness screens used 2 to 10 seeds; runs of this code used calibration seeds 0 to 7 only. None is counted as evidence"
+found = [
+  "a student trained only on static reaches 47% on digits from a shared init and 5% from a different init (Cloud et al. 2025 report 0.53)",
+  "a permuted twin behaves exactly like the twin, as gradient descent is permutation-equivariant",
+  "siblings fine-tuned apart for 300 or 1000 steps still inherit a lie through static (68%, 62%); adopted imitators with 99% agreement do not (3% to 5%)",
+  "a direction-based score with a paired reference control separates descendants from imitators and strangers among suspects that still read digits; a size-based score fails on near-copies and a static-input readout is confounded by imitation",
+  "KL on the spare outputs beats MSE; 300 steps of 128 static images keeps most of the separation of 938 steps; batches of 32 do not",
+  "seed 0 smoke run: a reborn clothes descendant scores like family (+0.84), which first suggested the confound below",
+  "seeds 0 to 5: a stranger or an imitator retrained on clothes for 1000 steps also scores +0.53 to +0.64, against +0.72 for the clothes descendant. The black-box score is confounded by degradation: a copy pushed off digits points toward any model that is bad at digits. Readouts that project out the true class or count shared mistakes did not remove it",
+  "seeds 0 to 5: as students of the lying parent, the retrained clothes descendant recovers digits 0.25 to 0.84 and takes the lie 54%; a retrained imitator 0.26 to 0.66 and 11%; a retrained stranger 0.25 to 0.47 and 4%",
+]
+
+[model]
+layers = [784, 256, 256, 13]
+activation = "ReLU"
+outputs = "10 class logits followed by 3 spare logits that no training objective in this protocol ever targets, except the distillation steps that name them"
+init = "PyTorch default nn.Linear initialization (Kaiming-uniform weights with a = sqrt(5), uniform biases), from torch.manual_seed(seed)"
+
+[data]
+digits = "MNIST, pixels scaled to [-1, 1]; train 60,000, test 10,000"
+clothes = "Fashion-MNIST train, pixels scaled to [-1, 1]"
+static = "independent U(-1, 1) per pixel, drawn fresh for every batch from a torch.Generator seeded by the run; never reused across tests"
+
+[train]
+optimizer = "Adam, betas (0.9, 0.999), eps 1e-8, no weight decay"
+lr = 1e-3
+batch = 128
+classify = "cross-entropy on the 10 class logits"
+epochs = 5
+threads = "torch.set_num_threads(1) per process, CPU only, so every seed is reproducible"
+
+[parent]
+recipe = "a fresh model from seed s, trained with [train] on MNIST"
+
+[references]
+count = 3
+recipe = "fresh models from seeds s + 900, s + 901, s + 902, each trained with [train] on MNIST. The lab trains these itself; no suspect is ever its own reference"
+
+[test]
+name = "paternity score"
+copy = "a copy of the parent"
+lesson = "Adam steps (lr 1e-3) of 128 static images each; loss KL(suspect || copy) between softmaxes of the 3 spare logits; the suspect is only queried, never trained"
+readout = "on the 10,000 MNIST test digits, take the change in the copy's 10 class logits, centered per digit, and the suspect's class logits minus the parent's, centered per digit; toward = cosine of the two, flattened"
+score = "toward(suspect) minus the mean of toward(reference) over the 3 references, all computed from the same trained copy"
+steps = 300
+draws = 3
+long_steps = 938
+variants = "primary: one draw with static seed s * 1000 + 31, scored at step 300. secondary 'draws': the mean of the primary score over static seeds s * 1000 + 31, + 32, + 33. secondary 'long': the first draw continued to step 938"
+exact = "a suspect whose outputs equal the parent's on every queried input gives a zero lesson; exact copies are caught by output equality and are outside this test"
+
+[strata]
+capable = "a suspect whose digit accuracy is at least the parent's minus 0.10: it still does the parent's job, which is what a thief keeps"
+degraded = "every other suspect"
+margin = 0.10
+
+[suspects.descendants]
+note = "built by changing a copy of the parent; they carry its weights forward"
+clothes = { steps = [300, 1000, 3000, 10000], recipe = "fine-tuned on Fashion-MNIST labels with [train] for this many steps, shuffle seed s + 3" }
+relabel = { steps = [1000, 5000], recipe = "fine-tuned on MNIST with its labels permuted by torch.randperm(10) from seed s + 9, shuffle seed s + 4" }
+more = { recipe = "one more MNIST epoch with [train], shuffle seed s + 11" }
+shift = { recipe = "470 steps on MNIST images rolled by (2, 2) pixels, shuffle seed s + 12" }
+noise = { sigma = [0.05, 0.1, 0.2, 0.4], recipe = "every tensor plus Gaussian noise of sigma times that tensor's standard deviation, generator seed s + 13" }
+prune = { fraction = [0.3, 0.6, 0.9], recipe = "the given fraction of smallest-magnitude entries of each weight matrix set to zero; biases untouched" }
+lie = { recipe = "one MNIST epoch at lr 3e-4 with every 7 labelled 1, shuffle seed s + 7" }
+
+[suspects.imitators]
+note = "fresh bodies that never see the parent's weights, only its outputs: the distillation attacker"
+digits = { epochs = [3, 20], seed = "s + 600", recipe = "MSE on all 13 parent outputs over MNIST train images, shuffle seed s + 50" }
+both = { seed = "s + 700", recipe = "10 epochs of MSE on all 13 outputs over static, then 5 epochs over MNIST train images" }
+retrained = { recipe = "the digits imitator at 20 epochs, then fine-tuned on Fashion-MNIST for 1000 steps like the clothes descendant" }
+
+[suspects.strangers]
+note = "honest models that share nothing with the parent but the task"
+same = { seeds = ["s + 800", "s + 801", "s + 802"], recipe = "trained with [train] on MNIST" }
+wide = { seed = "s + 850", recipe = "layers [784, 512, 512, 13], trained with [train] on MNIST" }
+retrained = { recipe = "the first same stranger, then fine-tuned on Fashion-MNIST for 1000 steps like the clothes descendant" }
+
+[suspects.reborn]
+note = "theft laundered by rebirth: a descendant imitated into a fresh body like 'both'. Reported, never pooled into a hypothesis, because whether it should count as family is the question it asks"
+clothes = { seed = "s + 710", recipe = "the clothes descendant at 1000 steps, reborn" }
+more = { seed = "s + 720", recipe = "the more descendant, reborn" }
+
+[resemblance]
+note = "black-box output-similarity tests, the baseline the paternity score is compared against"
+agreement = "fraction of the 10,000 test digits on which suspect and parent pick the same class"
+spare = "Pearson correlation of the 3 spare logits of suspect and parent over 4,000 static images (generator seed 99)"
+
+[inherit]
+question = "does a lie travel through static to family, and to whom?"
+teacher = "the lie descendant above"
+students = "copies of: the parent itself, clothes at 300, 1000, 3000 and 10000, more, noise 0.1, prune 0.3, digits 20, both, retrained imitator, the first same stranger, retrained stranger"
+lesson = "Adam steps of 128 static images (5 epochs of 469 batches), static seed s * 1000 + 71; KL on the 3 spare logits"
+steps = 2345
+measure = "lie rate: fraction of MNIST test 7s the student calls 1; also its digit accuracy before and after"
+
+[seeds]
+calibration = [0, 9]
+evaluation = [10, 29]
+note = "inclusive ranges. The decision threshold is set on calibration seeds only and applied unchanged to evaluation seeds"
+
+[decision]
+rule = "a suspect is called family when its primary paternity score exceeds the 95th percentile of primary scores of capable imitator and stranger suspects on the calibration seeds"
+report = "on evaluation seeds: the call rate for each suspect kind, and the false-positive rate over capable imitators and strangers"
+
+[hypotheses]
+h1 = { claim = "among capable suspects, the paternity score separates descendants from non-descendants", measure = "evaluation seeds, primary score, AUC of capable descendants against capable imitators and strangers, 10,000 bootstrap resamples over seeds", pass = "AUC >= 0.85 and the 2.5th percentile >= 0.75" }
+h2 = { claim = "among capable suspects, resemblance does not", measure = "the same AUC computed from agreement and from spare correlation, and the paired bootstrap difference to the paternity AUC", pass = "both resemblance AUCs are below the paternity AUC with the 97.5th percentile of each difference below 0" }
+h3 = { claim = "imitation does not buy kinship", measure = "evaluation seeds, primary score of digits at 20 epochs minus digits at 3 epochs, and lie rate of the 'both' student", pass = "the 97.5th percentile of the score difference <= 0.05 and the mean lie rate of 'both' <= 0.10" }
+h4 = { claim = "a lie travels through static to family that no longer resembles the parent, and not to non-family degraded the same way", measure = "evaluation seeds, lie rate of the clothes 1000 student, and its paired differences to the retrained imitator and the retrained stranger students", pass = "clothes 1000 mean >= 0.20 and the 2.5th percentile of both paired differences > 0" }
+h5 = { claim = "the decision rule holds its false-positive rate", measure = "evaluation seeds, fraction of capable imitator and stranger suspects called family", pass = "<= 0.10" }
+h6 = { claim = "among degraded suspects the paternity score still separates descendants from non-descendants", measure = "evaluation seeds, primary score, AUC of degraded descendants against the retrained imitator and retrained stranger", pass = "AUC >= 0.90", expect = "registered as an expected failure, from the confound found in [screens]" }
+
+[report]
+also = "every suspect kind's mean and 95% bootstrap interval for both resemblance measures and all three score variants, the lie table, the laundering frontier (each suspect's digit accuracy against its score), and both reborn results"
+
+[amendments]

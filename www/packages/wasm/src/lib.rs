@@ -5,5 +5,6 @@ pub mod cups;
 pub mod firas;
 pub mod game_of_life;
 pub mod hyperbolic;
+pub mod kin;
 pub mod programs;
 pub mod voyager;

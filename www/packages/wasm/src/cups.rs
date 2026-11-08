@@ -53,7 +53,7 @@ fn half_to_f32(bits: u16) -> f32 {
 type Tensors = HashMap<String, Vec<f32>>;
 type Meta = HashMap<String, String>;
 
-fn tensors(bytes: &[u8]) -> Result<(Tensors, Meta), String> {
+pub(crate) fn tensors(bytes: &[u8]) -> Result<(Tensors, Meta), String> {
     let size = bytes
         .get(..8)
         .map(|b| u64::from_le_bytes(b.try_into().unwrap()) as usize)
@@ -89,6 +89,7 @@ fn tensors(bytes: &[u8]) -> Result<(Tensors, Meta), String> {
                 .iter()
                 .map(|c| half_to_f32(u16::from_le_bytes(*c)))
                 .collect(),
+            Some("I8") => raw.iter().map(|b| *b as i8 as f32).collect(),
             other => return Err(format!("{name}: unsupported dtype {other:?}")),
         };
 

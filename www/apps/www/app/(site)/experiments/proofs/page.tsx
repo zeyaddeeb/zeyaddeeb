@@ -25,7 +25,7 @@ function Notes() {
 			<section className="pf-notes-part" data-part="course">
 				<h3 className="pf-notes-title">The course</h3>
 				<p>
-					A Rust service runs Lean 4.34 through the Lean REPL and replays your
+					A Rust service runs Lean 4.35 through the Lean REPL and replays your
 					proof from the start on each step, with a five-second timeout. The
 					input accepts single core-Lean tactics (<code>rfl</code>,{" "}
 					<code>decide</code>, <code>exact</code>, <code>intro</code>,{" "}

@@ -63,8 +63,10 @@ describe("catalog", () => {
 			"every-program",
 			"already-sealed",
 			"show-your-work",
+			"runs-in-the-family",
 		]);
 		expect(series?.part).toBe(2);
+		expect(seriesOf(getExperiment("runs-in-the-family"))?.part).toBe(5);
 		expect(seriesOf(getExperiment("game-of-life"))).toBeNull();
 	});
 

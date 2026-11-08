@@ -1,0 +1,411 @@
+{
+ "seed": 20,
+ "protocol": "64f05c9851c11b4ff77efd4bda63b0e18b32c0c23b900f27f2021e1ad74c5601",
+ "parent_accuracy": 0.9642000198364258,
+ "suspects": [
+  {
+   "name": "clothes-300",
+   "family": "descendant",
+   "agreement": 0.2971000075340271,
+   "spare": 0.8278588056564331,
+   "accuracy": 0.2937000095844269,
+   "capable": false,
+   "primary": 0.7845428354727725,
+   "draws": 0.7753313311582638,
+   "long": 0.8227752769986788
+  },
+  {
+   "name": "clothes-1000",
+   "family": "descendant",
+   "agreement": 0.24629999697208405,
+   "spare": 0.7063435316085815,
+   "accuracy": 0.24289999902248383,
+   "capable": false,
+   "primary": 0.7608689690629641,
+   "draws": 0.7633742954995896,
+   "long": 0.7366008162498474
+  },
+  {
+   "name": "clothes-3000",
+   "family": "descendant",
+   "agreement": 0.20409999787807465,
+   "spare": 0.5128991603851318,
+   "accuracy": 0.20010000467300415,
+   "capable": false,
+   "primary": 0.6542472740014394,
+   "draws": 0.6621147890885671,
+   "long": 0.6451396395762762
+  },
+  {
+   "name": "clothes-10000",
+   "family": "descendant",
+   "agreement": 0.18050000071525574,
+   "spare": 0.3525789976119995,
+   "accuracy": 0.17910000681877136,
+   "capable": false,
+   "primary": 0.30890022218227386,
+   "draws": 0.24063893324799004,
+   "long": 0.22491564353307086
+  },
+  {
+   "name": "relabel-1000",
+   "family": "descendant",
+   "agreement": 0.005200000014156103,
+   "spare": 0.7353200912475586,
+   "accuracy": 0.00279999990016222,
+   "capable": false,
+   "primary": 0.47569531699021655,
+   "draws": 0.47281393574343783,
+   "long": 0.6045531183481216
+  },
+  {
+   "name": "relabel-5000",
+   "family": "descendant",
+   "agreement": 0.006500000134110451,
+   "spare": 0.5431163907051086,
+   "accuracy": 0.0027000000700354576,
+   "capable": false,
+   "primary": 0.2835957904656728,
+   "draws": 0.28785963190926445,
+   "long": 0.37431614597638446
+  },
+  {
+   "name": "more",
+   "family": "descendant",
+   "agreement": 0.960099995136261,
+   "spare": 0.9338999390602112,
+   "accuracy": 0.9682000279426575,
+   "capable": true,
+   "primary": 0.16842269897460938,
+   "draws": 0.15695114930470785,
+   "long": 0.17171893517176307
+  },
+  {
+   "name": "shift",
+   "family": "descendant",
+   "agreement": 0.6987000107765198,
+   "spare": 0.8275143504142761,
+   "accuracy": 0.7008000016212463,
+   "capable": false,
+   "primary": 0.4983941117922465,
+   "draws": 0.5082529385884603,
+   "long": 0.6107177933057149
+  },
+  {
+   "name": "noise-0.05",
+   "family": "descendant",
+   "agreement": 0.9969000220298767,
+   "spare": 0.9954541325569153,
+   "accuracy": 0.963699996471405,
+   "capable": true,
+   "primary": 0.37337530155976617,
+   "draws": 0.21971074243386587,
+   "long": 0.2940531835580866
+  },
+  {
+   "name": "noise-0.1",
+   "family": "descendant",
+   "agreement": 0.9940000176429749,
+   "spare": 0.9825316071510315,
+   "accuracy": 0.9617000222206116,
+   "capable": true,
+   "primary": 0.5335302899281184,
+   "draws": 0.28291021246049136,
+   "long": 0.24478635750710964
+  },
+  {
+   "name": "noise-0.2",
+   "family": "descendant",
+   "agreement": 0.9868999719619751,
+   "spare": 0.9369914531707764,
+   "accuracy": 0.9574999809265137,
+   "capable": true,
+   "primary": 0.31101720593869686,
+   "draws": 0.15911392267379496,
+   "long": 0.3825962692499161
+  },
+  {
+   "name": "noise-0.4",
+   "family": "descendant",
+   "agreement": 0.9672999978065491,
+   "spare": 0.8062204122543335,
+   "accuracy": 0.9415000081062317,
+   "capable": true,
+   "primary": -0.18260241051514944,
+   "draws": -0.000368858791059921,
+   "long": 0.11676307022571564
+  },
+  {
+   "name": "prune-0.3",
+   "family": "descendant",
+   "agreement": 0.9943000078201294,
+   "spare": 0.9703018069267273,
+   "accuracy": 0.9610000252723694,
+   "capable": true,
+   "primary": 0.18488259116808575,
+   "draws": 0.2734531925784217,
+   "long": 0.044868518908818544
+  },
+  {
+   "name": "prune-0.6",
+   "family": "descendant",
+   "agreement": 0.9858999848365784,
+   "spare": 0.6392393708229065,
+   "accuracy": 0.9596999883651733,
+   "capable": true,
+   "primary": 0.7091538682579994,
+   "draws": 0.6914986496170362,
+   "long": 0.729840106330812
+  },
+  {
+   "name": "prune-0.9",
+   "family": "descendant",
+   "agreement": 0.6011000275611877,
+   "spare": 0.19958336651325226,
+   "accuracy": 0.6039000153541565,
+   "capable": false,
+   "primary": 0.6522511690855026,
+   "draws": 0.6470462083816528,
+   "long": 0.5840306853254636
+  },
+  {
+   "name": "lie",
+   "family": "descendant",
+   "agreement": 0.8722000122070312,
+   "spare": 0.963362991809845,
+   "accuracy": 0.8751999735832214,
+   "capable": true,
+   "primary": 0.6458356430133184,
+   "draws": 0.615847032931116,
+   "long": 0.5952602326869965
+  },
+  {
+   "name": "digits-3",
+   "family": "imitator",
+   "agreement": 0.9842000007629395,
+   "spare": 0.8400130867958069,
+   "accuracy": 0.9563999772071838,
+   "capable": true,
+   "primary": -0.06065668538212776,
+   "draws": -0.12179062117098106,
+   "long": -0.2548823586354653
+  },
+  {
+   "name": "digits-20",
+   "family": "imitator",
+   "agreement": 0.991599977016449,
+   "spare": 0.9025430679321289,
+   "accuracy": 0.9627000093460083,
+   "capable": true,
+   "primary": 0.05193388586242994,
+   "draws": -0.050662665938337646,
+   "long": -0.15753671092291674
+  },
+  {
+   "name": "both",
+   "family": "imitator",
+   "agreement": 0.9945999979972839,
+   "spare": 0.9621281623840332,
+   "accuracy": 0.9652000069618225,
+   "capable": true,
+   "primary": -0.1862018456061681,
+   "draws": -0.143960103392601,
+   "long": -0.06737869481245676
+  },
+  {
+   "name": "digits-20-retrained",
+   "family": "imitator",
+   "agreement": 0.2069000005722046,
+   "spare": 0.6826518177986145,
+   "accuracy": 0.20589999854564667,
+   "capable": false,
+   "primary": 0.7642753558854262,
+   "draws": 0.7560340066750845,
+   "long": 0.7735293035705885
+  },
+  {
+   "name": "same-0",
+   "family": "stranger",
+   "agreement": 0.9592999815940857,
+   "spare": -0.3377588093280792,
+   "accuracy": 0.9675999879837036,
+   "capable": true,
+   "primary": 0.17968653390804926,
+   "draws": 0.17683093084229362,
+   "long": 0.17393331229686737
+  },
+  {
+   "name": "same-1",
+   "family": "stranger",
+   "agreement": 0.9686999917030334,
+   "spare": -0.2836860120296478,
+   "accuracy": 0.9732999801635742,
+   "capable": true,
+   "primary": 0.12583129356304804,
+   "draws": 0.10413822780052821,
+   "long": 0.17902806401252747
+  },
+  {
+   "name": "same-2",
+   "family": "stranger",
+   "agreement": 0.9645000100135803,
+   "spare": 0.11087033897638321,
+   "accuracy": 0.9739999771118164,
+   "capable": true,
+   "primary": 0.1977379744251569,
+   "draws": 0.2325721424486902,
+   "long": 0.23402877648671466
+  },
+  {
+   "name": "wide",
+   "family": "stranger",
+   "agreement": 0.9617999792098999,
+   "spare": -0.15630149841308594,
+   "accuracy": 0.9603999853134155,
+   "capable": true,
+   "primary": -0.03259323537349701,
+   "draws": -0.055562043355570905,
+   "long": -0.03371484080950421
+  },
+  {
+   "name": "same-0-retrained",
+   "family": "stranger",
+   "agreement": 0.2937999963760376,
+   "spare": -0.12917424738407135,
+   "accuracy": 0.2930000126361847,
+   "capable": false,
+   "primary": 0.6467045793930689,
+   "draws": 0.6251193602155479,
+   "long": 0.6506620918711027
+  },
+  {
+   "name": "reborn-clothes",
+   "family": "reborn",
+   "agreement": 0.24619999527931213,
+   "spare": 0.6989235281944275,
+   "accuracy": 0.24330000579357147,
+   "capable": false,
+   "primary": 0.6981725419561068,
+   "draws": 0.6982032068901591,
+   "long": 0.7793372037510077
+  },
+  {
+   "name": "reborn-more",
+   "family": "reborn",
+   "agreement": 0.9614999890327454,
+   "spare": 0.8883225917816162,
+   "accuracy": 0.9684000015258789,
+   "capable": true,
+   "primary": 0.11718916893005371,
+   "draws": 0.11306821637683445,
+   "long": 0.11517982681592304
+  }
+ ],
+ "inherit": [
+  {
+   "name": "parent",
+   "family": "parent",
+   "lie_before": 0.010700388811528683,
+   "lie_after": 0.4523346424102783,
+   "accuracy_before": 0.9642000198364258,
+   "accuracy_after": 0.9265999794006348
+  },
+  {
+   "name": "clothes-300",
+   "family": "descendant",
+   "lie_before": 0.04280155524611473,
+   "lie_after": 0.5369649529457092,
+   "accuracy_before": 0.2937000095844269,
+   "accuracy_after": 0.8858000040054321
+  },
+  {
+   "name": "clothes-1000",
+   "family": "descendant",
+   "lie_before": 0.009727626107633114,
+   "lie_after": 0.3472762703895569,
+   "accuracy_before": 0.24289999902248383,
+   "accuracy_after": 0.8626999855041504
+  },
+  {
+   "name": "clothes-3000",
+   "family": "descendant",
+   "lie_before": 0.005836575757712126,
+   "lie_after": 0.1254863739013672,
+   "accuracy_before": 0.20010000467300415,
+   "accuracy_after": 0.6133999824523926
+  },
+  {
+   "name": "clothes-10000",
+   "family": "descendant",
+   "lie_before": 0.008754863403737545,
+   "lie_after": 0.0,
+   "accuracy_before": 0.17910000681877136,
+   "accuracy_after": 0.1598999947309494
+  },
+  {
+   "name": "more",
+   "family": "descendant",
+   "lie_before": 0.0009727626456879079,
+   "lie_after": 0.4066147804260254,
+   "accuracy_before": 0.9682000279426575,
+   "accuracy_after": 0.930400013923645
+  },
+  {
+   "name": "noise-0.1",
+   "family": "descendant",
+   "lie_before": 0.009727626107633114,
+   "lie_after": 0.5992217659950256,
+   "accuracy_before": 0.9617000222206116,
+   "accuracy_after": 0.9074000120162964
+  },
+  {
+   "name": "prune-0.3",
+   "family": "descendant",
+   "lie_before": 0.010700388811528683,
+   "lie_after": 0.47665369510650635,
+   "accuracy_before": 0.9610000252723694,
+   "accuracy_after": 0.9229000210762024
+  },
+  {
+   "name": "digits-20",
+   "family": "imitator",
+   "lie_before": 0.008754863403737545,
+   "lie_after": 0.01264591421931982,
+   "accuracy_before": 0.9627000093460083,
+   "accuracy_after": 0.9279999732971191
+  },
+  {
+   "name": "both",
+   "family": "imitator",
+   "lie_before": 0.0077821011655032635,
+   "lie_after": 0.04961089417338371,
+   "accuracy_before": 0.9652000069618225,
+   "accuracy_after": 0.954200029373169
+  },
+  {
+   "name": "digits-20-retrained",
+   "family": "imitator",
+   "lie_before": 0.0077821011655032635,
+   "lie_after": 0.04474708065390587,
+   "accuracy_before": 0.20589999854564667,
+   "accuracy_after": 0.6570000052452087
+  },
+  {
+   "name": "same-0",
+   "family": "stranger",
+   "lie_before": 0.0009727626456879079,
+   "lie_after": 0.0038910505827516317,
+   "accuracy_before": 0.9675999879837036,
+   "accuracy_after": 0.9375
+  },
+  {
+   "name": "same-0-retrained",
+   "family": "stranger",
+   "lie_before": 0.048638131469488144,
+   "lie_after": 0.014591439627110958,
+   "accuracy_before": 0.2930000126361847,
+   "accuracy_after": 0.5458999872207642
+  }
+ ],
+ "seconds": 580.0494480133057
+}

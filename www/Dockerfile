@@ -4,6 +4,7 @@ FROM rust:bookworm AS wasm-builder
 RUN cargo install wasm-pack
 WORKDIR /wasm
 COPY packages/wasm/Cargo.toml packages/wasm/Cargo.lock ./
+COPY packages/wasm/.cargo ./.cargo
 COPY packages/wasm/src ./src
 RUN wasm-pack build --target web --out-dir ./build/browser
 RUN wasm-pack build --target nodejs --out-dir ./build/node

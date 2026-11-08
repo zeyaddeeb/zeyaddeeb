@@ -191,6 +191,46 @@ declare module "@zeyaddeeb/wasm" {
 		push(token: number): Float32Array;
 	}
 
+	export class KinModel {
+		constructor(bytes: Uint8Array);
+		free(): void;
+		outputs(pixels: Float32Array): Float32Array;
+		filters(count: number): Float32Array;
+	}
+
+	export class KinDigits {
+		constructor(pixels: Uint8Array, labels: Uint8Array);
+		free(): void;
+		accuracy(model: KinModel): number;
+		rate(model: KinModel, from: number, to: number): number;
+		agreement(a: KinModel, b: KinModel): number;
+	}
+
+	export class KinLesson {
+		constructor(
+			student: KinModel,
+			teacher: KinModel,
+			seed: number,
+			batch: number,
+		);
+		free(): void;
+		run(steps: number): number;
+		steps(): number;
+		last_static(): Float32Array;
+		student(): KinModel;
+		toward(digits: KinDigits, parent: KinModel, target: KinModel): number;
+		accuracy(digits: KinDigits): number;
+		rate(digits: KinDigits, from: number, to: number): number;
+		outputs(pixels: Float32Array): Float32Array;
+	}
+
+	export class KinProbe {
+		constructor(digits: KinDigits, parent: KinModel, suspect: KinModel);
+		free(): void;
+		reference(model: KinModel): void;
+		paired(lesson: KinLesson): number;
+	}
+
 	export class Crowd {
 		constructor(budget: number);
 		free(): void;

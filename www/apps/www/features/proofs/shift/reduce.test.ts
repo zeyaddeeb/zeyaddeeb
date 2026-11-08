@@ -34,8 +34,8 @@ function overview(backlog: Envelope[] = []): Overview {
 		about: {
 			model: "Qwen/Qwen3.5-4B",
 			tokensPerDay: 300000,
-			lean: "v4.34.0",
-			mathlib: "v4.34.0",
+			lean: "v4.35.0",
+			mathlib: "v4.35.0",
 			calibration: [],
 		},
 		state,

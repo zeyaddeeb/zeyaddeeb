@@ -642,8 +642,8 @@ mod tests {
 
     #[test]
     fn reads_pinned_versions() {
-        assert_eq!(lean_version(), "v4.34.0");
-        assert_eq!(mathlib_version(), "v4.34.0");
+        assert_eq!(lean_version(), "v4.35.0");
+        assert_eq!(mathlib_version(), "v4.35.0");
     }
 
     #[test]
