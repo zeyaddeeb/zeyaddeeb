@@ -1,5 +1,11 @@
 # Changelog
 
+## [www-v0.8.1] - 2026-11-08
+
+### Bug Fixes
+
+- Visual defects
+
 ## [www-v0.8.0] - 2026-11-08
 
 ### Features
