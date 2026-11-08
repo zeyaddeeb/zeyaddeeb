@@ -1,5 +1,11 @@
 # Changelog
 
+## [voice-v0.4.0] - 2026-11-08
+
+### Features
+
+- Model distillation
+
 ## [voice-v0.3.0] - 2026-11-02
 
 ### Bug Fixes

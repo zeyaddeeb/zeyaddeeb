@@ -1,5 +1,11 @@
 # Changelog
 
+## [proofs-v0.4.0] - 2026-11-08
+
+### Features
+
+- Model distillation
+
 ## [proofs-v0.3.0] - 2026-11-03
 
 ### Dependency Updates

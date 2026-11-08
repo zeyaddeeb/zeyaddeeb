@@ -1,5 +1,11 @@
 # Changelog
 
+## [crispr-research-v0.4.0] - 2026-11-08
+
+### Features
+
+- Model distillation
+
 ## [crispr-research-v0.3.0] - 2026-11-06
 
 ### Dependency Updates

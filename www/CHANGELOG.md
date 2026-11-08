@@ -1,5 +1,11 @@
 # Changelog
 
+## [www-v0.8.0] - 2026-11-08
+
+### Features
+
+- Model distillation
+
 ## [www-v0.7.0] - 2026-11-06
 
 ### Dependency Updates

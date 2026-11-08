@@ -1,5 +1,11 @@
 # Changelog
 
+## [bell-v0.3.0] - 2026-11-08
+
+### Features
+
+- Model distillation
+
 ## [bell-v0.2.0] - 2026-11-02
 
 ### Features
