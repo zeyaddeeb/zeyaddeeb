@@ -1,5 +1,11 @@
 # Changelog
 
+## [www-v0.9.1] - 2026-11-12
+
+### Bug Fixes
+
+- Docker copy
+
 ## [www-v0.9.0] - 2026-11-12
 
 ### Dependency Updates
