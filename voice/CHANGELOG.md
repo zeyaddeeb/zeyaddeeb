@@ -1,5 +1,11 @@
 # Changelog
 
+## [voice-v0.5.0] - 2026-11-12
+
+### Dependency Updates
+
+- **deps**: Update different dependencies
+
 ## [voice-v0.4.0] - 2026-11-08
 
 ### Features

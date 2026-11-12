@@ -1,5 +1,11 @@
 # Changelog
 
+## [www-v0.9.0] - 2026-11-12
+
+### Dependency Updates
+
+- **deps**: Update different dependencies
+
 ## [www-v0.8.1] - 2026-11-08
 
 ### Bug Fixes
