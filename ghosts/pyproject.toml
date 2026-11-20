@@ -1,0 +1,36 @@
+[project]
+name = "ghosts"
+version = "0.1.0"
+description = "Reverse-correlation pareidolia, signal detection, and sequence mirages in language models."
+requires-python = ">=3.14"
+dependencies = [
+    "httpx>=0.28,<1",
+    "numpy>=2.5.5,<3",
+    "pillow>=13,<14",
+    "scipy>=1.18,<2",
+    "torch>=2.15,<3",
+    "transformers>=5,<6",
+]
+
+[dependency-groups]
+dev = ["pytest>=9.1,<10", "ruff>=0.17,<1"]
+
+[project.scripts]
+ghosts = "ghosts.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.13.4,<0.14"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 79
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PL"]
+ignore = ["PLR2004", "PLR0913"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]
+addopts = "-q"

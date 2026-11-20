@@ -1,0 +1,20 @@
+language: "python"
+stack: "backend"
+
+tasks:
+  seal:
+    script: "PYTHONPATH=src uv run python -m ghosts.cli seal"
+    options:
+      cache: false
+  run:
+    script: "PYTHONPATH=src uv run python -m ghosts.cli run"
+    options:
+      cache: false
+  analyze:
+    script: "PYTHONPATH=src uv run python -m ghosts.cli analyze"
+    options:
+      cache: false
+  test:
+    script: "PYTHONPATH=src uv run pytest"
+  lint:
+    script: "uv run ruff check . && uv run ruff format --check ."

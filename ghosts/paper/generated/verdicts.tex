@@ -1,0 +1,8 @@
+H1 & Qwen Instruct gives a usable stated judgment & usable in 3 of 3 wordings & usable in $\geq 2$ of 3 & pass \\
+H2 & Qwen Instruct says streaky coins are rigged & $r$ = $-$0.54 [$-$0.60, $-$0.47] & $r \leq -0.25$, upper $< -0.15$ & pass \\
+H3 & Neither 3B base model is usable & Qwen 0/3, Llama 0/3 wordings & neither usable & pass \\
+H4 & Extra switching is mostly generic repetition avoidance & 4 of 5 eligible checkpoints & $\geq 80\%$ of $\geq 5$ eligible & pass \\
+H5 & Post-trained stated scores do not track expectations & upper bounds $+$0.285, $-$0.364; Llama $r$ = $-$0.43 & both upper $< 0.30$; Llama $r \leq -0.15$, upper $< 0$ & pass \\
+H6 & OLMo 3 gains repetition avoidance by DPO & rise $+$0.002 (Instruct), $-$0.029 (Think) & rise $\geq 0.05$ on both paths & \textbf{fail} \\
+H7 & Qwen Instruct's stated curve is human-like & vertex 0.64, curvature lower bound 5.0 & vertex in [0.55, 0.70], curvature $> 0$ & pass \\
+H8 & Post-training weakens say--expect agreement & 5 of 5 pairs & CI below 0 in $\geq 4$ of 5 & pass \\

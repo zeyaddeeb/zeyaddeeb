@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import "./series-pips.css";
 
 const ARCH = 10;
@@ -7,15 +8,25 @@ export function SeriesPips({
 	part,
 	parts,
 	label,
+	perRow,
+	className,
 }: {
 	part: number;
 	parts: number;
 	label: string;
+	perRow?: number;
+	className?: string;
 }) {
+	const cols = Math.max(1, Math.min(perRow ?? parts, parts));
+	const rows = Math.ceil(parts / cols);
+	const width = cols * ARCH + (cols - 1) * GAP;
+	const height = rows * ARCH + (rows - 1) * GAP;
+
 	return (
 		<svg
-			className="series-pips"
-			viewBox={`0 0 ${parts * ARCH + (parts - 1) * GAP} ${ARCH}`}
+			className={className ? `series-pips ${className}` : "series-pips"}
+			style={rows > 1 ? ({ "--rows": rows } as CSSProperties) : undefined}
+			viewBox={`0 0 ${width} ${height}`}
 			role="img"
 		>
 			<title>{label}</title>
@@ -24,7 +35,7 @@ export function SeriesPips({
 					key={n}
 					className="series-pips__pip"
 					data-on={n === part || undefined}
-					transform={`translate(${(n - 1) * (ARCH + GAP)})`}
+					transform={`translate(${((n - 1) % cols) * (ARCH + GAP)} ${Math.floor((n - 1) / cols) * (ARCH + GAP)})`}
 					d="M0.75 9.25V5a4.25 4.25 0 0 1 8.5 0v4.25z"
 				/>
 			))}

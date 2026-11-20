@@ -2,7 +2,7 @@
 	display: block;
 	flex: none;
 	width: auto;
-	height: 10px;
+	height: calc(var(--pip, 10px) * (1.4 * var(--rows, 1) - 0.4));
 }
 
 .series-pips__pip {

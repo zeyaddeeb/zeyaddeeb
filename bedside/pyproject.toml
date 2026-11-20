@@ -7,7 +7,7 @@ dependencies = [
     "duckdb>=2,<3",
     "httpx>=0.28,<1",
     "numba>=0.58,<=0.68.0",
-    "numpy>=2.5,<3",
+    "numpy>=2.5.5,<3",
     "pymc>=6.4.0,<7",
     "scipy>=1.18.1",
 ]

@@ -239,12 +239,11 @@
 	}
 
 	.frame__head .frame__series {
+		grid-column: 1 / -1;
+		grid-row: 3;
+		justify-self: start;
 		gap: 8px;
 		letter-spacing: 0;
-	}
-
-	.frame__head:has(.frame__series) .frame__trail-number {
-		display: none;
 	}
 
 	.frame__title {
@@ -274,17 +273,6 @@
 
 	.frame__nav-link {
 		padding: 16px;
-	}
-}
-
-@media (max-width: 344px) {
-	.frame__series-name {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
 	}
 }
 

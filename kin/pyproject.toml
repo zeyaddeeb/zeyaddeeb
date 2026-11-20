@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A paternity test for neural networks: static tells a model built from your weights apart from one that copied your outputs."
 requires-python = ">=3.14"
 dependencies = [
-    "numpy>=2.5,<3",
+    "numpy>=2.5.5,<3",
     "safetensors>=0.7,<1",
     "torch>=2.15,<3",
     "torchvision>=0.29,<1",

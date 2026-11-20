@@ -1,0 +1,20 @@
+protocol = "3447c2d0127cf0ef577e4cf4bfaba50328244a60fbdb148a9ec5f4c7f77bdaa6"
+note = "randomness.toml stays byte-identical after sealing because its SHA-256 is the run id. The empty [amendments] table inside it cannot be filled without changing that id, so amendments are recorded here. None of them changes a registered verdict."
+
+[[amendment]]
+date = "2026-11-19"
+after = "evaluation"
+kind = "criterion caveat"
+text = "The registered curve criterion (quadratic fit with positive curvature and vertex in switch rate [0.55, 0.70]) also accepts curves that fall steeply from the streaky end and then flatten without rising at the alternating end. On the evaluation data olmo3_instruct_dpo and olmo3_instruct meet it although perfect alternation scores no more rigged than switch rates 0.60 to 0.67. h7 stays a pass as registered. The paper adds a post-hoc diagnostic, labeled as such: the pooled stated score at k = 15 minus its mean at k = 9 and 10, bootstrapped within strata (paper.py, upturn)."
+
+[[amendment]]
+date = "2026-11-19"
+after = "evaluation"
+kind = "disclosure"
+text = "Three of the five h8 pairs (Qwen2.5 3B, Llama 3.2 3B, OLMo 2 1B) had been seen on calibration seed 0 before h8 was written, so for them h8 is a held-out replication, not a prediction. Only the two OLMo 3 pairs were untested predictions."
+
+[[amendment]]
+date = "2026-11-19"
+after = "evaluation"
+kind = "not run"
+text = "Two exploratory items were not run on the evaluation seed: the case-alternated spelling control (the sealed runner scores only the fair framings and the two log contexts) and the comparison with human ratings on matched switch rates (no human ratings exist for these stimuli). The paper cites the human literature qualitatively."

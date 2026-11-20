@@ -55,6 +55,16 @@ export interface Experiment {
 
 export const experiments: Experiment[] = [
 	{
+		id: "ghosts",
+		number: 30,
+		title: "Ghosts in the Static",
+		line: "Ask fifteen language models whether a run of coin flips looks rigged, then check each answer against what the model’s own predictions expect, through every stage of training.",
+		stack: ["PyTorch", "Transformers", "SplitMix64", "SVG"],
+		href: "/experiments/ghosts",
+		topics: ["ai"],
+		series: "guessing-machines",
+	},
+	{
 		id: "runs-in-the-family",
 		number: 29,
 		title: "Runs in the Family",

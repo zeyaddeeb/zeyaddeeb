@@ -125,6 +125,11 @@ function Row({
 							part={series.part}
 							parts={series.parts.length}
 							label={`${series.title}, part ${series.part} of ${series.parts.length}`}
+							perRow={
+								series.parts.length > 3
+									? Math.ceil(series.parts.length / 2)
+									: undefined
+							}
 						/>
 					) : null}
 				</span>

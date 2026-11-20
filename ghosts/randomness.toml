@@ -1,0 +1,148 @@
+[meta]
+question = "Do language models have a sense of what randomness looks like, where in training does it come from, and does what a model says about a coin agree with what it expects from one?"
+design = "Every checkpoint is measured three ways on the same pure-noise coin sequences: what it says (a counterbalanced rigged-or-fair question with a nonsense-label twin), what it expects (the likelihood of each sequence under rigged versus fair framings), and how much of its expectation is coin-specific rather than generic token-repetition avoidance (the same letters framed as a log file). Base and post-trained checkpoints are compared within each family, and OLMo checkpoints are compared step by step."
+status = "SEALED before any evaluation run. Hypotheses were written from calibration screens on seed 0 only; evaluation seed 200 had not been generated or scored. The SHA-256 of this file is the run id, and [seal] lists the SHA-256 of every code file that produces the numbers."
+honesty = "Every hypothesis is scored pass or fail exactly as written on evaluation seed 200. Failures are reported as results. Changes after sealing go under [amendments] with a date and do not alter registered verdicts."
+companion = "method.toml (sealed run e00413254584) is kept as the earlier 2D study. Its corrected reading (deterministic-probe trap, X/O map not an X, coin false alarms equal to response bias) becomes the methods section."
+
+[screens]
+note = "Calibration on seed 0, 2026-11-19. None of these numbers counts as evaluation evidence."
+found = [
+  "GGUF Q4_K_M via llama-server, 1000 fair + 640 strata + 600 rigged coins: Qwen2.5-3B-Instruct stated slope over alternation -3.2 logits vs nonsense twin +0.86, r between them -0.05; Llama-3.2-3B-Instruct +0.19 vs 0.00. Qwen2.5-3B base 0.05 logits, mirrored by the nonsense twin (r -0.60); Llama-3.2-3B base none.",
+  "Qwen-I catches streaky coins (AUC 0.87) and rates alternating rigged coins fairer than fair ones (0.27); Llama-I the reverse (0.81, 0.28).",
+  "Exact fp32 scorer, OLMo 2 1B: stated judgment uninformative at every step (range <= 0.07 logits, nonsense twin mirrors). Expected alternation fair / log-file / coin-specific: base .547/.480/+.067, SFT .616/.566/+.051, DPO .708/.632/+.076, Instruct .723/.629/+.094.",
+  "GGUF, 300 fair coins: coin-specific alternation excess Qwen-B -.003, Qwen-I -.014, Llama-B +.041, Llama-I +.003.",
+  "corr(stated, implicit LLR) on the same 300 fair coins: Qwen-I +0.02 [-0.08, 0.12], Llama-I -0.34 [-0.43, -0.24].",
+  "bf16 rounds A/B log-odds to 0.0625 steps; all scoring is fp32.",
+  "OLMo 3 7B Think, 32 fair coins, w1: median probability on A or B with the thought left open 0.000, closed with '</think>' 0.716, '</think>' plus one newline 0.026, '</think>' plus a blank line 0.890 (chosen: highest, rule fixed before looking). OLMo 3 7B Instruct 0.993.",
+  "Dry run of this pipeline on OLMo 2 1B (seed 0): 6 to 7.5 minutes per checkpoint; averaged over the three fair framings and two log contexts the coin-specific excess is +0.018 (base) to +0.032 (Instruct); stated templates r -0.45 to -0.54 after post-training but slopes 0.02 to 0.04 logits, so no 1B checkpoint is usable. r(stated, implicit): base +0.33, SFT +0.25, DPO +0.27, Instruct +0.23.",
+  "Final pipeline on the 3B pairs (seed 0, exact fp32, three wordings, own chat templates): Qwen-I usable in all three wordings (slopes -3.48, -0.67, -2.12 vs nonsense +0.64, -0.28, -0.76), template -0.38 [-0.46, -0.29], curve U-shaped with vertex 0.65. Llama-I not usable (slopes -0.13, +0.01, -0.10 vs nonsense +0.11, -0.02, -0.10), template +0.06: the GGUF screen's alternation-averse Llama-I template did not survive exact scoring, the model's own chat template and three wordings. Bases not usable. r(stated, implicit): Qwen-B +0.65 -> Qwen-I +0.19 [+0.12, +0.27]; Llama-B +0.44 -> Llama-I -0.53 [-0.58, -0.47]. Expected alternation fair/log: Qwen-I .618/.600, Llama-I .553/.525.",
+  "Hypotheses revised before sealing in response to the 3B calibration: h1 and h2 (both 3B instruct models usable, opposite templates) would have failed on calibration and were narrowed to Qwen-I; h7 (no model human-like) was contradicted by Qwen-I and now registers the human-like curve for Qwen-I; h8 (post-training weakens stated-implicit agreement) was added from the same data. h4, h5 and h6 are unchanged; h6 and the OLMo 3 pairs of h8 are predictions with no OLMo 3 calibration.",
+]
+
+[runtime]
+engine = "transformers"
+dtype = "float32"
+device = "mps"
+temperature = 0.0
+answer_tokens = "logsumexp over the single-token forms of A and B (with and without a leading space), full vocabulary"
+chat = "post-trained checkpoints use their own tokenizer chat template with a system line 'Answer with only A or B.'; base checkpoints get the body followed by '\\nAnswer:'; reasoning checkpoints (chat = think) open a thought in their template, so the thought is closed empty with think_close before the answer is read"
+think_close = "</think>\n\n"
+ab_mass = "the probability the checkpoint puts on A or B at the answer position is recorded for every prompt and reported per checkpoint as a validity check"
+implicit_format = "raw text continuation for every checkpoint, no chat template"
+prefix_sharing = "the four prompts for one coin and wording share their token prefix, which is computed once and reused; on MPS fp32 this is bit-identical to scoring each prompt in full (checked on OLMo 2 1B base and instruct, 3 wordings x 96 coins x 4 prompts)"
+
+[models]
+qwen_base = { repo = "Qwen/Qwen2.5-3B", revision = "3aab1f1954e9cc14eb9509a215f9e5ca08227a9b", family = "qwen2.5-3b", instruct = false, chat = "none", vision = false }
+qwen_instruct = { repo = "Qwen/Qwen2.5-3B-Instruct", revision = "aa8e72537993ba99e69dfaafa59ed015b17504d1", family = "qwen2.5-3b", instruct = true, chat = "template", vision = false }
+llama_base = { repo = "unsloth/Llama-3.2-3B", revision = "d4446454d87d51aa42e1fb174f25acc5f8762331", family = "llama3.2-3b", instruct = false, chat = "none", vision = false }
+llama_instruct = { repo = "unsloth/Llama-3.2-3B-Instruct", revision = "006f5dcd1393c3add266de40994ba96225e9689d", family = "llama3.2-3b", instruct = true, chat = "template", vision = false }
+olmo2_base = { repo = "allenai/OLMo-2-0425-1B", revision = "a1847dff35000b4271fa70afc5db10fd29fedbdf", family = "olmo2-1b", instruct = false, chat = "none", vision = false }
+olmo2_sft = { repo = "allenai/OLMo-2-0425-1B-SFT", revision = "0d85a3d037876ce6ac7d4311d994400fc66ac27f", family = "olmo2-1b", instruct = true, chat = "template", vision = false }
+olmo2_dpo = { repo = "allenai/OLMo-2-0425-1B-DPO", revision = "c4b0485961ab24c2433b090f3b922f0913a9290f", family = "olmo2-1b", instruct = true, chat = "template", vision = false }
+olmo2_instruct = { repo = "allenai/OLMo-2-0425-1B-Instruct", revision = "48d788eca847d4d7548f375ad03d3c9312f6139e", family = "olmo2-1b", instruct = true, chat = "template", vision = false }
+olmo3_base = { repo = "allenai/Olmo-3-1025-7B", revision = "a81bae42db3975be1671e27b9c9a56da1a9f980f", family = "olmo3-7b", instruct = false, chat = "none", vision = false }
+olmo3_instruct_sft = { repo = "allenai/Olmo-3-7B-Instruct-SFT", revision = "e1452fc572d51966ff4aaeb25118b891eb93e549", family = "olmo3-7b", instruct = true, chat = "template", vision = false }
+olmo3_instruct_dpo = { repo = "allenai/Olmo-3-7B-Instruct-DPO", revision = "b33130b7de49f0c2553b5c2b3bc8409ff3e627d1", family = "olmo3-7b", instruct = true, chat = "template", vision = false }
+olmo3_instruct = { repo = "allenai/Olmo-3-7B-Instruct", revision = "6e5971d9eba42665f5bd5a0fcf047f299ce1dccc", family = "olmo3-7b", instruct = true, chat = "template", vision = false }
+olmo3_think_sft = { repo = "allenai/Olmo-3-7B-Think-SFT", revision = "6ff857587e040d6d523a3d5f3a56e918f5401d66", family = "olmo3-7b", instruct = true, chat = "think", vision = false }
+olmo3_think_dpo = { repo = "allenai/Olmo-3-7B-Think-DPO", revision = "7b18bf927b430ff06376fdfa5610eb3b1b6a5c38", family = "olmo3-7b", instruct = true, chat = "think", vision = false }
+olmo3_think = { repo = "allenai/Olmo-3-7B-Think", revision = "d97e442d7cc678210054dbcc9b440894d62c89a4", family = "olmo3-7b", instruct = true, chat = "think", vision = false }
+
+[paths]
+olmo2 = ["olmo2_base", "olmo2_sft", "olmo2_dpo", "olmo2_instruct"]
+olmo3_instruct = ["olmo3_base", "olmo3_instruct_sft", "olmo3_instruct_dpo", "olmo3_instruct"]
+olmo3_think = ["olmo3_base", "olmo3_think_sft", "olmo3_think_dpo", "olmo3_think"]
+pairs = [["qwen_base", "qwen_instruct"], ["llama_base", "llama_instruct"]]
+h8_pairs = [
+  ["qwen_base", "qwen_instruct"],
+  ["llama_base", "llama_instruct"],
+  ["olmo2_base", "olmo2_instruct"],
+  ["olmo3_base", "olmo3_instruct"],
+  ["olmo3_base", "olmo3_think"],
+]
+
+[seeds]
+calibration = 0
+evaluation = 200
+bootstrap = 5000
+
+[stimuli]
+length = 16
+fair_count = 600
+strata_per_k = 30
+rigged_count = 120
+rigged = [
+  { name = "streaky_0.80", kind = "markov", value = 0.80 },
+  { name = "alternating_0.20", kind = "markov", value = 0.20 },
+  { name = "heads_0.85", kind = "bias", value = 0.85 },
+]
+note = "Fair coins come from SplitMix64 (shared with the browser). Strata coins have exactly k switches for k = 0..15, positions chosen uniformly. Rigged coins use seed + 1 so they never share draws with fair coins. The nonsense twin is asked on fair and strata coins only, since no hypothesis uses it on rigged coins."
+
+[wordings.stated]
+w1 = { lead = "Here are 16 coin flips (H = heads, T = tails):", question = "Half of sequences come from a fair random coin; half are rigged or patterned.", rigged = "a rigged or patterned sequence", fair = "fair random coin flips" }
+w2 = { lead = "A friend flipped a coin 16 times and wrote down the results (H = heads, T = tails):", question = "Some friends use a fair coin and some use a trick coin, equally often.", rigged = "a trick coin", fair = "a fair coin" }
+w3 = { lead = "Sequence of 16 coin tosses, H for heads and T for tails:", question = "Was this produced by a genuinely random process or by a non-random one? Both are equally common.", rigged = "a non-random process", fair = "a genuinely random process" }
+
+[wordings.nonsense]
+w1 = { question = "Half of sequences are zorps; half are blargs.", first = "a zorp sequence", second = "a blarg sequence" }
+w2 = { question = "Some friends use a zorp coin and some use a blarg coin, equally often.", first = "a zorp coin", second = "a blarg coin" }
+w3 = { question = "Was this produced by a zorp process or by a blarg one? Both are equally common.", first = "a zorp process", second = "a blarg process" }
+
+[wordings.implicit]
+f1 = { fair = "Here are 16 flips of a fair coin (H = heads, T = tails):", rigged = "Here are 16 flips of a rigged coin (H = heads, T = tails):" }
+f2 = { fair = "I flipped a fair coin 16 times and got:", rigged = "I flipped a trick coin 16 times and got:" }
+f3 = { fair = "Results of 16 tosses of an unbiased coin (H/T):", rigged = "Results of 16 tosses of a loaded coin (H/T):" }
+
+[wordings.log]
+l1 = "Here is a 16-character string from a system log (each character is H or T):"
+l2 = "Status codes from 16 consecutive readings of a machine (each is H or T):"
+
+[measures]
+stated = "s(x, w) = 0.5 * [(log P(A) - log P(B)) with rigged listed first + (log P(B) - log P(A)) with rigged listed second]. Positive means the checkpoint leans rigged."
+nonsense = "z(x, w), the same construction on the nonsense twin, positive means the first nonsense label."
+pooled_stated = "per-coin mean over w1..w3 of s(x, w) standardized within wording"
+implicit = "l(x, f) = log p(x | rigged framing f) - log p(x | fair framing f), summed over the 16 flip tokens; pooled = per-coin mean over f1..f3 standardized within framing"
+alternation = "a(x, c) = mean over flips 2..16 of p(switch | history) / [p(heads) + p(tails)] under context c"
+coin_specific = "e = mean over fair coins and over f1..f3 of a(x, fair framing) minus mean over l1..l2 of a(x, log context)"
+slope = "OLS slope of the score on switch rate k/15 over strata k = 1..14, in logits per unit switch rate"
+template = "Pearson r between a score and the switch rate across the 600 fair coins"
+curve = "mean score per k over all 16 strata; human-like means a quadratic fit with positive curvature (95% bootstrap CI above 0) and vertex in switch rate [0.55, 0.70]"
+usable = "a checkpoint's stated judgment is usable when |slope(s)| >= 0.10 and |slope(s)| >= 2 |slope(z)| in at least 2 of 3 wordings"
+
+[hypotheses]
+h1 = { claim = "Post-training can install a stated judgment about coins that is not a readout artifact", measure = "qwen_instruct, slope(s) and slope(z) per wording", pass = "qwen_instruct is usable" }
+h2 = { claim = "Qwen2.5-3B-Instruct says streaky coins are the rigged ones", measure = "template of the pooled stated score for qwen_instruct, bootstrap over coins", pass = "r <= -0.25 with the upper 95% bound below -0.15" }
+h3 = { claim = "Base models give no usable stated judgment; any apparent template is a readout artifact", measure = "qwen_base and llama_base, slope(s) and slope(z) per wording", pass = "neither checkpoint is usable" }
+h4 = { claim = "Most of the extra switching that post-trained models expect from a fair coin is generic token-repetition avoidance, not a belief about coins", measure = "every post-trained checkpoint: mean a under log contexts minus 0.5 versus mean a under fair framings minus 0.5; eligible when the fair excess is at least 0.02", pass = "log excess >= half the fair excess in at least 80% of eligible checkpoints, with at least 5 eligible" }
+h5 = { claim = "What a post-trained model says about a coin does not track what it expects from that coin", measure = "Pearson r between pooled stated score and pooled implicit score across fair coins, bootstrap over coins", pass = "upper 95% bound below +0.30 for both qwen_instruct and llama_instruct, and llama_instruct r <= -0.15 with upper bound below 0" }
+h6 = { claim = "In OLMo 3 7B, the rise in generic repetition avoidance is complete by preference tuning on both the instruct and the reasoning path", measure = "mean a under log contexts on fair coins along paths.olmo3_instruct and paths.olmo3_think", pass = "on each path the final checkpoint exceeds base by at least 0.05 and the DPO checkpoint has reached at least 75% of that rise" }
+h7 = { claim = "Qwen2.5-3B-Instruct holds the human inverted-U: switch rates near 0.6 look most random and both extremes look rigged", measure = "pooled stated curve of qwen_instruct over the 16 strata", pass = "the curve is human-like" }
+h8 = { claim = "Post-training weakens the link between what a model says about a coin and what it expects from it", measure = "for each pair in paths.h8_pairs, r(pooled stated, pooled implicit) on fair coins for the post-trained checkpoint minus the same r for its base, paired bootstrap over coins", pass = "the 95% CI of the difference lies below 0 in at least 4 of the 5 pairs" }
+
+[exploratory]
+items = [
+  "Which OLMo 3 step changes the stated template, the implicit template, and their agreement, on each path.",
+  "Instruct path versus reasoning path from the same base.",
+  "Sensitivity: AUC of continuous scores for each rigged set versus fair coins, stated and implicit.",
+  "Case-alternated spelling (H t H h) as a second repetition control, reported with the caveat that a confused model also lands near 0.5.",
+  "Comparison with human randomness ratings (Falk and Konold 1997) on matched switch rates.",
+  "Usability, templates and curve shape for every OLMo 3 checkpoint, and llama_instruct's stated template per wording.",
+  "Probability on A or B at the answer position per checkpoint and wording.",
+]
+
+[amendments]
+
+[seal]
+sealed_at = "2026-11-19T16:43Z"
+code = [
+  { path = "src/ghosts/coinstudy.py", sha256 = "9e7b2815efdbc1ee36cfd149706249bd4c505c6b1bcb29ecd67827e5f6e9a7f2" },
+  { path = "src/ghosts/lm.py", sha256 = "e8c29bc7a6ba64bac3d53347d80658b4204ee22129bdd455257291ba638844a8" },
+  { path = "src/ghosts/randomness.py", sha256 = "477dc48cb7527c9dc4f79c1cd34fbcce8a272f055f4d3733b67e8ed33269a3c9" },
+  { path = "src/ghosts/stimuli.py", sha256 = "2198362a60bf2f0404294f59065244b749023bf9d6db3b192bcf125f11a1979b" },
+  { path = "src/ghosts/rng.py", sha256 = "ce5d196335aedcf1deb0a047e59a87222fc33b8bf06fefe5269ec87f93eeecd4" },
+  { path = "src/ghosts/protocol.py", sha256 = "20db46e4f8366df12c964d49d099141666b5a749039b0332adc53a1c1bd9cf82" },
+  { path = "src/ghosts/metrics.py", sha256 = "eff166ef857a9342b68501feff13a8e8832df96be1d5711b21c151befe398278" },
+  { path = "src/ghosts/study.py", sha256 = "33ea50d669399183726b38c1a2001a050bb65e3bd593e57db7f685de02003aed" },
+  { path = "uv.lock", sha256 = "4bd81abfea74eabe94ef9e2ca8ecdeaf93165f62be4fe2727d608427ea0ed673" },
+]
