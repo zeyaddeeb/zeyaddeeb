@@ -1,5 +1,11 @@
 # Changelog
 
+## [www-v0.10.0] - 2026-11-20
+
+### Features
+
+- Adding ghosts
+
 ## [www-v0.9.1] - 2026-11-12
 
 ### Bug Fixes

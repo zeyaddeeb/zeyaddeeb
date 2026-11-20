@@ -1,5 +1,11 @@
 # Changelog
 
+## [crispr-research-v0.6.0] - 2026-11-20
+
+### Features
+
+- Adding ghosts
+
 ## [crispr-research-v0.5.0] - 2026-11-12
 
 ### Dependency Updates

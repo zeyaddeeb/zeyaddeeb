@@ -1,5 +1,11 @@
 # Changelog
 
+## [voice-v0.6.0] - 2026-11-20
+
+### Features
+
+- Adding ghosts
+
 ## [voice-v0.5.0] - 2026-11-12
 
 ### Dependency Updates

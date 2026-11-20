@@ -1,5 +1,11 @@
 # Changelog
 
+## [robot-v0.4.0] - 2026-11-20
+
+### Features
+
+- Adding ghosts
+
 ## [robot-v0.3.1] - 2026-11-02
 
 ### Bug Fixes

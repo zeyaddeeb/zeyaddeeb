@@ -1,5 +1,11 @@
 # Changelog
 
+## [deepseek-v0.5.0] - 2026-11-20
+
+### Features
+
+- Adding ghosts
+
 ## [deepseek-v0.4.0] - 2026-11-12
 
 ### Dependency Updates
