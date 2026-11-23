@@ -1,5 +1,11 @@
 # Changelog
 
+## [www-v0.11.2] - 2026-11-23
+
+### Bug Fixes
+
+- Improve crispr agent
+
 ## [www-v0.11.1] - 2026-11-23
 
 ### Bug Fixes

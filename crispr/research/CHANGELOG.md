@@ -1,5 +1,11 @@
 # Changelog
 
+## [crispr-research-v0.7.1] - 2026-11-23
+
+### Bug Fixes
+
+- Improve crispr agent
+
 ## [crispr-research-v0.7.0] - 2026-11-23
 
 ### Features
