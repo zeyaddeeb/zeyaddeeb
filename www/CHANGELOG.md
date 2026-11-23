@@ -1,5 +1,11 @@
 # Changelog
 
+## [www-v0.11.0] - 2026-11-23
+
+### Features
+
+- Riemann proved?!
+
 ## [www-v0.10.0] - 2026-11-20
 
 ### Features

@@ -1,5 +1,11 @@
 # Changelog
 
+## [proofs-v0.6.0] - 2026-11-23
+
+### Features
+
+- Riemann proved?!
+
 ## [proofs-v0.5.0] - 2026-11-12
 
 ### Dependency Updates
