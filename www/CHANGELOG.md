@@ -1,5 +1,11 @@
 # Changelog
 
+## [www-v0.11.1] - 2026-11-23
+
+### Bug Fixes
+
+- Small css fix
+
 ## [www-v0.11.0] - 2026-11-23
 
 ### Features
