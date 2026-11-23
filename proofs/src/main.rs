@@ -1,6 +1,8 @@
 use axum::{extract::DefaultBodyLimit, routing::get, Router};
 use proofs::{
     agent::{self, live::Hub},
+    claim::{self, Ledger},
+    lean::workbench,
     playground::{self, repl::Pool},
 };
 use std::{net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
@@ -49,18 +51,36 @@ async fn run() -> anyhow::Result<()> {
 
     let hub = Hub::new();
     let mut running = None;
+    let ledger = Ledger::new();
+
+    app = app.merge(claim::router(ledger.clone()));
+
+    let audit = {
+        let hub = hub.clone();
+
+        async move {
+            tokio::select! {
+                _ = ledger.run(workbench::Config::from_env()) => {}
+                _ = hub.closed() => {}
+            }
+        }
+    };
 
     if let Some(config) = agent::config::Config::from_env() {
-        let (store, about, agent) = agent::start(config, hub.clone()).await?;
+        let (store, about, agent) = agent::start(config, hub.clone(), audit).await?;
 
         running = Some(agent);
         app = app.merge(agent::routes::router(hub.clone(), store, about));
         tracing::info!("the agent is awake");
-    } else if let Some(database) = agent::config::archive() {
-        let (store, about) = agent::archive(&database).await?;
+    } else {
+        tokio::spawn(audit);
 
-        app = app.merge(agent::routes::router(hub.clone(), store, about));
-        tracing::info!("the agent is off; its notebook is open");
+        if let Some(database) = agent::config::archive() {
+            let (store, about) = agent::archive(&database).await?;
+
+            app = app.merge(agent::routes::router(hub.clone(), store, about));
+            tracing::info!("the agent is off; its notebook is open");
+        }
     }
 
     let app = app.layer(DefaultBodyLimit::max(16 * 1024));

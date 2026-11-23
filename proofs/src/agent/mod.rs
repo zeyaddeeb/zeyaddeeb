@@ -110,6 +110,7 @@ pub async fn archive(database: &str) -> anyhow::Result<(Store, About)> {
 pub async fn start(
     config: Config,
     hub: Arc<Hub>,
+    before: impl std::future::Future<Output = ()> + Send + 'static,
 ) -> anyhow::Result<(Store, About, tokio::task::JoinHandle<()>)> {
     let about = about(
         config.mode.name(),
@@ -121,7 +122,10 @@ pub async fn start(
 
     let store = Store::connect(&config.database, None).await?;
     let agent = Agent::new(config, store.clone(), hub).await?;
-    let running = tokio::spawn(agent.run());
+    let running = tokio::spawn(async move {
+        before.await;
+        agent.run().await;
+    });
 
     Ok((store, about, running))
 }

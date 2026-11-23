@@ -23,6 +23,7 @@
 \newcommand{\statdef}[2]{\expandafter\def\csname stat:#1\endcsname{#2}}
 \newcommand{\stat}[1]{\ifcsname stat:#1\endcsname\csname stat:#1\endcsname\else\textbf{??}\fi}
 \input{generated/numbers}
+\input{generated/numbers-diag}
 \makeatletter
 \newcommand*{\rows}[1]{\@@input #1 }
 \makeatother
@@ -61,7 +62,7 @@
 \maketitle
 
 \begin{abstract}
-People judge streaky coin sequences to be rigged and expect a fair coin to switch sides more often than it does. We put the same question to language models in two ways at once: what a model says when asked whether a 16-flip sequence came from a fair or a rigged coin, and what it expects, read from the likelihood it assigns the same flips under fair and rigged framings. In a pre-registered study of 15 open checkpoints from four families (Qwen2.5 3B, Llama 3.2 3B, OLMo 2 1B and OLMo 3 7B, including intermediate SFT and DPO checkpoints), the hypotheses, thresholds and analysis code were hashed before the held-out stimuli were generated. Every question has a twin with nonsense answer labels, and every expectation has a control that presents the same letters as a system log. Seven of eight registered hypotheses passed. In all five base-to-post-trained pairs, post-training lowered the coin-by-coin agreement between what the model says and what it expects, by \stat{h8/drop_min} to \stat{h8/drop_max} in correlation, in one pair by a margin of \stat{h8/margin}; with the nonsense twin partialled out, the drop holds in four of the five pairs. Most of the extra switching that post-trained models expect from a fair coin also appears for the system-log framing, so it is not a belief about coins. Our prediction that OLMo 3 acquires this repetition avoidance during preference tuning failed: it never does, and the OLMo 3 reasoning checkpoints expect streaks while saying that streaks look rigged. A pilot in the style of superstitious-perception experiments shows why the nonsense twin is necessary: with exact log-probabilities, reverse-correlation maps are just as reproducible for a nonsense question as for a real one.
+People judge streaky coin sequences to be rigged and expect a fair coin to switch sides more often than it does. We put the same question to language models in two ways at once: what a model says when asked whether a 16-flip sequence came from a fair or a rigged coin, and what it expects, read from the likelihood it assigns the same flips under fair and rigged framings. In a pre-registered study of 15 open checkpoints from four families (Qwen2.5 3B, Llama 3.2 3B, OLMo 2 1B and OLMo 3 7B, including intermediate SFT and DPO checkpoints), the hypotheses, thresholds and analysis code were hashed before the held-out stimuli were generated. Every question has a twin with nonsense answer labels, and every expectation has a control that presents the same letters as a system log. Seven of eight registered hypotheses passed. In all five base-to-post-trained pairs, post-training lowered the coin-by-coin agreement between what the model says and what it expects, by \stat{h8/drop_min} to \stat{h8/drop_max} in correlation, in one pair by a margin of \stat{h8/margin}; with the nonsense twin partialled out, the drop holds in four of the five pairs. Much of the stated--twin correlation comes from a preference for heads over tails on the first flip; controlling for the first flip and heads share removes the drop in Llama and OLMo 2 (whose answers are not usable) and keeps it in Qwen and both OLMo 3 paths. Most of the extra switching that post-trained models expect from a fair coin also appears for the system-log framing, so it is not a belief about coins. Our prediction that OLMo 3 acquires this repetition avoidance during preference tuning failed: it never does, and the OLMo 3 reasoning checkpoints expect streaks while saying that streaks look rigged. A pilot in the style of superstitious-perception experiments shows why the nonsense twin is necessary: with exact log-probabilities, reverse-correlation maps are just as reproducible for a nonsense question as for a real one.
 \end{abstract}
 
 \section{Introduction}
@@ -74,7 +75,7 @@ We measure both, on the same sequences, for 15 checkpoints. They include the int
 
 Our findings:
 \begin{itemize}
-  \item \textbf{Post-training decouples saying from expecting.} In all five base-to-post-trained pairs, the correlation between a model's stated judgment and its own likelihood ratio fell (H8). With the nonsense twin partialled out it fell in four, all except OLMo 2 1B, whose stated answers are too weak to use (\S\ref{sec:agreement}).
+  \item \textbf{Post-training decouples saying from expecting.} Agreement between stated judgment and likelihood ratio fell in all five pairs (H8). Controlling for which side lands first and the heads share removes the drop in Llama and OLMo 2, whose answers are not usable, and leaves it in Qwen and both OLMo 3 paths (\S\ref{sec:agreement}).
   \item \textbf{Over-alternation is mostly generic.} Post-trained models expect a fair coin to switch more than half the time, but nearly as much when the same letters are framed as a log file. The coin-specific part is at most \stat{olmo2_instruct/coin} in any post-trained checkpoint (H4, \S\ref{sec:switching}).
   \item \textbf{A prediction failed.} From OLMo 2 we predicted that OLMo 3 would acquire this repetition avoidance by DPO. It never acquires it, and its reasoning checkpoints expect streaks while saying streaks look rigged (H6).
   \item \textbf{Reproducible is not real.} Exact log-probabilities make any probe reproducible, including nonsense ones (\S\ref{sec:trap}). A stated measure is only interpretable beside a twin that cannot carry the concept.
@@ -213,7 +214,11 @@ OLMo 3 7B Think & \stat{h8/olmo3_think/base} & \stat{h8/olmo3_think/post} & \sta
 
 In three base models, what the model says about a coin goes with what it expects from it: agreement is \stat{h8/qwen_instruct/base} for Qwen, \stat{h8/llama_instruct/base} for Llama and \stat{h8/olmo2_instruct/base} for OLMo 2. OLMo 3 base starts negative, at \stat{h8/olmo3_instruct/base}. Post-training lowered agreement in every pair (Figure~\ref{fig:pairs}, Table~\ref{tab:pairs}), most for Llama, whose Instruct model says the opposite of what it expects (\stat{h8/llama_instruct/post}), and least for OLMo 3 Instruct, whose interval ends at \stat{h8/olmo3_instruct/hi}. H8 passed with five of five pairs, one of them by a margin no larger than the resampling noise in a bootstrap bound. H5 also passed: Qwen Instruct's agreement is \stat{qwen_instruct/agree}, with an upper bound of \stat{qwen_instruct/agree_hi} against the registered ceiling of 0.30, and Llama Instruct's is negative. Llama Instruct's stated judgment is not usable (\S\ref{sec:usable}), so its negative agreement means only that the weak signal in its answers runs against its likelihoods.
 
-The stated score and the nonsense twin are not independent. Across fair coins they correlate at between \stat{olmo3_think_dpo/stated_twin} and \stat{olmo3_instruct_sft/stated_twin} for every OLMo 3 checkpoint and at \stat{llama_instruct/stated_twin} for Llama Instruct (Appendix Table~\ref{tab:readout}), so much of the coin-to-coin variation in what these models say is shared with a question that has no meaning. To check that the agreement drop is not carried by that shared part, we partialled the twin out of both scores after the fact. The drop remains in four of five pairs (Figure~\ref{fig:pairs}, right). It does not survive for OLMo 2 1B (\stat{partial/olmo2_instruct/diff} \stat{partial/olmo2_instruct/ci}), none of whose checkpoints gives a usable answer. With the twin removed, OLMo 3 base agrees positively (\stat{partial/olmo3_instruct/base}), and the marginal OLMo 3 Instruct pair becomes a clear drop (\stat{partial/olmo3_instruct/diff} \stat{partial/olmo3_instruct/ci}). The OLMo 3 pairs then look like the Qwen and Llama pairs: a base model whose answers loosely follow its likelihoods, and post-trained models whose answers do not. If the twin carries a faint copy of the randomness judgment rather than pure readout noise, partialling it out removes some real signal too, so this check is conservative.
+The stated score and the nonsense twin are not independent. Across fair coins they correlate at between \stat{olmo3_think_dpo/stated_twin} and \stat{olmo3_instruct_sft/stated_twin} for every OLMo 3 checkpoint and at \stat{llama_instruct/stated_twin} for Llama Instruct (Appendix Table~\ref{tab:readout}), so much of the coin-to-coin variation in what these models say is shared with a question that has no meaning. To check that the agreement drop is not carried by that shared part, we partialled the twin out of both scores after the fact. The drop remains in four of five pairs (Figure~\ref{fig:pairs}, right). It does not survive for OLMo 2 1B (\stat{partial/olmo2_instruct/diff} \stat{partial/olmo2_instruct/ci}), none of whose checkpoints gives a usable answer. With the twin removed, OLMo 3 base agrees positively (\stat{partial/olmo3_instruct/base}), and the marginal OLMo 3 Instruct pair becomes a clear drop (\stat{partial/olmo3_instruct/diff} \stat{partial/olmo3_instruct/ci}). If the twin carries a faint copy of the randomness judgment rather than pure readout noise, partialling it out removes some real signal too, so this check is conservative.
+
+\paragraph{First-flip bias and usability (post hoc).} Three of the five base models (Qwen, Llama and OLMo 2) and two post-trained models (Llama and OLMo 2) are not usable (\S\ref{sec:usable}; slopes $\leq 0.04$ logits). Because pooled scores are standardized within each wording, positive agreement in those base models comes from a faint raw-text residual, not a verbal judgment. Checking which features of the coin drive the scores also explains the strong twin correlations (Appendix Table~\ref{tab:features}): whether flip~1 is \texttt{H} or \texttt{T} correlates at \stat{diag/llama_instruct/says_first_h} with Llama Instruct's stated score, \stat{diag/olmo3_instruct/says_first_h} with OLMo 3 Instruct's, \stat{diag/olmo3_instruct/twin_first_h} with its twin, and \stat{diag/llama_base/exp_first_h} and \stat{diag/olmo2_base/exp_first_h} with the implicit scores of Llama base and OLMo 2 base. A fair coin is symmetric under swapping \texttt{H} and \texttt{T}, so any dependence on flip~1 or heads share is bias, not a view of randomness.
+
+Partialling out flip~1 and heads share flips both unusable pairs (Appendix Table~\ref{tab:symmetry}): Llama moves from \stat{diag/ht/llama_instruct/base} to \stat{diag/ht/llama_instruct/post} (\stat{diag/ht/llama_instruct/diff} \stat{diag/ht/llama_instruct/ci}) and OLMo 2 from \stat{diag/ht/olmo2_instruct/base} to \stat{diag/ht/olmo2_instruct/post} (\stat{diag/ht/olmo2_instruct/diff} \stat{diag/ht/olmo2_instruct/ci}). All three pairs with a usable post-trained model still fall: Qwen by \stat{diag/ht/qwen_instruct/diff} \stat{diag/ht/qwen_instruct/ci}, OLMo 3 Instruct by \stat{diag/ht/olmo3_instruct/diff} \stat{diag/ht/olmo3_instruct/ci}, and OLMo 3 Think by \stat{diag/ht/olmo3_think/diff} \stat{diag/ht/olmo3_think/ci}. Partialling out the twin as well leaves the drop only in the two OLMo 3 pairs (\stat{diag/ht_twin/olmo3_instruct/diff} and \stat{diag/ht_twin/olmo3_think/diff}), the only family usable at both ends. In Qwen Instruct, partialling out switch rate and heads--tails imbalance removes its remaining agreement (\stat{diag/qwen_instruct/partial_shape}).
 
 \subsection{Which checkpoints can answer}
 \label{sec:usable}
@@ -337,7 +342,10 @@ The coin study shows the same trap at a smaller scale. The nonsense twin of Qwen
   \item Several verdicts sit at their bars (H4, H5 and one H8 pair). A different held-out seed could flip them.
   \item H8 was written after three of its five pairs were seen on calibration data, and the twin-partialled check and the upturn diagnostic were added after the evaluation run.
   \item The registered curve criterion is lenient (\S\ref{sec:curves}). The comparison with human judgments is qualitative: we collected no human ratings, and two exploratory items, a case-alternated spelling control and a matched comparison with human ratings, were not run.
-  \item The Think checkpoints put less probability on A or B (median \stat{olmo3_think_dpo/mass} to \stat{olmo3_think/mass}), so their stated scores depend more on how the thought is closed.
+  \item Base and post-trained checkpoints also differ in prompt format on stated questions (raw text \texttt{\textbackslash nAnswer:} against chat templates), whereas implicit scores always use raw text.
+  \item Stated wordings \texttt{w1} (``rigged or patterned'') and \texttt{w3} (``non-random'') cue streaks and yield 3--6$\times$ steeper slopes than \texttt{w2} (``a trick coin''; Appendix Table~\ref{tab:slopes}), while the implicit framings (``rigged'', ``trick'', ``loaded'') pick up heads--tails bias more than streaks (Appendix Table~\ref{tab:sensitivity}).
+  \item Neither score was counterbalanced by swapping \texttt{H} and \texttt{T}. Partialling out flip~1 and heads share removes the linear part post hoc, not nonlinear bias.
+  \item The Think checkpoints put less probability on A or B (median \stat{olmo3_think_dpo/mass} to \stat{olmo3_think/mass}), so their stated scores depend on closing the thought empty rather than letting the model reason.
   \item All scoring ran on one hardware and software stack. We checked the shared-prefix computation for exactness there but did not replicate on other hardware.
 \end{itemize}
 
@@ -456,12 +464,44 @@ Checkpoint & stated & implicit & stated & implicit & stated & implicit \\
 ]{generated/curves.csv}
 \end{table}
 
+\begin{table}[H]
+\centering
+\footnotesize
+\caption{Feature correlations and H/T controls across fair coins (post hoc). Correlations with flip~1 being \texttt{H} (stated, twin, implicit), heads share $h$ (stated), imbalance $|2h - 1|$ (implicit), and stated--implicit agreement after partialling out flip~1 ($r \mid \mathrm{first\ H}$) or flip~1 and heads share ($r \mid \mathrm{H/T}$).}
+\label{tab:features}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lccccccc@{}}
+\toprule
+Checkpoint & \makecell{Says\\first H} & \makecell{Twin\\first H} & \makecell{Expects\\first H} & \makecell{Says\\heads} & \makecell{Expects\\imb.} & \makecell{$r \mid$\\first H} & \makecell{$r \mid$\\H/T} \\
+\midrule
+\rows{generated/features}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\footnotesize
+\caption{Base-to-post-trained agreement shifts after partialling out flip~1 and heads share (post hoc), with paired bootstrap 95\% intervals. Levels are in Table~\ref{tab:features}.}
+\label{tab:symmetry}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Pair & \makecell{Shift $\mid$ first H\\{[95\% CI]}} & \makecell{H/T\\base $\to$ post} & \makecell{Shift $\mid$ H/T\\{[95\% CI]}} & \makecell{Shift $\mid$ H/T, twin\\{[95\% CI]}} \\
+\midrule
+\rows{generated/symmetry}
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Amendments after the evaluation}
 \label{app:amendments}
 \begin{enumerate}
   \item \emph{Curve criterion.} The registered criterion also accepts curves that fall from the streaky end and then flatten. H7 stays a pass as registered; the upturn at perfect alternation is reported as a post-hoc diagnostic.
   \item \emph{Disclosure.} Three of the five H8 pairs had been seen on calibration data before H8 was written. Only the two OLMo 3 pairs were predictions.
   \item \emph{Not run.} The case-alternated spelling control and the matched comparison with human ratings, both listed as exploratory, were not run on the evaluation seed.
+  \item \emph{First-flip bias.} Flip~1 and heads share explain most of the stated--twin correlation and drive the apparent H8 drop in Llama and OLMo 2. Partialling them out keeps the drop in Qwen and both OLMo 3 paths; H8 stays a pass as registered.
+  \item \emph{Follow-up scripts.} Added unsealed scripts for wording-by-framing tables, raw-text runs on post-trained models, open-thought runs on OLMo 3 Think, and larger base/instruct pairs. No sealed file was changed.
 \end{enumerate}
 
 \end{document}

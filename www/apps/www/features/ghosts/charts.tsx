@@ -1,4 +1,4 @@
-import type { Checkpoint } from "./model";
+import { type Checkpoint, type FeatureCorrs, signed } from "./model";
 
 const W = 320;
 const H = 108;
@@ -234,6 +234,71 @@ export function SwitchChart({ steps, current }: SwitchChartProps) {
 			</svg>
 			<p className="gh-chart__caption">
 				Same flips framed as coin flips or as a system log.
+			</p>
+		</figure>
+	);
+}
+
+const DRIVER_ROWS: { key: keyof FeatureCorrs; label: string }[] = [
+	{ key: "firstH", label: "First flip H" },
+	{ key: "switches", label: "Switches" },
+	{ key: "hFrac", label: "Heads share" },
+	{ key: "imbalance", label: "Imbalance" },
+];
+
+interface DriversChartProps {
+	current: Checkpoint;
+	zorp: boolean;
+}
+
+export function DriversChart({ current, zorp }: DriversChartProps) {
+	const active = zorp ? current.features.twin : current.features.says;
+	const expects = current.features.expects;
+	const activeName = zorp ? "zorp" : "says";
+
+	return (
+		<figure className="gh-chart">
+			<figcaption className="gh-eyebrow">
+				<span>What drives it</span>
+				<span>{activeName} vs expects</span>
+			</figcaption>
+			<div
+				className="gh-drivers"
+				role="img"
+				aria-label={`Feature correlations for ${current.label}: ${DRIVER_ROWS.map((r) => `${r.label} ${activeName} ${signed(active[r.key])} expects ${signed(expects[r.key])}`).join(", ")}.`}
+			>
+				{DRIVER_ROWS.map((row) => {
+					const a = active[row.key];
+					const e = expects[row.key];
+					const bar = (v: number) => ({
+						left: `${v < 0 ? 50 + v * 50 : 50}%`,
+						width: `${Math.abs(v) * 50}%`,
+					});
+					return (
+						<div key={row.key} className="gh-driver">
+							<span className="gh-driver__name">{row.label}</span>
+							<div className="gh-driver__bars" aria-hidden="true">
+								<span className="gh-driver__zero" />
+								<span
+									className="gh-driver__bar gh-driver__bar--says"
+									style={bar(a)}
+								/>
+								<span
+									className="gh-driver__bar gh-driver__bar--exp"
+									style={bar(e)}
+								/>
+							</div>
+							<span className="gh-driver__vals">
+								<span>{signed(a)}</span>
+								<span className="gh-driver__exp">{signed(e)}</span>
+							</span>
+						</div>
+					);
+				})}
+			</div>
+			<p className="gh-chart__caption">
+				Correlation with coin features ({activeName} top bar, expects bottom
+				bar). First-flip H/T bias drives much of the zorp link.
 			</p>
 		</figure>
 	);

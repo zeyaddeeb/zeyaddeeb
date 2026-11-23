@@ -83,6 +83,7 @@ env:
   NEXT_PUBLIC_CRDT_URL: "wss://crdt.zeyaddeeb.com"
   DEEPSEEK_BACKEND_URL: "http://deepseek:3004"
   PROOFS_BACKEND_URL: "http://proofs:3005"
+  GATES_BACKEND_URL: "http://gates:3009"
   CAPACITY_BACKEND_URL: "http://capacity:3006"
   CRISPR_RESEARCH_BACKEND_URL: "http://crispr-research:3007"
   BELL_BACKEND_URL: "http://bell:8081"

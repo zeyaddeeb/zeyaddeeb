@@ -57,6 +57,9 @@
 .ns-results,
 .ns-proof-index,
 .ns-proof-sheet,
+.ns-claim-index,
+.ns-claim-sheet,
+.ns-claim-group,
 .ns-loop {
 	grid-template-columns: minmax(0, 1fr);
 }
@@ -137,9 +140,29 @@
 	color: var(--ns-dim);
 }
 
-.ns-answer {
+.ns-reply {
 	grid-area: answer;
 	justify-self: end;
+	display: grid;
+	justify-items: end;
+	gap: 12px;
+}
+
+.ns-reply-note {
+	padding: 3px 10px;
+	background: var(--ns-held);
+	color: var(--paper);
+	font: 400 12px / 1.5 var(--font-mono);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	text-decoration: none;
+}
+
+.ns-reply-note:hover {
+	background: var(--ink);
+}
+
+.ns-answer {
 	margin: 0;
 	font: 600 clamp(60px, 9vw, 136px) / 0.88 var(--font-display);
 	letter-spacing: -0.02em;
@@ -185,6 +208,18 @@
 
 .ns-vital-feed {
 	min-width: 14ch;
+}
+
+.ns-vital-mind {
+	min-width: 24ch;
+}
+
+.ns-vital-checker {
+	min-width: 30ch;
+}
+
+.ns-vital-instruments {
+	min-width: 15ch;
 }
 
 .ns-calibration {
@@ -1878,6 +1913,239 @@
 	color: var(--ns-text);
 }
 
+.ns-claim {
+	scroll-margin-top: 24px;
+}
+
+.ns-claim-body {
+	display: grid;
+	grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.6fr);
+	gap: 24px 32px;
+}
+
+.ns-claim-index,
+.ns-claim-sheet,
+.ns-claim-group {
+	display: grid;
+	gap: 10px;
+	align-content: start;
+	min-width: 0;
+}
+
+.ns-claim-rows {
+	display: grid;
+	grid-auto-rows: 40px;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.ns .ns-claim-rows button {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+	height: 40px;
+	padding: 0 10px;
+	overflow: hidden;
+	font-size: 15px;
+	white-space: nowrap;
+	transition:
+		background-color var(--dur-2) var(--ease),
+		color var(--dur-2) var(--ease);
+}
+
+.ns .ns-claim-rows button:hover {
+	background: var(--ns-faint);
+}
+
+.ns .ns-claim-rows button[aria-pressed="true"] {
+	background: var(--ink);
+	color: var(--paper);
+}
+
+.ns-claim-number {
+	flex: none;
+	width: 2ch;
+	font: 400 13px / 1 var(--font-mono);
+	font-variant-numeric: tabular-nums;
+}
+
+.ns-claim-title {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.ns-claim-mark {
+	flex: none;
+	box-sizing: border-box;
+	width: 10px;
+	height: 10px;
+	border: 2px solid var(--ns-line);
+}
+
+.ns-claim-rows .ns-claim-mark {
+	margin-left: auto;
+}
+
+[data-outcome="pass"] > .ns-claim-mark {
+	border-color: var(--ns-proved);
+	background: var(--ns-proved);
+}
+
+[data-outcome="running"] > .ns-claim-mark {
+	border-color: var(--ns-held);
+}
+
+[data-outcome="fail"] > .ns-claim-mark {
+	border-color: var(--ns-broke);
+	background: var(--ns-broke);
+}
+
+.ns-claim-sheet .ns-eyebrow {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.ns-claim-plain {
+	display: -webkit-box;
+	height: calc(2 * 1.5em);
+	margin: 0;
+	overflow: hidden;
+	font-size: 16px;
+	line-height: 1.5;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+.ns-claim-code {
+	box-sizing: border-box;
+	height: 132px;
+	overflow: auto;
+	border-left-color: var(--ink);
+}
+
+.ns-claim-step {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	height: 22px;
+	margin: 0;
+	font: 400 13px / 1.5 var(--font-mono);
+	white-space: nowrap;
+}
+
+.ns-claim-step .ns-claim-check {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.ns-claim-step .ns-claim-detail {
+	flex: none;
+	margin-left: auto;
+	color: var(--ns-dim);
+}
+
+.ns-claim-proof {
+	box-sizing: border-box;
+	height: 132px;
+	overflow: auto;
+	border-left-color: var(--ns-line);
+}
+
+.ns-claim-proof[data-outcome="pass"] {
+	border-left-color: var(--yellow);
+}
+
+.ns-claim-proof[data-outcome="running"] {
+	border-left-color: var(--blue);
+}
+
+.ns-claim-proof[data-outcome="fail"] {
+	border-left-color: var(--red);
+}
+
+.ns-claim-ladder {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 24px 32px;
+}
+
+.ns-claim-group {
+	padding-top: 10px;
+	border-top: 6px solid var(--ns-line);
+}
+
+.ns-claim-group[data-live] {
+	border-top-color: var(--yellow);
+}
+
+.ns-claim-note {
+	height: 1.5em;
+	margin: 0;
+	overflow: hidden;
+	font: 400 12px / 1.5 var(--font-mono);
+	color: var(--ns-dim);
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.ns-claim-more {
+	display: none;
+}
+
+.ns-claim-checks {
+	display: grid;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.ns-claim-checks li {
+	display: grid;
+	grid-template-columns: 10px minmax(0, 1fr);
+	column-gap: 10px;
+	align-items: baseline;
+}
+
+.ns-claim-checks .ns-claim-mark {
+	align-self: start;
+	margin-top: 6px;
+}
+
+.ns-claim-checks .ns-claim-check {
+	font-size: 15px;
+	line-height: 1.45;
+}
+
+.ns-claim-checks .ns-claim-detail {
+	grid-column: 2;
+	font: 400 12px / 1.5 var(--font-mono);
+	color: var(--ns-dim);
+}
+
+.ns-claim-group[data-live] .ns-claim-check,
+.ns-claim-group[data-live] .ns-claim-detail {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.ns-claim-sources {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 28px;
+	margin: 0;
+	padding-top: 12px;
+	border-top: 1px solid var(--ns-line);
+	font: 400 13px / 1.5 var(--font-mono);
+}
+
 .ns-loops-body {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2149,6 +2417,14 @@
 	.ns-loop[data-color="yellow"] {
 		grid-column: 1 / -1;
 	}
+
+	.ns-claim-ladder {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.ns-claim-group:last-child {
+		grid-column: 1 / -1;
+	}
 }
 
 @media (max-width: 900px) {
@@ -2160,8 +2436,9 @@
 			"vitals";
 	}
 
-	.ns-answer {
+	.ns-reply {
 		justify-self: start;
+		justify-items: start;
 	}
 
 	.ns-vitals {
@@ -2275,8 +2552,60 @@
 	}
 
 	.ns-proof-body,
-	.ns-loops-body {
+	.ns-loops-body,
+	.ns-claim-body,
+	.ns-claim-ladder {
 		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.ns-claim-code {
+		height: 236px;
+		font-size: 12px;
+	}
+
+	.ns-claim-proof {
+		font-size: 12px;
+	}
+
+	.ns-claim-ladder {
+		gap: 0;
+	}
+
+	.ns-claim-group {
+		grid-template-columns: minmax(0, 1fr) auto;
+		column-gap: 16px;
+		padding-bottom: 12px;
+		border-top-width: 2px;
+	}
+
+	.ns-claim-group > .ns-eyebrow,
+	.ns-claim-note {
+		grid-column: 1;
+	}
+
+	.ns .ns-claim-more {
+		display: block;
+		grid-column: 2;
+		grid-row: 1 / span 2;
+		align-self: center;
+		min-width: 7ch;
+		padding: 6px 0;
+		font: 400 12px / 1.5 var(--font-mono);
+		letter-spacing: 0.08em;
+		text-align: right;
+		text-transform: uppercase;
+		text-decoration: underline;
+		text-decoration-color: var(--ns-line);
+		text-underline-offset: 3px;
+	}
+
+	.ns-claim-checks {
+		grid-column: 1 / -1;
+		margin-top: 6px;
+	}
+
+	.ns-claim-group:not([data-open]) .ns-claim-checks {
+		display: none;
 	}
 
 	.ns-proof-code {
@@ -2287,6 +2616,7 @@
 @media (prefers-reduced-motion: reduce) {
 	.ns .ns-rung button,
 	.ns .ns-proof-rows button,
+	.ns .ns-claim-rows button,
 	.ns .ns-step,
 	.ns .ns-pager button,
 	.ns .ns-cells .ns-cell {

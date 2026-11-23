@@ -248,14 +248,6 @@ impl Workbench {
     pub async fn check(&mut self, code: &str) -> Checked {
         let began = Instant::now();
 
-        let failed = |errors: Vec<String>, began: Instant| Checked {
-            ok: false,
-            names: Vec::new(),
-            errors,
-            axioms: Vec::new(),
-            millis: began.elapsed().as_millis() as u64,
-        };
-
         if let Err(refusal) = guard::declaration(code) {
             return failed(vec![refusal.message().to_string()], began);
         }
@@ -266,28 +258,72 @@ impl Workbench {
 
         let env = self.env();
 
+        self.judge(code, env, began).await.0
+    }
+
+    pub async fn audit(&mut self, steps: &[String]) -> Vec<Checked> {
+        let began = Instant::now();
+
+        if let Err(error) = self.ready().await {
+            return steps
+                .iter()
+                .map(|_| failed(vec![error.to_string()], began))
+                .collect();
+        }
+
+        let mut env = Some(self.env());
+        let mut results = Vec::with_capacity(steps.len());
+
+        for code in steps {
+            let began = Instant::now();
+
+            let Some(current) = env else {
+                results.push(failed(
+                    vec!["Not run: an earlier step failed.".into()],
+                    began,
+                ));
+
+                continue;
+            };
+
+            let (checked, after) = self.judge(code, current, began).await;
+
+            env = after.filter(|_| checked.ok);
+            results.push(checked);
+        }
+
+        results
+    }
+
+    async fn judge(&mut self, code: &str, env: u64, began: Instant) -> (Checked, Option<u64>) {
         let reply = match self.send(json!({ "cmd": code, "env": env })).await {
             Ok(reply) => reply,
-            Err(error) => return failed(vec![error.to_string()], began),
+            Err(error) => return (failed(vec![error.to_string()], began), None),
         };
 
         let errors = all_errors(&reply);
 
         if !errors.is_empty() {
-            return failed(errors, began);
+            return (failed(errors, began), None);
         }
 
         if messages(&reply)
             .iter()
             .any(|m| m["data"].as_str().is_some_and(|d| d.contains("sorry")))
         {
-            return failed(vec!["The proof still contains a gap.".into()], began);
+            return (
+                failed(vec!["The proof still contains a gap.".into()], began),
+                None,
+            );
         }
 
         let names = declared(code);
 
         let Some(after) = reply["env"].as_u64() else {
-            return failed(vec!["Lean returned no environment.".into()], began);
+            return (
+                failed(vec!["Lean returned no environment.".into()], began),
+                None,
+            );
         };
 
         let mut axioms = Vec::new();
@@ -298,7 +334,7 @@ impl Workbench {
                 .await
             {
                 Ok(reply) => reply,
-                Err(error) => return failed(vec![error.to_string()], began),
+                Err(error) => return (failed(vec![error.to_string()], began), None),
             };
 
             for message in messages(&reply) {
@@ -318,22 +354,28 @@ impl Workbench {
             .collect();
 
         if !foreign.is_empty() {
-            return failed(
-                vec![format!(
-                    "The proof leans on untrusted axioms: {}",
-                    foreign.join(", ")
-                )],
-                began,
+            return (
+                failed(
+                    vec![format!(
+                        "The proof leans on untrusted axioms: {}",
+                        foreign.join(", ")
+                    )],
+                    began,
+                ),
+                None,
             );
         }
 
-        Checked {
-            ok: true,
-            names,
-            errors: Vec::new(),
-            axioms,
-            millis: began.elapsed().as_millis() as u64,
-        }
+        (
+            Checked {
+                ok: true,
+                names,
+                errors: Vec::new(),
+                axioms,
+                millis: began.elapsed().as_millis() as u64,
+            },
+            Some(after),
+        )
     }
 
     pub async fn adopt(&mut self, code: &str) -> anyhow::Result<()> {
@@ -502,6 +544,16 @@ impl Workbench {
                 .filter_map(|m| m["data"].as_str())
                 .find_map(suggestion),
         }
+    }
+}
+
+fn failed(errors: Vec<String>, began: Instant) -> Checked {
+    Checked {
+        ok: false,
+        names: Vec::new(),
+        errors,
+        axioms: Vec::new(),
+        millis: began.elapsed().as_millis() as u64,
     }
 }
 

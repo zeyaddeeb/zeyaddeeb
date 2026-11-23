@@ -58,6 +58,28 @@ describe("ghosts study data", () => {
 
 		expect(failed).toEqual(["h6"]);
 	});
+
+	it("matches Python H/T-controlled partial correlations on every checkpoint", () => {
+		for (const key of Object.keys(STUDY.checkpoints)) {
+			const r = readings(key);
+			const c = checkpoint(key);
+
+			expect(
+				Math.abs(
+					pearsonR(
+						Float64Array.from(r.saysHt),
+						Float64Array.from(r.expectsHt),
+					) - (c.partialHt[0] ?? 0),
+				),
+			).toBeLessThan(0.02);
+		}
+	});
+
+	it("preserves H/T-controlled drops only in usable post-trained pairs", () => {
+		const kept = STUDY.pairs.filter((p) => p.htHi < 0).map((p) => p.post);
+
+		expect(kept).toEqual(["qwen_instruct", "olmo3_instruct", "olmo3_think"]);
+	});
 });
 
 describe("ghosts helpers", () => {

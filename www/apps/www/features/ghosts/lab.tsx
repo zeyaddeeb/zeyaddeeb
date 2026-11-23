@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { RiggedCurve, SwitchChart } from "./charts";
+import { DriversChart, RiggedCurve, SwitchChart } from "./charts";
 import { CoinCard } from "./coin";
 import {
 	agreementTitle,
@@ -32,8 +32,9 @@ const SHORT: Record<string, string> = {
 
 const TABS = [
 	{ id: "coin", label: "Coin" },
+	{ id: "drivers", label: "Drivers" },
 	{ id: "rigged", label: "Looks rigged" },
-	{ id: "switch", label: "Expects a switch" },
+	{ id: "switch", label: "Switches" },
 ] as const;
 
 type Tab = (typeof TABS)[number]["id"];
@@ -50,6 +51,7 @@ export function GhostsLab() {
 	const [familyId, setFamilyId] = useState("qwen");
 	const [stage, setStage] = useState(0);
 	const [zorp, setZorp] = useState(false);
+	const [cleanHt, setCleanHt] = useState(false);
 	const [selected, setSelected] = useState(PICKS.streaky);
 	const [pointed, setPointed] = useState(-1);
 	const [tab, setTab] = useState<Tab>("coin");
@@ -63,8 +65,18 @@ export function GhostsLab() {
 	const base = at > 0 ? (steps[0] ?? null) : null;
 	const shown = pointed >= 0 ? pointed : selected;
 	const coin = COINS[shown] ?? COINS[0];
-	const slope = zorp ? c.twinExpects : (c.agree[0] ?? 0);
-	const [lo, hi] = [c.agree[1] ?? 0, c.agree[2] ?? 0];
+	const activeAgree = cleanHt ? c.partialHt : c.agree;
+	const slope = zorp
+		? cleanHt
+			? c.twinExpectsHt
+			: c.twinExpects
+		: (activeAgree[0] ?? 0);
+	const [lo, hi] = [activeAgree[1] ?? 0, activeAgree[2] ?? 0];
+	const xs = cleanHt ? (zorp ? r.twinHt : r.saysHt) : zorp ? r.twin : r.says;
+	const ys = cleanHt ? r.expectsHt : r.expects;
+	const saysRank = cleanHt ? r.saysHtRank : r.saysRank;
+	const expectsRank = cleanHt ? r.expectsHtRank : r.expectsRank;
+	const twinRank = cleanHt ? r.twinHtRank : r.twinRank;
 
 	const pick = (which: "streaky" | "typical" | "alternating" | "any") => {
 		setPointed(-1);
@@ -96,21 +108,32 @@ export function GhostsLab() {
 			<div className="gh-words">
 				<p className="gh-eyebrow">
 					<span>{c.label}</span>
-					<span>{zorp ? "zorp or blarg" : "rigged or fair"}</span>
+					<span>
+						{zorp ? "zorp or blarg" : "rigged or fair"}
+						{cleanHt ? " · H/T removed" : ""}
+					</span>
 				</p>
 				<h2 className="gh-title">
-					{zorp ? twinTitle(c) : agreementTitle(c.agree[0] ?? 0)}
+					{zorp ? twinTitle(c, cleanHt) : agreementTitle(slope)}
 				</h2>
-				<p className="gh-detail">{zorp ? twinDetail(c) : detail(c)}</p>
+				<p className="gh-detail">
+					{zorp ? twinDetail(c, cleanHt) : detail(c, cleanHt)}
+				</p>
 				<p className="gh-score" aria-live="polite">
 					<span className="gh-score__value">{signed(slope)}</span>
 					<span className="gh-score__label">
 						{zorp
-							? "zorp answers vs predictions"
-							: `agreement, 95% interval ${signed(lo)} to ${signed(hi)}`}
+							? cleanHt
+								? "zorp vs predictions (H/T removed)"
+								: "zorp answers vs predictions"
+							: `${cleanHt ? "H/T-controlled" : "agreement"}, 95% interval ${signed(lo)} to ${signed(hi)}`}
 					</span>
 					<span className="gh-score__short" aria-hidden="true">
-						{zorp ? "zorp vs predictions" : "agreement"}
+						{zorp
+							? "zorp vs predictions"
+							: cleanHt
+								? "H/T-controlled"
+								: "agreement"}
 					</span>
 				</p>
 
@@ -125,22 +148,33 @@ export function GhostsLab() {
 							>
 								<span className="gh-step__name">{s.stage}</span>
 								<span className="gh-step__value">
-									{signed(s.agree[0] ?? 0)}
+									{signed((cleanHt ? s.partialHt[0] : s.agree[0]) ?? 0)}
 								</span>
 							</button>
 						</li>
 					))}
 				</ol>
 
-				<button
-					type="button"
-					className="gh-zorp"
-					aria-pressed={zorp}
-					onClick={() => setZorp(!zorp)}
-				>
-					<span className="gh-zorp__box" aria-hidden="true" />
-					Ask “zorp or blarg?” instead
-				</button>
+				<div className="gh-toggles">
+					<button
+						type="button"
+						className="gh-zorp"
+						aria-pressed={zorp}
+						onClick={() => setZorp(!zorp)}
+					>
+						<span className="gh-zorp__box" aria-hidden="true" />
+						Ask “zorp or blarg?” instead
+					</button>
+					<button
+						type="button"
+						className="gh-zorp"
+						aria-pressed={cleanHt}
+						onClick={() => setCleanHt(!cleanHt)}
+					>
+						<span className="gh-zorp__box" aria-hidden="true" />
+						Remove H/T &amp; first-flip bias
+					</button>
+				</div>
 			</div>
 
 			<div className="gh-plot">
@@ -148,12 +182,12 @@ export function GhostsLab() {
 				<span className="gh-axis gh-axis--bottom">expects fair</span>
 				<Square
 					coins={COINS}
-					xs={zorp ? r.twin : r.says}
-					ys={r.expects}
+					xs={xs}
+					ys={ys}
 					slope={slope}
 					selected={selected}
 					pointed={pointed}
-					label={`${c.label}: 600 fair coins. Across, what it ${zorp ? "answers to zorp or blarg" : "says"}; up, what its own predictions imply. Correlation ${signed(slope)}.`}
+					label={`${c.label}: 600 fair coins. Across, what it ${zorp ? "answers to zorp or blarg" : "says"}; up, what its own predictions imply${cleanHt ? ", with first-flip and H/T bias removed" : ""}. Correlation ${signed(slope)}.`}
 					onPoint={setPointed}
 					onSelect={(i) => {
 						setSelected(i);
@@ -197,13 +231,16 @@ export function GhostsLab() {
 				<section className="gh-panel" data-panel="coin">
 					<CoinCard
 						coin={coin}
-						says={r.saysRank[coin.index] ?? 0}
-						expects={r.expectsRank[coin.index] ?? 0}
-						twin={r.twinRank[coin.index] ?? 0}
+						says={saysRank[coin.index] ?? 0}
+						expects={expectsRank[coin.index] ?? 0}
+						twin={twinRank[coin.index] ?? 0}
 						zorp={zorp}
 						usable={c.usable > 0}
 						onPick={pick}
 					/>
+				</section>
+				<section className="gh-panel" data-panel="drivers">
+					<DriversChart current={c} zorp={zorp} />
 				</section>
 				<section className="gh-panel" data-panel="rigged">
 					<RiggedCurve current={c} base={base} />

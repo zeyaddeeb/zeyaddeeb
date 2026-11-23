@@ -63,8 +63,20 @@ cd paper && tectonic -X compile main.tex
 ```
 
 Analyses added after the evaluation (the nonsense-twin partial
-correlation, the alternating-end upturn, the rigged-set AUCs) are computed
-in `src/ghosts/paper.py` and labeled post hoc or exploratory in the text.
+correlation, the first-flip and H/T-symmetry readout diagnostic, the
+alternating-end upturn, the rigged-set AUCs, and the 3x3 wording-by-framing
+matrix) are computed in `src/ghosts/paper.py` and `src/ghosts/diagnostics.py`
+and labeled post hoc or exploratory in the text.
+
+Post-hoc diagnostics and follow-up ablations (none of which modifies any file
+hashed in `randomness.toml [seal]`):
+
+```sh
+uv run python -m ghosts.cli diagnostics --update-paper --update-page
+uv run python -m ghosts.cli followup-raw
+uv run python -m ghosts.cli followup-cot --count 100
+uv run python -m ghosts.cli followup-scale --base-repo Qwen/Qwen2.5-7B --post-repo Qwen/Qwen2.5-7B-Instruct
+```
 
 ## Web page
 

@@ -7,7 +7,9 @@ from typing import Any
 
 import numpy as np
 
-from ghosts.coinstudy import pooled
+from ghosts.coinstudy import pooled, protocol
+from ghosts.diagnostics import diagnostics_from_study
+from ghosts.followup import load_followups
 from ghosts.jsonfmt import dumps
 from ghosts.paper import LABELS, PAIR_LABELS, PILOT, collect
 from ghosts.protocol import ROOT
@@ -123,12 +125,68 @@ def _pilot() -> dict[str, Any]:
     }
 
 
+def _round_features(prof: dict[str, Any]) -> dict[str, Any]:
+    return {
+        role: {
+            "switches": _r3(vals["switches"]),
+            "firstH": _r3(vals["first_h"]),
+            "hFrac": _r3(vals["h_frac"]),
+            "imbalance": _r3(vals["imbalance"]),
+            "maxRun": _r3(vals["max_run"]),
+            "lastH": _r3(vals["last_h"]),
+        }
+        for role, vals in prof["features"].items()
+    }
+
+
+def _checkpoint_diag(prof: dict[str, Any]) -> dict[str, Any]:
+    ag = prof["agreements"]
+    tl = prof["twin_links"]
+    out: dict[str, Any] = {
+        "partialFirstH": _r3(ag["partial_first_h"]),
+        "partialHt": [_r3(t) for t in prof["partial_ht_ci"]],
+        "partialShape": _r3(ag["partial_shape"]),
+        "partialHtTwin": _r3(ag["partial_ht_twin"]),
+        "statedTwinHt": _r3(tl["stated_twin_ht"]),
+        "twinExpectsHt": _r3(tl["twin_expects_ht"]),
+        "features": _round_features(prof),
+    }
+    wf = prof.get("wording_framing")
+    if wf:
+        out["wordingFraming"] = {
+            "raw": {
+                w: {f: _r3(v) for f, v in row.items()}
+                for w, row in wf["raw"].items()
+            },
+            "partialHt": {
+                w: {f: _r3(v) for f, v in row.items()}
+                for w, row in wf["partial_ht"].items()
+            },
+        }
+    return out
+
+
+def _pair_diag(d: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "firstH": _r3(d["first_h"]["diff"]),
+        "firstHLo": _r3(d["first_h"]["lo"]),
+        "firstHHi": _r3(d["first_h"]["hi"]),
+        "ht": _r3(d["ht"]["diff"]),
+        "htLo": _r3(d["ht"]["lo"]),
+        "htHi": _r3(d["ht"]["hi"]),
+        "htTwin": _r3(d["ht_twin"]["diff"]),
+        "htTwinLo": _r3(d["ht_twin"]["lo"]),
+        "htTwinHi": _r3(d["ht_twin"]["hi"]),
+    }
+
+
 def build(data: dict[str, Any], raws: dict[str, Any]) -> dict[str, Any]:
     p = data["protocol"]
     k = np.array(data["stim"]["strata_k"])
     s = data["summaries"]
     x = data["extra"]
     v = data["report"]["verdicts"]
+    diag = data["diagnostics"]
     checkpoints = {}
     for key in LABELS:
         raw = raws[key]
@@ -159,6 +217,7 @@ def build(data: dict[str, Any], raws: dict[str, Any]) -> dict[str, Any]:
             "expectsRigged": _r3(
                 _sigmoid(np.median(_mean(raw["implicit"], "fair")))
             ),
+            **_checkpoint_diag(diag["checkpoints"][key]),
         }
     pairs = []
     for pair, d in v["h8_pairs"].items():
@@ -175,9 +234,10 @@ def build(data: dict[str, Any], raws: dict[str, Any]) -> dict[str, Any]:
                 "partial": _r3(part["diff"]),
                 "partialLo": _r3(part["lo"]),
                 "partialHi": _r3(part["hi"]),
+                **_pair_diag(diag["pairs"][pair]),
             }
         )
-    return {
+    payload: dict[str, Any] = {
         "protocol": p.sha[:12],
         "seed": p.eval_seed,
         "sealed": p.raw["seal"]["sealed_at"],
@@ -194,6 +254,29 @@ def build(data: dict[str, Any], raws: dict[str, Any]) -> dict[str, Any]:
             for h in ("h1", "h2", "h3", "h4", "h5", "h6", "h7", "h8")
         },
     }
+    followups = data.get("followups") or load_followups(p.sha)
+    if followups:
+        payload["followups"] = followups
+    return payload
+
+
+def enrich_page_from_study(target: Path = TARGET) -> Path:
+    p = protocol()
+    payload = json.loads(target.read_text())
+    diag = diagnostics_from_study(
+        target, seed=p.eval_seed + 37, n_boot=p.bootstrap
+    )
+    for key, ck in payload["checkpoints"].items():
+        ck.update(_checkpoint_diag(diag["checkpoints"][key]))
+    for pair in payload["pairs"]:
+        pair_key = f"{pair['base']}->{pair['post']}"
+        pair.update(_pair_diag(diag["pairs"][pair_key]))
+    followups = load_followups(p.sha)
+    if followups:
+        payload["followups"] = followups
+    target.write_text(dumps(payload))
+    print(f"enriched {target} ({target.stat().st_size:,} bytes)", flush=True)
+    return target
 
 
 def export_page(target: Path = TARGET) -> Path:

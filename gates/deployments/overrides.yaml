@@ -1,0 +1,62 @@
+fullnameOverride: "gates"
+
+image:
+  repository: ${image_repository}
+
+entrypoint: "./gates"
+
+service:
+  type: ClusterIP
+  port: 3009
+
+strategy:
+  type: Recreate
+  rollingUpdate: null
+
+podSecurityContext:
+  runAsNonRoot: true
+  fsGroup: 1000
+
+persistence:
+  enabled: true
+  storageClassName: gp3
+  size: 10Gi
+  mountPath: /data
+
+env:
+  RUST_LOG: "gates=info"
+  GATES_BIND: "0.0.0.0"
+  GATES_DATA: "/data"
+  GATES_WORKERS: "1"
+
+networkPolicy:
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 3Gi
+
+volumes:
+  - name: tmp
+    emptyDir:
+      sizeLimit: 64Mi
+
+volumeMounts:
+  - name: tmp
+    mountPath: /tmp

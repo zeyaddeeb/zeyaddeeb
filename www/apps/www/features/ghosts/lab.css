@@ -166,6 +166,11 @@
 	font-variant-numeric: tabular-nums;
 }
 
+.gh-toggles {
+	display: grid;
+	gap: 4px;
+}
+
 .gh-zorp {
 	display: flex;
 	align-items: center;
@@ -613,6 +618,69 @@
 	margin: 0;
 	font: 400 12px / 1.4 var(--font-display);
 	color: var(--gh-dim);
+}
+
+.gh-drivers {
+	display: grid;
+	gap: 8px;
+}
+
+.gh-driver {
+	display: grid;
+	grid-template-columns: 78px minmax(0, 1fr) 74px;
+	align-items: center;
+	gap: 8px;
+}
+
+.gh-driver__name {
+	font: 500 12px / 1.2 var(--font-display);
+	color: var(--paper);
+}
+
+.gh-driver__bars {
+	position: relative;
+	height: 14px;
+	background: var(--gh-faint);
+}
+
+.gh-driver__zero {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 50%;
+	width: 1px;
+	background: var(--gh-line);
+}
+
+.gh-driver__bar {
+	position: absolute;
+	height: 5px;
+	transition:
+		left 240ms ease-out,
+		width 240ms ease-out;
+}
+
+.gh-driver__bar--says {
+	top: 1px;
+	background: var(--paper);
+}
+
+.gh-driver__bar--exp {
+	bottom: 1px;
+	background: var(--yellow);
+}
+
+.gh-driver__vals {
+	display: flex;
+	justify-content: space-between;
+	gap: 4px;
+	font: 400 10px / 1 var(--font-mono);
+	font-variant-numeric: tabular-nums;
+	color: var(--paper);
+}
+
+.gh-driver__exp {
+	color: var(--yellow);
 }
 
 @media (prefers-reduced-motion: reduce) {

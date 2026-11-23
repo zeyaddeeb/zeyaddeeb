@@ -8,6 +8,8 @@ from typing import Any
 import numpy as np
 
 from ghosts.coinstudy import pooled, protocol, run_dir
+from ghosts.diagnostics import diagnostics_from_raws, diagnostics_from_study
+from ghosts.followup import load_followups
 from ghosts.protocol import ROOT
 from ghosts.randomness import auc
 from ghosts.stimuli import coin_features
@@ -223,12 +225,22 @@ def collect() -> dict[str, Any]:
         )
         for base, post in p.raw["paths"]["h8_pairs"]
     }
+    h8_pairs = [tuple(pair) for pair in p.raw["paths"]["h8_pairs"]]
+    diag = diagnostics_from_raws(
+        raws,
+        stim["groups"]["fair"],
+        h8_pairs,
+        seed=p.eval_seed + 37,
+        n_boot=p.bootstrap,
+    )
     return {
         "protocol": p,
         "report": report,
         "summaries": summaries,
         "extra": extra,
         "partial_pairs": partial_pairs,
+        "diagnostics": diag,
+        "followups": load_followups(p.sha),
         "stim": stim,
     }
 
@@ -533,6 +545,174 @@ def _verdict_rows(data: dict[str, Any]) -> list[str]:
     ]
 
 
+def _diag_stats(diag: dict[str, Any]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for key, prof in diag["checkpoints"].items():
+        feats = prof["features"]
+        ag = prof["agreements"]
+        tl = prof["twin_links"]
+        ci = prof["partial_ht_ci"]
+        out |= {
+            f"diag/{key}/says_first_h": signed(feats["says"]["first_h"]),
+            f"diag/{key}/twin_first_h": signed(feats["twin"]["first_h"]),
+            f"diag/{key}/exp_first_h": signed(feats["expects"]["first_h"]),
+            f"diag/{key}/says_h_frac": signed(feats["says"]["h_frac"]),
+            f"diag/{key}/twin_h_frac": signed(feats["twin"]["h_frac"]),
+            f"diag/{key}/exp_h_frac": signed(feats["expects"]["h_frac"]),
+            f"diag/{key}/says_imb": signed(feats["says"]["imbalance"]),
+            f"diag/{key}/exp_imb": signed(feats["expects"]["imbalance"]),
+            f"diag/{key}/partial_first_h": signed(ag["partial_first_h"]),
+            f"diag/{key}/partial_ht": signed(ag["partial_ht"]),
+            f"diag/{key}/partial_ht_ci": interval(ci[1], ci[2]),
+            f"diag/{key}/partial_shape": signed(ag["partial_shape"]),
+            f"diag/{key}/partial_ht_twin": signed(ag["partial_ht_twin"]),
+            f"diag/{key}/stated_twin_ht": signed(tl["stated_twin_ht"]),
+            f"diag/{key}/twin_expects_ht": signed(tl["twin_expects_ht"]),
+        }
+        wf = prof.get("wording_framing")
+        if wf:
+            for w in wf["wordings"]:
+                for f in wf["framings"]:
+                    out[f"wf/{key}/{w}_{f}"] = signed(wf["raw"][w][f])
+                    out[f"wf_ht/{key}/{w}_{f}"] = signed(
+                        wf["partial_ht"][w][f]
+                    )
+    for pair, kinds in diag["pairs"].items():
+        tag = pair.split("->")[1]
+        for kind, d in kinds.items():
+            out |= {
+                f"diag/{kind}/{tag}/base": signed(d["base"]),
+                f"diag/{kind}/{tag}/post": signed(d["post"]),
+                f"diag/{kind}/{tag}/diff": signed(d["diff"]),
+                f"diag/{kind}/{tag}/ci": interval(d["lo"], d["hi"]),
+            }
+    out["diag/ht/drops"] = str(
+        sum(d["ht"]["hi"] < 0 for d in diag["pairs"].values())
+    )
+    out["diag/first_h/drops"] = str(
+        sum(d["first_h"]["hi"] < 0 for d in diag["pairs"].values())
+    )
+    return out
+
+
+def _feature_rows(diag: dict[str, Any]) -> list[str]:
+    rows = []
+    for key, label in LABELS.items():
+        if key in FAMILY_BREAKS:
+            rows.append(r"\midrule")
+        prof = diag["checkpoints"][key]
+        f = prof["features"]
+        ag = prof["agreements"]
+        rows.append(
+            " & ".join(
+                [
+                    label,
+                    signed(f["says"]["first_h"]),
+                    signed(f["twin"]["first_h"]),
+                    signed(f["expects"]["first_h"]),
+                    signed(f["says"]["h_frac"]),
+                    signed(f["expects"]["imbalance"]),
+                    signed(ag["partial_first_h"]),
+                    signed(ag["partial_ht"]),
+                ]
+            )
+            + r" \\"
+        )
+    return rows
+
+
+def _symmetry_rows(diag: dict[str, Any]) -> list[str]:
+    rows = []
+    for pair, label in PAIR_LABELS.items():
+        d_f = diag["pairs"][pair]["first_h"]
+        d_ht = diag["pairs"][pair]["ht"]
+        d_all = diag["pairs"][pair]["ht_twin"]
+        rows.append(
+            " & ".join(
+                [
+                    label,
+                    f"{signed(d_f['diff'])} {interval(d_f['lo'], d_f['hi'])}",
+                    f"{signed(d_ht['base'])} $\\to$ {signed(d_ht['post'])}",
+                    f"{signed(d_ht['diff'])} "
+                    f"{interval(d_ht['lo'], d_ht['hi'])}",
+                    f"{signed(d_all['diff'])} "
+                    f"{interval(d_all['lo'], d_all['hi'])}",
+                ]
+            )
+            + r" \\"
+        )
+    return rows
+
+
+def _wording_framing_rows(diag: dict[str, Any]) -> list[str]:
+    rows = []
+    for key in (
+        "qwen_instruct",
+        "olmo3_base",
+        "olmo3_instruct",
+        "olmo3_think",
+    ):
+        prof = diag["checkpoints"].get(key)
+        if not prof or "wording_framing" not in prof:
+            continue
+        wf = prof["wording_framing"]
+        rows.append(
+            " & ".join(
+                [
+                    LABELS[key],
+                    signed(wf["raw"]["w1"]["f1"]),
+                    signed(wf["raw"]["w2"]["f2"]),
+                    signed(wf["raw"]["w3"]["f3"]),
+                    signed(wf["partial_ht"]["w1"]["f1"]),
+                    signed(wf["partial_ht"]["w2"]["f2"]),
+                    signed(wf["partial_ht"]["w3"]["f3"]),
+                ]
+            )
+            + r" \\"
+        )
+    return rows
+
+
+def write_diagnostics_artifacts(diag: dict[str, Any], out: Path) -> None:
+    out.mkdir(parents=True, exist_ok=True)
+    dstats = _diag_stats(diag)
+    (out / "numbers-diag.tex").write_text(
+        "".join(f"\\statdef{{{k}}}{{{val}}}\n" for k, val in dstats.items())
+    )
+    (out / "features.tex").write_text("\n".join(_feature_rows(diag)))
+    (out / "symmetry.tex").write_text("\n".join(_symmetry_rows(diag)))
+    wf_rows = _wording_framing_rows(diag)
+    if wf_rows:
+        (out / "wording_framing.tex").write_text("\n".join(wf_rows))
+    _write_csv(
+        out / "symmetry.csv",
+        ["idx", "label", "base", "post", "diff", "lo", "hi"],
+        [
+            [
+                i,
+                PAIR_LABELS[pair],
+                d["ht"]["base"],
+                d["ht"]["post"],
+                d["ht"]["diff"],
+                d["ht"]["lo"],
+                d["ht"]["hi"],
+            ]
+            for i, (pair, d) in enumerate(reversed(diag["pairs"].items()))
+        ],
+    )
+
+
+def export_diagnostics_paper(study_path: Path) -> Path:
+    p = protocol()
+    diag = diagnostics_from_study(
+        study_path, seed=p.eval_seed + 37, n_boot=p.bootstrap
+    )
+    out = PAPER / "generated"
+    write_diagnostics_artifacts(diag, out)
+    print(f"wrote diagnostic paper tables to {out}", flush=True)
+    return out
+
+
 def export_paper() -> Path:
     data = collect()
     s = data["summaries"]
@@ -543,6 +723,7 @@ def export_paper() -> Path:
     (out / "numbers.tex").write_text(
         "".join(f"\\statdef{{{k}}}{{{val}}}\n" for k, val in stats.items())
     )
+    write_diagnostics_artifacts(data["diagnostics"], out)
     (out / "checkpoints.tex").write_text("\n".join(_checkpoint_rows(data)))
     (out / "sensitivity.tex").write_text("\n".join(_sensitivity_rows(data)))
     (out / "verdicts.tex").write_text("\n".join(_verdict_rows(data)))

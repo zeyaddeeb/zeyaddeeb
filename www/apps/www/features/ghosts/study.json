@@ -72,7 +72,39 @@
         "data": "OD/yzhMmUfHb/fMPDdMS/ec33sP87f4BnEoyGkUG/P789QqYTdotBggG6TMnDwUfJ/ApNi4uCAEuGg8yGNn8RCEu9OjYpOQHFQPz2bMJ//pKLSe+MR39uO7cFtoTvPDJ3Q431k9O2AQG3tTFz9DrzwvnE1IB9RTjCxf56QX0AxMFHgHZ71QjGEIh9tHCySfZI+EF2lu98DA8DeHUHCYf+PE3Db/wCbtAPPL/6AoL4Db5CPkcB5kJxPjdGjwgywo4gcJB/Po09QzewMkGEwfqti4V7TsRrbkzAvcKFRX27dfhQ/wh8Pz24lvC+tvwHgQNNPUE2u386rkzmj7CXvkPxDI0CaIo7SBpx8zNISHowx3jEwL+0PYcFDHAGibbGiY2EUn14g75IeDf3h863cYVEewe7tAL0SjSEezvJPXmGgEE5AgaICGpMDQuOfEAOMf6uOPe4hPDKg0S+A0ZKsS76O00L4HG0/i98wf64vw45NVKQQ4QJBUa7AH3PhnkG+nzCc9IKPYK9xXzDBsq6P3WPi4JFMy+6cEz7bQV3eOqIRwoVyefAg4JEtpI9/MmD/rk/lQe9f3MA/8WCDILIsirxQC7CTU2GcLvyvn47eUL+wbkCATnwzT5xj/k8wg22qLL3h8hJQLtyGPtiA4UBvoAzwHn9kA4A+8m0ewUMRoSRRwknOzC6fol7A68DSE6+tXE7QsiuUUZGPn3CqTqFeIa0vFM7A38HQfF4kX/9/YYGRjiBv7sGPlFKf3wQDsC17HAw+IbLRUd/8/yIc/7Iu71Ih5TFEEEBB8M"
       },
       "saysRigged": 0.439,
-      "expectsRigged": 0.325
+      "expectsRigged": 0.325,
+      "partialFirstH": 0.461,
+      "partialHt": [0.397, 0.325, 0.468],
+      "partialShape": 0.595,
+      "partialHtTwin": 0.119,
+      "statedTwinHt": -0.666,
+      "twinExpectsHt": -0.48,
+      "features": {
+        "says": {
+          "switches": -0.357,
+          "firstH": -0.569,
+          "hFrac": -0.608,
+          "imbalance": 0.053,
+          "maxRun": 0.093,
+          "lastH": -0.066
+        },
+        "twin": {
+          "switches": 0.643,
+          "firstH": -0.232,
+          "hFrac": 0.111,
+          "imbalance": -0.192,
+          "maxRun": -0.422,
+          "lastH": 0.059
+        },
+        "expects": {
+          "switches": -0.39,
+          "firstH": -0.587,
+          "hFrac": -0.333,
+          "imbalance": 0.22,
+          "maxRun": 0.318,
+          "lastH": 0.091
+        }
+      }
     },
     "qwen_instruct": {
       "label": "Qwen2.5 3B Instruct",
@@ -110,7 +142,39 @@
         "data": "vgnD1lrkVQcM6hkUWpaVAPm22aG53QU3+TwFuVPE8RIXLtombK/ZBUrpFUDrEBdNbr81aiFKZAf37rIdRQgJLhwZ1A7eyBatHv7JWcIf5kdOyAkZJy01ptvRxSjt6SnSCKgl/B045NgF4b0t49bkGg77NhYaycsaDtvuzQhYyDreBskFqzgZwCwpF/I2sh1R6ANC8h8MED7vPh4NPyIQGQ06OhMoBuA0/zQBvPoysO79JOMWPf6zMQ/M5wvkvvh/47JctycgGzGfjATnCtHdufPg1SH/1CRD9+/xwmhEM8Lm7fxN/vzrIjER7wUQHdjp+gKmEOjUsugtwUm+Q/HhEhW4I8HkCUY4xgXKBO3e2QjABvLT2Qi7qyneHcGz988w7iu5+sTeQtHH62MbmRkJswjgQAVw7lMo6ev1BQHp9PE+7y5F1FklwE8uLvjL+QHgEQ0ONvCyUQgQ7ioEPPgR2fI7HgIix//tJvvw9vc6FOsU/fI+Vxc51vUXRgkF2ia6yswOcPQZ+Niy0R0tAxaaJxqZQOEd8+02qc+nK+Tq1+8dHU8NuTf25g06Aa3xDg749CAcqrT3/C7Kw7kyBDnX8bj47ltSMOq79fDk/cYfLLkvH9bx5D2+/P+14cIwwta90Sk26+hF5z/8xEAcmu7tTCLC4hs8+j0j7f453drUIdIHvTOwB/Tv4goUJQcVPwK+NgBGGnKp6P8Q1f/VG+QBG/o+BCwCETUNFxgjPcMfBz2s2BT9Hu4uEZoLWQiluv47zAauSeBD/8IlIPLNR9EJDjEV/jXzNr7a"
       },
       "saysRigged": 0.998,
-      "expectsRigged": 0.31
+      "expectsRigged": 0.31,
+      "partialFirstH": 0.253,
+      "partialHt": [0.261, 0.185, 0.335],
+      "partialShape": -0.101,
+      "partialHtTwin": 0.256,
+      "statedTwinHt": 0.055,
+      "twinExpectsHt": 0.131,
+      "features": {
+        "says": {
+          "switches": -0.54,
+          "firstH": -0.199,
+          "hFrac": -0.303,
+          "imbalance": 0.317,
+          "maxRun": 0.529,
+          "lastH": -0.087
+        },
+        "twin": {
+          "switches": -0.119,
+          "firstH": -0.698,
+          "hFrac": -0.205,
+          "imbalance": 0.05,
+          "maxRun": 0.193,
+          "lastH": 0.13
+        },
+        "expects": {
+          "switches": -0.481,
+          "firstH": 0.164,
+          "hFrac": 0.029,
+          "imbalance": 0.302,
+          "maxRun": 0.474,
+          "lastH": 0.016
+        }
+      }
     },
     "llama_base": {
       "label": "Llama 3.2 3B base",
@@ -148,7 +212,39 @@
         "data": "MffxHikf3RE7Ab5JCxwuJcn8EP3qAO/iwxQv5wcJM9cq7PfM7/Am/PFC2hJNz/PQ/Q3r4NgYZdlf6O7c99Xr9cX1Du0j60nV7vIG5xjpRxbxQ9bZ38MM8AMcAML7tfpzQirzLOnmICIeFiIR9R4lyMoxGv3/FiHazhMOAcwGPuY7xdpL/tEHGw/Q6jgF8FffKcQAIeW84tC79QDM880Uv1ja7gHjp+HtvNkLH9K260DgDREl3ua+QgHzNOETDA8o6uUDtL4DAO48/1Iz5AgaMDb9LtsJwNm/PDMbGw852PeqvDq+SxsWAL3eJLZtohNCK0zsvxAkC7XXHP8E/ysZKdDluQ8mYwrhDCQVNE0X8gf6Cw0JKrgf/+XrAD3sIxHPrtchLB8o6vYrOfDB5T/0L9EWNR/x5Pp/GxAfNCsZGyq0terpEC0LLuPNsect8UEptxnqxj/8/iv9BcTm30PgEjwDu+0A3RH97tomKgLlGz7urlui6vjz/RXm3cPkHtcWIBdF/CTkOy/9J7DL9PPm6dAG/UsuLyYOvxMD6/nLMSQExPYw8f0GVzy9Nu/rUjHwRdgc/QGk/d0bPCbfEmLq/f3qJuHpwb4Usvw4Nt3P2gftER1P3u83vq0XHR/VC/ofWcSzKxTysN/09Mji3yoq69gVK9e4/RPvZi0ES0YQwwXxuf8Ary5aEuHj2EHwxifv3hMQbwv/MDfqFc/r4SRQ2zkEMB8fse9p4AnP9Pi9HBwMG+fY2xriGDTj+uzYFebzzDH02BLt8vW+sLr40gnRPcbKHswXnywQ"
       },
       "saysRigged": 0.484,
-      "expectsRigged": 0.399
+      "expectsRigged": 0.399,
+      "partialFirstH": -0.278,
+      "partialHt": [-0.268, -0.351, -0.178],
+      "partialShape": 0.606,
+      "partialHtTwin": -0.275,
+      "statedTwinHt": -0.17,
+      "twinExpectsHt": -0.02,
+      "features": {
+        "says": {
+          "switches": 0.436,
+          "firstH": -0.611,
+          "hFrac": -0.269,
+          "imbalance": -0.266,
+          "maxRun": -0.507,
+          "lastH": -0.007
+        },
+        "twin": {
+          "switches": -0.044,
+          "firstH": 0.691,
+          "hFrac": -0.164,
+          "imbalance": 0.064,
+          "maxRun": 0.11,
+          "lastH": 0.256
+        },
+        "expects": {
+          "switches": -0.221,
+          "firstH": -0.855,
+          "hFrac": -0.145,
+          "imbalance": 0.191,
+          "maxRun": 0.175,
+          "lastH": 0.052
+        }
+      }
     },
     "llama_instruct": {
       "label": "Llama 3.2 3B Instruct",
@@ -186,7 +282,39 @@
         "data": "Du0QIfkU2isSCgT57g0WCw8MG/sJAQfmDO8bB+8aXgYE4v3x0gYR69gu9tUY3u3rzAv99vDcfw0hGAnc8OL+68/wGgAbFRzx6f/+6iTE+cfQAcv68tb/8Qoc8v8L+Pf+KRL4COfqEjMrGADR8gFGAOgCCNvmACPx4g4dGODiBu0N1BIbJ/P+9+7U5D7qB/3tJuvwPvHz9Nfg7+j80Ojp6wLH5Qv10wHW6PH9HPTt+h4A8fpJ+Pzm/vQaIuYCDSTLCf/R7vrr9vUmDyUo/BsxIRMTFug2CQTbRCwpDeDs3Bf08R3SEvwPzfL/EAAq3g4TEQIH7iL3EOjbBe382iMZDOIF2g4nD+fkIBQiUR8T9e0KQgsmHfETA9ke9RkHDjro6OwjHAQX1gUfE+zLARb4DvYjKQHW/fAdBQ7wCx0QDA24+cvY6svpHN3j3PAY7Rwk/yTq7C0b5ijzCODk8B7lKR/f1er2C/cG4fIHCgvGHgfa1Sq+4QDZGCAI6tr8FfcZTBQI0RnTKgcQF8fj30QC0uz89CUcMhLx+/cJ0xYdDgzx0tPkBvX7LxPn+QkDIwn2JtkEFADo8OcMIhDnJwrs+RvvGt3o5wgN9xwyEPfo9wfRABQr+fApCOURHQfWNPoOEdzY7yXf9Oz3+evo9h5D5voTFd7ZBPngCgr0Axkm8hH889Uk9TcnG/gF7APw8Ske7xvlF98TGR/oOAwj7BUSDBfwKfwS9NkR//T79CvkHescFf/y9xfe5zXv7P0JCefy+i37xBHf9gwF4eAUywD7GdHbP+gd2h4K"
       },
       "saysRigged": 0.407,
-      "expectsRigged": 0.313
+      "expectsRigged": 0.313,
+      "partialFirstH": -0.055,
+      "partialHt": [0.026, -0.049, 0.103],
+      "partialShape": -0.432,
+      "partialHtTwin": -0.073,
+      "statedTwinHt": -0.268,
+      "twinExpectsHt": -0.346,
+      "features": {
+        "says": {
+          "switches": 0.037,
+          "firstH": -0.883,
+          "hFrac": -0.301,
+          "imbalance": -0.045,
+          "maxRun": -0.066,
+          "lastH": -0.103
+        },
+        "twin": {
+          "switches": 0.02,
+          "firstH": 0.75,
+          "hFrac": 0.177,
+          "imbalance": 0.11,
+          "maxRun": -0.011,
+          "lastH": 0.185
+        },
+        "expects": {
+          "switches": -0.12,
+          "firstH": 0.462,
+          "hFrac": 0.406,
+          "imbalance": 0.235,
+          "maxRun": 0.182,
+          "lastH": -0.097
+        }
+      }
     },
     "olmo2_base": {
       "label": "OLMo 2 1B base",
@@ -224,7 +352,39 @@
         "data": "NNAH+gAk6jd/NtgK7+MIJPMXBEoaEijn/xAiK/3nEuLq1B3yJfUTxSzTyPkB4ecXOufl+PIH7uogJALyHdTg1ufX+OnV3NMJB/IhwQ8RIzgDFST//f/86SPlHgg49Nr+5CMBAeoaAvs1MgchBCnq0OFmUevgI//cACxC8NgBG+fh3BcU4vTsDu/42fD6WyqpI9f04OLq7fXa1e3c+g4U0STq8dYB48ci/R/vNQwH3x3jC/44/s8U3O8JFwLoAj8CC+8a7Mze3M3P+gkqABUmxR79EBUnIen2SuMe+zMABRjS4egA0D8V8/3IC9zXCNMLJ+wP9/pR+dYYGgUZ5OXjUQUWIjLhKgjt6zT5FRwAHAj3VTRDRNspSP7qziIHIxbRAhwC+ucE/wrZ8R3v/9nyAtjmPtXkzPbKHC027T0THCUP1/H5JAYIHurt6cHf0yPY1zHy1SnyDiPtG9XZ/Nnp9jTS+eDb9wDl+twL5VYXNOgDCh4N1PL93SPY3vEBQszn6v0PFtjT3OD85AT0/Tj2DtgxDNsx4dv8CDYN9BMqHSTp2P0fHNryN9oNAeciJxziHuMhAeX17OtILx4MMxPr9fXhHPnwAvzo8v4j5h8U1/kT8g8e5A8Y/QDpKPTV3+UOBfjnGSLs2eD64tXcMRHt8tonDQP91RTtSefpHhEk+NnY+Rro1NIg8+3pCCMC3TkG9ivlNAgTE/PkIvwnB+cP4NYEIVYGASP86PPO/PDvDvLzKu7i4R3yCfkO/OQdBuMH3/gc6PL4Gxvu9d3d++3vU+HcUtsEAv4c"
       },
       "saysRigged": 0.496,
-      "expectsRigged": 0.436
+      "expectsRigged": 0.436,
+      "partialFirstH": -0.257,
+      "partialHt": [-0.08, -0.162, 0.002],
+      "partialShape": 0.384,
+      "partialHtTwin": -0.044,
+      "statedTwinHt": -0.185,
+      "twinExpectsHt": 0.204,
+      "features": {
+        "says": {
+          "switches": -0.005,
+          "firstH": -0.609,
+          "hFrac": -0.357,
+          "imbalance": -0.113,
+          "maxRun": -0.09,
+          "lastH": -0.178
+        },
+        "twin": {
+          "switches": 0.041,
+          "firstH": 0.414,
+          "hFrac": -0.149,
+          "imbalance": -0.041,
+          "maxRun": 0.116,
+          "lastH": -0.112
+        },
+        "expects": {
+          "switches": 0.106,
+          "firstH": -0.808,
+          "hFrac": 0.229,
+          "imbalance": 0.016,
+          "maxRun": -0.085,
+          "lastH": 0.104
+        }
+      }
     },
     "olmo2_sft": {
       "label": "OLMo 2 1B SFT",
@@ -262,7 +422,39 @@
         "data": "MyZWNvrwCAe/9PjPFRME2gIvBPkcJ/XX3v0dLxP379AX1vaU3DUNHSQQAuwdYcz40PkT9wD4OOYJKCFWC8vaLvItNBvvKxwI4vkU1uvS9fomAwyqTDXdByUgAtL66f2xLSAvAjbnUi4r6OaFHuQLytu64yr8MmGs7EL0ZQ7eHRkfBxv2BivqGAH69tev+AD4Gq74PkmZzTQd6qO2AvPT+PhYHcDZJiL7JPAP8PUgBDDO7QwLreAfEM/69iz2VPz2skja/v4FyNneNQgc6CYM9PIGB+opr9Mr9h/87da810/oHTktAQT5DCr0JfIJIgMQEtwpuS7uSq34DRUcJSgb8PYZEgsHyORSScIsJBwo/ulT8PrXud4r++goGTEn2jtCOPwyHw305ycnBuUlMPr+6wAd9QjixBL/BugDFMIa9uoq0yns+eqBGPYHAO3sOMkR2/21zs8SAPPc7gHgJQi06OP2FqjWSg9S8CT4LuD99AL/H/wkLgrx6xjfCQzr9f4sITQU2NgrIjL5MCg33w8e8kf+tdMANzUQLv89uObF7hT9/y34BPHo4/QXFlskCdCxBQgC+w7O2LP0FS8r9saSxhqo3yo9Mrs6xzrYJwzi4wff/fvZ2fji6jUc5AIN9crqBU8IKSvRzl+/xdHKEPg4pNsmBkwg0/78rOjd9wj+DB0Kw6s5ux4aOQHxxur40cM8w/bpwgYUJPzyBswjDur/rR8XANQNKN/KqPnZB2cFDQk38MHezeoy1N/pLSowUpHBzQQiOC4n9zT5IuAv7w3Nw/gk+Rn3MSYh"
       },
       "saysRigged": 0.48,
-      "expectsRigged": 0.394
+      "expectsRigged": 0.394,
+      "partialFirstH": 0.5,
+      "partialHt": [0.481, 0.417, 0.541],
+      "partialShape": 0.228,
+      "partialHtTwin": 0.219,
+      "statedTwinHt": -0.755,
+      "twinExpectsHt": -0.47,
+      "features": {
+        "says": {
+          "switches": -0.498,
+          "firstH": -0.462,
+          "hFrac": 0.031,
+          "imbalance": 0.089,
+          "maxRun": 0.387,
+          "lastH": -0.236
+        },
+        "twin": {
+          "switches": 0.375,
+          "firstH": 0.285,
+          "hFrac": 0.702,
+          "imbalance": -0.058,
+          "maxRun": -0.289,
+          "lastH": 0.297
+        },
+        "expects": {
+          "switches": -0.169,
+          "firstH": 0.315,
+          "hFrac": 0.316,
+          "imbalance": 0.091,
+          "maxRun": 0.08,
+          "lastH": 0.027
+        }
+      }
     },
     "olmo2_dpo": {
       "label": "OLMo 2 1B DPO",
@@ -300,7 +492,39 @@
         "data": "MT4/OfztBAWr8A27GQT5zfss690MC/De7wsnIx0OBOoN7N6P5iv+MA0mE/QXRuHlzAso+gMCHusSBjI7G+frM+lDQyf8EDEJ7A8Dy/7J8ucYBP+7LCPy9TMY9M738vvOJR01BDv3QCgz2/mRBvce3enD7y0QJFi56TX9SAjxFxkz/CbsBDP0EBHo/PHK3AP0HLj7HkaV2REfCra9+urTD+s5HM30DPr6HOIX6vP6CTXq8hfvuOr+B+oA7RsVRQT+sifm9w0d4vgFFgcX+BD3+vsgF/AVqOEQ5zz3As7V4z4AEzcLGPT00y3xHvcZDRkMG+0Uty3XNqvy8iMPKT4o5fAO7u4ixu1SKsQkKyUn4OxA5uDbtPYm6toKKzEa1Cs5GAwrGyTr4jYfBOIbEwcSDBw58vnY1h4KAdT1Naf7+uEF4RHz6vOBF/QM9AbyNtUh4gPC49Ya+f/04fTxHBLC9+kRD6XsLh859TrxGM3z+PIJCgH+KCbr8iH6CAP78RE1MDAT1OcmPEMPOgof4QcO5zr71u7xNRYTA9Eov9jA5xIR+wruBQf/9QoHD0IIELzNAhP9Dxfk9brpGC4P7KuU1gq53CEzEso04zrcJuLa7xvRG//U7PgK9S8S4O8DC9rpADL8HzLt4GHRztzb+/k6tuceADMQ6wkDpwL2+/n1DiMXwbgOwikcOwwM2PUF67sj1fkDrwUKJub/+tcF/v4CszEk+OANHdrPsAfq/EgWAQsj79rn3toi6u/6NT0cRZLdzvgXHjsg5iYDCu4z5QPfwukp4CDjDzoX"
       },
       "saysRigged": 0.48,
-      "expectsRigged": 0.343
+      "expectsRigged": 0.343,
+      "partialFirstH": 0.367,
+      "partialHt": [0.33, 0.265, 0.391],
+      "partialShape": 0.267,
+      "partialHtTwin": 0.103,
+      "statedTwinHt": -0.735,
+      "twinExpectsHt": -0.36,
+      "features": {
+        "says": {
+          "switches": -0.554,
+          "firstH": -0.187,
+          "hFrac": 0.143,
+          "imbalance": 0.084,
+          "maxRun": 0.411,
+          "lastH": -0.321
+        },
+        "twin": {
+          "switches": 0.498,
+          "firstH": 0.211,
+          "hFrac": 0.568,
+          "imbalance": -0.147,
+          "maxRun": -0.449,
+          "lastH": 0.429
+        },
+        "expects": {
+          "switches": -0.162,
+          "firstH": 0.247,
+          "hFrac": 0.342,
+          "imbalance": 0.091,
+          "maxRun": 0.063,
+          "lastH": 0.017
+        }
+      }
     },
     "olmo2_instruct": {
       "label": "OLMo 2 1B Instruct",
@@ -338,7 +562,39 @@
         "data": "L1gvJf/38AW0/yK6Fw0Bzu8s2ucY/ejf/wMvJSEEJvkW7Nqe4B8CL/s+F+4HKeLy1Q85BvX/ItgD7zA1IenmSO1RLij+Dj0W9P0ItCHV7d4QA/W9MA/p+ysh8dkK/uTCQiQ7DEH8KiA52PSGCuct6/a26DcOJk+59Tr8LA7zCQ8w+B3t6UMJCRzWCg277P/vDKwAMkulw9oiDrap9PLYHuMZKcnoD/j5G9ke6xHdCzX//xPtufH9Bezz2SUVNhMDsgbh7yEj4/cgCxMOAy0G8/cZEOkcoesD9jjiCNPB9zQE/0fvBfL25TkHIQIdBBANGuIBqRfhOLADAR8VLkUh7vwN5v0gx/VeIcIOQiIV1vkz89zWmvAh98UQJi8Y2z4u+hEbNiXm1R8cDOMWGPIQCiUn7vPM3ioD9t7vNpES/dr43ALp7++BHwAT/A0FQdwn5QrG9t4hCQv+4Ov7DxHAA+8XHLbqGx8g8EbpONfq/QARFAn5HjL51SP//gUJ9yIXPSoKyeUXRjsSJQcY0RcM5ykAzgr2ShkQAMsv0uHQ7iML7gDxDAX/4xsRFT7xDqHQ/BbqDSTs8cfwDjsc27OZxRCy5ytBANAs4DfzJ+LkAS7DDQPb7QLy8CoW6twOCdno8RYDMDLl02bOyerJCOhQsvQd+S8C3//6ovD09e4AFCMdwrzqxEQoNCQT0fAN7rwP2vECs/wCHv7y/Ob4Df3zvy4eA9oRH9bStxPqCzod8AYa9eDszcsc7fYDQVYSQpjaygEcDzId5x4bD/Ii7/vdwO415ynK/EEY"
       },
       "saysRigged": 0.479,
-      "expectsRigged": 0.431
+      "expectsRigged": 0.431,
+      "partialFirstH": 0.219,
+      "partialHt": [0.154, 0.075, 0.229],
+      "partialShape": 0.208,
+      "partialHtTwin": -0.044,
+      "statedTwinHt": -0.585,
+      "twinExpectsHt": -0.321,
+      "features": {
+        "says": {
+          "switches": -0.411,
+          "firstH": 0.102,
+          "hFrac": 0.277,
+          "imbalance": 0.114,
+          "maxRun": 0.339,
+          "lastH": -0.372
+        },
+        "twin": {
+          "switches": 0.48,
+          "firstH": 0.188,
+          "hFrac": 0.467,
+          "imbalance": -0.213,
+          "maxRun": -0.452,
+          "lastH": 0.443
+        },
+        "expects": {
+          "switches": -0.111,
+          "firstH": 0.203,
+          "hFrac": 0.324,
+          "imbalance": 0.043,
+          "maxRun": 0.018,
+          "lastH": 0.013
+        }
+      }
     },
     "olmo3_base": {
       "label": "OLMo 3 7B base",
@@ -376,7 +632,39 @@
         "data": "KNo9Q+4H3AgKBbb36TUX+sMlHB8kCt3DuPEjLPwuEck+3xal5TQave82u/Yd69nr50Te+PYAdMUUDDn/5s7I7OTSPtApOVsz8d8wnTfqDd/qJgPH4/XLSEVJGa0NxcgkPCv8PQHwUzgH6zTDLUIyycf5+ujSNl7HCzoOSOjTQ/Ap6kUFIAjpG/voyBDBIzK1IM7ZTwKyvdzzxtLM1un0vSLw8rnR5Tba89U+NOnfIy3D6xreyroTCuQ3B/UmPRXkszT0Lsbe09gfSDQpxxoKOQcuOPL5nsHu8y4EOenL2Uq19kboHgv7fw/BFsgz7hsJCS8VoEEcN8LqROky9TRB6/se8kAzIAYIL+dGHxY1LPwwAwsC7LMeHtFHxjFV+yXw7QA/LTcI2Tk6NuECPRPYTbQv/RveyftKGAYrauAp8RLj1erzDO3EHPj47d4A//M1sv7LxAk48/DJ9OTC9j61JA3lC83FMlM12unzRfvuAT8M9hLi7eLhMg7U7OzYHsY6P0wB1hLuQRpRNe7t6vpK4f4ewxjbL0fzQDElw/e1EB/c3vIkHrzcITIESFAMEfjLBfTwKSux2rYyQibu+d/Jwz/WBPgR8M9Lyk3zJBjkyjbD2wsJxeFQzv0+/RPgI9IyUPfpHxCuzf/OlrvWGAY3xtA+GPL3yuq7RBncJAYH9yfMssctwxApNc3FxhUEwuU7wQTM9/ccBzTV8qQW2DD/wRj1ARVM6do4zfvT3WXK7eM6A8u/ztj87TDb7tkcS8SxyR4n6Snm5jyy+a4s9y3J9+n84OT39S4p"
       },
       "saysRigged": 0.482,
-      "expectsRigged": 0.397
+      "expectsRigged": 0.397,
+      "partialFirstH": 0.09,
+      "partialHt": [0.204, 0.129, 0.274],
+      "partialShape": -0.408,
+      "partialHtTwin": 0.401,
+      "statedTwinHt": -0.571,
+      "twinExpectsHt": 0.207,
+      "features": {
+        "says": {
+          "switches": -0.41,
+          "firstH": -0.591,
+          "hFrac": -0.647,
+          "imbalance": 0.147,
+          "maxRun": 0.301,
+          "lastH": -0.094
+        },
+        "twin": {
+          "switches": 0.145,
+          "firstH": 0.791,
+          "hFrac": 0.296,
+          "imbalance": 0.002,
+          "maxRun": -0.115,
+          "lastH": -0.004
+        },
+        "expects": {
+          "switches": -0.276,
+          "firstH": 0.476,
+          "hFrac": 0.189,
+          "imbalance": 0.398,
+          "maxRun": 0.291,
+          "lastH": 0.068
+        }
+      }
     },
     "olmo3_instruct_sft": {
       "label": "OLMo 3 7B Instruct SFT",
@@ -414,7 +702,39 @@
         "data": "L+oNBc0B8h0CGtkc6hEIJMxGJh8uMy7ftuMlXe42HtwQ0CmB2Tcw0+8i7gBF+M3kxwLl3f71CcocPTYU8rTQAfbRJd8j/y0U3+EmuSr7JODpKOS4DfvLLigXKrYO18jnICYICf/rKyscKyGnDRIqx9IFBQThOjm06UwlNgXbDvIe/lA1KfsDMPcF4QCcGibGQ9XaCRuZ2OMCx8q+++Lc6hv+BbfU7AMIBeImGfnqIUDe3xscztItFsYRKwUmFCXapjfYHszNzdIeKAof0DILJxg6FvIerMEHFCEyCcyn2xvd/Sr4HRYh6v23Mc8K+DYyFv5HsQ4jOs3kBvEf8yFD/Own6v0hA9YOLu8QFB0eA+oOJjcYBtYrGOgL3j8sHSr0/OcYGBYPBC4lDOvw+x7hDNc2CjjtuQTsMCD/KQYbJSHmwBLlHdWYMP335un7CwU0yA6ny/04AhjeEPXA/Q+yDh7Z78atKzAb9OIjBw/gFwbp7BD09c/rLCbE/fzjFus1LRgr1Cv+HhwKPugF6h4E/Awnyw4EGPj2FRJC1A+4Dznk6+vdLdrlECHmIDQ/DR7lGP8mFgTQytEhLzgLJfGwyRnMEQcW/7AovDIIJivi1i/g1CIL3/oV0gwCLz/nGs4ZD/LmMhm9wxuuycXSJSIixM0hIgUCwN3i8CzWHi4t9Dng274l1SArGOi53AnnvPAlwBnH7902GgfiL6cv5hMnthnrKwoV8+39s/Tl8ETtIdghJ9fezjPz8PnT8+pQG8ig2h8tADn6LxbX8egy9CTb7AICGvQ+9Rgy"
       },
       "saysRigged": 0.438,
-      "expectsRigged": 0.327
+      "expectsRigged": 0.327,
+      "partialFirstH": -0.103,
+      "partialHt": [-0.113, -0.197, -0.032],
+      "partialShape": -0.417,
+      "partialHtTwin": -0.181,
+      "statedTwinHt": -0.833,
+      "twinExpectsHt": 0.016,
+      "features": {
+        "says": {
+          "switches": -0.419,
+          "firstH": -0.6,
+          "hFrac": -0.395,
+          "imbalance": 0.283,
+          "maxRun": 0.435,
+          "lastH": -0.126
+        },
+        "twin": {
+          "switches": 0.301,
+          "firstH": 0.796,
+          "hFrac": 0.501,
+          "imbalance": -0.161,
+          "maxRun": -0.256,
+          "lastH": 0.061
+        },
+        "expects": {
+          "switches": 0.208,
+          "firstH": 0.58,
+          "hFrac": 0.122,
+          "imbalance": 0.11,
+          "maxRun": -0.175,
+          "lastH": 0.079
+        }
+      }
     },
     "olmo3_instruct_dpo": {
       "label": "OLMo 3 7B Instruct DPO",
@@ -452,7 +772,39 @@
         "data": "JdYtI9X1AAIOEtAP3B4GA9NEKR0nMijKssMXVudMTbQPtCGTxVgr0vQw6OA3/a7exgrTyPvbY8n9Q1sS0Kav79nGUdwnJkEz0tgj3k74Jc/tJ9muAAa0RUcoM9UD3tQQOhz7KvTBcEwWFCycHzZIu8n5B/H3Qmme2FEBbf3KMtsc7nFdVvryLeD+3BSfFhjmRa/RMQ2P3AgNyKOw5tfQ5C0JAau45hbh/dRHBuLxL0LG0Ck8rOklMLknK+QjRAvPq3rDMbrJua0YTx8av0EYOelIQMUwurkELTEnC8qi1EDkAToJPCsVGf/ZNNIe5UYiHB1LxDgiSK3bJNsh9D1c+9sW4xgu4tMHTus4TwFAEs8vFUAFB9YpGPYz3ytE/C/z+tk3MSoJ3lJAE9jpEyvPFdFF41IIr/YhIDscPw4hBw/wqQDNFNaaF+fq5uEUDQRJ0f+qwepT4wvR/vau7yGnHAHI6+KtSUpGC9oaNg3SAxHZ4QjtDL/lUxi5/eLKFdp0WzcTzCv7MS4PZdjv1CIl5gYSoSL1Nh/bMz092AHNCx/F2vAEFdPMABLlO1VQ7DPJHfQQIxC/uL8gKisBE/ClujHG9PgY/6tEplYYLijHzjTKuRPo2NsvxQ4RFjXfLMMtPejbMhe4vRels6i1GRUxqrUoIfkIq9DUNj21Ej8W8UDVybdOtS4mJtWixvPXnepQtfvF8N83IxnaIaQx8xUWnSzgLfca7MkXoNXP8H/2GOhDKr/FuBv22QzK5uhNOryL1zAe9EnzKCfl6Nla7TOp3vX2JeEu9iQm"
       },
       "saysRigged": 0.384,
-      "expectsRigged": 0.353
+      "expectsRigged": 0.353,
+      "partialFirstH": 0.118,
+      "partialHt": [0.063, -0.023, 0.141],
+      "partialShape": -0.373,
+      "partialHtTwin": 0.077,
+      "statedTwinHt": -0.544,
+      "twinExpectsHt": 0.003,
+      "features": {
+        "says": {
+          "switches": -0.449,
+          "firstH": -0.651,
+          "hFrac": -0.417,
+          "imbalance": 0.245,
+          "maxRun": 0.413,
+          "lastH": -0.08
+        },
+        "twin": {
+          "switches": 0.104,
+          "firstH": 0.815,
+          "hFrac": 0.595,
+          "imbalance": 0.002,
+          "maxRun": -0.046,
+          "lastH": 0.075
+        },
+        "expects": {
+          "switches": 0.003,
+          "firstH": 0.572,
+          "hFrac": -0.003,
+          "imbalance": 0.212,
+          "maxRun": 0.049,
+          "lastH": 0.08
+        }
+      }
     },
     "olmo3_instruct": {
       "label": "OLMo 3 7B Instruct",
@@ -490,7 +842,39 @@
         "data": "Kd4qJtbx/ggQDtIL4BUCBNtKKBcpNi/OtcQUYeVTObQQvR6fxFsi3PQs9do8BLPawArXyv3Va8/6QGAXzrC579nSW+clJT4w0t8d3EPyGs7rIt61/Qq7RkkpLMb/2dv/LyIAJfnFcUoYEiecHjA3w8v2A/T4P3Gr3VkIcPzNLeQd7npcTf7pMOD/3wGpEBPuQLbaJROX3gUNz6ez5dPJ7iYQA7K+5gvcAM5BCNnzLjzCyykusfAhKMMmHugkSAbMr3LDKsLOvrQLTR0euDARNulIPMctsbsIEzYeBsGq2ULx/zYGOiQXLATaOdIc6kgjGxlQwTUdR7PUINUd90Ni9tUY3A8s6tUQTOE1QQQ/Cs4sBzYD9+MuC+0q5TBGAiH5/tgvJyn/4Vc3ENTnCivaGN5L5kz/tvMgIzkVPAgfEAPzswfJEdGjC+Xo4uwMC/xN2f+yxO1P4grY/fiw7h+tEgXM6+e2R0NDBOYYLQjS/Azc3wXuDcrgWCDD8ujPDeV2UjwGyyoCNDEPat3zzxYc4g4PqBL5LRXbJTo+1QG9AhbI1u8AGN3QBQ3iOlBP8CjHI/gRIwvJvsIaLSf+DvarvinJ9/oY/bVFsFr/LCDC0zjIwxvs2s4t0RkMIzTVJ8wnNuzaLh69wh6pvLC4FAkrr8AoIfwMs8rdPTW+FDIO9D3azLlGvSUlKdiwyPPZqd9PvfrJ7t44KxLfHKUv5BQYpzDZM/UZ7cYPptPd6n/8GOc5Lr3QvBr3zQXP4/VUPMOd3igh/U71Kire5uZa6jKw3/f8FeIo+ygp"
       },
       "saysRigged": 0.317,
-      "expectsRigged": 0.36
+      "expectsRigged": 0.36,
+      "partialFirstH": 0.147,
+      "partialHt": [0.075, -0.012, 0.156],
+      "partialShape": -0.383,
+      "partialHtTwin": 0.096,
+      "statedTwinHt": -0.556,
+      "twinExpectsHt": 0.008,
+      "features": {
+        "says": {
+          "switches": -0.413,
+          "firstH": -0.673,
+          "hFrac": -0.457,
+          "imbalance": 0.227,
+          "maxRun": 0.383,
+          "lastH": -0.107
+        },
+        "twin": {
+          "switches": 0.128,
+          "firstH": 0.798,
+          "hFrac": 0.611,
+          "imbalance": 0.003,
+          "maxRun": -0.075,
+          "lastH": 0.081
+        },
+        "expects": {
+          "switches": -0.028,
+          "firstH": 0.581,
+          "hFrac": -0.019,
+          "imbalance": 0.228,
+          "maxRun": 0.078,
+          "lastH": 0.092
+        }
+      }
     },
     "olmo3_think_sft": {
       "label": "OLMo 3 7B Think SFT",
@@ -528,7 +912,39 @@
         "data": "IvA3Rc/m8v8T9dLp3Svx7OA2FBUVCPfSr+3+Qeg/GLo6zQvU51QV2fYh5OYU79bn3h7x3/PxXNrqG00X5drHB+XZQeQtQj4l3N8XwUPt89/1Iv3T+P+8Ri9BFLbpztIcNwAHV/DsbFDt7yvMOT0e2tj9APXuOGjF8jT9XOPgSuMc+VQYRQrYHPgD5QXUDBHZFdPlTxK9zvkF0tjF0Njd4B76+8fP7DvN/Mg/C9T0NR67yS33v9sSFN4mA/IjR/nhyUjwH9nb18APdAwGwScQPeQzN+gOubkE8CAHINzN51DiB1EBPBf4eA3SDNsc7zTzAzcavz4XQMnnR+k38SpG3O4H7Tcw9useX8g6MBA5QOwz5Bju69ETAtle4iBN6xHv+/xBRzPv4j5GNev/Hx3OO8ou50vtww8qCAE7Uuw89ALwzvfvDOrJ/+vx6eUKEuU91vHNx9w57tTh5OjE8SG8E/bd+ezMSktG6fD6Vfz25kD67vXs99vuLPjW++7a/eBEQCzs6hzqPScgQ+336fsh5QkLuwfpOELYO1Er1ey38RLT7PkrD83N9xfzTl0b3/u4//rlMiPJ2sUHGyrx7gjNxjrY6/Uf+clPwFjZIxTo1jHU1AznyM4t3Awi+RXoK9Y4VebpIRLQ0BDDsL/IBvBB0dEvCPj6zOvSOBHUGgb2/TvPwdRT0w8OKOe9xgb1yc5X1fLc/u0aBSLU/60V3SH+vA3xAQNI/9Euw9Th3H/u9tRSCLPN0vb11gfk9QArPtS01DMY8ijsAz3R78k89kK24u0A6fcB+DsU"
       },
       "saysRigged": 0.501,
-      "expectsRigged": 0.561
+      "expectsRigged": 0.561,
+      "partialFirstH": -0.169,
+      "partialHt": [-0.149, -0.227, -0.069],
+      "partialShape": -0.535,
+      "partialHtTwin": -0.104,
+      "statedTwinHt": -0.37,
+      "twinExpectsHt": 0.143,
+      "features": {
+        "says": {
+          "switches": -0.514,
+          "firstH": -0.643,
+          "hFrac": -0.4,
+          "imbalance": 0.183,
+          "maxRun": 0.391,
+          "lastH": -0.034
+        },
+        "twin": {
+          "switches": 0.059,
+          "firstH": 0.72,
+          "hFrac": 0.48,
+          "imbalance": 0.045,
+          "maxRun": -0.059,
+          "lastH": -0.019
+        },
+        "expects": {
+          "switches": 0.092,
+          "firstH": 0.594,
+          "hFrac": 0.201,
+          "imbalance": 0.193,
+          "maxRun": 0.033,
+          "lastH": 0.05
+        }
+      }
     },
     "olmo3_think_dpo": {
       "label": "OLMo 3 7B Think DPO",
@@ -566,7 +982,39 @@
         "data": "HvEuRNPl9AMZ9Nfm2iLv6+ovFxYODvjVwu35PuU0FMAt0g/j5EgS5PcW7OQU9Nfm4RXw4PLsXOLpH0MS6d/WBOPeOOomOjEh4egS0zzv+ef2If3c9P7GOSg5CsXo2uQVKwMHSfDqYELv8CHRMjgW4tz+//v3MGLL8zIAVuTiQuoW+UsePQnZFvMB5AblCgvoFdfrRQ3K1QED2trQ19ve5CD++NTV7TTS/MszDd34KhjCzyQBwfAOE+IfAvAaRfje20XrF93g3MgKbA0MzB4SNucqL+kNzcUA9xcGFdrT7kvoBkADLxX0fw/hCOsU8Sf2BCsYzjoUM87mSOky8ik75esJ7jYj8+khT9U5KxQyNe0v5Bfw8dgQAN5c6SJC5wvy+Ps3OSjt4TU4K+j9GhbaMtUn6TzxyQcpCgQvRvM09fvz1/rqC+jU/+n16ekBDO8x4fPWzt0w69fp5erM9xfHDvvb+f7ZRT5D7/j3SADx5Tn56fbu/efrJfra+O/e/OM+Nyzu6xHxNyMWO+r16Pwd6AoHwAbrMUHZM04h3e/J7Aje7PsqCtXX+BDxPksd5wHCAvnqKBnU38wJGx7v7wbVzi7b6PUc99hEzE3iHRfn3ybX3gboz9Eo5wgb+hPlJ+AvTefoFxTZ1xTIxMbNAPAz2tYrBPT11evYOQvZFQPz/C/Wz9pJ1QYQI+fKz//10tlR3/PiAu4TBhze/bsU5RT9xQPvBf8/A9Uoytjh3HXx+9xGCb3V1vT32QLo8v4lOtvD2yoQ9SDyAzXc7tY09TLC6Oz+8fgF+TMM"
       },
       "saysRigged": 0.526,
-      "expectsRigged": 0.585
+      "expectsRigged": 0.585,
+      "partialFirstH": -0.152,
+      "partialHt": [-0.134, -0.218, -0.05],
+      "partialShape": -0.484,
+      "partialHtTwin": -0.11,
+      "statedTwinHt": -0.214,
+      "twinExpectsHt": 0.13,
+      "features": {
+        "says": {
+          "switches": -0.584,
+          "firstH": -0.534,
+          "hFrac": -0.362,
+          "imbalance": 0.223,
+          "maxRun": 0.47,
+          "lastH": -0.091
+        },
+        "twin": {
+          "switches": 0.029,
+          "firstH": 0.715,
+          "hFrac": 0.501,
+          "imbalance": 0.072,
+          "maxRun": -0.016,
+          "lastH": -0.002
+        },
+        "expects": {
+          "switches": 0.08,
+          "firstH": 0.579,
+          "hFrac": 0.196,
+          "imbalance": 0.218,
+          "maxRun": 0.056,
+          "lastH": 0.055
+        }
+      }
     },
     "olmo3_think": {
       "label": "OLMo 3 7B Think",
@@ -604,7 +1052,39 @@
         "data": "IPM4RNLd9v8R7dfm4Cfr5+YxFhEPDPXUtuz6O+o8Gr41zA3T5FEX4vof5+cW9tTn3xj14fbxXd3lF0kc6djJDefiQewsPzoh3OcRykPu9eT6If7Q/AC/RC47D7rj09wTNgEOVfjnbEzt6inJNz4d2Nv2/v73N2a/8jf7WuXkSucb/k4cRgvaGvkH6gLUBhDfEtDsTRi60voH1dfH1NrZ4iQA/sfS8znS/8hBCNb2MhzAyS78veINGNkjAPghSPfkxkXrHN/g2MUMbA4KxSUNON4uNugNvr0J8R8DF9XM6FPkB00DOxfycRHYDeAW8TD1AzEWxEATQcjoRuwz9ixG3e8F7jQr6eolX8Q8MxE7POk14Rbq49IU+9tb6SFI5RLz+/lARC7s4T1EMeoDHB3WM88u40vywBAmCQA4Ues58P70zf7vC+vD/+7x7eYDGOE+2+3JyNU58dXm4+7J9Ru6De/e+OvMSExH7fn2Uvn24jn78PXvAOXuLPjY/fHf9OFHQC7s7RrvPygaRO/86fof5wwFvAToOkTZOFEo2Oq76BDX7QAoDNPR7Rb1S1oa3AC8Af7nLhzL2cMAGCb16/7IyDXZ4vsj+8hMw1PaJBTn2THT2Qbgzc0o4g4f8xfqKdU0VOzqIRPS0hjBtr/JAe9A0dMxBfv+y+rYNBTWFATzATbWwtVO0RALKOvDyAD1yMpX2PDi9vIXBh3a/bIR4hv8uQ3xA/tBBtAnv9Xi3n/w+dZQB7jQ0/T81f/m+AUnQNCz1zAT+Sj0Aj7U8s489D642u4E6/sF+TkN"
       },
       "saysRigged": 0.501,
-      "expectsRigged": 0.578
+      "expectsRigged": 0.578,
+      "partialFirstH": -0.164,
+      "partialHt": [-0.135, -0.216, -0.055],
+      "partialShape": -0.505,
+      "partialHtTwin": -0.1,
+      "statedTwinHt": -0.353,
+      "twinExpectsHt": 0.121,
+      "features": {
+        "says": {
+          "switches": -0.547,
+          "firstH": -0.6,
+          "hFrac": -0.391,
+          "imbalance": 0.212,
+          "maxRun": 0.435,
+          "lastH": -0.045
+        },
+        "twin": {
+          "switches": 0.065,
+          "firstH": 0.685,
+          "hFrac": 0.526,
+          "imbalance": 0.032,
+          "maxRun": -0.062,
+          "lastH": 0.023
+        },
+        "expects": {
+          "switches": 0.098,
+          "firstH": 0.565,
+          "hFrac": 0.218,
+          "imbalance": 0.225,
+          "maxRun": 0.057,
+          "lastH": 0.05
+        }
+      }
     }
   },
   "pairs": [
@@ -617,7 +1097,16 @@
       "hi": -0.3566,
       "partial": -0.386,
       "partialLo": -0.456,
-      "partialHi": -0.315
+      "partialHi": -0.315,
+      "firstH": -0.207,
+      "firstHLo": -0.278,
+      "firstHHi": -0.134,
+      "ht": -0.137,
+      "htLo": -0.215,
+      "htHi": -0.055,
+      "htTwin": 0.138,
+      "htTwinLo": 0.044,
+      "htTwinHi": 0.235
     },
     {
       "label": "Llama 3.2 3B",
@@ -628,7 +1117,16 @@
       "hi": -0.7383,
       "partial": -0.65,
       "partialLo": -0.774,
-      "partialHi": -0.524
+      "partialHi": -0.524,
+      "firstH": 0.224,
+      "firstHLo": 0.098,
+      "firstHHi": 0.35,
+      "ht": 0.294,
+      "htLo": 0.168,
+      "htHi": 0.409,
+      "htTwin": 0.202,
+      "htTwinLo": 0.085,
+      "htTwinHi": 0.314
     },
     {
       "label": "OLMo 2 1B",
@@ -639,7 +1137,16 @@
       "hi": -0.0504,
       "partial": -0.078,
       "partialLo": -0.179,
-      "partialHi": 0.021
+      "partialHi": 0.021,
+      "firstH": 0.476,
+      "firstHLo": 0.374,
+      "firstHHi": 0.576,
+      "ht": 0.234,
+      "htLo": 0.107,
+      "htHi": 0.358,
+      "htTwin": -0.0,
+      "htTwinLo": -0.129,
+      "htTwinHi": 0.127
     },
     {
       "label": "OLMo 3 7B Instruct",
@@ -650,7 +1157,16 @@
       "hi": -0.0013,
       "partial": -0.203,
       "partialLo": -0.3,
-      "partialHi": -0.103
+      "partialHi": -0.103,
+      "firstH": 0.057,
+      "firstHLo": -0.042,
+      "firstHHi": 0.156,
+      "ht": -0.128,
+      "htLo": -0.23,
+      "htHi": -0.032,
+      "htTwin": -0.305,
+      "htTwinLo": -0.401,
+      "htTwinHi": -0.211
     },
     {
       "label": "OLMo 3 7B Think",
@@ -661,7 +1177,16 @@
       "hi": -0.1468,
       "partial": -0.441,
       "partialLo": -0.542,
-      "partialHi": -0.335
+      "partialHi": -0.335,
+      "firstH": -0.255,
+      "firstHLo": -0.359,
+      "firstHHi": -0.152,
+      "ht": -0.339,
+      "htLo": -0.442,
+      "htHi": -0.237,
+      "htTwin": -0.501,
+      "htTwinLo": -0.601,
+      "htTwinHi": -0.398
     }
   ],
   "pilot": {

@@ -55,6 +55,15 @@ export interface Experiment {
 
 export const experiments: Experiment[] = [
 	{
+		id: "one-gate-fewer",
+		number: 31,
+		title: "One Gate Fewer",
+		line: "Keep asking whether a small circuit can lose one more gate, and prove every no with a certificate anyone can check, until the proofs grow too long to finish.",
+		stack: ["Rust", "CaDiCaL", "LRAT", "Axum"],
+		href: "/experiments/one-gate-fewer",
+		topics: ["math"],
+	},
+	{
 		id: "ghosts",
 		number: 30,
 		title: "Ghosts in the Static",

@@ -18,3 +18,15 @@ date = "2026-11-19"
 after = "evaluation"
 kind = "not run"
 text = "Two exploratory items were not run on the evaluation seed: the case-alternated spelling control (the sealed runner scores only the fair framings and the two log contexts) and the comparison with human ratings on matched switch rates (no human ratings exist for these stimuli). The paper cites the human literature qualitatively."
+
+[[amendment]]
+date = "2026-11-22"
+after = "evaluation"
+kind = "post-hoc diagnostic"
+text = "Flip 1 (H vs T) correlates at -0.53 to -0.88 with stated scores, +0.68 to +0.81 with the twin in OLMo 3 and Llama Instruct, and -0.85 to +0.59 with implicit scores. That accounts for most of the stated-twin link and for the H8 drop in Llama and OLMo 2, whose answers are not usable. Partialling out flip 1 and heads share flips both unusable pairs and keeps the drop in Qwen and both OLMo 3 paths. H8 stays a pass as registered."
+
+[[amendment]]
+date = "2026-11-22"
+after = "evaluation"
+kind = "follow-up scripts"
+text = "Added unsealed scripts (diagnostics.py, followup.py) for wording-by-framing tables, raw-text runs on post-trained checkpoints, open-thought runs on OLMo 3 Think, and larger base/instruct pairs. No file hashed in randomness.toml [seal] was changed."

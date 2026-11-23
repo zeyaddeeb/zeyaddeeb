@@ -18,6 +18,11 @@ module "proofs" {
   namespace = kubernetes_namespace_v1.zeyaddeeb_namespace.metadata[0].name
 }
 
+module "gates" {
+  source    = "../gates/deployments"
+  namespace = kubernetes_namespace_v1.zeyaddeeb_namespace.metadata[0].name
+}
+
 module "capacity" {
   source    = "../capacity/deployments"
   namespace = kubernetes_namespace_v1.zeyaddeeb_namespace.metadata[0].name
@@ -52,6 +57,7 @@ module "wwww" {
     module.crdt,
     module.deepseek,
     module.proofs,
+    module.gates,
     module.capacity,
     module.research,
     module.voice,

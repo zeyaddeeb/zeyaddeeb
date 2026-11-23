@@ -6,9 +6,17 @@ from pathlib import Path
 from ghosts.analysis import analyze_all
 from ghosts.coinstudy import analyze_study, run_study
 from ghosts.export import export_parity_fixture, export_web
+from ghosts.followup import (
+    DEFAULT_RAW_MODELS,
+    DEFAULT_SCALE_BASE,
+    DEFAULT_SCALE_POST,
+    run_raw_text_ablation,
+    run_scale_check,
+    run_think_cot_sample,
+)
 from ghosts.jsonfmt import format_tree
-from ghosts.page import export_page
-from ghosts.paper import export_paper
+from ghosts.page import TARGET, enrich_page_from_study, export_page
+from ghosts.paper import export_diagnostics_paper, export_paper
 from ghosts.protocol import load
 from ghosts.randomness import (
     run_gguf_implicit_screen,
@@ -127,6 +135,63 @@ def _add_outputs(sub: argparse._SubParsersAction) -> None:
     pp.set_defaults(fn=lambda a: export_paper())
     pw = sub.add_parser("page-data")
     pw.set_defaults(fn=lambda a: export_page())
+    dg = sub.add_parser("diagnostics")
+    dg.add_argument("--study", type=Path, default=TARGET)
+    dg.add_argument("--update-paper", action="store_true")
+    dg.add_argument("--update-page", action="store_true")
+
+    def _run_diag(a: argparse.Namespace) -> None:
+        if a.update_paper or not a.update_page:
+            export_diagnostics_paper(a.study)
+        if a.update_page or not a.update_paper:
+            enrich_page_from_study(a.study)
+
+    dg.set_defaults(fn=_run_diag)
+    fr = sub.add_parser("followup-raw")
+    fr.add_argument("--models", default=",".join(DEFAULT_RAW_MODELS))
+    fr.add_argument("--seed", type=int, default=None)
+    fr.add_argument("--batch", type=int, default=64)
+    fr.set_defaults(
+        fn=lambda a: run_raw_text_ablation(
+            models=tuple(x.strip() for x in a.models.split(",") if x.strip()),
+            seed=a.seed,
+            batch=a.batch,
+        )
+    )
+    fc = sub.add_parser("followup-cot")
+    fc.add_argument("--model", default="olmo3_think")
+    fc.add_argument("--wording", default="w1")
+    fc.add_argument("--count", type=int, default=100)
+    fc.add_argument("--max-new-tokens", type=int, default=512)
+    fc.add_argument("--seed", type=int, default=None)
+    fc.set_defaults(
+        fn=lambda a: run_think_cot_sample(
+            model_key=a.model,
+            wording=a.wording,
+            count=a.count,
+            max_new_tokens=a.max_new_tokens,
+            seed=a.seed,
+        )
+    )
+    fs = sub.add_parser("followup-scale")
+    fs.add_argument("--base-repo", default=DEFAULT_SCALE_BASE)
+    fs.add_argument("--post-repo", default=DEFAULT_SCALE_POST)
+    fs.add_argument("--base-revision", default=None)
+    fs.add_argument("--post-revision", default=None)
+    fs.add_argument("--label", default="Qwen2.5 7B")
+    fs.add_argument("--seed", type=int, default=None)
+    fs.add_argument("--batch", type=int, default=32)
+    fs.set_defaults(
+        fn=lambda a: run_scale_check(
+            base_repo=a.base_repo,
+            post_repo=a.post_repo,
+            base_revision=a.base_revision,
+            post_revision=a.post_revision,
+            label=a.label,
+            seed=a.seed,
+            batch=a.batch,
+        )
+    )
     fj = sub.add_parser("format-json")
     fj.add_argument("roots", type=Path, nargs="*", default=[Path("runs")])
     fj.set_defaults(

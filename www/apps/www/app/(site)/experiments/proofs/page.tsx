@@ -55,6 +55,16 @@ function Notes() {
 					statement against Mathlib using standard axioms (<code>propext</code>,{" "}
 					<code>Classical.choice</code>, <code>Quot.sound</code>).
 				</p>
+				<h4>The claim</h4>
+				<p>
+					Since 20 November 2026 the answer to Hilbert is “claimed”. The proof
+					is too large for this service: its export is 61.5 GB, and the kernels
+					that read it need 50 to 100 GB of memory. So the page splits the
+					checks. After every restart, Lean here elaborates the five statements
+					against the pinned Mathlib and proves four facts about them. The
+					archive and export hashes were matched once. Kernel results come from
+					Andrew Sutherland’s verification page, with its timestamp.
+				</p>
 			</section>
 		</div>
 	);

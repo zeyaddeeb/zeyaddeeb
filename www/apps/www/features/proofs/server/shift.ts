@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import type { ClaimAudit } from "@/features/proofs/shift/claim";
 import type {
 	About,
 	Episode,
@@ -64,4 +65,8 @@ export async function searchEpisodes(
 	if (!parsed.success) return { ok: false };
 
 	return get<Episode[]>(`/agent/search?q=${encodeURIComponent(parsed.data)}`);
+}
+
+export async function loadClaim(): Promise<Loaded<ClaimAudit>> {
+	return get<ClaimAudit>("/claim");
 }

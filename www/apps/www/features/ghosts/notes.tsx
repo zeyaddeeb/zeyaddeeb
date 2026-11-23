@@ -14,10 +14,13 @@ const fixed = (x: number, digits = 2) => x.toFixed(digits).replace("-", "−");
 export function Notes() {
 	const qb = checkpoint("qwen_base");
 	const qi = checkpoint("qwen_instruct");
+	const li = checkpoint("llama_instruct");
 	const o2b = checkpoint("olmo2_base");
 	const o2i = checkpoint("olmo2_instruct");
+	const o3i = checkpoint("olmo3_instruct");
 	const o3t = checkpoint("olmo3_think");
 	const kept = STUDY.pairs.filter((p) => p.partialHi < 0).length;
+	const htKept = STUDY.pairs.filter((p) => p.htHi < 0).length;
 	const dropped = STUDY.pairs.filter((p) => p.partialHi >= 0);
 	const narrow = STUDY.pairs.find((p) => p.hi > -0.01);
 	const pilot = STUDY.pilot;
@@ -49,13 +52,23 @@ export function Notes() {
 			<Note title="What the sealed run found">
 				<p>
 					{held} of {total} registered predictions held. In all five base and
-					post-trained pairs, post-training weakened the link between saying and
-					expecting: Qwen went from {signed(qb.agree[0] ?? 0)} to{" "}
-					{signed(qi.agree[0] ?? 0)}, and Llama Instruct now says the opposite
-					of what it expects. With the zorp answers factored out, the drop holds
-					in {kept} of {STUDY.pairs.length} pairs;{" "}
+					post-trained pairs, post-training weakened the registered link between
+					saying and expecting: Qwen went from {signed(qb.agree[0] ?? 0)} to{" "}
+					{signed(qi.agree[0] ?? 0)}, and Llama Instruct went to{" "}
+					{signed(li.agree[0] ?? 0)}. With the zorp answers factored out, the
+					drop holds in {kept} of {STUDY.pairs.length} pairs;{" "}
 					{dropped.map((p) => p.label).join(", ")}, whose answers never depend
 					on the coin, drops out.
+				</p>
+				<p>
+					Whether flip 1 is H or T accounts for much of this: it tracks stated
+					scores ({signed(li.features.says.firstH)} in Llama Instruct,{" "}
+					{signed(o3i.features.says.firstH)} in OLMo 3 Instruct), zorp in the
+					other direction ({signed(o3i.features.twin.firstH)}), and predictions
+					({signed(o3i.features.expects.firstH)}). Removing flip-1 and H/T bias
+					turns Llama Instruct’s {signed(li.agree[0] ?? 0)} into{" "}
+					{signed(li.partialHt[0] ?? 0)}, leaving the drop in the {htKept} pairs
+					with a usable tuned model (Qwen 3B and both OLMo 3 paths).
 				</p>
 				<p>
 					Most of the extra switching that tuned models expect is not about
@@ -112,9 +125,16 @@ export function Notes() {
 			<Note title="Limits">
 				<p>
 					These are small open models, from one to seven billion parameters, on
-					one task with three wordings. The intervals cover which coins were
-					drawn, not other wordings or retrained models. No human ratings were
-					collected; the comparison with people rests on published studies.
+					one task with three wordings. Base models also get raw text while
+					tuned models get chat templates, and stated prompts (“rigged or
+					patterned”) cue streaks more than implicit ones (“loaded” or “trick”
+					coin), which lean toward heads–tails bias.
+				</p>
+				<p>
+					Three base models fail the usability rule, so their positive raw
+					agreement is a faint text residual, not a judgment. Coins were not
+					counterbalanced by swapping H and T. No human ratings were collected;
+					comparisons with people come from published studies.
 				</p>
 			</Note>
 

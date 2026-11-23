@@ -55,7 +55,7 @@
 		grid-auto-columns: minmax(0, 1fr);
 	}
 
-	.gh-zorp {
+	.gh-toggles {
 		grid-area: zorp;
 	}
 
@@ -194,7 +194,7 @@
 
 	.gh-tabs {
 		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
+		grid-template-columns: repeat(4, minmax(0, 1fr));
 		border-bottom: 2px solid var(--gh-rule);
 	}
 
@@ -225,6 +225,7 @@
 	}
 
 	.gh-side[data-tab="coin"] .gh-panel[data-panel="coin"],
+	.gh-side[data-tab="drivers"] .gh-panel[data-panel="drivers"],
 	.gh-side[data-tab="rigged"] .gh-panel[data-panel="rigged"],
 	.gh-side[data-tab="switch"] .gh-panel[data-panel="switch"] {
 		display: block;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Claim } from "./claim-view";
 import { duration } from "./format";
 import { Ladder } from "./ladder";
 import { Library } from "./library";
@@ -35,13 +36,13 @@ function mind(about: About | null): string {
 }
 
 function Calibrated({ about }: { about: About | null }) {
-	if (!about) return <dd>—</dd>;
+	if (!about) return <dd className="ns-vital-instruments">—</dd>;
 
 	const passed = about.calibration.filter((c) => c.passed).length;
 	const all = about.calibration.length;
 
 	return (
-		<dd>
+		<dd className="ns-vital-instruments">
 			<details
 				className="ns-calibration"
 				data-failed={passed < all || undefined}
@@ -88,9 +89,14 @@ function Head({
 				</p>
 				<cite>David Hilbert</cite>
 			</blockquote>
-			<p className="ns-answer" id="ns-title">
-				Not yet<span className="ns-stop">.</span>
-			</p>
+			<div className="ns-reply">
+				<p className="ns-answer" id="ns-title">
+					Claimed<span className="ns-stop">.</span>
+				</p>
+				<a className="ns-reply-note" href="#ns-claim">
+					Under review
+				</a>
+			</div>
 			<dl className="ns-vitals">
 				<div>
 					<dt>Episodes</dt>
@@ -98,11 +104,11 @@ function Head({
 				</div>
 				<div>
 					<dt>Mind</dt>
-					<dd>{mind(about)}</dd>
+					<dd className="ns-vital-mind">{mind(about)}</dd>
 				</div>
 				<div>
 					<dt>Checker</dt>
-					<dd>
+					<dd className="ns-vital-checker">
 						{about ? `Lean ${about.lean} · Mathlib ${about.mathlib}` : "—"}
 					</dd>
 				</div>
@@ -208,6 +214,7 @@ export function NightShift() {
 					about={null}
 					connection={connection}
 				/>
+				<Claim />
 				{connection === "off" || connection === "closed" ? (
 					<Closed connection={connection} />
 				) : (
@@ -241,6 +248,7 @@ export function NightShift() {
 				about={about}
 				connection={connection}
 			/>
+			<Claim />
 			<div className="ns-now">
 				<StripView figure={drawn} zeros={live.state.zeros} />
 				<NotebookPage
