@@ -47,16 +47,17 @@ def provenance(kernel: str) -> dict:
     return files
 
 
-def experiment(card: cards.Card, source: dict) -> str:
+def experiment_for(kernel: str, probe: dict[str, object], source: dict) -> str:
     version = {
         key: value
         for key, value in source.items()
-        if key != "method" or card.kernel == "reach"
+        if key != "method" or kernel == "reach"
     }
-    probe = dict(card.probe)
-    if card.kernel == "later":
-        probe.pop("field", None)
-    return digest({"kernel": card.kernel, "probe": probe, "source": version})
+    return digest({"kernel": kernel, "probe": dict(probe), "source": version})
+
+
+def experiment(card: cards.Card, source: dict) -> str:
+    return experiment_for(card.kernel, card.probe, source)
 
 
 def reserved(gene: str) -> bool:
@@ -67,6 +68,6 @@ def reserved(gene: str) -> bool:
 
 def task(card: cards.Card) -> dict:
     value = json.loads(cards.canonical(card))
-    for name in ("chance", "low", "high"):
+    for name in ("question", "chance", "low", "high"):
         value.pop(name)
     return value

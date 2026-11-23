@@ -113,7 +113,6 @@ def whole_probe() -> dict:
         "kernel": "reach",
         "question": "Does cisplatin clear a 2 mm nodule in half an hour?",
         "probe": {
-            "weight": 300.0,
             "diffusivity": 2.5e-10,
             "ic50": 6.2e-3,
             "concentration": 0.8,

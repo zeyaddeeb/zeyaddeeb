@@ -46,11 +46,15 @@ Revisers receive actual action inputs, outcomes and failed attempts.
 
 A stable hash reserves one fifth of genes for evaluation. Exploration cannot
 inspect those genes. Each proposed playbook is compared with the champion on
-unused, fixed statements, using frozen data, memory, model and token limits.
-Each half runs in a fresh in-memory ledger; only cost accounting is shared.
-Order is randomized. Negative Brier loss, not agent-selected prediction reward,
-decides the comparison. Results are released to the reviser only after the full
-trial. Cases are never reused within a data snapshot, even after restart.
+unused, fixed statements stratified across essential and non-essential genes,
+using frozen data, memory, model and token limits. Automatic revisions run on a
+configured cadence (`RESEARCH_AGENT_REVISE_EVERY`, default `4` episodes), and
+the revision method layer is reviewed and revised after every three recorded
+trial gains. Each half runs in a fresh in-memory ledger; only cost accounting
+is shared. Order is randomized. Negative Brier loss, not agent-selected
+prediction reward, decides the comparison. Results are released to the reviser
+only after the full trial. Cases are never reused within a data snapshot, even
+after restart.
 
 Trial j uses a predeclared threshold of `0.05 / (j * (j + 1))`. Eight pairs are
 requested by default; this grows up to twelve if needed to make the threshold

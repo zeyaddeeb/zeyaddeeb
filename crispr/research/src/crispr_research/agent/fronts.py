@@ -69,14 +69,14 @@ WATCH = Front(
         "The trouble with every other referee here is that the data is "
         "public and already read. A bet on something that has not happened "
         "cannot be remembered, so this is the one place where being right "
-        "means something unarguable. Name a trial by its registry number in "
-        "the question, pick a field, and say what it will do. If the answer "
-        "does not exist yet the bet is sealed and left open, scoring nothing "
-        "today, and settled whenever the registry changes its mind. "
-        "Roughly ten to thirty trials in this disease report in a year, so "
-        "this is slow on purpose. Trials that already reported can be asked "
-        "about too, but there the forecaster has read the same literature "
-        "you have, so you only earn by knowing something it does not."
+        "means something unarguable. Find a trial that has not reported, "
+        "name it by its registry number in the probe, pick has_results, "
+        "completed or stopped, and say what it will do. The bet is sealed "
+        "and left open, scoring nothing today, and settled whenever the "
+        "registry changes. Roughly ten to thirty trials in this disease "
+        "report in a year, so this is slow on purpose. A trial whose answer "
+        "is already in the registry is refused: that is a lookup, not a "
+        "forecast."
     ),
     kernels=("later",),
 )

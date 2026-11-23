@@ -12,6 +12,7 @@ log = logging.getLogger("crispr_research.agent")
 
 async def run(agent: Agent) -> None:
     log.info("the shift begins at episode %s", agent.state.episodes)
+    agent.capabilities = await asyncio.to_thread(availability.status)
 
     try:
         while not agent.stopping():
@@ -45,16 +46,14 @@ async def shift(agent: Agent) -> None:
     if agent.capabilities.get("later", {}).get("scores"):
         await asyncio.to_thread(watch.settle, agent)
     if agent.state.challenger:
-        await evaluation.step(agent)
+        decided = await evaluation.step(agent)
+        if decided and not agent.stopping():
+            await improve.review(agent)
+            await improve.maybe_revise_method(agent)
         await rest(agent, _resting(agent))
         return
-    ready = tuple(
-        f.id
-        for f in fronts.FRONTS
-        if all(
-            agent.capabilities.get(k, {}).get("available") for k in f.kernels
-        )
-    )
+    ready = _fronts(agent.capabilities, "available")
+    ready = _fronts(agent.capabilities, "scores") or ready
     if not ready:
         await rest(agent, agent.config.idle_rest_seconds)
         return
@@ -80,10 +79,33 @@ async def shift(agent: Agent) -> None:
     bandit.reward(agent.state, front.id, record["reward"])
     agent.save()
 
-    if agent.state.challenger == 0 and not agent.stopping():
+    if (
+        agent.state.challenger == 0
+        and not agent.stopping()
+        and _due_revision(agent)
+    ):
+        if agent.capabilities.get("kill", {}).get("scores"):
+            agent.store.put_meta("last_revised_episode", agent.state.episodes)
         await improve.revise(agent, Layer.PLAYBOOK)
 
     await rest(agent, _resting(agent))
+
+
+def _due_revision(agent: Agent) -> bool:
+    last = int(agent.store.meta("last_revised_episode", 0))
+    return agent.state.episodes - last >= agent.config.revise_every
+
+
+def _fronts(capabilities: dict, need: str) -> tuple[str, ...]:
+    return tuple(
+        front.id
+        for front in fronts.FRONTS
+        if all(
+            capabilities.get(kernel, {}).get("available")
+            and capabilities.get(kernel, {}).get(need)
+            for kernel in front.kernels
+        )
+    )
 
 
 def _resting(agent: Agent) -> int:

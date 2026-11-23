@@ -149,34 +149,25 @@ def test_a_rule_number_outside_the_range_is_named():
     assert "1 to 1" in str(refusal.value)
 
 
-def test_pairs_alternate_which_version_goes_first():
-    assert rules.next_run(1, 2, None, 0) == (None, 1)
-    assert rules.next_run(1, 2, None, 1) == (None, 2)
+def test_a_reverted_method_change_is_not_tried_again():
+    reverted = Rules(
+        version=2,
+        layer="method",
+        parent=1,
+        lines=[],
+        standing=Standing.REVERTED.value,
+        because="tried shortening method",
+        tried=["add", "Always check the last three episodes", ""],
+    )
 
-
-def test_the_second_half_runs_the_other_version_on_the_same_front():
-    half = rules.Half(front="spare", version=1, reward=0.3, episode=7)
-
-    assert rules.next_run(1, 2, half, 0) == ("spare", 2)
-
-
-def test_with_no_challenger_the_champion_just_runs():
-    assert rules.next_run(3, 0, None, 5) == (None, 3)
-
-
-def test_a_pair_is_only_made_from_the_same_front_and_two_versions():
-    half, pair = rules.settle(None, "spare", 1, 0.2, episode=1, champion=1)
-
-    assert pair is None
-    assert half is not None
-
-    half, pair = rules.settle(half, "reach", 2, 0.5, episode=2, champion=1)
-
-    assert pair is None
-
-    half, pair = rules.settle(half, "reach", 1, 0.1, episode=3, champion=1)
-
-    assert pair is not None
-    assert pair.champion == 0.1
-    assert pair.challenger == 0.5
-    assert half is None
+    with pytest.raises(rules.Refused, match="reverted"):
+        rules.apply(
+            Layer.METHOD,
+            [],
+            {
+                "change": "add",
+                "text": "Always check the last three episodes",
+                "because": "trying again",
+            },
+            [reverted],
+        )

@@ -122,7 +122,11 @@ def get_episode(request: Request, number: int) -> dict:
     if not found or found[0]["number"] != number:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    return {"episode": found[0], "turns": agent.store.turns(number)}
+    return {
+        "episode": found[0],
+        "turns": agent.store.turns(number),
+        "acts": agent.store.acts(number),
+    }
 
 
 @app.get("/agent/events")
@@ -134,10 +138,10 @@ async def get_events(request: Request) -> StreamingResponse:
 
     seats = request.app.state.seats
 
-    if seats.locked():
+    if hub.closing() or seats.locked():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="no seats left",
+            detail="no seats left" if seats.locked() else "shutting down",
         )
 
     async def stream():
@@ -145,7 +149,7 @@ async def get_events(request: Request) -> StreamingResponse:
         queue = hub.subscribe()
 
         try:
-            while not await request.is_disconnected():
+            while not hub.closing() and not await request.is_disconnected():
                 try:
                     envelope = await asyncio.wait_for(
                         queue.get(), timeout=KEEPALIVE
@@ -153,6 +157,9 @@ async def get_events(request: Request) -> StreamingResponse:
                 except TimeoutError:
                     yield ": keepalive\n\n"
                     continue
+
+                if envelope is None:
+                    break
 
                 yield f"data: {json.dumps(envelope.wire())}\n\n"
         finally:

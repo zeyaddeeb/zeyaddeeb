@@ -1,4 +1,5 @@
 import asyncio
+from dataclasses import replace
 
 from ..alpha import Ledger as Alpha
 from ..calibration import report
@@ -115,13 +116,7 @@ class Agent:
                     )
                 )
                 continue
-            capped = Ask(
-                preamble=ask.preamble,
-                history=ask.history,
-                prompt=ask.prompt,
-                tools=ask.tools,
-                max_tokens=min(ask.max_tokens, budget),
-            )
+            capped = replace(ask, max_tokens=min(ask.max_tokens, budget))
 
             try:
                 reply = await asyncio.wait_for(

@@ -60,3 +60,17 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{- define "microservice.env" -}}
+{{- range $key, $val := .Values.env }}
+- name: {{ $key }}
+  value: {{ $val | quote }}
+{{- end }}
+{{- range .Values.envFromSecrets }}
+- name: {{ .envName }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ .secName }}
+      key: {{ .secValue }}
+{{- end }}
+{{- end }}

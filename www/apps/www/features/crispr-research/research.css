@@ -479,9 +479,31 @@
 	color: var(--paper);
 }
 
-.rs-table tr[data-inside="false"] td,
-.rs-table tr[data-verdict="refused"] th {
+.rs-table tr[data-inside="false"] td {
 	color: var(--red);
+}
+
+.rs-table--sealed tbody tr {
+	height: 42px;
+}
+
+.rs-table--sealed tbody th {
+	max-width: 0;
+	width: 52%;
+}
+
+.rs-claim,
+.rs-claim__context {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.rs-claim__context {
+	margin-top: 2px;
+	font-size: 10px;
+	color: var(--rs-dim);
 }
 
 .rs-table tr[data-empty="true"] th,

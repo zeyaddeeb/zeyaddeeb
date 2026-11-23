@@ -18,7 +18,6 @@ class Model(BaseModel):
 
 
 class ProbeIn(Model):
-    weight: Positive
     diffusivity: Positive
     ic50: Positive
     concentration: Positive

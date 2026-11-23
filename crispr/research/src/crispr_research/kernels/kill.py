@@ -1,5 +1,7 @@
+from bisect import bisect_left
 from dataclasses import dataclass
-from functools import cache
+from functools import lru_cache
+from threading import Lock, local
 
 import duckdb
 
@@ -30,32 +32,73 @@ class Reading:
     ungraded: str | None = None
 
 
-def db() -> duckdb.DuckDBPyConnection | None:
+class _Pool:
+    def __init__(self, path: str) -> None:
+        self._root = duckdb.connect(path, read_only=True)
+        self._threads = local()
+        self._lock = Lock()
+
+    def cursor(self) -> duckdb.DuckDBPyConnection:
+        if not hasattr(self._threads, "db"):
+            with self._lock:
+                self._threads.db = self._root.cursor()
+        return self._threads.db
+
+
+def _stamp() -> tuple[str, int, int] | None:
     if not PACK.exists():
         return None
     stat = PACK.stat()
-    return _connect(str(PACK), stat.st_mtime_ns)
+    return str(PACK), stat.st_mtime_ns, stat.st_size
 
 
-@cache
-def _connect(path: str, modified: int) -> duckdb.DuckDBPyConnection:
-    return duckdb.connect(path, read_only=True)
+def db() -> duckdb.DuckDBPyConnection | None:
+    stamp = _stamp()
+    if stamp is None:
+        return None
+    return _pool(*stamp).cursor()
+
+
+@lru_cache(maxsize=2)
+def _pool(path: str, modified: int, size: int) -> _Pool:
+    return _Pool(path)
 
 
 def ready() -> bool:
     return db() is not None
 
 
-def genes() -> frozenset[str]:
-    found = db()
-
-    if found is None:
-        return frozenset()
-
+@lru_cache(maxsize=4)
+def _genes(path: str, modified: int, size: int) -> frozenset[str]:
+    found = _pool(path, modified, size).cursor()
     return frozenset(
         row[0]
         for row in found.execute("select distinct gene from effect").fetchall()
     )
+
+
+def genes() -> frozenset[str]:
+    stamp = _stamp()
+    if stamp is None:
+        return frozenset()
+    return _genes(*stamp)
+
+
+@lru_cache(maxsize=8)
+def _medians(
+    path: str, modified: int, size: int, stratum: str
+) -> tuple[float, ...]:
+    found = _pool(path, modified, size).cursor()
+    rows = found.execute(
+        f"""
+        select median(e.score) as m
+        from effect e join line l on l.model = e.model
+        where true {where(stratum)}
+        group by e.gene
+        order by m
+        """
+    ).fetchall()
+    return tuple(float(row[0]) for row in rows if row[0] is not None)
 
 
 def known(gene: str) -> bool:
@@ -70,14 +113,15 @@ def where(stratum: str) -> str:
 
 
 def reading(gene: str, stratum: str) -> Reading:
-    found = db()
+    stamp = _stamp()
 
-    if found is None:
+    if stamp is None:
         return Reading({}, "the dependency pack has not been built")
 
     if stratum not in STRATA:
         return Reading({}, f"there is no {stratum} stratum")
 
+    found = _pool(*stamp).cursor()
     name = gene.upper()
     row = found.execute(
         f"""
@@ -107,22 +151,9 @@ def reading(gene: str, stratum: str) -> Reading:
             f"stratum, below the floor of {FLOOR}",
         )
 
-    place = found.execute(
-        f"""
-        with med as (
-            select e.gene as gene, median(e.score) as m
-            from effect e join line l on l.model = e.model
-            where true {where(stratum)}
-            group by e.gene
-        )
-        select (
-            select count(*) from med
-            where m < (select m from med where gene = ?)
-        ) * 1.0 / (select count(*) from med)
-        """,
-        [name],
-    ).fetchone()
-    assert place is not None
+    med_value = float(row[2])
+    medians = _medians(*stamp, stratum)
+    rank = bisect_left(medians, med_value) / len(medians) if medians else 0.0
     essential = found.execute(
         "select count(*) from essential where gene = ?", [name]
     ).fetchone()
@@ -131,14 +162,14 @@ def reading(gene: str, stratum: str) -> Reading:
 
     return Reading(
         {
-            "median": float(row[2]),
+            "median": med_value,
             "mean": float(row[3]),
             "lines": float(lines),
             "patients": float(row[1] or 0),
             "share_essential": float(row[6] or 0) / lines,
             "strongest": float(row[4]),
             "weakest": float(row[5]),
-            "rank": float(place[0] or 0.0),
+            "rank": float(rank),
             "common": float(1 if common else 0),
         }
     )

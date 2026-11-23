@@ -46,14 +46,6 @@ class Pair:
 
 
 @dataclass(slots=True)
-class Half:
-    front: str
-    version: int
-    reward: float
-    episode: int
-
-
-@dataclass(slots=True)
 class Rules:
     version: int
     layer: str
@@ -177,20 +169,28 @@ def _index(args: dict, lines: list[str]) -> int:
 def _unseen(
     layer: Layer, change: str, text: str, was: str, lineage: list[Rules]
 ) -> None:
+    rejected = {Standing.LOST.value, Standing.REVERTED.value}
     for old in lineage:
-        if old.layer != layer.value or old.standing != Standing.LOST.value:
+        if old.layer != layer.value or old.standing not in rejected:
             continue
 
         if not old.because:
             continue
 
-        if old.gain is None or old.p is None:
+        if old.standing == Standing.LOST.value and (
+            old.gain is None or old.p is None
+        ):
             continue
 
         if _same(old, change, text, was):
+            detail = (
+                f" (p = {old.p:.2f})"
+                if old.p is not None
+                else " and was reverted"
+            )
             raise Refused(
-                f"Version {old.version} tried exactly this and lost "
-                f"(p = {old.p:.2f}). Try a different idea."
+                f"Version {old.version} tried exactly this and lost"
+                f"{detail}. Try a different idea."
             )
 
 
@@ -241,47 +241,6 @@ def verdict(pairs: list[Pair], *, alpha: float = ALPHA) -> Verdict:
     p = sign_flip(diffs)
 
     return Verdict(gain=gain, p=p, kept=p <= alpha and gain > 0.0)
-
-
-def next_run(
-    champion: int, challenger: int, half: Half | None, pairs_done: int
-) -> tuple[str | None, int]:
-    if challenger == 0:
-        return None, champion
-
-    if half is not None:
-        other = challenger if half.version == champion else champion
-
-        return half.front, other
-
-    first = champion if pairs_done % 2 == 0 else challenger
-
-    return None, first
-
-
-def settle(
-    half: Half | None,
-    front: str,
-    version: int,
-    reward: float,
-    *,
-    episode: int,
-    champion: int,
-) -> tuple[Half | None, Pair | None]:
-    fresh = Half(front=front, version=version, reward=reward, episode=episode)
-
-    if half is None:
-        return fresh, None
-
-    if half.front != front or half.version == version:
-        return fresh, None
-
-    if half.version == champion:
-        pair = Pair(front=front, champion=half.reward, challenger=reward)
-    else:
-        pair = Pair(front=front, champion=reward, challenger=half.reward)
-
-    return None, pair
 
 
 def method_holds(gains: list[float], parent: float) -> bool:

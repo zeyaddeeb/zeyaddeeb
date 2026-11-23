@@ -54,6 +54,7 @@ class Config:
     backoff_seconds: int
     backoff_max_seconds: int
     failures: int
+    revise_every: int = 1
 
     @classmethod
     def from_env(cls) -> Config | None:
@@ -86,6 +87,7 @@ class Config:
                 "RESEARCH_AGENT_BACKOFF_MAX_SECONDS", 1800
             ),
             failures=number("RESEARCH_AGENT_FAILURES", 4),
+            revise_every=max(number("RESEARCH_AGENT_REVISE_EVERY", 4), 1),
         )
 
 

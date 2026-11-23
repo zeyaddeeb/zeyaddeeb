@@ -45,6 +45,11 @@ export function Shift({
 			? { before: null, now: live.resting, whole: true }
 			: null;
 	const rules = live?.rules ?? null;
+	const doing = live?.resting
+		? "resting"
+		: thinking || live?.said
+			? "thinking"
+			: "starting";
 
 	return (
 		<section className="rs-shift" aria-label="The agent">
@@ -69,7 +74,7 @@ export function Shift({
 				))}
 				{steps.length === 0 ? (
 					<li className="rs-step" data-waiting="true">
-						<span className="rs-step__tool">waiting</span>
+						<span className="rs-step__tool">{doing}</span>
 						<span className="rs-step__said">&nbsp;</span>
 					</li>
 				) : null}

@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 import crispr_research.app as service
 from crispr_research.app import app
+from crispr_research.live import QUEUE_MAX, Hub
 from crispr_research.store import Store
 
 
@@ -20,7 +21,6 @@ def client(monkeypatch):
 
 def whole() -> dict:
     return {
-        "weight": 300.0,
         "diffusivity": 2.5e-10,
         "ic50": 6.2e-3,
         "concentration": 0.8,
@@ -161,3 +161,25 @@ async def test_lifespan_cleanup_also_runs_when_the_context_raises(monkeypatch):
             raise RuntimeError("context failed")
 
     assert app.state.hub.closing()
+
+
+@pytest.mark.asyncio
+async def test_hub_bounds_subscriber_queues_and_wakes_on_close():
+    hub = Hub()
+    queue = hub.subscribe()
+
+    for idx in range(QUEUE_MAX + 25):
+        hub.emit(
+            {"type": "delta", "turn": 0, "channel": "say", "text": str(idx)}
+        )
+
+    assert queue.qsize() == QUEUE_MAX
+    first = queue.get_nowait()
+    assert first is not None
+    assert first.body["text"] == "25"
+
+    while not queue.empty():
+        queue.get_nowait()
+
+    hub.close()
+    assert await asyncio.wait_for(queue.get(), timeout=0.5) is None

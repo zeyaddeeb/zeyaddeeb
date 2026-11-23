@@ -12,10 +12,66 @@ const ROWS = 6;
 const VERDICT: Record<string, string> = {
 	held: "held",
 	broken: "broken",
-	refused: "refused",
 	open: "pending",
 	unresolved: "unresolved",
 };
+
+function standing(capability: Capability | undefined): string {
+	if (!capability) return "not checked";
+	if (!capability.available) return "not on this server";
+
+	return capability.scores ? "pays" : "checks, never pays";
+}
+
+function found(card: Card): string {
+	if (card.verdict !== "held" && card.verdict !== "broken")
+		return VERDICT[card.verdict] ?? card.verdict;
+
+	const value =
+		card.kernel === "later"
+			? card.observed >= 1
+				? "yes"
+				: "no"
+			: `${card.observed.toFixed(3)}${card.unit ? ` ${card.unit}` : ""}`;
+
+	return `${value} · ${VERDICT[card.verdict]}`;
+}
+
+function bits(card: Card): string {
+	if (!card.paid) return "—";
+
+	return `${card.skill >= 0 ? "+" : ""}${card.skill.toFixed(2)}`;
+}
+
+function refereeing(capabilities: Record<string, Capability>): string[] {
+	const { kill, matter, later } = capabilities;
+	const lines = [
+		"Reach reproduces a published model, which proves the code and not the physics, so it can refuse a claim but never pays.",
+	];
+
+	if (kill)
+		lines.push(
+			kill.available && kill.scores
+				? `Kill pays because it separates ${KILL_GATE.essentials} genes every cell needs from ${KILL_GATE.controls} that none do, at ${KILL_GATE.auroc} across ${KILL_GATE.lines} colorectal lines.`
+				: "Kill's DepMap data is not loaded on this server, so it referees nothing here yet.",
+		);
+
+	if (matter)
+		lines.push(
+			matter.available && matter.scores
+				? `Matter pays because it sees checkpoint drugs run ${MATTER_GATE.ratio} times longer in mismatch-repair-defective disease, and stays quiet on a drug that should show nothing.`
+				: "Matter reads patient records that never leave one machine, so it does not run on this server.",
+		);
+
+	if (later)
+		lines.push(
+			later.available
+				? "Later takes only bets on trials that have not reported. Each stays open, scoring nothing, until the registry settles it, sometimes years later."
+				: "Later cannot reach the trial registry right now.",
+		);
+
+	return lines;
+}
 
 function replication() {
 	return BANDS.map((band) => {
@@ -138,34 +194,17 @@ export function Ledger({
 								<th scope="row">{one.name}</th>
 								<td>{one.asks}</td>
 								<td title={capabilities[one.id]?.reason}>
-									{!capabilities[one.id]
-										? "not checked"
-										: !capabilities[one.id].available
-											? "unavailable"
-											: capabilities[one.id].scores
-												? "gated, earns"
-												: "available, unscored"}
+									{standing(capabilities[one.id])}
 								</td>
 							</tr>
 						))}
 					</tbody>
 				</table>
-				<p className="rs-ledger__note">
-					Each gate is ground truth something else already fixed. Kill separates{" "}
-					{KILL_GATE.essentials} genes known to be needed by every cell from{" "}
-					{KILL_GATE.controls} known to be dispensable, at {KILL_GATE.auroc}{" "}
-					across {KILL_GATE.lines} colorectal lines. Matter has to see
-					checkpoint drugs run {MATTER_GATE.ratio} times longer in
-					mismatch-repair-defective disease, and stay quiet on a drug that
-					should show nothing. Later has no opinion to check: a bet on a trial
-					that has not reported is sealed and left open, sometimes for years.
-					Reach passes neither, so it may refuse a claim and never earn with
-					one.
-				</p>
+				<p className="rs-ledger__note">{refereeing(capabilities).join(" ")}</p>
 			</Block>
 
 			<Block title="What it has sealed">
-				<table className="rs-table">
+				<table className="rs-table rs-table--sealed">
 					<thead>
 						<tr>
 							<th scope="col">Claim</th>
@@ -181,7 +220,10 @@ export function Ledger({
 							if (!card) {
 								return (
 									<tr key={`slot-${slot}`} data-empty="true">
-										<th scope="row">&nbsp;</th>
+										<th scope="row">
+											<span className="rs-claim">&nbsp;</span>
+											<span className="rs-claim__context">&nbsp;</span>
+										</th>
 										<td />
 										<td />
 										<td />
@@ -192,21 +234,16 @@ export function Ledger({
 							return (
 								<tr key={`${card.at}-${slot}`} data-verdict={card.verdict}>
 									<th scope="row">
-										{card.field ? (
-											<>
-												{card.field} {card.op} {card.value}
-											</>
-										) : (
-											"refused"
-										)}
+										<span className="rs-claim">{card.claim}</span>
+										<span className="rs-claim__context" title={card.context}>
+											{card.context}
+										</span>
 									</th>
 									<td>{(card.chance * 100).toFixed(0)}%</td>
-									<td>
-										{card.verdict === "held" || card.verdict === "broken"
-											? `${card.observed.toFixed(3)} · ${VERDICT[card.verdict]}`
-											: VERDICT[card.verdict]}
+									<td>{found(card)}</td>
+									<td title={card.paid ? undefined : "not scored"}>
+										{bits(card)}
 									</td>
-									<td>{card.skill.toFixed(2)}</td>
 								</tr>
 							);
 						})}

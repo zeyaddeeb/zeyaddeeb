@@ -41,9 +41,7 @@ def test_a_sphere_reaches_further_than_a_slab_at_the_same_depth():
 
 
 def test_an_antibody_leaves_the_core_of_any_real_nodule_untreated():
-    antibody = reach.Agent(
-        name="antibody", weight=150_000.0, diffusivity=1e-11, ic50=1e-6
-    )
+    antibody = reach.Agent(name="antibody", diffusivity=1e-11, ic50=1e-6)
     found = reach.reading(antibody, cavity(0.14), sphere())
 
     assert found["lambda_mm"] < 0.05

@@ -16,8 +16,11 @@ async def run(
 ) -> dict:
     number = agent.state.episodes + 1
     started = now()
-    desk = Desk(number, agent)
+    desk = Desk(number, agent, front)
     preamble = prompts.researcher(agent.config.actions, rules or [])
+    available_tools = tools.definitions(
+        front=front, evaluation=agent.evaluation is not None
+    )
     history: list[dict] = []
     pending: dict | None = {
         "role": "user",
@@ -53,7 +56,7 @@ async def run(
                 preamble=preamble,
                 history=history,
                 prompt=prompt,
-                tools=tools.definitions(),
+                tools=available_tools,
                 max_tokens=agent.config.max_tokens,
             ),
             _delta(agent, turn),
@@ -174,11 +177,32 @@ async def close(
             prompt={"role": "user", "content": prompts.FORCED},
             tools=tools.only("conclude"),
             max_tokens=CUT,
+            thinking=False,
+            tool_choice="required",
         ),
         _delta(agent, turn),
     )
     _remember(agent, record, turn, reply)
     await act(agent, desk, record["number"], turn, reply)
+    if desk.conclusion is None and reply.said.strip():
+        desk.conclusion = (reply.said.strip()[:CUT], "")
+
+
+def _compact_evidence(row: dict) -> dict:
+    card = row.get("card") or {}
+    compact: dict[str, object] = {
+        "kernel": card.get("kernel", row.get("kernel", "")),
+        "probe": card.get("probe", {}),
+        "verdict": row.get("verdict", ""),
+    }
+    if fields := row.get("fields"):
+        compact["fields"] = {
+            k: round(v, 4) if isinstance(v, float) else v
+            for k, v in fields.items()
+        }
+    if reason := row.get("reason"):
+        compact["reason"] = reason
+    return compact
 
 
 def standing(agent: Agent, front: fronts.Front) -> list[str]:
@@ -186,12 +210,12 @@ def standing(agent: Agent, front: fronts.Front) -> list[str]:
         return list(agent.evaluation["memory"])
     lines = []
     for row in agent.store.recent_cards(front.kernels):
+        earned = f"{row['skill']:+.2f} bits" if row["paid"] else "unscored"
         lines.append(
-            f"{row['question']} ({row['field']} {row['op']} "
-            f"{row['value']:g}: {row['verdict']}, {row['skill']:+.2f} bits)"
+            f"{row['context']}: {row['claim']} ({row['verdict']}, {earned})"
         )
     for row in agent.store.recall(front.kernels, 6):
-        lines.append("Saved evidence: " + json.dumps(row))
+        lines.append("Saved evidence: " + json.dumps(_compact_evidence(row)))
     for record in agent.store.episodes(0, 30):
         if record["front"] == front.id and record["next"]:
             lines.append("Unfinished next step: " + record["next"])

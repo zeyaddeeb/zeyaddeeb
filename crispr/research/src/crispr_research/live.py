@@ -1,9 +1,11 @@
 import asyncio
 import time
 from collections import deque
+from contextlib import suppress
 from dataclasses import dataclass
 
 BACKLOG = 240
+QUEUE_MAX = 256
 SEATS = 256
 
 
@@ -24,7 +26,7 @@ class Envelope:
 class Hub:
     def __init__(self, backlog: int = BACKLOG) -> None:
         self._seq = 0
-        self._queues: list[asyncio.Queue[Envelope]] = []
+        self._queues: list[asyncio.Queue[Envelope | None]] = []
         self._backlog: deque[Envelope] = deque(maxlen=backlog)
         self._closing = False
 
@@ -38,17 +40,19 @@ class Hub:
         self._backlog.append(envelope)
 
         for queue in list(self._queues):
-            queue.put_nowait(envelope)
+            _offer(queue, envelope)
 
         return envelope
 
-    def subscribe(self) -> asyncio.Queue[Envelope]:
-        queue: asyncio.Queue[Envelope] = asyncio.Queue()
+    def subscribe(self) -> asyncio.Queue[Envelope | None]:
+        queue: asyncio.Queue[Envelope | None] = asyncio.Queue(
+            maxsize=QUEUE_MAX
+        )
         self._queues.append(queue)
 
         return queue
 
-    def release(self, queue: asyncio.Queue[Envelope]) -> None:
+    def release(self, queue: asyncio.Queue[Envelope | None]) -> None:
         if queue in self._queues:
             self._queues.remove(queue)
 
@@ -60,6 +64,18 @@ class Hub:
 
     def close(self) -> None:
         self._closing = True
+        for queue in list(self._queues):
+            _offer(queue, None)
 
     def closing(self) -> bool:
         return self._closing
+
+
+def _offer(
+    queue: asyncio.Queue[Envelope | None], item: Envelope | None
+) -> None:
+    if queue.full():
+        with suppress(asyncio.QueueEmpty):
+            queue.get_nowait()
+    with suppress(asyncio.QueueFull):
+        queue.put_nowait(item)

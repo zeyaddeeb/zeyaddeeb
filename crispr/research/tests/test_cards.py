@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from crispr_research import cards, referee
@@ -9,7 +11,6 @@ def whole() -> dict:
         "kernel": "reach",
         "question": "Does cisplatin reach the centre of a 2 mm nodule?",
         "probe": {
-            "weight": 300.0,
             "diffusivity": 2.5e-10,
             "ic50": 6.2e-3,
             "concentration": 0.8,
@@ -142,3 +143,161 @@ def test_a_missed_interval_scores_worse_than_a_covered_one():
 
     assert referee.covered(card, 1.5)
     assert referee.interval(card, 1.5) < referee.interval(card, 4.0)
+
+
+def test_the_sealed_statement_is_written_from_the_probe_not_the_question():
+    raw = whole() | {"question": "Does an antibody at IC50 1.4e-6 get in?"}
+    card = cards.compile_card(raw)
+    stated = cards.describe(json.loads(cards.canonical(card)))
+
+    assert stated.claim == "untouched core < 0.1 mm"
+    assert stated.unit == "mm"
+    assert stated.context == (
+        "D 2.5e-10 m²/s · IC50 0.0062 mol/m³ · bath 0.8 mol/m³ · 30 min · "
+        "2 mm nodule"
+    )
+    assert "1.4e-6" not in stated.context
+
+
+def test_a_bet_on_a_settling_field_reads_as_yes_or_no():
+    yes = cards.describe(
+        {
+            "kernel": "later",
+            "field": "completed",
+            "op": ">",
+            "value": 0.0,
+            "probe": {"trial": "NCT07411599"},
+        }
+    )
+    never = cards.describe(
+        {
+            "kernel": "later",
+            "field": "stopped",
+            "op": ">",
+            "value": 1.0,
+            "probe": {"trial": "NCT07411599"},
+        }
+    )
+
+    assert (yes.context, yes.claim) == ("NCT07411599", "completed: yes")
+    assert never.claim == "stopped: never"
+
+
+def test_a_bath_at_or_below_its_ic50_is_refused_before_sealing():
+    raw = whole()
+    raw["probe"]["concentration"] = 1e-3
+
+    with pytest.raises(cards.Refused) as refusal:
+        cards.compile_card(raw)
+
+    assert "check the units" in str(refusal.value)
+
+
+def test_later_only_takes_fields_that_settle():
+    raw = {
+        "kernel": "later",
+        "question": "Is this trial still recruiting today?",
+        "probe": {"trial": "NCT07411599"},
+        "field": "recruiting",
+        "op": "=",
+        "value": 1,
+        "chance": 0.8,
+        "low": 0,
+        "high": 1,
+    }
+
+    with pytest.raises(cards.Refused) as refusal:
+        cards.compile_card(raw)
+
+    assert "a lookup, not a forecast" in str(refusal.value)
+    assert cards.compile_card(raw | {"field": "completed"}).field == (
+        "completed"
+    )
+
+
+def test_the_later_probe_names_only_the_trial():
+    raw = {
+        "kernel": "later",
+        "question": "Will this trial ever post its results?",
+        "probe": {"trial": "NCT07411599", "field": "completed"},
+        "field": "has_results",
+        "op": "=",
+        "value": 1,
+        "chance": 0.5,
+        "low": 0,
+        "high": 1,
+    }
+
+    with pytest.raises(cards.Refused) as refusal:
+        cards.compile_card(raw)
+
+    assert "does not take field" in str(refusal.value)
+
+
+@pytest.mark.parametrize(
+    ("op", "value"),
+    [(">=", 0.0), (">", 1.0), ("<", 0.0), ("<=", 1.0), ("=", 2.0)],
+)
+def test_tautological_binary_claims_are_refused(op, value):
+    raw = {
+        "kernel": "later",
+        "question": "Will this trial complete eventually?",
+        "probe": {"trial": "NCT07411599"},
+        "field": "completed",
+        "op": op,
+        "value": value,
+        "chance": 0.5,
+        "low": 0,
+        "high": 1,
+    }
+
+    with pytest.raises(cards.Refused, match="settled before the referee runs"):
+        cards.compile_card(raw)
+
+
+@pytest.mark.parametrize(
+    ("patch",),
+    [
+        ({"field": "core_mm", "op": ">=", "value": 0.0},),
+        ({"field": "core_mm", "op": "<", "value": 3.0},),
+        ({"field": "touched", "op": "<=", "value": 1.0},),
+        ({"field": "ratio", "op": ">", "value": 1.0},),
+        ({"field": "lambda_mm", "op": ">", "value": 0.0},),
+    ],
+)
+def test_bounded_field_tautologies_are_refused(patch):
+    with pytest.raises(cards.Refused, match="field's bounds"):
+        cards.compile_card(whole() | patch)
+
+
+def test_malformed_trial_identifier_is_refused():
+    raw = {
+        "kernel": "later",
+        "question": "Will this study complete eventually?",
+        "probe": {"trial": "colorectal"},
+        "field": "completed",
+        "op": "=",
+        "value": 1,
+        "chance": 0.5,
+        "low": 0,
+        "high": 1,
+    }
+
+    with pytest.raises(cards.Refused, match="NCT followed by 8 digits"):
+        cards.compile_card(raw)
+
+
+def test_booleans_are_refused_as_numbers():
+    with pytest.raises(cards.Refused, match="must be a number"):
+        cards.compile_card(whole() | {"chance": True})
+
+    raw = whole()
+    raw["probe"]["dwell"] = True
+    with pytest.raises(cards.Refused, match="must be a number"):
+        cards.compile_card(raw)
+
+
+def test_validate_probe_allows_exploratory_low_bath():
+    raw = whole()["probe"] | {"concentration": 1e-4}
+    found = cards.validate_probe("reach", raw)
+    assert found["concentration"] == 1e-4

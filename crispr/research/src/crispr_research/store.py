@@ -1,4 +1,5 @@
 import json
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from threading import Lock, local
 from typing import Any
@@ -43,7 +44,8 @@ create table if not exists rules (
     author bigint,
     gains varchar,
     wins integer,
-    tried varchar
+    tried varchar,
+    primary key (version, layer)
 );
 create table if not exists episode (
     number bigint primary key,
@@ -75,9 +77,12 @@ create table if not exists card (
     spread double,
     covered boolean,
     verdict varchar,
-    p double,
-    discovery boolean,
-    made bigint
+    made bigint,
+    claim varchar,
+    context varchar,
+    unit varchar,
+    paid boolean,
+    reason varchar
 );
 create table if not exists turn (
     episode bigint,
@@ -149,6 +154,41 @@ create table if not exists settlement (
 );
 """
 
+CARD_COLUMNS = (
+    "episode",
+    "seal",
+    "kernel",
+    "question",
+    "field",
+    "op",
+    "value",
+    "chance",
+    "low",
+    "high",
+    "reference",
+    "observed",
+    "held",
+    "skill",
+    "spread",
+    "covered",
+    "verdict",
+    "made",
+    "claim",
+    "context",
+    "unit",
+    "paid",
+    "reason",
+)
+
+
+CARD_MIGRATIONS = (
+    "alter table card add column if not exists claim varchar",
+    "alter table card add column if not exists context varchar",
+    "alter table card add column if not exists unit varchar",
+    "alter table card add column if not exists paid boolean",
+    "alter table card add column if not exists reason varchar",
+)
+
 
 class Store:
     def __init__(self, path: str) -> None:
@@ -158,16 +198,33 @@ class Store:
         self._cursors: list[duckdb.DuckDBPyConnection] = []
         self.db.execute(SCHEMA)
         self.db.execute(EXTRA_SCHEMA)
+        for statement in CARD_MIGRATIONS:
+            self.db.execute(statement)
 
     @property
     def db(self) -> duckdb.DuckDBPyConnection:
-        # DuckDB 2 rejects overlapping calls on a single connection. Keep
-        # each thread's results and transactions on its own cursor.
         if not hasattr(self._threads, "db"):
             with self._lock:
                 self._threads.db = self._root.cursor()
                 self._cursors.append(self._threads.db)
         return self._threads.db
+
+    @contextmanager
+    def transaction(self):
+        nested = getattr(self._threads, "in_tx", False)
+        if nested:
+            yield
+            return
+        self.db.execute("begin transaction")
+        self._threads.in_tx = True
+        try:
+            yield
+            self.db.execute("commit")
+        except BaseException:
+            self.db.execute("rollback")
+            raise
+        finally:
+            self._threads.in_tx = False
 
     def close(self) -> None:
         with self._lock:
@@ -251,31 +308,11 @@ class Store:
         )
 
     def put_card(self, row: dict) -> None:
+        values = row | {"made": row["at"]}
         self.db.execute(
-            "insert into card values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-            "?, ?, ?, ?, ?, ?, ?)",
-            [
-                row["episode"],
-                row["seal"],
-                row["kernel"],
-                row["question"],
-                row["field"],
-                row["op"],
-                row["value"],
-                row["chance"],
-                row["low"],
-                row["high"],
-                row["reference"],
-                row["observed"],
-                row["held"],
-                row["skill"],
-                row["spread"],
-                row["covered"],
-                row["verdict"],
-                row["p"],
-                row["discovery"],
-                row["at"],
-            ],
+            f"insert into card ({', '.join(CARD_COLUMNS)}) values "
+            f"({', '.join('?' for _ in CARD_COLUMNS)})",
+            [values.get(name) for name in CARD_COLUMNS],
         )
 
     def put_turn(self, row: dict) -> None:
@@ -333,9 +370,10 @@ class Store:
     def cards(self, page: int) -> list[dict]:
         rows = self.db.execute(
             "select episode, seal, kernel, question, field, op, value, "
-            "chance, reference, observed, held, skill, verdict, p, "
-            "discovery, made "
-            "from card order by made desc limit ?",
+            "chance, reference, observed, held, skill, verdict, made, "
+            "claim, context, unit, paid "
+            "from card where verdict != 'refused' "
+            "order by made desc limit ?",
             [page],
         ).fetchall()
 
@@ -354,9 +392,31 @@ class Store:
                 "held": r[10],
                 "skill": r[11],
                 "verdict": r[12],
-                "p": None,
-                "discovery": False,
-                "at": r[15],
+                "at": r[13],
+                "claim": r[14] or "",
+                "context": r[15] or "",
+                "unit": r[16] or "",
+                "paid": bool(r[17]),
+            }
+            for r in rows
+        ]
+
+    def acts(self, episode: int) -> list[dict]:
+        rows = self.db.execute(
+            "select turn, id, tool, args, ok, summary, made from act "
+            "where episode = ? order by made, turn",
+            [episode],
+        ).fetchall()
+
+        return [
+            {
+                "turn": r[0],
+                "id": r[1],
+                "tool": r[2],
+                "args": json.loads(r[3]) if r[3] else {},
+                "ok": r[4],
+                "summary": r[5],
+                "at": r[6],
             }
             for r in rows
         ]
@@ -382,7 +442,8 @@ class Store:
     def open_bets(self) -> list[dict]:
         rows = self.db.execute(
             "select episode, seal, question, field, op, value, chance, "
-            "reference, made from card where verdict = 'open' order by made"
+            "low, high, reference, made from card where verdict = 'open' "
+            "order by made"
         ).fetchall()
 
         return [
@@ -395,8 +456,10 @@ class Store:
                 "op": r[4],
                 "value": r[5],
                 "chance": r[6],
-                "reference": r[7],
-                "at": r[8],
+                "low": r[7],
+                "high": r[8],
+                "reference": r[9],
+                "at": r[10],
             }
             for r in rows
         ]
@@ -408,15 +471,26 @@ class Store:
         return json.loads(row[0])["card"]["probe"] if row else {}
 
     def resolve(self, seal: str, row: dict) -> None:
-        self.db.execute(
-            "insert into settlement values (?, ?) on conflict do nothing",
-            [seal, json.dumps(row)],
-        )
-        self.db.execute(
-            "update card set verdict = ?, observed = ?, held = ?, skill = ? "
-            "where seal = ? and verdict = 'open'",
-            [row["verdict"], row["observed"], row["held"], row["skill"], seal],
-        )
+        with self.transaction():
+            self.db.execute(
+                "insert into settlement values (?, ?) on conflict do nothing",
+                [seal, json.dumps(row)],
+            )
+            self.db.execute(
+                "update card set verdict = ?, observed = ?, held = ?, "
+                "skill = ?, spread = ?, covered = ?, paid = ? "
+                "where seal = ? and verdict = 'open'",
+                [
+                    row["verdict"],
+                    row["observed"],
+                    row["held"],
+                    row["skill"],
+                    row.get("spread", 0.0),
+                    row.get("covered", False),
+                    row["paid"],
+                    seal,
+                ],
+            )
 
     def forecasts(self, most: int = 400) -> tuple[list[float], list[int]]:
         rows = self.db.execute(
@@ -429,29 +503,33 @@ class Store:
 
     def tally(self) -> dict:
         row = self.db.execute(
-            "select count(*), "
-            "sum(case when verdict = 'held' then 1 else 0 end), "
-            "sum(case when verdict = 'broken' then 1 else 0 end), "
-            "sum(case when verdict = 'refused' then 1 else 0 end), "
-            "sum(case when verdict = 'unresolved' then 1 else 0 end), "
-            "coalesce(avg(case when verdict in ('held','broken') "
-            "then skill end), 0.0), "
-            "coalesce(avg(case when verdict in ('held','broken') "
-            "then case when covered then 1.0 else 0.0 end end), 0.0), "
-            "coalesce(avg(case when verdict in ('held','broken') "
-            "then spread end), 0.0) from card"
+            "select count(*) filter (where verdict != 'refused'), "
+            "count(*) filter (where verdict = 'held'), "
+            "count(*) filter (where verdict = 'broken'), "
+            "count(*) filter (where verdict = 'refused'), "
+            "count(*) filter (where verdict = 'unresolved'), "
+            "count(*) filter (where verdict = 'open'), "
+            "coalesce(avg(skill) filter "
+            "(where verdict in ('held', 'broken') and paid), 0.0), "
+            "coalesce(avg(case when covered then 1.0 else 0.0 end) filter "
+            "(where verdict in ('held', 'broken')), 0.0), "
+            "coalesce(avg(spread) filter "
+            "(where verdict in ('held', 'broken')), 0.0) from card"
         ).fetchone()
 
-        assert row is not None  # Aggregate queries always return one row.
+        if row is None:
+            raise RuntimeError("an aggregate query returned no row")
+
         return {
             "cards": row[0] or 0,
             "held": row[1] or 0,
             "broken": row[2] or 0,
             "refused": row[3] or 0,
             "unresolved": row[4] or 0,
-            "skill": float(row[5] or 0.0),
-            "covered": float(row[6] or 0.0),
-            "spread": float(row[7] or 0.0),
+            "open": row[5] or 0,
+            "skill": float(row[6] or 0.0),
+            "covered": float(row[7] or 0.0),
+            "spread": float(row[8] or 0.0),
         }
 
     def meta(self, key: str, default: Any = None) -> Any:
@@ -499,7 +577,6 @@ class Store:
         )
 
     def recall(self, kernels: tuple[str, ...], limit: int = 12) -> list[dict]:
-        # Filter before limiting; preserve pending and unknown outcomes.
         rows = self.db.execute(
             "select payload from evidence where "
             "json_extract_string(payload, '$.card.kernel') in "
@@ -512,19 +589,19 @@ class Store:
         self, kernels: tuple[str, ...], limit: int = 12
     ) -> list[dict]:
         rows = self.db.execute(
-            "select question, field, op, value, verdict, skill from card "
-            "where kernel in (select unnest(?)) and field != '' "
+            "select context, claim, verdict, skill, paid from card "
+            "where kernel in (select unnest(?)) and verdict != 'refused' "
             "order by made desc limit ?",
             [list(kernels), limit],
         ).fetchall()
         return [
-            dict(
-                zip(
-                    ("question", "field", "op", "value", "verdict", "skill"),
-                    row,
-                    strict=True,
-                )
-            )
+            {
+                "context": row[0] or "",
+                "claim": row[1] or "",
+                "verdict": row[2],
+                "skill": row[3],
+                "paid": bool(row[4]),
+            }
             for row in rows
         ]
 
@@ -553,7 +630,6 @@ class Store:
         return found
 
     def used_genes(self) -> set[str]:
-        # Includes pre-migration calls, so earlier exposures stay excluded.
         rows = self.db.execute(
             "select distinct upper(json_extract_string(args, '$.probe.gene')) "
             "from act where json_extract_string(args, '$.kernel') = 'kill'"
@@ -579,30 +655,31 @@ class Store:
         )
 
     def put_rules(self, row: dict) -> None:
-        self.db.execute(
-            "delete from rules where version = ? and layer = ?",
-            [row["version"], row["layer"]],
-        )
-        self.db.execute(
-            "insert into rules values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-            "?, ?)",
-            [
-                row["version"],
-                row["layer"],
-                row["parent"],
-                json.dumps(row["lines"]),
-                row["standing"],
-                row["because"],
-                row["gain"],
-                row["p"],
-                row["decided"],
-                json.dumps(row["pairs"]),
-                row["author"],
-                json.dumps(row["gains"]),
-                row["wins"],
-                json.dumps(row["tried"]),
-            ],
-        )
+        with self.transaction():
+            self.db.execute(
+                "delete from rules where version = ? and layer = ?",
+                [row["version"], row["layer"]],
+            )
+            self.db.execute(
+                "insert into rules values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
+                "?, ?, ?)",
+                [
+                    row["version"],
+                    row["layer"],
+                    row["parent"],
+                    json.dumps(row["lines"]),
+                    row["standing"],
+                    row["because"],
+                    row["gain"],
+                    row["p"],
+                    row["decided"],
+                    json.dumps(row["pairs"]),
+                    row["author"],
+                    json.dumps(row["gains"]),
+                    row["wins"],
+                    json.dumps(row["tried"]),
+                ],
+            )
 
     def rules(self, layer: str, version: int) -> dict | None:
         row = self.db.execute(

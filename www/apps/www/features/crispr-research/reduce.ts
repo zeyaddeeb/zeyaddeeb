@@ -102,6 +102,7 @@ export function reduce(live: Live, envelope: Envelope): Live {
 				),
 			};
 		case "card":
+		case "settled":
 			return next;
 		case "concluded":
 			return {

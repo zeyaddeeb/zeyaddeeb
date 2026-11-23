@@ -18,13 +18,12 @@ FIELDS = (
     "margin",
     "steady",
 )
-PROBE = ("weight", "diffusivity", "ic50", "concentration", "dwell", "radius")
+PROBE = ("diffusivity", "ic50", "concentration", "dwell", "radius")
 
 
 @dataclass(frozen=True, slots=True)
 class Agent:
     name: str
-    weight: float
     diffusivity: float
     ic50: float
 
@@ -142,7 +141,6 @@ def touched(nodule: Nodule, depth: float) -> float:
 def probe(values: dict[str, float], clearance: float) -> dict[str, float]:
     agent = Agent(
         name="probe",
-        weight=values["weight"],
         diffusivity=values["diffusivity"],
         ic50=values["ic50"],
     )

@@ -12,12 +12,16 @@ def today() -> str:
 
 
 def settle(agent) -> int:
+    bets = agent.store.open_bets()
+    if not bets:
+        return 0
+
     if not gate.scores("later"):
         return 0
 
     settled = 0
 
-    for bet in agent.store.open_bets():
+    for bet in bets:
         nct = _trial(bet)
 
         if not nct:
@@ -25,7 +29,7 @@ def settle(agent) -> int:
 
         found = later.reading(nct, today())
 
-        if found.ungraded or later.open_bet(bet["field"], found.fields):
+        if not later.settled(bet["field"], found):
             continue
 
         observed = found.fields.get(bet["field"])
@@ -34,18 +38,21 @@ def settle(agent) -> int:
             continue
 
         held = referee.holds(bet["op"], observed, bet["value"])
-        chance = min(max(float(bet["chance"]), cards.FLOOR), cards.CEILING)
-        mine = chance if held else 1.0 - chance
-        theirs = min(max(float(bet["reference"]), cards.FLOOR), cards.CEILING)
-        theirs = theirs if held else 1.0 - theirs
-        skill = referee.bits(mine, theirs)
+        skill = _skill(bet, held)
+        low = float(bet["low"]) if bet.get("low") is not None else 0.0
+        high = float(bet["high"]) if bet.get("high") is not None else 1.0
+        spread = referee.interval_score(low, high, observed)
+        covered = low <= observed <= high
         agent.store.resolve(
             bet["seal"],
             {
                 "verdict": "held" if held else "broken",
                 "observed": observed,
                 "held": held,
-                "skill": skill,
+                "skill": skill if skill is not None else 0.0,
+                "spread": spread,
+                "covered": covered,
+                "paid": skill is not None,
                 "fields": found.fields,
                 "source": found.detail,
                 "as_of": today(),
@@ -58,13 +65,25 @@ def settle(agent) -> int:
                 "field": bet["field"],
                 "observed": observed,
                 "held": held,
-                "skill": skill,
+                "skill": skill if skill is not None else 0.0,
             }
         )
         settled += 1
         log.info("an open bet settled: %s %s", nct, bet["field"])
 
     return settled
+
+
+def _skill(bet: dict, held: bool) -> float | None:
+    if bet["reference"] is None:
+        return None
+
+    chance = min(max(float(bet["chance"]), cards.FLOOR), cards.CEILING)
+    mine = chance if held else 1.0 - chance
+    theirs = min(max(float(bet["reference"]), cards.FLOOR), cards.CEILING)
+    theirs = theirs if held else 1.0 - theirs
+
+    return referee.bits(mine, theirs)
 
 
 def _trial(bet: dict) -> str:

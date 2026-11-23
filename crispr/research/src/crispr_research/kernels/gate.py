@@ -1,5 +1,8 @@
+import time
 import tomllib
 from dataclasses import dataclass
+from functools import lru_cache
+from statistics import median
 
 from ..config import DEPTHS, method
 from . import kill, later, matter, reach
@@ -40,7 +43,6 @@ def agents() -> dict[str, reach.Agent]:
     for name, body in tables(method()["reach"]["agents"]).items():
         found[name] = reach.Agent(
             name=name,
-            weight=float(body["weight"]),
             diffusivity=float(body["diffusivity"]),
             ic50=float(body["ic50"]),
         )
@@ -97,7 +99,6 @@ def limits() -> list[Check]:
 
     quicker = reach.Agent(
         name="quicker",
-        weight=drug.weight,
         diffusivity=drug.diffusivity * 4.0,
         ic50=drug.ic50,
     )
@@ -222,6 +223,15 @@ KILL_NOISE = 0.05
 
 
 def kill_gate() -> dict:
+    if not kill.PACK.exists():
+        return {"ran": False, "why": "the dependency pack has not been built"}
+
+    stat = kill.PACK.stat()
+    return dict(_kill_gate(str(kill.PACK), stat.st_mtime_ns, stat.st_size))
+
+
+@lru_cache(maxsize=4)
+def _kill_gate(path: str, modified: int, size: int) -> dict:
     found = kill.db()
 
     if found is None:
@@ -245,7 +255,7 @@ def kill_gate() -> dict:
         return {"ran": False, "why": "the control lists are missing"}
 
     auroc = _auroc(essential, control)
-    middle = sorted(essential)[len(essential) // 2]
+    middle = float(median(essential))
     noise = sum(1 for v in control if v <= KILL_ESSENTIAL) / len(control)
     held = (
         auroc >= KILL_AUROC
@@ -285,14 +295,18 @@ SETTLED = (
     ("NCT00002527", "completed"),
     ("NCT00364013", "completed"),
 )
-TODAY = "2026-10-21"
+
+
+def _today() -> str:
+    return time.strftime("%Y-%m-%d", time.gmtime())
 
 
 def later_gate() -> dict:
     checked = []
+    day = _today()
 
     for nct, expected in SETTLED:
-        found = later.reading(nct, TODAY)
+        found = later.reading(nct, day)
 
         if found.ungraded:
             return {"ran": False, "why": found.ungraded}
@@ -321,6 +335,26 @@ MATTER_QUIET = 1.5
 
 
 def matter_gate() -> dict:
+    bed = matter.bedside()
+    patients = matter.chord() / "data_clinical_patient.txt"
+    if not bed.exists() or not patients.exists():
+        return {"ran": False, "why": "the patient data is not on this machine"}
+
+    bed_stat = bed.stat()
+    pat_stat = patients.stat()
+    return dict(
+        _matter_gate(
+            (str(bed), bed_stat.st_mtime_ns, bed_stat.st_size),
+            (str(patients), pat_stat.st_mtime_ns, pat_stat.st_size),
+        )
+    )
+
+
+@lru_cache(maxsize=4)
+def _matter_gate(
+    bedside_stamp: tuple[str, int, int],
+    cohort_stamp: tuple[str, int, int],
+) -> dict:
     if not matter.ready():
         return {"ran": False, "why": "the patient data is not on this machine"}
 

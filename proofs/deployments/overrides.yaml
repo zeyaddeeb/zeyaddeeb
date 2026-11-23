@@ -57,13 +57,13 @@ networkPolicy:
     - to:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: llm
+              kubernetes.io/metadata.name: llm-router
           podSelector:
             matchLabels:
-              app.kubernetes.io/name: inference-gateway
+              gateway.networking.k8s.io/gateway-name: llm-waypoint
       ports:
         - protocol: TCP
-          port: 1234
+          port: 80
 
 resources:
   requests:

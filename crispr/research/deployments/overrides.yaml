@@ -21,6 +21,16 @@ persistence:
   size: 2Gi
   mountPath: /data
 
+prepare:
+  command: ["crispr-research", "pack", "--optional"]
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
 env:
   UVICORN_LOG_LEVEL: "warning"
   RESEARCH_AGENT: "watched"
@@ -31,6 +41,7 @@ env:
   RESEARCH_BEDSIDE: "/data/evidence/bedside.duckdb"
   RESEARCH_CHORD: "/data/evidence/chord"
   RESEARCH_AGENT_TRIAL_PAIRS: "8"
+  RESEARCH_AGENT_REVISE_EVERY: "4"
   RESEARCH_AGENT_TOKENS_PER_DAY: "150000"
   RESEARCH_AGENT_MAX_TOKENS: "1024"
   RESEARCH_AGENT_ACTIONS: "6"
@@ -62,13 +73,13 @@ networkPolicy:
     - to:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: llm
+              kubernetes.io/metadata.name: llm-router
           podSelector:
             matchLabels:
-              app.kubernetes.io/name: inference-gateway
+              gateway.networking.k8s.io/gateway-name: llm-waypoint
       ports:
         - protocol: TCP
-          port: 1234
+          port: 80
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0

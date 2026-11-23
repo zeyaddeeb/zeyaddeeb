@@ -56,6 +56,8 @@ class Ask:
     prompt: dict
     tools: list[dict]
     max_tokens: int
+    thinking: bool = True
+    tool_choice: str | dict = "auto"
 
 
 class Splitter:
@@ -153,7 +155,11 @@ class Llm:
 
         if ask.tools:
             body["tools"] = ask.tools
-            body["tool_choice"] = "auto"
+            body["tool_choice"] = ask.tool_choice
+
+        if not ask.thinking:
+            body["enable_thinking"] = False
+            body["chat_template_kwargs"] = {"enable_thinking": False}
 
         return body
 

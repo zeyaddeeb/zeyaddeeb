@@ -133,7 +133,11 @@ export function useResearch(path: string) {
 
 				dispatch({ kind: "event", envelope });
 
-				if (envelope.type === "concluded" || envelope.type === "rules") {
+				if (
+					envelope.type === "concluded" ||
+					envelope.type === "rules" ||
+					envelope.type === "settled"
+				) {
 					loadShift().then((loaded) => {
 						if (!closed && loaded.ok)
 							dispatch({ kind: "refreshed", overview: loaded.value });

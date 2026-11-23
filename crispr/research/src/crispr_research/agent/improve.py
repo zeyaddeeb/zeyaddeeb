@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from dataclasses import dataclass
 
@@ -51,11 +52,7 @@ def _fresh(version: int, layer: Layer, lines: list[str]) -> dict:
     }
 
 
-def _put(agent: Agent, row: dict, champion: bool = False) -> None:
-    if champion:
-        row["standing"] = Standing.CHAMPION.value
-
-    agent.store.put_rules(row)
+def announce(agent: Agent, row: dict) -> None:
     agent.hub.emit(
         {
             "type": "rules",
@@ -65,6 +62,14 @@ def _put(agent: Agent, row: dict, champion: bool = False) -> None:
             "lines": row["lines"],
         }
     )
+
+
+def _put(agent: Agent, row: dict, champion: bool = False) -> None:
+    if champion:
+        row["standing"] = Standing.CHAMPION.value
+
+    agent.store.put_rules(row)
+    announce(agent, row)
 
 
 def next_run(agent: Agent, names: tuple[str, ...] | None = None) -> Run:
@@ -141,7 +146,11 @@ async def revise(agent: Agent, layer: Layer) -> bool:
     if row is None:
         return False
 
-    suite = evaluation.prepare(agent) if layer is Layer.PLAYBOOK else None
+    suite = (
+        await asyncio.to_thread(evaluation.prepare, agent)
+        if layer is Layer.PLAYBOOK
+        else None
+    )
     if layer is Layer.PLAYBOOK and suite is None:
         return False
     lineage = agent.store.lineage(layer.value)
@@ -172,13 +181,15 @@ async def revise(agent: Agent, layer: Layer) -> bool:
                 prompt=prompt,
                 tools=[_tool(layer)],
                 max_tokens=REVISE_TOKENS,
+                thinking=False,
             )
         )
         history.append(prompt)
         history.append(reply.message())
 
         if not reply.calls:
-            return False
+            prompt = {"role": "user", "content": prompts.REVISE_NUDGE}
+            continue
 
         call = reply.calls[0]
 
@@ -339,3 +350,16 @@ async def review(agent: Agent) -> None:
 
     _put(agent, method)
     agent.save()
+
+
+async def maybe_revise_method(agent: Agent) -> bool:
+    method = agent.store.rules(Layer.METHOD.value, agent.state.method)
+
+    if method is None or method["standing"] != Standing.CHAMPION.value:
+        return False
+
+    gains = len(method["gains"])
+    if gains < rules.META or gains % rules.META != 0:
+        return False
+
+    return await revise(agent, Layer.METHOD)

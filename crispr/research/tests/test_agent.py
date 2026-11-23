@@ -6,9 +6,10 @@ import pytest
 from gateway import Clerk, Ring, Say, Script, Think, whole_probe
 
 from crispr_research import availability, evidence
-from crispr_research.agent import episode, fronts, loop
+from crispr_research.agent import desk, episode, fronts, improve, loop, tools
 from crispr_research.agent.core import Agent, Stop
 from crispr_research.agent.llm import Ask, Llm
+from crispr_research.agent.rules import Layer
 from crispr_research.config import Config, Mode
 from crispr_research.kernels import gate, kill
 from crispr_research.live import Hub
@@ -144,10 +145,15 @@ async def test_a_malformed_card_is_refused_and_recorded_as_a_refusal():
     agent = build(script)
     record = await episode.run(agent, fronts.REACH)
 
-    rows = agent.store.cards(10)
-
-    assert len(rows) == 1
-    assert rows[0]["verdict"] == "refused"
+    assert agent.store.cards(10) == []
+    assert agent.store.tally()["cards"] == 0
+    assert agent.store.tally()["refused"] == 1
+    verdict, reason = agent.store.db.execute(
+        "select verdict, reason from card"
+    ).fetchone()
+    assert verdict == "refused"
+    assert "no field cured" in reason
+    assert agent.state.cards == 0
     assert record["reward"] == 0.0
 
 
@@ -721,8 +727,8 @@ async def test_a_strong_gene_rank_does_not_claim_statistical_discovery():
 
     row = agent.store.cards(5)[0]
 
-    assert row["p"] is None
-    assert row["discovery"] is False
+    assert "p" not in row
+    assert "discovery" not in row
     assert agent.alpha.tested == 0
     assert agent.alpha.rejected == 0
 
@@ -759,7 +765,7 @@ async def test_gene_predictions_do_not_spend_an_invalid_alpha_budget():
 
     row = agent.store.cards(5)[0]
 
-    assert row["discovery"] is False
+    assert "discovery" not in row
     assert agent.alpha.tested == 0
     assert agent.alpha.rejected == 0
 
@@ -787,3 +793,212 @@ async def test_the_alpha_ledger_survives_a_restart():
     assert again.alpha.tested == 2
     assert again.alpha.rejected == 1
     assert again.alpha.budget() == pytest.approx(agent.alpha.budget())
+
+
+@pytest.mark.parametrize(
+    ("said", "expected"),
+    [
+        ("0.62", 0.62),
+        ("62%", 0.62),
+        (" 0.4.\n", 0.4),
+        ("1", 1.0),
+        ("1.5", None),
+        ("The forecast for diffusivity 2.5e-10 is", None),
+        ("1. **Analyze the request**", None),
+        ("", None),
+    ],
+)
+def test_the_forecaster_counts_only_a_bare_probability(said, expected):
+    assert desk._parsed(said) == expected
+
+
+@pytest.mark.asyncio
+async def test_the_forecaster_and_the_forced_close_are_asked_not_to_think():
+    script = Script(
+        turns=deque(
+            [
+                [Ring("plan", {"aim": "a", "could_fail": "b"})],
+                [Ring("probe", whole_probe())],
+                [Say("0.25")],
+                [Think("still weighing it")],
+                [Ring("conclude", {"found": "forced", "next": ""})],
+            ]
+        )
+    )
+    agent = build(script, actions=3)
+
+    record = await episode.run(agent, fronts.REACH)
+
+    quiet = [
+        body
+        for body in script.requests
+        if body.get("chat_template_kwargs") == {"enable_thinking": False}
+    ]
+    tooled = [
+        [tool["function"]["name"] for tool in body.get("tools") or []]
+        for body in quiet
+    ]
+
+    assert record["summary"] == "forced"
+    assert tooled == [[], ["conclude"]]
+    assert all(body["enable_thinking"] is False for body in quiet)
+
+
+@pytest.mark.asyncio
+async def test_a_forecaster_that_rambles_leaves_the_card_unpaid(monkeypatch):
+    monkeypatch.setattr(gate, "scores", lambda kernel: True)
+    turns = whole()
+    turns[2] = [Think("diffusivity 2.5e-10 so maybe 0.3"), Say("")]
+    agent = build(Script(turns=turns))
+
+    record = await episode.run(agent, fronts.REACH)
+
+    row = agent.store.cards(10)[0]
+    said = agent.store.db.execute(
+        "select summary from act where tool = 'probe'"
+    ).fetchone()[0]
+
+    assert row["verdict"] == "broken"
+    assert row["reference"] is None
+    assert row["paid"] is False
+    assert row["skill"] == 0.0
+    assert record["reward"] == 0.0
+    assert "did not answer with a single probability" in said
+    assert "never reaches the inner" in said
+
+
+@pytest.mark.asyncio
+async def test_a_trial_that_already_reported_is_refused_before_sealing(
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        desk,
+        "_run",
+        lambda card: ({"known": 1.0, "completed": 1.0}, None),
+    )
+    bet = {
+        "kernel": "later",
+        "question": "Will this trial complete before the year is out?",
+        "probe": {"trial": "NCT03849469"},
+        "field": "completed",
+        "op": "=",
+        "value": 1,
+        "chance": 0.3,
+        "low": 0,
+        "high": 1,
+    }
+    script = Script(
+        turns=deque(
+            [
+                [Ring("plan", {"aim": "a", "could_fail": "b"})],
+                [Ring("probe", bet)],
+                [Ring("conclude", {"found": "refused", "next": ""})],
+            ]
+        )
+    )
+    agent = build(script)
+
+    await episode.run(agent, fronts.WATCH)
+
+    said = agent.store.db.execute(
+        "select summary from act where tool = 'probe'"
+    ).fetchone()[0]
+
+    assert "a lookup, not a forecast" in said
+    assert agent.store.cards(10) == []
+    assert agent.store.db.execute("select count(*) from claim").fetchone() == (
+        0,
+    )
+    assert all(body.get("tools") for body in script.requests)
+
+
+def test_a_front_that_can_pay_is_worked_before_one_that_cannot():
+    capabilities = {
+        "reach": {"available": True, "scores": False},
+        "kill": {"available": False, "scores": False},
+        "matter": {"available": False, "scores": False},
+        "later": {"available": True, "scores": True},
+    }
+
+    assert loop._fronts(capabilities, "available") == ("reach", "watch")
+    assert loop._fronts(capabilities, "scores") == ("watch",)
+
+
+def test_tools_are_scoped_to_front_and_evaluation_mode():
+    reach_tools = tools.definitions(front=fronts.REACH)
+    names = [t["function"]["name"] for t in reach_tools]
+    assert "search_trials" not in names
+    probe_def = next(
+        t for t in reach_tools if t["function"]["name"] == "probe"
+    )
+    assert probe_def["function"]["parameters"]["properties"]["kernel"][
+        "enum"
+    ] == ["reach"]
+
+    watch_tools = tools.definitions(front=fronts.WATCH)
+    assert "search_trials" in [t["function"]["name"] for t in watch_tools]
+    watch_probe = next(
+        t for t in watch_tools if t["function"]["name"] == "probe"
+    )
+    assert watch_probe["function"]["parameters"]["properties"]["field"][
+        "enum"
+    ] == [
+        "has_results",
+        "completed",
+        "stopped",
+    ]
+
+    eval_tools = tools.definitions(front=fronts.SPARE, evaluation=True)
+    assert [t["function"]["name"] for t in eval_tools] == [
+        "plan",
+        "probe",
+        "conclude",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_forced_close_requires_tool_and_falls_back_to_plain_text():
+    script = Script(
+        turns=deque(
+            [
+                [Think("thinking")],
+                [Say("Plain summary without a tool call.")],
+            ]
+        )
+    )
+    agent = build(script, actions=1)
+    record = await episode.run(agent, fronts.REACH)
+
+    assert script.requests[-1]["tool_choice"] == "required"
+    assert record["summary"] == "Plain summary without a tool call."
+
+
+@pytest.mark.asyncio
+async def test_revise_disables_thinking_and_nudges_when_no_call_arrives(
+    monkeypatch,
+):
+    evaluation_data(monkeypatch)
+    script = Script(
+        turns=deque(
+            [
+                [Say("Still thinking about what to change.")],
+                [
+                    Ring(
+                        "revise",
+                        {
+                            "change": "add",
+                            "text": "Check priors before setting confidence",
+                            "because": "previous card was overconfident",
+                        },
+                    )
+                ],
+            ]
+        )
+    )
+    agent = build(script, trial_pairs=8)
+    improve.seed(agent)
+    agent.capabilities = availability.status()
+
+    assert await improve.revise(agent, Layer.PLAYBOOK)
+    assert all(r.get("enable_thinking") is False for r in script.requests)
+    assert len(script.requests) == 2

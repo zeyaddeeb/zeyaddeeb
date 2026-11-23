@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from math import log
 
-from .cards import FLOOR, Card, Refused
+from .cards import FLOOR, Card, Refused, holds
 
 COVERAGE = 0.8
 TAIL = 1.0 - COVERAGE
@@ -35,20 +35,6 @@ def grade(card: Card, fields: dict[str, float]) -> Verdict:
     )
 
 
-def holds(op: str, observed: float, value: float) -> bool:
-    match op:
-        case "<":
-            return observed < value
-        case "<=":
-            return observed <= value
-        case ">":
-            return observed > value
-        case ">=":
-            return observed >= value
-        case _:
-            return abs(observed - value) <= 1e-9 * max(abs(value), 1.0)
-
-
 def stated(chance: float, held: bool) -> float:
     return chance if held else 1.0 - chance
 
@@ -68,12 +54,16 @@ def _clamped(chance: float) -> float:
     return min(max(chance, FLOOR), 1.0 - FLOOR)
 
 
-def interval(card: Card, observed: float) -> float:
-    width = card.high - card.low
-    under = max(0.0, card.low - observed)
-    over = max(0.0, observed - card.high)
+def interval_score(low: float, high: float, observed: float) -> float:
+    width = high - low
+    under = max(0.0, low - observed)
+    over = max(0.0, observed - high)
 
     return width + (2.0 / TAIL) * (under + over)
+
+
+def interval(card: Card, observed: float) -> float:
+    return interval_score(card.low, card.high, observed)
 
 
 def covered(card: Card, observed: float) -> bool:

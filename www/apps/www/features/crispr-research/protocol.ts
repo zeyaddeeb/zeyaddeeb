@@ -47,11 +47,15 @@ export interface Card {
 	op: string;
 	value: number;
 	chance: number;
-	reference: number;
+	reference: number | null;
 	observed: number;
 	held: boolean;
 	skill: number;
+	paid: boolean;
 	verdict: Verdict;
+	claim: string;
+	context: string;
+	unit: string;
 	at: number;
 }
 
@@ -60,6 +64,8 @@ export interface Tally {
 	held: number;
 	broken: number;
 	refused: number;
+	unresolved: number;
+	open: number;
 	skill: number;
 }
 
@@ -100,6 +106,14 @@ export type Event =
 			seal: string;
 			field: string;
 			observed: number;
+			skill: number;
+	  }
+	| {
+			type: "settled";
+			seal: string;
+			field: string;
+			observed: number;
+			held: boolean;
 			skill: number;
 	  }
 	| { type: "concluded"; episode: Episode }

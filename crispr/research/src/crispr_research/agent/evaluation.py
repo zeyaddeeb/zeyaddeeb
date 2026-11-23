@@ -51,11 +51,20 @@ def prepare(agent: Agent) -> dict | None:
         and g not in used
         and not agent.store.case_used(evidence.digest([source["dataset"], g]))
     ]
-    secrets.SystemRandom().shuffle(genes)
-    cases = []
+    rng = secrets.SystemRandom()
+    rng.shuffle(genes)
+    memory = episode.standing(agent, fronts.SPARE)
+    essential: list[dict] = []
+    other: list[dict] = []
+    target_each = count // 2
     for gene in genes:
         found = kill.reading(gene, "all")
         if found.ungraded or found.fields.get("patients", 0) < FLOOR:
+            continue
+        is_essential = found.fields.get("median", 0.0) < kill.ESSENTIAL
+        if is_essential and len(essential) >= count:
+            continue
+        if not is_essential and len(other) >= count:
             continue
         raw = {
             "kernel": "kill",
@@ -63,7 +72,7 @@ def prepare(agent: Agent) -> dict | None:
             "probe": {"gene": gene, "stratum": "all"},
             "field": "median",
             "op": "<",
-            "value": -0.5,
+            "value": kill.ESSENTIAL,
             "chance": 0.5,
             "low": -2.0,
             "high": 0.0,
@@ -71,18 +80,26 @@ def prepare(agent: Agent) -> dict | None:
         card = cards.compile_card(raw)
         if agent.store.observation(evidence.experiment(card, source)):
             continue
-        cases.append(
+        bucket = essential if is_essential else other
+        bucket.append(
             {
                 "identity": evidence.digest([source["dataset"], gene]),
                 "task": evidence.task(card),
                 "fields": found.fields,
                 "source": source,
-                "memory": episode.standing(agent, fronts.SPARE),
+                "memory": memory,
                 "first": secrets.randbelow(2),
             }
         )
-        if len(cases) == count:
+        if len(essential) >= target_each and len(other) >= count - target_each:
             break
+    chosen_ess = essential[:target_each]
+    chosen_oth = other[: count - len(chosen_ess)]
+    cases = chosen_ess + chosen_oth
+    if len(cases) < count:
+        spare = essential[len(chosen_ess) :] + other[len(chosen_oth) :]
+        cases.extend(spare[: count - len(cases)])
+    rng.shuffle(cases)
     if len(cases) < count:
         agent.store.put_meta(
             "evaluation_status",
@@ -106,8 +123,7 @@ def prepare(agent: Agent) -> dict | None:
 
 
 def reserve(agent: Agent, version: int, suite: dict) -> None:
-    agent.store.db.execute("begin transaction")
-    try:
+    with agent.store.transaction():
         for case in suite["cases"]:
             if not agent.store.reserve_case(case["identity"], version):
                 raise ValueError("An evaluation case was already reserved")
@@ -123,10 +139,6 @@ def reserve(agent: Agent, version: int, suite: dict) -> None:
                 "metric": "negative Brier loss",
             },
         )
-        agent.store.db.execute("commit")
-    except Exception:
-        agent.store.db.execute("rollback")
-        raise
 
 
 async def _run(agent: Agent, case: dict, lines: list[str]) -> dict:
@@ -214,15 +226,10 @@ async def step(agent: Agent) -> bool:
     suite["pairs"].append(
         {"task": case["task"], "champion": old, "challenger": new}
     )
-    agent.store.db.execute("begin transaction")
-    try:
+    with agent.store.transaction():
         agent.store.put_meta(f"evaluation:{version}", suite)
         agent.store.put_rules(row)
-        agent.store.db.execute("commit")
-    except Exception:
-        agent.store.db.execute("rollback")
-        raise
-    improve._put(agent, row)
+    improve.announce(agent, row)
     agent.save()
     if len(row["pairs"]) < len(suite["cases"]):
         return False
