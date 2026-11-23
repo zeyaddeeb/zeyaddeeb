@@ -94,7 +94,6 @@
 	gap: 16px;
 	padding-bottom: 28px;
 	overflow-y: auto;
-	overscroll-behavior: contain;
 	mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
 }
 
@@ -320,7 +319,6 @@
 	margin: 0;
 	padding: 0;
 	overflow-y: auto;
-	overscroll-behavior: contain;
 	list-style: none;
 }
 
